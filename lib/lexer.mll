@@ -29,5 +29,6 @@ and token = parse
     { token lexbuf }
 | '\n'
     { EOI }
+| [^ '\n'] { IDENT "todo" }
 | _
     { raise (LexError (Printf.sprintf "At offset %d: unexpected character.\n" (Lexing.lexeme_start lexbuf))) }
