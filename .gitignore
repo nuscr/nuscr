@@ -1,0 +1,7 @@
+# emacs files
+*~
+
+# ocaml & dune files
+*.install
+_build/
+.merlin
