@@ -1,2 +1,10 @@
 (library
+  (flags (:standard -w +A-39-4))
   (public_name nuscrlib))
+
+(ocamllex
+  (modules lexer))
+
+(menhir
+  (modules parser)
+  (flags ("-la" "2")))
