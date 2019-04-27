@@ -25,6 +25,34 @@ rule line = parse
    tokens. *)
 
 and token = parse
+(* keyworkds *)
+| "module" { MODULE_KW }
+| "import" { IMPORT_KW }
+| "type" { TYPE_KW }
+| "protocol" { PROTOCOL_KW }
+| "global" { GLOBAL_KW }
+| "local" { LOCAL_KW }
+| "explicit" { EXPLICIT_KW }
+| "aux" { AUX_KW }
+| "role" { ROLE_KW }
+| "accept" { ACCEPT_KW }
+| "self" { SELF_KW }
+| "sig" { SIG_KW }
+| "as" { AS_KW }
+| "connect" { CONNECT_KW }
+| "disconnect" { DISCONNECT_KW }
+| "wrap" { WRAP_KW }
+| "from" { FROM_KW }
+| "to" { TO_KW }
+| "choice" { CHOICE_KW }
+| "at" { AT_KW }
+| "or" { OR_KW }
+| "rec" { REC_KW }
+| "continue" { CONTINUE_KW }
+| "and" { AND_KW }
+| "do" { DO_KW }
+
+(* other *)
 | [' ' '\t']
     { token lexbuf }
 | '\n'
