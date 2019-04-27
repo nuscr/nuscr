@@ -1,6 +1,6 @@
 open Syntax
 
-let message = "I am using dune now"
+let message = "I am using dune now\n"
 
 let process (prg : string) : string =
   let lexbuf = Lexing.from_string prg in

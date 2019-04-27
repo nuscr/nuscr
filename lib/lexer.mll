@@ -25,10 +25,10 @@ rule line = parse
    tokens. *)
 
 and token = parse
-(* | [' ' '\t']
-    { token lexbuf } *)
+| [' ' '\t']
+    { token lexbuf }
 | '\n'
     { EOI }
-| [^ '\n']* { IDENT "todo\n" }
+| [^ '\n']* as str { IDENT str }
 | _
     { raise (LexError (Printf.sprintf "At offset %d: unexpected character.\n" (Lexing.lexeme_start lexbuf))) }
