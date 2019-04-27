@@ -12,11 +12,11 @@
 %{ open Syntax %}
 %%
 
-main :
-  e = located(raw_main) { e }
+let main :=
+  located(raw_main)
 
-raw_main :
-  str = IDENT { Con str }
+let raw_main ==
+  ~ = IDENT ; < Con >
 
-located(X):
-  x = X { {loc = (assert false) ; value = x } }
+let located(x) ==
+  ~ = x; { { loc = $loc; value = x } }
