@@ -1,6 +1,6 @@
 (library
   (flags (:standard -w +A-39-4))
-  (public_name nuscrlib))
+  (name nuscrlib))
 
 
 (ocamllex
