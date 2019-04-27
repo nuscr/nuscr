@@ -16,7 +16,7 @@ let main :=
   located(raw_main)
 
 let raw_main ==
-  ~ = IDENT ; < Con >
+  ~ = IDENT ; EOI ; < Con >
 
 let located(x) ==
   ~ = x; { { loc = $loc; value = x } }
