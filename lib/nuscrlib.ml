@@ -2,6 +2,15 @@ open Syntax
 
 let message = "I am using dune now\n"
 
+let render_pos (pos : Lexing.position) : string =
+  Printf.sprintf "line: %d, column %d"
+    pos.Lexing.pos_lnum pos.Lexing.pos_bol
+
+let render_pos_interval (startp, endp) : string =
+  Printf.sprintf "from %s to %s"
+    (render_pos startp)
+    (render_pos endp)
+
 let process (prg : string) : string =
   let lexbuf = Lexing.from_string prg in
   try
@@ -11,7 +20,8 @@ let process (prg : string) : string =
   with
   | Lexer.LexError msg -> Err.UserError ("Lexer error: " ^ msg) |> raise
   | Parser.Error ->
+    let err_interval = Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf in
     Err.UserError (Printf.sprintf
-                     "Parser error: At offset %d: syntax error.\n%!"
-                     (Lexing.lexeme_start lexbuf))
+                     "Parser error: An error occured at:\n %s\n%!"
+                     (render_pos_interval err_interval))
     |> raise
