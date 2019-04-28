@@ -2,7 +2,6 @@
   open Parser
 
   exception LexError of string
-
 }
 
 (* some definitions of character classes *)
@@ -88,7 +87,7 @@ and token = parse
     { token lexbuf }
 | eof
     { EOI }
-| ("I am"[^ '\n']* as str) { IDENT str }
+| identifier as str { IDENT str }
 | _ {
   let offset = Lexing.lexeme_start lexbuf in
   let str = Printf.sprintf "At offset %d: unexpected character.\n" offset in
