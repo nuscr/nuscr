@@ -2,6 +2,7 @@ let test_files = [ "/examples/parser/first.scr"
                  (* ; "/examples/parser/second.scr" *)
                  ]
 
+(* test the parser *)
 let () =
   try
     let pwd =  Sys.getenv "PWD" in
