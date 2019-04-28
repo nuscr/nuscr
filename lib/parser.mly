@@ -30,7 +30,6 @@
 %token ACCEPT_KW
 %token SELF_KW
 %token SIG_KW
-//INSTANTIATES_KW = 'instantiates';
 %token AS_KW
 
 %token CONNECT_KW
@@ -43,19 +42,8 @@
 %token OR_KW
 %token REC_KW
 %token CONTINUE_KW
-//PAR_KW = 'par';
 %token AND_KW  // Needed for disconnect
-/*INTERRUPTIBLE_KW = 'interruptible';
-WITH_KW = 'with';
-BY_KW = 'by';  /* from for interrupts is more expected, but from is
-                  not good for multiple roles (generally, the comma
-	          in interrupt message list and role list looks like
-	          "and" rather than "or") * /
-THROWS_KW = 'throws';
-CATCHES_KW = 'catches';*/
 %token DO_KW
-//SPAWN_KW = 'spawn';
-
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> scr_module
