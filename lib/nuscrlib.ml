@@ -1,6 +1,6 @@
 open Syntax
 
-let message = "I am using dune now\n"
+let message = "//This is an invisible comment.\n(* This (* too *)*)\nglobal (* protocol *)"
 
 let render_pos (pos : Lexing.position) : string =
   Printf.sprintf "line: %d, column %d"
@@ -25,3 +25,4 @@ let process (prg : string) : string =
                      "Parser error: An error occured at:\n %s\n%!"
                      (render_pos_interval err_interval))
     |> raise
+  | e  -> Err.Violation ("Found a problem:" ^ Printexc.to_string e) |> raise

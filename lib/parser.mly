@@ -54,7 +54,7 @@ let main :=
   located(raw_main)
 
 let raw_main ==
-  ~ = IDENT ; EOI ; < Con >
+  GLOBAL_KW ; EOI ; { Con "I am using dune now" }
 
 let located(x) ==
   ~ = x; { { loc = $loc; value = x } }

@@ -5,26 +5,57 @@
 
 }
 
+(* some definitions of character classes *)
+
+let underscore = '_' (* perhaps we could remove this *)
+let prime = '\''
+let letter = ['a'-'z' 'A'-'Z']
+
+(* nuScr extension: add primes to symbols *)
+let symbol = ['{' '}' '(' ')' '[' ']' ':' '/' '\\' '.' '#''&' '?' '!''_''\'']
+let digit = ['0'-'9']
+
+(* in scribble it can be empty, not here *)
+(* let identifier = (letter|digit|underscore)* *)
+
+
+(* nuScr extension, it can contain primes, it cannot be empty and the
+   numbers or the primes cannot come up first *)
+let indetifier = (letter|underscore)(letter|digit|underscore|prime)*
+
+let ext_identiefier = '\"' (letter|digit|symbol) '\"'
+
+(* nuScr extension, removed \u000C *)
+let whitespace = ('\t'|' '|'\r'|'\n')+
+
 (* This rule looks for a single line, terminated with '\n' or eof.
    It returns a pair of an optional string (the line that was found)
    and a Boolean flag (false if eof was reached). *)
 
-rule line = parse
-| ([^'\n']* '\n') as line
-    (* Normal case: one line, no eof. *)
-    { Some line, true }
-| eof
-    (* Normal case: no data, eof. *)
-    { None, false }
-| ([^'\n']+ as line) eof
-    (* Special case: some data but missing '\n', then eof.
-       Consider this as the last line, and add the missing '\n'. *)
-    { Some (line ^ "\n"), false }
+rule line_comment = parse
+| _* '\n' { token lexbuf }
 
-(* This rule analyzes a single line and turns it into a stream of
-   tokens. *)
+(* nuScr extension, nestable ml style comments *)
+and ml_style_block n = parse
+| "(*)" { ml_style_block n lexbuf }
+| "*)" { if (n-1) = 0 then token lexbuf else ml_style_block (n-1) lexbuf }
+| "(*" { ml_style_block (n+1) lexbuf }
+| _ { ml_style_block n lexbuf }
+
+and c_style_block = parse
+| "*/" { token lexbuf }
+| _ { c_style_block lexbuf }
 
 and token = parse
+(* whitespace *)
+| whitespace { token lexbuf }
+
+(* comments *)
+| "//" { line_comment lexbuf }
+| "(*)" { line_comment lexbuf }  (* nuScr extension: ml-style line comments *)
+| "/*" { c_style_block lexbuf }
+| "(*" { ml_style_block 1 lexbuf }
+
 (* keyworkds *)
 | "module" { MODULE_KW }
 | "import" { IMPORT_KW }
@@ -55,8 +86,10 @@ and token = parse
 (* other *)
 | [' ' '\t']
     { token lexbuf }
-| '\n'
+| eof
     { EOI }
-| [^ '\n']* as str { IDENT str }
-| _
-    { raise (LexError (Printf.sprintf "At offset %d: unexpected character.\n" (Lexing.lexeme_start lexbuf))) }
+| ("I am"[^ '\n']* as str) { IDENT str }
+| _ {
+  let offset = Lexing.lexeme_start lexbuf in
+  let str = Printf.sprintf "At offset %d: unexpected character.\n" offset in
+  LexError str |> raise }
