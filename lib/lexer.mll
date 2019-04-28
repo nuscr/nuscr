@@ -22,7 +22,7 @@ let digit = ['0'-'9']
    numbers or the primes cannot come up first *)
 let identifier = (letter|underscore)(letter|digit|underscore|prime)*
 
-let ext_identiefier = '\"' (letter|digit|symbol) '\"'
+let ext_identifier = '\"' (letter|digit|symbol)* '\"'
 
 (* nuScr extension, removed \u000C *)
 let whitespace = ('\t'|' '|'\r'|'\n')+
@@ -59,10 +59,12 @@ and token = parse
 (* symbols *)
 | ';' { SEMICOLON }
 | '.' { DOT }
+| '<' { LT }
+| '>' { GT }
 
 (* keyworkds *)
 
-| "module" { MODULE_KW } (*
+| "module" { MODULE_KW }
 | "import" { IMPORT_KW }
 | "type" { TYPE_KW }
 | "protocol" { PROTOCOL_KW }
@@ -87,7 +89,7 @@ and token = parse
 | "continue" { CONTINUE_KW }
 | "and" { AND_KW }
 | "do" { DO_KW }
-*)
+
 
 (* other *)
 | [' ' '\t']
@@ -95,6 +97,7 @@ and token = parse
 | eof
     { EOI }
 | identifier as str { IDENT str }
+| ext_identifier as str { EXTIDENT str }
 | _ {
   let offset = Lexing.lexeme_start lexbuf in
   let str = Printf.sprintf "At offset %d: unexpected character.\n" offset in
