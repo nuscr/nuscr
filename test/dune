@@ -1,3 +1,4 @@
 (test
   (name test)
+  (flags (:standard -w +A-39-4-21))
   (libraries nuscrlib))
