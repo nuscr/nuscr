@@ -57,10 +57,15 @@ and token = parse
 | "(*" { ml_style_block 1 lexbuf }
 
 (* symbols *)
+| ',' { COMMA }
 | ';' { SEMICOLON }
 | '.' { DOT }
 | '<' { LT }
 | '>' { GT }
+| '(' { LPAR }
+| ')' { RPAR }
+| '{' { LCURLY }
+| '}' { RCURLY }
 
 (* keyworkds *)
 

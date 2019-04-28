@@ -27,7 +27,27 @@ type raw_type_decl =
   }
 type type_decl = raw_type_decl located
 
+type message = { name:  string; payload: string list }
+
+type raw_global_interaction =
+  MessageTransfer of
+    { message : message
+    ; from_role : string
+    ; to_roles : string list
+    }
+  | Choice
+type global_interaction = raw_global_interaction located
+
+type raw_global_protocol =
+  { name: string
+  ; roles: string list
+  ; interactions: global_interaction list
+  }
+
+type global_protocol = raw_global_protocol located
+
 type scr_module =
   { decl: mod_decl
   ; types: type_decl list
+  ; protocols : global_protocol list
   }

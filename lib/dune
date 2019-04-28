@@ -1,5 +1,5 @@
 (library
-  (flags (:standard -w +A-39-4))
+  (flags (:standard -w +A-39-4-42))
   (name nuscrlib))
 
 
