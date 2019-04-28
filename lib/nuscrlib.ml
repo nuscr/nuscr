@@ -1,6 +1,6 @@
 open Syntax
 
-let message = "//This is an invisible comment.\n(* This (* too *)*)\nglobal (* protocol *)"
+let message = "//This is an invisible comment.\n(* This (* too *)*)\n module (* other stuff *)"
 
 let render_pos (pos : Lexing.position) : string =
   Printf.sprintf "line: %d, column %d"

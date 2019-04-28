@@ -20,7 +20,7 @@ let digit = ['0'-'9']
 
 (* nuScr extension, it can contain primes, it cannot be empty and the
    numbers or the primes cannot come up first *)
-let indetifier = (letter|underscore)(letter|digit|underscore|prime)*
+let identifier = (letter|underscore)(letter|digit|underscore|prime)*
 
 let ext_identiefier = '\"' (letter|digit|symbol) '\"'
 
@@ -56,7 +56,8 @@ and token = parse
 | "(*" { ml_style_block 1 lexbuf }
 
 (* keyworkds *)
-| "module" { MODULE_KW }
+
+| "module" { MODULE_KW } (*
 | "import" { IMPORT_KW }
 | "type" { TYPE_KW }
 | "protocol" { PROTOCOL_KW }
@@ -81,6 +82,7 @@ and token = parse
 | "continue" { CONTINUE_KW }
 | "and" { AND_KW }
 | "do" { DO_KW }
+*)
 
 (* other *)
 | [' ' '\t']

@@ -6,8 +6,9 @@
 
 %token EOI
 
+
 (* keywords from Scribble.g with original comments *)
-%token MODULE_KW
+%token MODULE_KW (*
 %token IMPORT_KW
 %token TYPE_KW
 %token PROTOCOL_KW
@@ -44,6 +45,7 @@ THROWS_KW = 'throws';
 CATCHES_KW = 'catches';*/
 %token DO_KW
 //SPAWN_KW = 'spawn';
+*)
 
 (* ---------------------------------------- *)
 %start <Syntax.ast> main
@@ -54,7 +56,7 @@ let main :=
   located(raw_main)
 
 let raw_main ==
-  GLOBAL_KW ; EOI ; { Con "I am using dune now" }
+  MODULE_KW ; EOI ; { Con "I am using dune now" }
 
 let located(x) ==
   ~ = x; { { loc = $loc; value = x } }
