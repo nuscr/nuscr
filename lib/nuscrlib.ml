@@ -25,9 +25,6 @@ let process_ch (ch : in_channel) : string =
   | e  -> Err.Violation ("Found a problem:" ^ Printexc.to_string e) |> raise
 
 let process_file (fn : string) : string =
-  (* try *)
     let input = open_in fn in
     let res = process_ch input in
     close_in input ; res
-  (* with
-   * | *)

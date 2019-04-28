@@ -32,7 +32,8 @@ let whitespace = ('\t'|' '|'\r'|'\n')+
    and a Boolean flag (false if eof was reached). *)
 
 rule line_comment = parse
-| _* '\n' { token lexbuf }
+| '\n' { token lexbuf }
+| _ { line_comment lexbuf }
 
 (* nuScr extension, nestable ml style comments *)
 and ml_style_block n = parse
