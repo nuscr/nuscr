@@ -6,6 +6,8 @@
 
 %token EOI
 
+%token SEMICOLON
+%token DOT
 
 (* keywords from Scribble.g with original comments *)
 %token MODULE_KW (*
@@ -48,15 +50,26 @@ CATCHES_KW = 'catches';*/
 *)
 
 (* ---------------------------------------- *)
-%start <Syntax.ast> main
+%start <Syntax.scr_module> scr_module
 %{ open Syntax %}
 %%
 
-let main :=
-  located(raw_main)
+(* modules *)
+let scr_module :=
+  md = module_decl ; EOI ; { {decl= md} }
 
-let raw_main ==
-  MODULE_KW ; EOI ; { Con "I am using dune now" }
+let module_decl := located (raw_module_decl)
 
+let raw_module_decl :=
+  MODULE_KW ; nm = qname ; SEMICOLON ; { {module_name= nm} }
+
+(* qualified names *)
+
+let qname == located (raw_qname)
+
+let raw_qname :=
+  separated_nonempty_list(DOT, IDENT)
+
+(* utilities *)
 let located(x) ==
   ~ = x; { { loc = $loc; value = x } }

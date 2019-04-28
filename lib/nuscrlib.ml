@@ -11,12 +11,11 @@ let render_pos_interval (startp, endp) : string =
     (render_pos startp)
     (render_pos endp)
 
-let process (prg : string) : string =
-  let lexbuf = Lexing.from_string prg in
+let process_ch (ch : in_channel) : string =
+  let lexbuf = Lexing.from_channel ch in
   try
-    let ast = Parser.main Lexer.token lexbuf in
-    match ast.value with
-    | Con str -> str
+    let ast = Parser.scr_module Lexer.token lexbuf in
+    ast.decl.value.module_name.value |> qname_to_string
   with
   | Lexer.LexError msg -> Err.UserError ("Lexer error: " ^ msg) |> raise
   | Parser.Error ->
@@ -26,3 +25,11 @@ let process (prg : string) : string =
                      (render_pos_interval err_interval))
     |> raise
   | e  -> Err.Violation ("Found a problem:" ^ Printexc.to_string e) |> raise
+
+let process_file (fn : string) : string =
+  (* try *)
+    let input = open_in fn in
+    let res = process_ch input in
+    close_in input ; res
+  (* with
+   * | *)
