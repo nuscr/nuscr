@@ -1,16 +1,23 @@
 open Syntax
 
-let render_pos (pos : Lexing.position) : string =
-  Printf.sprintf "line: %d, column %d"
-    pos.Lexing.pos_lnum pos.Lexing.pos_bol
+let render_pos pos =
+  Printf.sprintf "%d:%d"
+    pos.Lexing.pos_lnum (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
 
 let render_pos_interval (startp, endp) : string =
-  Printf.sprintf "from %s to %s"
+  Printf.sprintf "%s to %s in: %s"
     (render_pos startp)
     (render_pos endp)
+    (startp.Lexing.pos_fname)
 
-let process_ch (ch : in_channel) : string =
-  let lexbuf = Lexing.from_channel ch in
+let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
+    ( lexbuf.Lexing.lex_curr_p <-
+        { lexbuf.Lexing.lex_curr_p with Lexing.pos_fname = fname }
+    ; lexbuf
+    )
+
+let process_ch fname (ch : in_channel) : string =
+  let lexbuf = set_filename fname (Lexing.from_channel ch) in
   try
     let ast = Parser.scr_module Lexer.token lexbuf in
     ast.decl.value.module_name.value |> qname_to_string
@@ -26,5 +33,5 @@ let process_ch (ch : in_channel) : string =
 
 let process_file (fn : string) : string =
     let input = open_in fn in
-    let res = process_ch input in
+    let res = process_ch fn input in
     close_in input ; res

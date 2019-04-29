@@ -1,4 +1,5 @@
 {
+  open Lexing
   open Parser
 
   exception LexError of string
@@ -25,14 +26,14 @@ let identifier = (letter|underscore)(letter|digit|underscore|prime)*
 let ext_identifier = '\"' (letter|digit|symbol)* '\"'
 
 (* nuScr extension, removed \u000C *)
-let whitespace = ('\t'|' '|'\r'|'\n')+
+(* let whitespace = ('\t'|' '|'\r'|'\n')+ *)
 
 (* This rule looks for a single line, terminated with '\n' or eof.
    It returns a pair of an optional string (the line that was found)
    and a Boolean flag (false if eof was reached). *)
 
 rule line_comment = parse
-| '\n' { token lexbuf }
+| '\n' {  new_line lexbuf ; token lexbuf }
 | _ { line_comment lexbuf }
 
 (* nuScr extension, nestable ml style comments *)
@@ -40,15 +41,18 @@ and ml_style_block n = parse
 | "(*)" { ml_style_block n lexbuf }
 | "*)" { if (n-1) = 0 then token lexbuf else ml_style_block (n-1) lexbuf }
 | "(*" { ml_style_block (n+1) lexbuf }
+| '\n' { new_line lexbuf ; ml_style_block n lexbuf }
 | _ { ml_style_block n lexbuf }
 
 and c_style_block = parse
 | "*/" { token lexbuf }
+| '\n' { new_line lexbuf ; c_style_block lexbuf }
 | _ { c_style_block lexbuf }
 
 and token = parse
 (* whitespace *)
-| whitespace { token lexbuf }
+| ('\t'|' ')+ { token lexbuf}
+| ('\n'|'\r') { new_line lexbuf ; token lexbuf}
 
 (* comments *)
 | "//" { line_comment lexbuf }
@@ -97,8 +101,6 @@ and token = parse
 
 
 (* other *)
-| [' ' '\t']
-    { token lexbuf }
 | eof
     { EOI }
 | identifier as str { IDENT str }
