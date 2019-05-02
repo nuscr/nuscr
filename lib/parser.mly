@@ -91,9 +91,20 @@ let protocol_decl == global_protocol_decl (* local pending *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
   GLOBAL_KW ; PROTOCOL_KW? ; nm = IDENT ;
-  (*paremter_decls ;*) rs = role_decls ;
+  pars = parameter_decls? ; rs = role_decls ;
   ints = global_protocol_block ;
-  { { name = nm ; roles = rs ; interactions = ints } }
+  { { name = nm
+    ; parameters = (match pars with Some p -> p | _ -> [])
+    ; roles = rs
+    ; interactions = ints } }
+
+let parameter_decls ==
+  LT ; pars = separated_nonempty_list(COMMA, parameter_decl) ; GT ; { pars }
+
+let parameter_decl :=
+|  TYPE_KW ; nm = IDENT ; { (nm, None) }
+
+| SIG_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
 
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }

@@ -40,6 +40,10 @@ type global_interaction = raw_global_interaction located
 
 type raw_global_protocol =
   { name: string
+  (* if parameter is ("foo", None) it's a type *)
+  (* if parameter is ("foo", Some "bar") it's a sig *)
+  (* neither case I know what it is *)
+  ; parameters: (string * string option) list
   ; roles: string list
   ; interactions: global_interaction list
   }

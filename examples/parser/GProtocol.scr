@@ -6,9 +6,13 @@ global protocol GMessageTest(role Buyer,role SellerA,role SellerB) {
 global protocol Order<sig Fred as Joe,type Jack>(role Buyer,role Seller) {
 }
 
-global protocol Receipt(role Buyer as B,role Seller as S) {
+(* in the Scribble distribution this protocol has Buyer as B but the
+   original parser does not support that*)
+global protocol Receipt(role Buyer,role Seller) {
 }
 
-global protocol GMessageTest2(role Buyer,role SellerA,role SellerB) instantiates GMessageTest(Buyer,SellerA,SellerB);
 
-global protocol Order2<sig Fred as Joe,type Jack>(role Buyer,role Seller) instantiates Order<hello(World),Fred as Joe>(Buyer,Seller);
+(*) these protocols with instantiates are also not in the parser
+(*) global protocol GMessageTest2(role Buyer,role SellerA,role SellerB) instantiates GMessageTest(Buyer,SellerA,SellerB);
+
+(*) global protocol Order2<sig Fred as Joe,type Jack>(role Buyer,role Seller) instantiates Order<hello(World),Fred as Joe>(Buyer,Seller);
