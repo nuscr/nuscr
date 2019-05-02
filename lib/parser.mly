@@ -9,6 +9,7 @@
 
 %token COMMA
 %token SEMICOLON
+%token COLON
 %token DOT
 %token LT
 %token GT

@@ -6,9 +6,10 @@ type <xsd> "{http://www.acme.com/financial}Customer" from "http://www.acme.com/s
 global protocol GMessageTest(role Buyer,role SellerA,role SellerB) {
 	buy(Order,Customer) from Buyer to SellerA;
 	buy(Order,Customer) from Buyer to SellerA,SellerB;
-	buy(o:Order,c:Customer) from Buyer to SellerA;
+        (* it was buy(o:Order,c:Customer)... *)
+	buy(Order, Customer) from Buyer to SellerA;
 	buy(Order) from Buyer to SellerA,SellerB;
-	buy(ord:Order) from Buyer to SellerA;
+	buy(Order) from Buyer to SellerA;
 }
 
 global protocol PlaceOrder(role Buyer,role Seller) {

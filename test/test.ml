@@ -1,5 +1,6 @@
 let test_files = [ "/examples/parser/first.scr"
                  ; "/examples/parser/GProtocol.scr"
+                 ; "/examples/parser/GMessage.scr"
                  ]
 
 (* test the parser *)

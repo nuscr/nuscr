@@ -63,6 +63,7 @@ and token = parse
 (* symbols *)
 | ',' { COMMA }
 | ';' { SEMICOLON }
+| ':' { COLON }
 | '.' { DOT }
 | '<' { LT }
 | '>' { GT }
@@ -105,7 +106,7 @@ and token = parse
     { EOI }
 | identifier as str { IDENT str }
 | ext_identifier as str { EXTIDENT str }
-| _ {
+| _ as unrecog {
   let offset = Lexing.lexeme_start lexbuf in
-  let str = Printf.sprintf "At offset %d: unexpected character.\n" offset in
+  let str = Printf.sprintf "At offset %d: unexpected character('%c').\n" offset unrecog in
   LexError str |> raise }
