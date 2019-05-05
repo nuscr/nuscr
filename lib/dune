@@ -8,4 +8,4 @@
 
 (menhir
   (modules parser)
-  (flags ("-la" "2")))
+  (flags ("--explain" "-la" "2")))

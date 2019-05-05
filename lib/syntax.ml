@@ -8,8 +8,11 @@ type 'a located =
  * and raw_ast =
  *   | Con of string *)
 
+(* a simple name *)
+type name = string
+
 (* a qualified name *)
-type raw_qname = string list
+type raw_qname = name list
 type qname = raw_qname located
 
 let qname_to_string qn =
@@ -17,7 +20,6 @@ let qname_to_string qn =
 
 type raw_mod_decl = { module_name: qname }
 type mod_decl = raw_mod_decl located
-
 
 type raw_type_decl =
   { domain: string (* where does the type come from java|xsd|... *)
@@ -27,29 +29,38 @@ type raw_type_decl =
   }
 type type_decl = raw_type_decl located
 
-type message = { name:  string; payload: string list }
+type payloadt =
+  | PayloadName of name
+  | PayloadDel of name * name (* protocol @ role *)
+  | PayloadQName of qname
+
+type message = Message of { name:  name; payload: payloadt list }
+             | MessageName of name
+             | MessageQName of qname
 
 type global_interaction = raw_global_interaction located
 and raw_global_interaction =
   MessageTransfer of
     { message : message
-    ; from_role : string
-    ; to_roles : string list
+    ; from_role : name
+    ; to_roles : name list
     }
   (* recursion variable, protocol *)
-  | Recursion of string * global_interaction list
-  | Continue of string
+  | Recursion of name * global_interaction list
+  | Continue of name
   (* role, protocol options *)
-  | Choice of string * global_interaction list list
+  | Choice of name * global_interaction list list
+  (* protocol * non role args * roles *)
+  | Do of name * message list * name list
 
 
 type raw_global_protocol =
-  { name: string
+  { name: name
   (* if parameter is ("foo", None) it's a type *)
   (* if parameter is ("foo", Some "bar") it's a sig *)
   (* neither case I know what it is *)
-  ; parameters: (string * string option) list
-  ; roles: string list
+  ; parameters: (name * name option) list
+  ; roles: name list
   ; interactions: global_interaction list
   }
 

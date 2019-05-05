@@ -72,6 +72,7 @@ and token = parse
 | ')' { RPAR }
 | '{' { LCURLY }
 | '}' { RCURLY }
+| '@' { ARROBA }
 
 (* keyworkds *)
 

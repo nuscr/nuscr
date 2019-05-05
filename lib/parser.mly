@@ -1,5 +1,3 @@
-
-
 (* ---------------------------------------- *)
 
 %token <string>IDENT
@@ -17,6 +15,7 @@
 %token RPAR
 %token LCURLY
 %token RCURLY
+%token ARROBA
 
 (* keywords from Scribble.g with original comments *)
 %token MODULE_KW
@@ -48,7 +47,16 @@
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> scr_module
-%{ open Syntax %}
+%{ open Syntax
+
+  type name_or_qname = Name of name | QName of qname
+
+  let noq (nm : qname) : name_or_qname =
+  if List.length (nm.value) = 1 then Name (List.hd (nm.value))                                             else QName nm
+
+  (* list of 'a list option *)
+  let loalo = function None -> [] | Some n -> n
+%}
 %%
 
 (* modules *)
@@ -122,10 +130,31 @@ let raw_global_interaction ==
   | global_continue
   | global_choice
   /* | global_continue */
-  /* | global_do */
+  | global_do
   /* | global_connect */
   /* | global_disconnect */
   /* | global_wrap */
+
+let global_do ==
+  DO_KW ; nm = IDENT ; nra = non_role_args? ;
+  ra = role_args? ; SEMICOLON ;
+  { Do (nm, loalo nra, loalo ra) }
+
+let role_args ==
+  LPAR ; nm = separated_nonempty_list(COMMA, IDENT) ; RPAR ; { nm }
+
+let non_role_args ==
+  LT ; nras = separated_nonempty_list(COMMA, non_role_arg) ; GT ; { nras }
+
+(* grammatically the same as message  but may use a qualified name *)
+
+let non_role_arg ==
+  msg = message_signature ; { msg }
+  /* | ~ = IDENT ; < MessageName > */
+  | nm = qname ; { match noq nm with
+                   | Name n -> MessageName n
+                   | QName n -> MessageQName n
+                 }
 
 let global_choice ==
   CHOICE_KW ; AT_KW ; ~ = IDENT ;
@@ -152,20 +181,30 @@ let global_message_transfer ==
 (* we have a qname because that's what fixme comments says in the
    Scribble parser *)
 let message ==
-  message_signature /* | qname */
+  msg = message_signature ; { msg }
+  | ~ = IDENT ; < MessageName >
 
+(* this corresponds to siglit in Scribble.g *)
 let message_signature ==
   /* LPAR ; payload ; RPAR */
   | nm=IDENT ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
-      { { name = nm
-        ; payload = pars
-        }
+      { Message { name = nm
+                ; payload = pars
+                }
       }
   /* | LPAR ; RPAR */
 
+
 let payload_el ==
-  IDENT
-  /* | pn = IDENT ARROBA rn = IDENT */
+  (* protocol @ role (delegation) *)
+  |  ~ = IDENT ; ARROBA ;  ~ = IDENT ; < PayloadDel >
+  | nm = qname ; { match noq nm with
+                   | Name n -> PayloadName n
+                   | QName n -> PayloadQName n
+                 }
+
+/* let name_or_qname == */
+/*   ~ = qname ; < noq > */
 
 (* qualified names *)
 
