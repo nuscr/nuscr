@@ -36,7 +36,7 @@ and raw_global_interaction =
     ; from_role : string
     ; to_roles : string list
     }
-  | Recursion of string * global_interaction
+  | Recursion of string * global_interaction list
   | Continue of string
   | Choice
 

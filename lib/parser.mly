@@ -118,7 +118,7 @@ let global_protocol_block ==
 let global_interaction == located(raw_global_interaction)
 let raw_global_interaction ==
   global_message_transfer
-  /* | global_recursion */
+  | global_recursion
   | global_continue
   /* | global_choice */
   /* | global_continue */
