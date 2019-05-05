@@ -29,14 +29,17 @@ type type_decl = raw_type_decl located
 
 type message = { name:  string; payload: string list }
 
-type raw_global_interaction =
+type global_interaction = raw_global_interaction located
+and raw_global_interaction =
   MessageTransfer of
     { message : message
     ; from_role : string
     ; to_roles : string list
     }
+  | Recursion of string * global_interaction
+  | Continue of string
   | Choice
-type global_interaction = raw_global_interaction located
+
 
 type raw_global_protocol =
   { name: string

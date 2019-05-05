@@ -118,12 +118,20 @@ let global_protocol_block ==
 let global_interaction == located(raw_global_interaction)
 let raw_global_interaction ==
   global_message_transfer
+  /* | global_recursion */
+  | global_continue
   /* | global_choice */
   /* | global_continue */
   /* | global_do */
   /* | global_connect */
   /* | global_disconnect */
   /* | global_wrap */
+
+let global_continue ==
+  CONTINUE_KW ; ~ = IDENT ; SEMICOLON ; < Continue >
+
+let global_recursion ==
+  REC_KW ; ~ = IDENT ; ~ = global_protocol_block ; < Recursion >
 
 let global_message_transfer ==
   msg = message ; FROM_KW ; frn = IDENT ;
