@@ -1,0 +1,141 @@
+//$ bin/scribblec.sh scribble-core/src/test/scrib/demo/supplierinfo/SupplierInfoNoFair.scr -fsm InfoAuth Client
+
+
+module src.SupplierInfoNoFair;
+
+
+type <xsd> "UserName" from "AUTH.xsd" as username;
+type <xsd> "Password" from "AUTH.xsd" as password;
+type <xsd> "UUID" from "AUTH.xsd" as uuid;
+type <xsd> "/retailhub/supplierdetails" from "Retailer.xsd" as supplierdetails;
+type <xsd> "/retailhub/contractdetails" from "Retailer.xsd" as contractdetails;
+
+type <xsd> "..." from "...xsd" as usercontext;
+type <xsd> "..." from "...xsd" as filters;
+
+
+explicit global protocol InfoAuth
+(
+	role Client,
+	role LoginSvc,
+	role AuthSvc,
+	role FilterSvc,
+	role SupplierSvc,
+	role ContractSvc
+)
+{
+	connect Client to LoginSvc;
+	login(username, password) from Client to LoginSvc;
+	choice at LoginSvc
+	{
+		loginfailure() from LoginSvc to Client;
+		//disconnect Client and LoginSvc;
+	}
+	or
+	{
+		loginsuccess() from LoginSvc to Client;
+		//disconnect Client and LoginSvc;
+		connect Client to AuthSvc;
+		do Main(Client, AuthSvc, FilterSvc, SupplierSvc, ContractSvc);
+	}
+}
+
+
+aux global protocol Main
+(
+	role Client,
+	role AuthSvc,
+	role FilterSvc,
+	role SupplierSvc,
+	role ContractSvc
+)
+{
+	choice at Client
+	{
+		// GET SUPPLIER INFO
+		getsuppliers(uuid) from Client to AuthSvc;
+		do SuppInfo(Client, AuthSvc, FilterSvc, SupplierSvc);
+	}
+	or
+	{
+		// GET CONTRACT INFO
+		getcontracts() from Client to AuthSvc;
+		do ContractInfo(Client, AuthSvc, FilterSvc, ContractSvc);
+	}
+	do Main(Client, AuthSvc, FilterSvc, SupplierSvc, ContractSvc);
+}
+
+
+aux global protocol SuppInfo
+(
+	role Client,
+	role AuthSvc,
+	role FilterSvc,
+	role SupplierSvc
+)
+{
+	choice at AuthSvc
+	{
+		// DENIED
+		deny() from AuthSvc to Client;
+	}
+	or
+	{
+		connect AuthSvc to SupplierSvc;
+		// PREPARE FILTERED SUPPLIER INFO FOR Client
+		getsuppliers() from AuthSvc to SupplierSvc;
+		suppliers() from SupplierSvc to AuthSvc;
+		//disconnect AuthSvc and SupplierSvc;
+		do FilterInfo
+				<filterSuppliers(usercontext, filters, supplierdetails)>
+				//<filterContracts(usercontext, filters, supplierdetails)>
+				(AuthSvc, FilterSvc);
+		disconnect AuthSvc and SupplierSvc;
+		suppliers() from AuthSvc to Client;
+	}
+}
+
+
+aux global protocol ContractInfo
+(
+	role Client,
+	role AuthSvc,
+	role FilterSvc,
+	role ContractSvc
+)
+{
+	choice at AuthSvc
+	{
+		// DENIED
+		deny() from AuthSvc to Client;
+	}
+	or
+	{
+		connect AuthSvc to ContractSvc;
+		// PREPARE FILTERED SUPPLIER INFO FOR Client
+		getcontracts() from AuthSvc to ContractSvc;
+		contracts() from ContractSvc to AuthSvc;
+		//disconnect AuthSvc and ContractSvc;
+		do FilterInfo
+				<filterContracts(usercontext, filters, contractdetails)>
+				(AuthSvc, FilterSvc);
+		disconnect AuthSvc and ContractSvc;
+		contracts() from AuthSvc to Client;
+	}
+}
+
+
+aux global protocol FilterInfo
+<
+	sig Query
+>
+(
+	role AuthSvc,
+	role FilterSvc
+)
+{
+	Query connect AuthSvc to FilterSvc;
+	filtered() from FilterSvc to AuthSvc;
+	disconnect AuthSvc and FilterSvc;
+}
+

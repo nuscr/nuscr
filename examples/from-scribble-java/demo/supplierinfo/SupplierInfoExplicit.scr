@@ -1,0 +1,146 @@
+//$ bin/scribblec.sh scribble-core/src/test/scrib/demo/supplierinfo/SupplierInfoExplicit.scr -fsm InfoAuth Client
+
+
+module src.SupplierInfoExplicit;
+
+
+type <xsd> "UserName" from "AUTH.xsd" as username;
+type <xsd> "Password" from "AUTH.xsd" as password;
+type <xsd> "UUID" from "AUTH.xsd" as uuid;
+type <xsd> "/retailhub/supplierdetails" from "Retailer.xsd" as supplierdetails;
+type <xsd> "/retailhub/contractdetails" from "Retailer.xsd" as contractdetails;
+
+type <xsd> "..." from "...xsd" as usercontext;
+type <xsd> "..." from "...xsd" as filters;
+
+
+explicit global protocol InfoAuth
+(
+	role Client,
+	role LoginSvc,
+	role AuthSvc,
+	role FilterSvc,
+	role SupplierSvc,
+	role ContractSvc
+)
+{
+	connect Client to LoginSvc;
+	login(username, password) from Client to LoginSvc;
+	choice at LoginSvc
+	{
+		//loginsuccess() from LoginSvc to Client;  // Not an error if the following line commented (and fairness assumed)
+		loginfailure() from LoginSvc to Client;
+		/*connect Client to AuthSvc;
+		getsuppliers(uuid) from Client to AuthSvc;  // Error: orphans*/
+		disconnect Client and LoginSvc;
+	}
+	or
+	{
+		loginsuccess() from LoginSvc to Client;
+		//disconnect Client and LoginSvc;
+		connect Client to AuthSvc;
+		connect AuthSvc to FilterSvc;
+		connect AuthSvc to SupplierSvc;
+		connect AuthSvc to ContractSvc;
+		do Main(Client, AuthSvc, FilterSvc, SupplierSvc, ContractSvc);
+	}
+}
+
+
+aux global protocol Main
+(
+	role Client,
+	role AuthSvc,
+	role FilterSvc,
+	role SupplierSvc,
+	role ContractSvc
+)
+{
+	choice at Client
+	{
+		// GET SUPPLIER INFO
+		getsuppliers(uuid) from Client to AuthSvc;
+		//1() from AuthSvc to ContractSvc;
+		do SuppInfo(Client, AuthSvc, FilterSvc, SupplierSvc);
+	}
+	or
+	{
+		// GET CONTRACT INFO
+		getcontracts() from Client to AuthSvc;
+		//2() from AuthSvc to SupplierSvc;
+		do ContractInfo(Client, AuthSvc, FilterSvc, ContractSvc);
+		//do ContractInfo(Client, AuthSvc, FilterSvc, SupplierSvc);  // Error
+	}
+	do Main(Client, AuthSvc, FilterSvc, SupplierSvc, ContractSvc);
+}
+
+
+aux global protocol SuppInfo
+(
+	role Client,
+	role AuthSvc,
+	role FilterSvc,
+	role SupplierSvc
+)
+{
+	choice at AuthSvc
+	{
+		// DENIED
+		deny() from AuthSvc to Client;
+	}
+	or
+	{
+		// PREPARE FILTERED SUPPLIER INFO FOR Client
+		getsuppliers() from AuthSvc to SupplierSvc;
+		suppliers() from SupplierSvc to AuthSvc;
+		do FilterInfo
+				<filterSupplier(usercontext, filters, supplierdetails)>
+				(AuthSvc, FilterSvc);
+		suppliers() from AuthSvc to Client;
+	}
+}
+
+
+aux global protocol ContractInfo
+(
+	role Client,
+	role AuthSvc,
+	role FilterSvc,
+	role ContractSvc
+)
+{
+	choice at AuthSvc
+	{
+		// DENIED
+		deny() from AuthSvc to Client;
+	}
+	or
+	{
+		// PREPARE FILTERED SUPPLIER INFO FOR Client
+		getcontracts() from AuthSvc to ContractSvc;
+		contracts() from ContractSvc to AuthSvc;
+		do FilterInfo
+				<filterContract(usercontext, filters, contractdetails)>
+				//<filterSupplier(usercontext, filters, supplierdetails)>  // OK (merge)
+				//<filterSupplier(usercontext, filters, contractdetails)>  // Error
+				(AuthSvc, FilterSvc);
+		contracts() from AuthSvc to Client;
+	}
+}
+
+
+//aux global protocol FilterInfo<type details>(  // Bad non-det. payload
+aux global protocol FilterInfo
+<
+	sig Query
+>
+(
+	role AuthSvc,
+	role FilterSvc
+)
+{
+	//filter(usercontext, filters, details) from AuthSvc to FilterSvc;
+	Query from AuthSvc to FilterSvc;
+	filtered() from FilterSvc to AuthSvc;
+}
+
