@@ -2,6 +2,7 @@ let test_files = [ "/examples/parser/first.scr"
                  ; "/examples/parser/GProtocol.scr"
                  ; "/examples/parser/GMessage.scr"
                  ; "/examples/from-scribble-java/test/test1/Test1.scr"
+                 ; "/examples/from-scribble-java/test/test2/Test2.scr"
                  ]
 
 (* test the parser *)

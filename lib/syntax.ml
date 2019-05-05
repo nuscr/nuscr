@@ -36,9 +36,11 @@ and raw_global_interaction =
     ; from_role : string
     ; to_roles : string list
     }
+  (* recursion variable, protocol *)
   | Recursion of string * global_interaction list
   | Continue of string
-  | Choice
+  (* role, protocol options *)
+  | Choice of string * global_interaction list list
 
 
 type raw_global_protocol =

@@ -120,12 +120,17 @@ let raw_global_interaction ==
   global_message_transfer
   | global_recursion
   | global_continue
-  /* | global_choice */
+  | global_choice
   /* | global_continue */
   /* | global_do */
   /* | global_connect */
   /* | global_disconnect */
   /* | global_wrap */
+
+let global_choice ==
+  CHOICE_KW ; AT_KW ; ~ = IDENT ;
+  ~ = separated_nonempty_list(OR_KW, global_protocol_block) ;
+  < Choice >
 
 let global_continue ==
   CONTINUE_KW ; ~ = IDENT ; SEMICOLON ; < Continue >
