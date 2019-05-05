@@ -20,8 +20,9 @@ let digit = ['0'-'9']
 
 
 (* nuScr extension, it can contain primes, it cannot be empty and the
-   numbers or the primes cannot come up first *)
-let identifier = (letter|underscore)(letter|digit|underscore|prime)*
+   the primes cannot come up first (it is a bit weird that digits can
+   come first in identifiers *)
+let identifier = (letter|underscore|digit)(letter|digit|underscore|prime)*
 
 let ext_identifier = '\"' (letter|digit|symbol)* '\"'
 
