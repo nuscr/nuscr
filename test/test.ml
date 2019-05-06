@@ -9,10 +9,6 @@ let avoid =
     "examples/from-scribble-java/tmp/Test.scr"
   ; "examples/from-scribble-java/tmp/Test2.scr"
   ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.scr"
-  (* ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfo.scr"
-   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoNoFair.scr"
-   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoSubprot.scr"
-   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoNoFairBeta.scr" *)
   ]
 
 let get_files (dir : string) : string list =
