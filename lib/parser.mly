@@ -150,9 +150,15 @@ let raw_global_interaction ==
   | global_choice
   /* | global_continue */
   | global_do
-  /* | global_connect */
+  | global_connect
   /* | global_disconnect */
   /* | global_wrap */
+
+let global_connect ==
+  ~ = message? ; CONNECT_KW ; ~ = IDENT ;
+  TO_KW ; ~ = IDENT ; SEMICOLON ; < Connect >
+
+  /* | CONNECT_KW ; IDENT ; TO_KW ; IDENT ; SEMICOLON */
 
 let global_do ==
   DO_KW ; nm = IDENT ; nra = non_role_args? ;

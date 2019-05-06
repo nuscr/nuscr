@@ -53,6 +53,8 @@ and raw_global_interaction =
   | Choice of name * global_interaction list list
   (* protocol * non role args * roles *)
   | Do of name * message list * name list
+  (* message, from, to *)
+  | Connect of message option * name * name
 
 type protocol_mods = Aux | AuxExplicit | Explicit
 
