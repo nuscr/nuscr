@@ -1,14 +1,19 @@
 (* directorires to test *)
 
-let dirs =
-  [ "examples/parser"
-  ; "examples/from-scribble-java/test/test1"
-  ; "examples/from-scribble-java/test/test2"
-  ; "examples/from-scribble-java/test/test3"
-  ]
+let dirs = [ "examples" ]
 
 (* files to not test *)
-let avoid = []
+let avoid =
+  [
+    (* review these files *)
+    "examples/from-scribble-java/tmp/Test.scr"
+  ; "examples/from-scribble-java/tmp/Test2.scr"
+  (* ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.scr"
+   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfo.scr"
+   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoNoFair.scr"
+   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoSubprot.scr"
+   * ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoNoFairBeta.scr" *)
+  ]
 
 let get_files (dir : string) : string list =
   let rec loop res = function
@@ -30,15 +35,34 @@ let get_scribble_test_files (dir : string) (avoid : string list) : string list =
   let fs = get_scribble_files dir in
   List.filter (fun f -> not (is_avoid f)) fs
 
-let report dirs n =
+let report dirs ok err msg =
   let title = "Test report\n~~~~~~~~~~~\n" in
   let tested = String.concat "\n" dirs in
-  Printf.sprintf "%s\nTested:\n%s\nPassed: %d\n" title tested n
+  Printf.sprintf
+    "%s\nTested:\n%s\nPassed: %d Failed: %d\n%s\n"
+    title tested ok err msg
 
-let write_report dirs n =
+let write_report dirs ok err msg =
   let ch = open_out "test.report" in
-  output_string ch (report dirs n) ;
+  output_string ch (report dirs ok err msg) ;
   close_out ch
+
+let process_files fns =
+  let error_buffer = ref "" in
+  let rec pf cnt_ok cnt_err = function
+      [] ->  cnt_ok, cnt_err, !error_buffer
+    | f::fs ->
+      begin try
+        let _ = Nuscrlib.process_file f in
+        pf (cnt_ok + 1) cnt_err fs
+      with
+      | e ->
+        error_buffer := !error_buffer ^ Printexc.to_string e ^ "\n" ;
+        pf cnt_ok (cnt_err +1) fs
+    end
+  in
+  pf 0 0 fns
+
 
 (* test the parser *)
 let () =
@@ -49,8 +73,8 @@ let () =
       List.map (fun dir ->
           get_scribble_test_files dir avoid) dirs
     |> List.concat in
-    let n = List.map Nuscrlib.process_file files |> List.length in
-    write_report dirs n ;
-    print_endline "Ok"
+    let ok, err, errors = process_files files in
+    write_report dirs ok err errors ;
+    print_endline (if err = 0 then "Ok" else "Not ok")
   with
-  | e -> "Not ok\n" ^ Printexc.to_string e |> print_endline
+  | e -> "Unexpected:\n" ^ Printexc.to_string e |> print_endline

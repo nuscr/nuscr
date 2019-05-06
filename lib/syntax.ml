@@ -26,6 +26,7 @@ type raw_type_decl =
   ; type_spec: string (* the spec of the type in its own domain *)
   ; location: string (* location of the the type definition *)
   ; type_name: string (* the name of the defined type *)
+  ; is_type: bool (* true for types, false for signatures *)
   }
 type type_decl = raw_type_decl located
 
@@ -53,9 +54,11 @@ and raw_global_interaction =
   (* protocol * non role args * roles *)
   | Do of name * message list * name list
 
+type protocol_mods = Aux | AuxExplicit | Explicit
 
 type raw_global_protocol =
   { name: name
+  ; options: protocol_mods option
   (* if parameter is ("foo", None) it's a type *)
   (* if parameter is ("foo", Some "bar") it's a sig *)
   (* neither case I know what it is *)

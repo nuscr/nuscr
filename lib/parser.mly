@@ -85,7 +85,20 @@ let raw_payload_type_decl ==
     { { domain = d
       ; type_spec = ts
       ; location = l
-      ; type_name = tn} }
+      ; type_name = tn
+      ; is_type = true
+      }
+    }
+| SIG_KW ; LT ; d = IDENT ; GT ; ts = EXTIDENT ;
+  FROM_KW ; l = EXTIDENT ; AS_KW ; tn = IDENT ;
+  SEMICOLON ;
+    { { domain = d
+      ; type_spec = ts
+      ; location = l
+      ; type_name = tn
+      ; is_type = true
+      }
+    }
 
 (* messages... to do *)
 
@@ -99,13 +112,19 @@ let protocol_decl == global_protocol_decl (* local pending *)
 (* nuScr extension, the keyworkd protocol is optional *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
-  GLOBAL_KW ; PROTOCOL_KW? ; nm = IDENT ;
+  opts = protocol_options? ; GLOBAL_KW ; PROTOCOL_KW? ; nm = IDENT ;
   pars = parameter_decls? ; rs = role_decls ;
   ints = global_protocol_block ;
   { { name = nm
+    ; options = opts
     ; parameters = (match pars with Some p -> p | _ -> [])
     ; roles = rs
     ; interactions = ints } }
+
+let protocol_options ==
+  AUX_KW ; { Aux }
+  | AUX_KW ; EXPLICIT_KW ; { AuxExplicit }
+  | EXPLICIT_KW ; { Explicit }
 
 let parameter_decls ==
   LT ; pars = separated_nonempty_list(COMMA, parameter_decl) ; GT ; { pars }
