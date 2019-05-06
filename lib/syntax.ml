@@ -55,6 +55,7 @@ and raw_global_interaction =
   | Do of name * message list * name list
   (* message, from, to *)
   | Connect of message option * name * name
+  | Disconnect of name * name
 
 type protocol_mods = Aux | AuxExplicit | Explicit
 

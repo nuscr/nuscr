@@ -151,8 +151,11 @@ let raw_global_interaction ==
   /* | global_continue */
   | global_do
   | global_connect
-  /* | global_disconnect */
+  | global_disconnect
   /* | global_wrap */
+
+let global_disconnect ==
+  DISCONNECT_KW ; ~ = IDENT ; AND_KW ; ~ = IDENT ; SEMICOLON ; < Disconnect >
 
 let global_connect ==
   ~ = message? ; CONNECT_KW ; ~ = IDENT ;
