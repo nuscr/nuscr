@@ -106,10 +106,10 @@ let protocol_decl == global_protocol_decl (* local pending *)
 /* let global_protocol_decl == */
 /*   global_protocol_hdr ; global_protocol_def */
 
-(* nuScr extension, the keyworkd protocol is optional *)
+(* nuScr extension, the keyword global protocol can be shortened to either *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
-  opts = protocol_options? ; GLOBAL_KW ; PROTOCOL_KW? ; nm = IDENT ;
+  opts = protocol_options? ; protocol_hdr ; nm = IDENT ;
   pars = parameter_decls? ; rs = role_decls ;
   ints = global_protocol_block ;
   { { name = nm
@@ -117,6 +117,10 @@ let raw_global_protocol_decl ==
     ; parameters = (match pars with Some p -> p | _ -> [])
     ; roles = rs
     ; interactions = ints } }
+
+let protocol_hdr ==
+  GLOBAL_KW ; PROTOCOL_KW?
+  | PROTOCOL_KW
 
 let protocol_options ==
   AUX_KW ; { Aux }
