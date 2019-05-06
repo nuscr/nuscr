@@ -9,7 +9,6 @@ let run fn =
   | Violation msg -> "Violation: " ^ msg |> print_endline
   | e -> "Reported problem:\n " ^ (Printexc.to_string e) |> print_endline
 
-
 let () =
   let pwd =  Sys.getenv "PWD" in
   if Array.length Sys.argv <> 2 then
