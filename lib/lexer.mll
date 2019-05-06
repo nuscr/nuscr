@@ -64,7 +64,7 @@ and token = parse
 (* symbols *)
 | ',' { COMMA }
 | ';' { SEMICOLON }
-| ':' { COLON }
+(* | ':' { COLON } *)
 | '.' { DOT }
 | '<' { LT }
 | '>' { GT }
@@ -81,12 +81,9 @@ and token = parse
 | "type" { TYPE_KW }
 | "protocol" { PROTOCOL_KW }
 | "global" { GLOBAL_KW }
-| "local" { LOCAL_KW }
 | "explicit" { EXPLICIT_KW }
 | "aux" { AUX_KW }
 | "role" { ROLE_KW }
-| "accept" { ACCEPT_KW }
-| "self" { SELF_KW }
 | "sig" { SIG_KW }
 | "as" { AS_KW }
 | "connect" { CONNECT_KW }

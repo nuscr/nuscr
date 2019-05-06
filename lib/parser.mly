@@ -7,7 +7,7 @@
 
 %token COMMA
 %token SEMICOLON
-%token COLON
+/* %token COLON */
 %token DOT
 %token LT
 %token GT
@@ -23,12 +23,9 @@
 %token TYPE_KW
 %token PROTOCOL_KW
 %token GLOBAL_KW
-%token LOCAL_KW
 %token EXPLICIT_KW
 %token AUX_KW
 %token ROLE_KW
-%token ACCEPT_KW
-%token SELF_KW
 %token SIG_KW
 %token AS_KW
 
@@ -129,9 +126,11 @@ let protocol_options ==
 let parameter_decls ==
   LT ; pars = separated_nonempty_list(COMMA, parameter_decl) ; GT ; { pars }
 
+(* this is not storing the difference of Type and Sig *)
 let parameter_decl :=
-|  TYPE_KW ; nm = IDENT ; { (nm, None) }
-
+| TYPE_KW ; nm = IDENT ; { (nm, None) }
+| TYPE_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
+| SIG_KW ; nm = IDENT ; { (nm, None) }
 | SIG_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
 
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
