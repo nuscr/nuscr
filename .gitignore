@@ -5,3 +5,4 @@
 *.install
 _build/
 .merlin
+lib/
