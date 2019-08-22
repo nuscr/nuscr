@@ -1,0 +1,36 @@
+//$ ./scribblec.sh -ip scribble-demos/scrib/travel/src -d scribble-demos/scrib/travel/src scribble-demos/scrib/travel/src/travel/Travel.scr -api Booking C
+//$ javadoc -cp scribble-core/target/classes:scribble-runtime/target/classes:scribble-demos/scrib/travel/src scribble-demos/scrib/travel/src/travel/*.java -subpackages travel.Travel.Booking -d scribble-demos/scrib/travel/javadoc
+
+module travel.Travel;
+
+type <java> "java.lang.Integer" from "rt.jar" as int;
+type <java> "java.lang.String" from "rt.jar" as String;
+
+
+//*
+global protocol Booking(role C, role A, role S)
+{
+	choice at C
+	{
+		Query(int) from C to A;
+		Quote(int) from A to C;
+		Dummy() from A to S;   // Dummy
+		do Booking(C, A, S);
+	}
+	or
+	{
+		choice at C
+		{
+			Yes() from C to A;
+			Yes() from A to S;
+			Payment(int) from C to S;
+			Ack() from S to C;
+		}
+		or
+		{
+			No() from C to A;
+			No() from A to S;
+		}
+		Bye() from C to A;
+	}
+}

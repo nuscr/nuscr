@@ -1,0 +1,56 @@
+module test100; 
+type <java> "java.lang.Integer" from "rt.jar" as int;
+
+global protocol Test100(role S, role C)
+{
+hello(x1:int) from C to S;
+hello(x2:int) from S to C; @"x2 > x1"
+hello(x3:int) from C to S;
+hello(x4:int) from S to C; @"x4 > x3"
+hello(x5:int) from C to S;
+hello(x6:int) from S to C; @"x6 > x5"
+hello(x7:int) from C to S;
+hello(x8:int) from S to C; @"x8 > x7"
+hello(x9:int) from C to S;
+hello(x10:int) from S to C; @"x10 > x9"
+hello(x11:int) from C to S;
+hello(x12:int) from S to C; @"x12 > x11"
+hello(x13:int) from C to S;
+hello(x14:int) from S to C; @"x14 > x13"
+hello(x15:int) from C to S;
+hello(x16:int) from S to C; @"x16 > x15"
+hello(x17:int) from C to S;
+hello(x18:int) from S to C; @"x18 > x17"
+hello(x19:int) from C to S;
+hello(x20:int) from S to C; @"x20 > x19"
+hello(x21:int) from C to S;
+hello(x22:int) from S to C; @"x22 > x21"
+hello(x23:int) from C to S;
+hello(x24:int) from S to C; @"x24 > x23"
+hello(x25:int) from C to S;
+hello(x26:int) from S to C; @"x26 > x25"
+hello(x27:int) from C to S;
+hello(x28:int) from S to C; @"x28 > x27"
+hello(x29:int) from C to S;
+hello(x30:int) from S to C; @"x30 > x29"
+hello(x31:int) from C to S;
+hello(x32:int) from S to C; @"x32 > x30"
+hello(x33:int) from C to S;
+hello(x34:int) from S to C; @"x34 > x33"
+hello(x35:int) from C to S;
+hello(x36:int) from S to C; @"x36 > x35"
+hello(x37:int) from C to S;
+hello(x38:int) from S to C; @"x38 > x37"
+hello(x39:int) from C to S;
+hello(x40:int) from S to C; @"x40 > x39"
+hello(x41:int) from C to S;
+hello(x42:int) from S to C; @"x42 > x41"
+hello(x43:int) from C to S;
+hello(x44:int) from S to C; @"x44 > x43"
+hello(x45:int) from C to S;
+hello(x46:int) from S to C; @"x46 > x45"
+hello(x47:int) from C to S;
+hello(x48:int) from S to C; @"x48 > x47"
+hello(x49:int) from C to S;
+hello(x50:int) from S to C; @"x50 > x49"
+}

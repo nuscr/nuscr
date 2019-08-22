@@ -1,0 +1,22 @@
+module Adder;
+
+type <java> "java.lang.Integer" from "rt.jar" as int;
+
+global protocol Adder(role C, role S)
+{
+	rec Loop {
+		HELLO(u:int) from C to S;
+		choice at C
+		{
+			ADD(w:int) from C to S; 
+			ADD(v:int) from C to S; 
+			RES(f:int) from S to C;
+			continue Loop; 
+		}
+		or
+		{
+			BYE() from C to S;
+			BYE() from S to C;
+		}
+	}
+}

@@ -1,0 +1,42 @@
+module assrt.sh.SHNew;
+
+type <dotnet> "System.UInt32" from "..." as int;
+
+global protocol SH(role P, role R)
+{	hello(s:int) from P to R; 
+	hello(f:int) from R to P; 
+	plane(x1:int) from P to R;
+	do Loop(P, R);
+}
+
+aux global protocol Loop(role P, role R)
+{
+	choice at P
+	{
+		Above(v1:int) from P to R;   
+		Res(b1:int) from R to P;  
+		Above(v2:int) from P to R;   
+		Res(b2:int) from R to P; 
+		choice at P
+		{
+			BothIn() from P to R; //@"b1=1 && b2=1"
+			do Loop(P, R);
+		}
+		or
+		{
+			BothOut() from P to R;// @"b1=0 && b2=0"
+			do Loop(P, R);
+		}
+		or
+		{
+			Inersect() from P to R; //@"(b1=1 && b2=0) || (b1=0 && b2=1)"
+			Res(i:int) from R to P;
+			do Loop(P, R);
+		}
+	}
+	or
+	{
+		Close() from P to R;   
+	}
+}
+

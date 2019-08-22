@@ -1,0 +1,64 @@
+module demo;
+
+type <fsharp> "System.String" from "fs.dll" as string; 
+type <fsharp> "System.Int32" from "fs.dll" as int;
+type <fsharp> "System.DateTime" from "fs.dll" as date;
+
+global protocol Http(role C, role S)
+{
+  do Request(C, S);
+  do Response(C, S);
+}
+
+global protocol Request(role C, role S)
+{
+  choice at C {
+    GET(string) from C to S; 
+  } or {
+    POST(string) from C to S;
+  }
+
+  rec X
+  {
+      choice at C
+      {
+        HOST(string) from C to S; 
+        continue X;
+      }
+      or
+      {
+        BODY(string) from C to S;
+      }
+    }
+}
+
+global protocol Response(role C, role S)
+{
+  HTTP(string) from S to C; 
+  choice at S
+  {
+    d200(string) from S to C; 
+  }
+  or
+  {
+    d404(string) from S to C; 
+  }
+
+  rec Y
+  {
+    choice at S
+    {
+      ContentLength(int) from S to C;
+      continue Y;
+    }
+    or
+    {
+      CONTENTType(string) from S to C;
+      continue Y;
+    }
+    or
+    {
+      BODY(string) from S to C;
+    }
+  }
+}
