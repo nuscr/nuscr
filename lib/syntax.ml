@@ -18,6 +18,8 @@ type qname = raw_qname located
 let qname_to_string qn =
   String.concat "." qn
 
+type annotation = string
+
 type raw_mod_decl = { module_name: qname }
 type mod_decl = raw_mod_decl located
 
@@ -34,6 +36,7 @@ type payloadt =
   | PayloadName of name
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadQName of qname
+  | PayloadBnd of name * qname (* var : type *)
 
 type message = Message of { name:  name; payload: payloadt list }
              | MessageName of name
@@ -45,6 +48,7 @@ and raw_global_interaction =
     { message : message
     ; from_role : name
     ; to_roles : name list
+    ; ann : annotation option
     }
   (* recursion variable, protocol *)
   | Recursion of name * global_interaction list
@@ -52,9 +56,9 @@ and raw_global_interaction =
   (* role, protocol options *)
   | Choice of name * global_interaction list list
   (* protocol * non role args * roles *)
-  | Do of name * message list * name list
+  | Do of name * message list * name list * annotation option
   (* message, from, to *)
-  | Connect of message option * name * name
+  | Connect of message option * name * name * annotation option
   | Disconnect of name * name
 
 type protocol_mods = Aux | AuxExplicit | Explicit
@@ -68,6 +72,7 @@ type raw_global_protocol =
   ; parameters: (name * name option) list
   ; roles: name list
   ; interactions: global_interaction list
+  ; ann : annotation option
   }
 
 type global_protocol = raw_global_protocol located

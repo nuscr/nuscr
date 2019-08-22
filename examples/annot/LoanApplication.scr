@@ -1,0 +1,28 @@
+module LoanApplication;
+
+type <java> "java.lang.Integer" from "rt.jar" as Int;
+type <java> "java.lang.String" from "rt.jar" as String;
+type <java> "java.lang.Boolean" from "rt.jar" as Bool;
+ 
+explicit global protocol BuyerBrokerSupplier(role Applicant, role ApplicationPortal, role ProcessingDept)
+{
+	connect Applicant to ApplicationPortal;
+	connect ApplicationPortal to ProcessingDept;
+
+	applyForLoan(String, String, Int, Int) from Applicant to ApplicationPortal;
+	checkEligibility(Int, Int) from ApplicationPortal to ProcessingDept;
+	respond(Int) from ProcessingDept to ApplicationPortal;
+
+	/*choice at ApplicationPortal
+	{ 
+		getLoanAmount(Int) from ApplicationPortal to FinanceDept;
+		sendLoanAmount(Int) from FinanceDept to ApplicationPortal;
+		requestConfirmation(Int) from ApplicationPortal to Applicant;        
+	}
+	or
+	{
+		reject() from ApplicationPortal to FinanceDept;
+		reject() from ApplicationPortal to Applicant;
+	}*/
+
+}

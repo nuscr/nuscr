@@ -7,7 +7,7 @@
 
 %token COMMA
 %token SEMICOLON
-/* %token COLON */
+%token COLON
 %token DOT
 %token LT
 %token GT
@@ -110,13 +110,15 @@ let protocol_decl == global_protocol_decl (* local pending *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = IDENT ;
-  pars = parameter_decls? ; rs = role_decls ;
+  pars = parameter_decls? ; rs = role_decls ; ann = annotation? ;
   ints = global_protocol_block ;
   { { name = nm
     ; options = opts
     ; parameters = (match pars with Some p -> p | _ -> [])
     ; roles = rs
-    ; interactions = ints } }
+    ; interactions = ints
+    ; ann = ann
+  } }
 
 let protocol_hdr ==
   GLOBAL_KW ; PROTOCOL_KW?
@@ -162,14 +164,14 @@ let global_disconnect ==
 
 let global_connect ==
   ~ = message? ; CONNECT_KW ; ~ = IDENT ;
-  TO_KW ; ~ = IDENT ; SEMICOLON ; < Connect >
+  TO_KW ; ~ = IDENT ; SEMICOLON ; ~ = annotation? ; < Connect >
 
   /* | CONNECT_KW ; IDENT ; TO_KW ; IDENT ; SEMICOLON */
 
 let global_do ==
   DO_KW ; nm = IDENT ; nra = non_role_args? ;
-  ra = role_args? ; SEMICOLON ;
-  { Do (nm, loalo nra, loalo ra) }
+  ra = role_args? ; SEMICOLON ; ann = annotation? ;
+  { Do (nm, loalo nra, loalo ra, ann) }
 
 let role_args ==
   LPAR ; nm = separated_nonempty_list(COMMA, IDENT) ; RPAR ; { nm }
@@ -201,11 +203,12 @@ let global_recursion ==
 let global_message_transfer ==
   msg = message ; FROM_KW ; frn = IDENT ;
   TO_KW ; trns = separated_nonempty_list(COMMA, IDENT) ;
-  SEMICOLON ;
+  SEMICOLON ; ann = annotation? ;
   { MessageTransfer
       { message = msg
       ; from_role = frn
       ; to_roles = trns
+      ; ann = ann
       }
   }
 
@@ -233,6 +236,11 @@ let payload_el ==
                    | Name n -> PayloadName n
                    | QName n -> PayloadQName n
                  }
+  | ~ = IDENT ; COLON ; ~ = qname ; < PayloadBnd >
+
+
+let annotation == ARROBA ; ann = EXTIDENT ; { ann }
+
 
 /* let name_or_qname == */
 /*   ~ = qname ; < noq > */

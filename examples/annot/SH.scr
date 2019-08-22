@@ -1,0 +1,32 @@
+module SH; 
+
+type <java> "java.lang.Integer" from "rt.jar" as int;
+
+global protocol SH(role S, role C, role P)
+{	
+send(x1:int) from S to C;
+rec Loop {
+	choice at S { 
+      vertex(p1:int) from S to C;
+      vertex(p2:int) from S to C;   
+      choice at C { 
+      		InOrOut(res:int) from C to S; @"res=0" 
+      			choice at S { 
+		 			addpoint(z:int) from S to P; @"z=p2"
+		 			continue Loop; 
+	  			} or {
+					none() from S to P;  @"res=1"
+					continue Loop; 
+				}
+			} or {
+				intersection(p3:int) from C to S;
+				addpoint(p4:int) from S to P; @"p3=p4"
+				continue Loop;
+	   		}
+	 } or {
+      close() from S to C; 
+      close() from S to P;
+ 	}
+  }
+}
+

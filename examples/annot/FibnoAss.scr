@@ -1,0 +1,25 @@
+module FibnoAss;
+
+type <java> "java.lang.Integer" from "rt.jar" as int;
+
+
+global protocol Adder(role C, role S)
+{
+	HELLO(s:int) from C to S;
+	HELLO(f:int) from S to C;
+	
+	rec Loop {
+		HELLO(u:int) from C to S;
+		choice at C
+		{
+			ADD(y:int) from C to S; 
+			RES(w:int) from S to C;
+			continue Loop; 
+		}
+		or
+		{
+			BYE() from C to S;
+			BYE() from S to C;
+		}
+}
+}
