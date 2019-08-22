@@ -34,6 +34,7 @@ type payloadt =
   | PayloadName of name
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadQName of qname
+  | PayloadBnd of name * qname (* var : type *)
 
 type message = Message of { name:  name; payload: payloadt list }
              | MessageName of name

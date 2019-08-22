@@ -64,7 +64,7 @@ and token = parse
 (* symbols *)
 | ',' { COMMA }
 | ';' { SEMICOLON }
-(* | ':' { COLON } *)
+| ':' { COLON }
 | '.' { DOT }
 | '<' { LT }
 | '>' { GT }

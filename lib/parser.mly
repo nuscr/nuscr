@@ -7,7 +7,7 @@
 
 %token COMMA
 %token SEMICOLON
-/* %token COLON */
+%token COLON
 %token DOT
 %token LT
 %token GT
@@ -233,6 +233,7 @@ let payload_el ==
                    | Name n -> PayloadName n
                    | QName n -> PayloadQName n
                  }
+  | v = IDENT ; COLON ; nm = qname ; < PayloadBnd >
 
 /* let name_or_qname == */
 /*   ~ = qname ; < noq > */
