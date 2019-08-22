@@ -53,7 +53,11 @@ let process_files fns =
         pf (cnt_ok + 1) cnt_err fs
       with
       | e ->
-        error_buffer := !error_buffer ^ Printexc.to_string e ^ "\n" ;
+        let msg = Printf.sprintf
+            "File: %s -- Error message: %s\n"
+            f (Printexc.to_string e)
+        in
+        error_buffer := !error_buffer ^ msg ^ "\n" ;
         pf cnt_ok (cnt_err +1) fs
     end
   in
