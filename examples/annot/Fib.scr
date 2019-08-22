@@ -10,7 +10,7 @@ global protocol Adder(role C, role S)
 	choice at C
 	{
 		ADD(y:int) from C to S;
-		RES(v:int) from S to C; "v > 0"
+		RES(v:int) from S to C; @"v > 0"
 		do Adder(C, S);
 	}
 	or

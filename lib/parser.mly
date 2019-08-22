@@ -110,7 +110,7 @@ let protocol_decl == global_protocol_decl (* local pending *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = IDENT ;
-  pars = parameter_decls? ; rs = role_decls ;
+  pars = parameter_decls? ; rs = role_decls ; annotation? ;
   ints = global_protocol_block ;
   { { name = nm
     ; options = opts
@@ -162,13 +162,13 @@ let global_disconnect ==
 
 let global_connect ==
   ~ = message? ; CONNECT_KW ; ~ = IDENT ;
-  TO_KW ; ~ = IDENT ; SEMICOLON ; < Connect >
+  TO_KW ; ~ = IDENT ; SEMICOLON ; annotation? ; < Connect >
 
   /* | CONNECT_KW ; IDENT ; TO_KW ; IDENT ; SEMICOLON */
 
 let global_do ==
   DO_KW ; nm = IDENT ; nra = non_role_args? ;
-  ra = role_args? ; SEMICOLON ;
+  ra = role_args? ; SEMICOLON ; annotation? ;
   { Do (nm, loalo nra, loalo ra) }
 
 let role_args ==
@@ -201,7 +201,7 @@ let global_recursion ==
 let global_message_transfer ==
   msg = message ; FROM_KW ; frn = IDENT ;
   TO_KW ; trns = separated_nonempty_list(COMMA, IDENT) ;
-  SEMICOLON ;
+  SEMICOLON ; annotation? ;
   { MessageTransfer
       { message = msg
       ; from_role = frn
@@ -233,7 +233,11 @@ let payload_el ==
                    | Name n -> PayloadName n
                    | QName n -> PayloadQName n
                  }
-  | v = IDENT ; COLON ; nm = qname ; < PayloadBnd >
+  | ~ = IDENT ; COLON ; ~ = qname ; < PayloadBnd >
+
+
+let annotation == ARROBA ; EXTIDENT
+
 
 /* let name_or_qname == */
 /*   ~ = qname ; < noq > */

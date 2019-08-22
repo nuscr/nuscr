@@ -12,7 +12,7 @@ let prime = '\''
 let letter = ['a'-'z' 'A'-'Z']
 
 (* nuScr extension: add primes to symbols *)
-let symbol = ['{' '}' '(' ')' '[' ']' ':' '/' '\\' '.' '#''&' '?' '!''_''\'']
+let symbol = ['{' '}' '(' ')' '[' ']' ':' '/' '\\' '.' '#''&' '?' '!' '_' '\'' '|' ',' '=' '>' '<' '+' '-' '*']
 let digit = ['0'-'9']
 
 (* in scribble it can be empty, not here *)
@@ -24,7 +24,9 @@ let digit = ['0'-'9']
    come first in identifiers *)
 let identifier = (letter|underscore|digit)(letter|digit|underscore|prime)*
 
-let ext_identifier = '\"' (letter|digit|symbol)* '\"'
+(* let ext_identifier = '\"' (letter|digit|symbol)* '\"' *)
+
+let ext_identifier = '\"' [^'\"' '\n']* '\"'
 
 (* nuScr extension, removed \u000C *)
 (* let whitespace = ('\t'|' '|'\r'|'\n')+ *)
