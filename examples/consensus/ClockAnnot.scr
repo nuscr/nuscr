@@ -1,0 +1,31 @@
+module ClockAnnot;
+
+type <java> "java.lang.Integer" from "rt.jar" as int;
+
+global protocol Lock(role A, role B, role C)
+{
+	rec Loop {
+		REQ (ts_rab:int) from A to B;
+        REQ (ts_rac:int) from A to C; @"ts_rac > ts_rab"
+		choice at B
+		{
+			ACK (ts_aba:int) from B to A; @"ts_aba >  ts_rab"
+		}
+		or
+		{
+			do Loop(B, A, C); // should we set the initial clocks here?
+		}
+
+        choice at C
+		{
+			ACK (ts_aca:int) from C to A; @"ts_aca > ts_rac"
+		}
+		or
+		{
+			do Loop(C, A, B);
+		}
+        
+        REL (ts_reab) from A to B; @"ts_reab > ts_rab"
+        REL (ts_reac) from A to C; @"ts_reac > ts_rac"
+	}
+}
