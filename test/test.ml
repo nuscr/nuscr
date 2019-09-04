@@ -9,6 +9,7 @@ let avoid =
     "examples/from-scribble-java/tmp/Test.scr"
   ; "examples/from-scribble-java/tmp/Test2.scr"
   ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.scr"
+  ; "examples/consensus/ClockAnnotRec.scr"
   ]
 
 let get_files (dir : string) : string list =
@@ -49,17 +50,17 @@ let process_files fns =
       [] ->  cnt_ok, cnt_err, !error_buffer
     | f::fs ->
       begin try
-        let _ = Nuscrlib.process_file f in
-        pf (cnt_ok + 1) cnt_err fs
-      with
-      | e ->
-        let msg = Printf.sprintf
-            "File: %s -- Error message: %s\n"
-            f (Printexc.to_string e)
-        in
-        error_buffer := !error_buffer ^ msg ^ "\n" ;
-        pf cnt_ok (cnt_err +1) fs
-    end
+          let _ = Nuscrlib.process_file f in
+          pf (cnt_ok + 1) cnt_err fs
+        with
+        | e ->
+          let msg = Printf.sprintf
+              "File: %s -- Error message: %s\n"
+              f (Printexc.to_string e)
+          in
+          error_buffer := !error_buffer ^ msg ^ "\n" ;
+          pf cnt_ok (cnt_err +1) fs
+      end
   in
   pf 0 0 fns
 
@@ -72,7 +73,7 @@ let () =
     let files =
       List.map (fun dir ->
           get_scribble_test_files dir avoid) dirs
-    |> List.concat in
+      |> List.concat in
     let ok, err, errors = process_files files in
     write_report dirs ok err errors ;
     print_endline (if err = 0 then "Ok" else "Not ok")
