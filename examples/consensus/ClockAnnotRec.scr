@@ -9,7 +9,7 @@ global protocol Lock(role A, role B, role C)
         REQ (ts_rac:int) from A to C; @"ts_rac > ts_rab "
 		choice at B
 		{
-			ACK (ts_aba:int) from B to A; @"ts_aba >  max(ts_rab, tsb)"
+			ACK (ts_aba:int) from B to A; @"ts_aba > max(ts_rab, tsb)"
 		}
 		or
 		{
