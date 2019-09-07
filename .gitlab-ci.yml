@@ -3,9 +3,9 @@ image: ocaml/opam2
 before_script:
   - sudo apt-get update
   - sudo apt-get install m4 -y
-  - opam install menhir dune
 
 build:
   script:
+    - opam install . --deps-only
     - dune build
     - dune runtest
