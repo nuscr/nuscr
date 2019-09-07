@@ -1,15 +1,5 @@
 open Syntax
 
-let render_pos pos =
-  Printf.sprintf "%d:%d"
-    pos.Lexing.pos_lnum (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
-
-let render_pos_interval (startp, endp) : string =
-  Printf.sprintf "%s to %s in: %s"
-    (render_pos startp)
-    (render_pos endp)
-    (startp.Lexing.pos_fname)
-
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
     ( lexbuf.Lexing.lex_curr_p <-
         { lexbuf.Lexing.lex_curr_p with Lexing.pos_fname = fname }
@@ -20,7 +10,7 @@ let process_ch fname (ch : in_channel) : string =
   let lexbuf = set_filename fname (Lexing.from_channel ch) in
   try
     let ast = Parser.scr_module Lexer.token lexbuf in
-    ast.decl.value.module_name.value |> qname_to_string
+    show_scr_module ast
   with
   | Lexer.LexError msg -> Err.UserError ("Lexer error: " ^ msg) |> raise
   | Parser.Error ->

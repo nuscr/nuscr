@@ -106,7 +106,9 @@ and token = parse
 | eof
     { EOI }
 | identifier as str { IDENT str }
-| ext_identifier as str { EXTIDENT str }
+| ext_identifier as quoted_str {
+  let str = String.sub quoted_str 1 (String.length quoted_str - 2) in
+  EXTIDENT str }
 | _ as unrecog {
   let offset = Lexing.lexeme_start lexbuf in
   let str = Printf.sprintf "At offset %d: unexpected character('%c').\n" offset unrecog in
