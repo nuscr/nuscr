@@ -1,6 +1,8 @@
 (library
   (flags (:standard -w +A-39-4-42))
-  (name nuscrlib))
+  (name nuscrlib)
+  (preprocess
+    (pps ppx_deriving.show)))
 
 
 (ocamllex
