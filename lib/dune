@@ -1,13 +1,14 @@
 (library
-  (flags (:standard -w +A-39-4-42))
-  (name nuscrlib)
-  (preprocess
-    (pps ppx_deriving.show)))
-
+ (flags
+  (:standard -w +A-39-4-42))
+ (name nuscrlib)
+ (preprocess
+  (pps ppx_deriving.show)))
 
 (ocamllex
-  (modules lexer))
+ (modules lexer))
 
 (menhir
-  (modules parser)
-  (flags ("--explain" "-la" "2")))
+ (modules parser)
+ (flags
+  ("--explain" "-la" "2")))

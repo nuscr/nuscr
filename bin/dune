@@ -1,7 +1,8 @@
 (executables
-  (names main)
-  (libraries nuscrlib))
+ (names main)
+ (libraries nuscrlib))
 
 (install
-  (section bin)
-  (files (main.exe as nuscr)))
+ (section bin)
+ (files
+  (main.exe as nuscr)))
