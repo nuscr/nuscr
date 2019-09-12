@@ -16,4 +16,5 @@ depends: [
   "dune" {build}
   "ocamlformat" {build}
   "core_kernel"
+  "ppx_inline_test" {dev}
 ]
