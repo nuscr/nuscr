@@ -2,6 +2,7 @@
  (flags
   (:standard -w +A-39-4-42))
  (name nuscrlib)
+ (libraries core_kernel)
  (preprocess
   (pps ppx_deriving.show)))
 

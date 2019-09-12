@@ -15,4 +15,5 @@ depends: [
   "ppx_deriving"
   "dune" {build}
   "ocamlformat" {build}
+  "core_kernel"
 ]
