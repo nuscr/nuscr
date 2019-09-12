@@ -1,0 +1,40 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ocaml/opam2
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - deps-{{ checksum "nuscr.opam" }}
+            - deps-
+
+      - run:
+          name: Install m4
+          command: |
+            sudo apt-get update
+            sudo apt-get install m4 -y
+
+      - run:
+          name: Install dependencies
+          command: opam install . --deps-only
+
+      - run:
+          name: Build
+          command: |
+            eval $(opam config env)
+            dune build
+
+      - run:
+          name: Test
+          command: |
+            eval $(opam config env)
+            dune runtest
+
+      - save_cache:
+          key: deps-{{ checksum "nuscr.opam" }}
+          paths:
+            - ~/.opam
