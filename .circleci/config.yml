@@ -34,6 +34,12 @@ jobs:
             eval $(opam config env)
             dune runtest
 
+      - run:
+          name: Check format
+          command: |
+            eval $(opam config env)
+            dune build @fmt
+
       - save_cache:
           key: deps-{{ checksum "nuscr.opam" }}
           paths:
