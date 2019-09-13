@@ -86,3 +86,33 @@ let rec to_normal_form (protocol : global_interaction list) =
     | _ -> [item]
   in
   List.concat_map ~f:to_normal_form_single protocol
+
+let%test "Normal Form example" =
+  (* Taken from Fig. 10 *)
+  let mkMsg name = Message {name; payload= []} in
+  let m1 = mkMsg "m1" in
+  let m2 = mkMsg "m2" in
+  let m3 = mkMsg "m3" in
+  let p = (Lexing.dummy_pos, Lexing.dummy_pos) in
+  let mkMsgTransfer m =
+    make_located ~loc:p
+      (MessageTransfer
+         {message= m; from_role= "A"; to_roles= ["B"]; ann= None})
+  in
+  let continue = make_located ~loc:p (Continue "Loop") in
+  let choice1 =
+    make_located ~loc:p
+      (Choice ("A", [[mkMsgTransfer m1; continue]; [mkMsgTransfer m2]]))
+  in
+  let loop = make_located ~loc:p (Recursion ("Loop", [choice1])) in
+  let before =
+    make_located ~loc:p (Choice ("A", [[loop]; [mkMsgTransfer m3]]))
+  in
+  let after =
+    make_located ~loc:p
+      (Choice
+         ( "A"
+         , [[mkMsgTransfer m1; loop]; [mkMsgTransfer m2]; [mkMsgTransfer m3]]
+         ))
+  in
+  to_normal_form [before] = [after]
