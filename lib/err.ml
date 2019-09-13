@@ -1,6 +1,11 @@
 type user_error =
   | LexerError of string
   | ParserError of (Lexing.position * Lexing.position)
+  | UnboundRecursionName of string * (Lexing.position * Lexing.position)
+  | RedefinedRecursionName of
+      string
+      * (Lexing.position * Lexing.position)
+      * (Lexing.position * Lexing.position)
   | Uncategorised of string
 
 exception UserError of user_error
@@ -11,6 +16,14 @@ let show_user_error = function
   | ParserError interval ->
       "Parser error: An error occurred at "
       ^ Syntax.render_pos_interval interval
+  | UnboundRecursionName (name, interval) ->
+      "Unbound name " ^ name ^ " in `continue` at "
+      ^ Syntax.render_pos_interval interval
+  | RedefinedRecursionName (name, interval1, interval2) ->
+      "Redefined name " ^ name ^ " of `rec` at "
+      ^ Syntax.render_pos_interval interval1
+      ^ " and "
+      ^ Syntax.render_pos_interval interval2
   | Uncategorised msg -> "Error " ^ msg
 
 exception Violation of string

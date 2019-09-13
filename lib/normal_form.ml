@@ -1,5 +1,6 @@
 open Core_kernel
 open Syntax
+open Err
 
 (* From Featherweight Scribble *)
 (* https://doi.org/10.1007/978-3-030-21485-2_14 *)
@@ -50,3 +51,18 @@ let%test "Flatten Example" =
          ("A", [[mkMsgTransfer m1]; [mkMsgTransfer m2]; [mkMsgTransfer m3]]))
   in
   flatten [before] = [after]
+
+let unfold (protocol : global_interaction list) =
+  let rec replace loc name protocol items =
+    match items with
+    | {value= Continue name_; _} :: tl when name = name_ ->
+        List.append protocol (replace loc name protocol tl)
+    | {value= Recursion (name_, _); loc= loc_new} :: _ when name = name_ ->
+        raise (UserError (RedefinedRecursionName (name, loc, loc_new)))
+    | [] -> []
+    | hd :: tl -> hd :: replace loc name protocol tl
+  in
+  match protocol with
+  | {value= Recursion (name, inner_protocol); loc} :: tl ->
+      List.append (replace loc name inner_protocol inner_protocol) tl
+  | _ -> protocol
