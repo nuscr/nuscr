@@ -66,3 +66,23 @@ let unfold (protocol : global_interaction list) =
   | {value= Recursion (name, inner_protocol); loc} :: tl ->
       List.append (replace loc name inner_protocol inner_protocol) tl
   | _ -> protocol
+
+let rec to_normal_form (protocol : global_interaction list) =
+  let to_normal_form_single (item : global_interaction) :
+      global_interaction list =
+    let {loc; value} = item in
+    match value with
+    | Choice (name, protocols) ->
+        [ { loc
+          ; value=
+              Choice
+                ( name
+                , List.map
+                    ~f:(fun p -> p |> to_normal_form |> flatten)
+                    protocols ) } ]
+    | Recursion (name, inner_protocol) ->
+        let inner_protocol = to_normal_form inner_protocol in
+        unfold [{loc; value= Recursion (name, inner_protocol)}]
+    | _ -> [item]
+  in
+  List.concat_map ~f:to_normal_form_single protocol
