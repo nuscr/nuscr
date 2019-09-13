@@ -52,19 +52,28 @@ let%test "Flatten Example" =
   in
   flatten [before] = [after]
 
-let unfold (protocol : global_interaction list) =
-  let rec replace loc name protocol items =
+let rec unfold (protocol : global_interaction list) =
+  let rec replace loc name replacement items =
     match items with
     | {value= Continue name_; _} :: tl when name = name_ ->
-        List.append protocol (replace loc name protocol tl)
+        List.append replacement (replace loc name replacement tl)
     | {value= Recursion (name_, _); loc= loc_new} :: _ when name = name_ ->
         raise (UserError (RedefinedRecursionName (name, loc, loc_new)))
+    | {value= Recursion (name_, inner); loc} :: tl ->
+        {loc; value= Recursion (name_, replace loc name replacement inner)}
+        :: replace loc name replacement tl
+    | {value= Choice (name_, choices); loc} :: tl ->
+        { loc
+        ; value=
+            Choice
+              (name_, List.map ~f:(replace loc name replacement) choices) }
+        :: replace loc name replacement tl
     | [] -> []
-    | hd :: tl -> hd :: replace loc name protocol tl
+    | hd :: tl -> hd :: replace loc name replacement tl
   in
   match protocol with
   | {value= Recursion (name, inner_protocol); loc} :: tl ->
-      List.append (replace loc name inner_protocol inner_protocol) tl
+      List.append (replace loc name protocol inner_protocol) tl |> unfold
   | _ -> protocol
 
 let rec to_normal_form (protocol : global_interaction list) =
@@ -80,6 +89,7 @@ let rec to_normal_form (protocol : global_interaction list) =
                 , List.map
                     ~f:(fun p -> p |> to_normal_form |> flatten)
                     protocols ) } ]
+        |> flatten
     | Recursion (name, inner_protocol) ->
         let inner_protocol = to_normal_form inner_protocol in
         unfold [{loc; value= Recursion (name, inner_protocol)}]
