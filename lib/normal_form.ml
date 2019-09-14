@@ -1,4 +1,4 @@
-open Core_kernel
+open! Core_kernel
 open Syntax
 open Err
 
