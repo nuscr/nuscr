@@ -8,9 +8,9 @@ let render_pos_interval (startp, endp) : string =
 
 type 'a located =
   { loc: Lexing.position * Lexing.position
-           [@printer
-             fun fmt interval ->
-               fprintf fmt "%s" (render_pos_interval interval)]
+        [@printer
+          fun fmt interval ->
+            fprintf fmt "%s" (render_pos_interval interval)]
   ; value: 'a [@main] }
 [@@deriving show, make]
 
@@ -84,9 +84,9 @@ type protocol_mods = Aux | AuxExplicit | Explicit [@@deriving show]
 type raw_global_protocol =
   { name: name
   ; options: protocol_mods option
-  (* if parameter is ("foo", None) it's a type *)
-  (* if parameter is ("foo", Some "bar") it's a sig *)
-  (* neither case I know what it is *)
+        (* if parameter is ("foo", None) it's a type *)
+        (* if parameter is ("foo", Some "bar") it's a sig *)
+        (* neither case I know what it is *)
   ; parameters: (name * name option) list
   ; rec_parameters: (name * name) list (* parameters for the recursion *)
   ; roles: name list
