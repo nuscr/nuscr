@@ -110,11 +110,12 @@ let protocol_decl == global_protocol_decl (* local pending *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = IDENT ;
-  pars = parameter_decls? ; rs = role_decls ; ann = annotation? ;
-  ints = global_protocol_block ;
+  pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ; 
+  ann = annotation? ; ints = global_protocol_block ;
   { { name = nm
     ; options = opts
     ; parameters = (match pars with Some p -> p | _ -> [])
+    ; rec_parameters = (match rp with Some p -> p | _ -> [])
     ; roles = rs
     ; interactions = ints
     ; ann = ann
@@ -138,6 +139,11 @@ let parameter_decl :=
 | TYPE_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
 | SIG_KW ; nm = IDENT ; { (nm, None) }
 | SIG_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
+
+let rec_parameter_decls ==
+  LPAR ; pars = separated_nonempty_list(COMMA, rec_parameter_decl) ; RPAR ; { pars }
+
+let rec_parameter_decl == nm = IDENT ; COLON ; ann = IDENT ; { (nm, ann) }
 
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }
