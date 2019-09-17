@@ -4,30 +4,28 @@ type <java> "java.lang.Integer" from "rt.jar" as int;
 
 global protocol Lock(role A, role B, role C)
 {
-	rec Loop {
-		REQ (ts:int) from A to B;
-        REQ (ts:int) from A to C;
-		choice at B
-		{
-			ACK (ts:int) from B to A;
-		}
-		or
-		{
-			do Loop(B, A, C);
-		}
-
-        choice at C //move this block after line 12
-		{
-			ACK (ts:int) from C to A;
-		}
-		or
-		{
-			do Loop(C, A, B);
-		}
-        
-        REL () from A to B; //move these 2 lines after 21
-        REL () from A to C;
+	REQ (ts:int) from A to B;
+	REQ (ts:int) from A to C;
+	choice at B
+	{
+		ACK (ts:int) from B to A;
 	}
+	or
+	{
+		do Lock(B, A, C);
+	}
+
+	choice at C
+	{
+		ACK (ts:int) from C to A;
+	}
+	or
+	{
+		do Lock(C, A, B);
+	}
+	
+	REL () from A to B;
+	REL () from A to C;
 }
 
-// after moving everything remove the loop and just recurse Lock
+
