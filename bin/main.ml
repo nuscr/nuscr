@@ -5,7 +5,7 @@ let run fn =
     let str = Nuscrlib.process_file fn in
     print_endline str
   with
-  | UserError msg -> "User error: " ^ msg |> print_endline
+  | UserError msg -> "User error: " ^ show_user_error msg |> print_endline
   | Violation msg -> "Violation: " ^ msg |> print_endline
   | e -> "Reported problem:\n " ^ Printexc.to_string e |> print_endline
 

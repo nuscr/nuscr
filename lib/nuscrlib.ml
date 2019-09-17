@@ -1,4 +1,5 @@
 open Syntax
+open Err
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
@@ -11,15 +12,12 @@ let process_ch fname (ch : in_channel) : string =
     let ast = Parser.scr_module Lexer.token lexbuf in
     show_scr_module ast
   with
-  | Lexer.LexError msg -> Err.UserError ("Lexer error: " ^ msg) |> raise
+  | Lexer.LexError msg -> Err.UserError (LexerError msg) |> raise
   | Parser.Error ->
       let err_interval =
         (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
       in
-      Err.UserError
-        (Printf.sprintf "Parser error: An error occured at:\n %s\n%!"
-           (render_pos_interval err_interval))
-      |> raise
+      Err.UserError (ParserError err_interval) |> raise
   | e -> Err.Violation ("Found a problem:" ^ Printexc.to_string e) |> raise
 
 let process_file (fn : string) : string =
