@@ -24,6 +24,6 @@ global protocol Lock(role A, role B, role C) (tsa:int, tsb:int, tsc:int)@"(0,0,0
 		do Lock(C, A, B); @"(ts_rac+1,tsb,ts_aca+1)" //new initial values
 	}
 	
-	REL (ts_reab) from A to B; @"ts_reab > ts_rab"
-	REL (ts_reac) from A to C; @"ts_reac > ts_rac"
+	REL (ts_reab:int) from A to B; @"ts_reab > ts_rab"
+	REL (ts_reac:int) from A to C; @"ts_reac > ts_rac"
 }
