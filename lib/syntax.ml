@@ -1,3 +1,5 @@
+type source_loc = Lexing.position * Lexing.position
+
 let render_pos pos =
   Printf.sprintf "%d:%d" pos.Lexing.pos_lnum
     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
@@ -7,7 +9,7 @@ let render_pos_interval (startp, endp) : string =
     startp.Lexing.pos_fname
 
 type 'a located =
-  { loc: Lexing.position * Lexing.position
+  { loc: source_loc
         [@printer
           fun fmt interval ->
             fprintf fmt "%s" (render_pos_interval interval)]
