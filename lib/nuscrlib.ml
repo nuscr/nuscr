@@ -17,8 +17,7 @@ let process_ch fname (ch : In_channel.t) : string =
     try
       let g_types = List.map ~f:global_type_of_protocol protocols in
       String.concat ~sep:"\n" (List.map ~f:show_global_type g_types)
-    with
-    | _ -> "I'm sorry"
+    with _ -> "I'm sorry"
   with
   | Lexer.LexError msg -> Err.UserError (LexerError msg) |> raise
   | Parser.Error ->
