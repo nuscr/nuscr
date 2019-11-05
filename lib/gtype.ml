@@ -13,6 +13,10 @@ let global_type_of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in
   let has_global_recursion = ref false in
   let global_recursion_name = "__" ^ name in
+  let assert_empty l =
+    if not @@ List.is_empty l then
+      failwith "TODO: Non tail-recursive protocol"
+  in
   let rec conv_interactions rec_names
       (interactions : global_interaction list) =
     match interactions with
@@ -27,18 +31,21 @@ let global_type_of_protocol global_protocol =
       | Recursion (rname, interactions) ->
           if List.mem rec_names rname ~equal:( = ) then
             failwith "TODO: alpha convert"
-          else
-            Mu (rname, conv_interactions (rname :: rec_names) interactions)
+          else assert_empty rest ;
+          Mu (rname, conv_interactions (rname :: rec_names) interactions)
       | Continue name ->
-          if List.mem rec_names name ~equal:( = ) then TVar name
+          if List.mem rec_names name ~equal:( = ) then (
+            assert_empty rest ; TVar name )
           else failwith "TODO: Unbound TVar"
       | Choice (role, interactions_list) ->
+          assert_empty rest ;
           ChoiceT
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do (name_, _, roles_, _)
         when name = name_ && List.equal ( = ) roles roles_ ->
           has_global_recursion := true ;
+          assert_empty rest ;
           TVar global_recursion_name
       | Do _ -> failwith "TODO: handle other do"
       | _ -> failwith "TODO" )
