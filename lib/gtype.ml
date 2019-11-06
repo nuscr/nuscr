@@ -33,6 +33,8 @@ let global_type_of_protocol global_protocol =
           let to_role = Option.value_exn (List.hd to_roles) in
           check_role from_role ;
           check_role to_role ;
+          if String.equal from_role to_role then
+            unimpl "Error message for reflexive message";
           MessageG
             (message, from_role, to_role, conv_interactions rec_names rest)
       | Recursion (rname, interactions) ->
