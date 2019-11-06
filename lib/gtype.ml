@@ -20,7 +20,8 @@ let global_type_of_protocol global_protocol =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
   let check_role r =
-    if not @@ List.mem roles r ~equal:( = ) then unimpl "Unbound role name"
+    if not @@ List.mem roles r ~equal:String.equal then
+      unimpl "Unbound role name"
   in
   let rec conv_interactions rec_names
       (interactions : global_interaction list) =
@@ -37,12 +38,12 @@ let global_type_of_protocol global_protocol =
           Message
             (message, from_role, to_role, conv_interactions rec_names rest)
       | Recursion (rname, interactions) ->
-          if List.mem rec_names rname ~equal:( = ) then
+          if List.mem rec_names rname ~equal:String.equal then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
           Mu (rname, conv_interactions (rname :: rec_names) interactions)
       | Continue name ->
-          if List.mem rec_names name ~equal:( = ) then (
+          if List.mem rec_names name ~equal:String.equal then (
             assert_empty rest ; TVar name )
           else unimpl "Error message for Unbound TVar"
       | Choice (role, interactions_list) ->
@@ -52,7 +53,7 @@ let global_type_of_protocol global_protocol =
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do (name_, _, roles_, _)
-        when name = name_ && List.equal ( = ) roles roles_ ->
+        when name = name_ && List.equal String.equal roles roles_ ->
           has_global_recursion := true ;
           assert_empty rest ;
           TVar global_recursion_name
