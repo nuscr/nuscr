@@ -30,3 +30,5 @@ exception Violation of string
     user error *)
 
 exception UnImplemented of string
+
+let unimpl desc = UnImplemented desc |> raise
