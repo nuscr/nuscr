@@ -10,6 +10,7 @@ type local_type =
   | TVarL of name
   | MuL of name * local_type
   | EndL
+[@@deriving show]
 
 let rec project (gType : global_type) (roles : name list)
     (projected_role : name) =

@@ -2,6 +2,7 @@ open! Core_kernel
 open Syntax
 open Err
 open Gtype
+open Ltype
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
@@ -15,8 +16,28 @@ let process_ch fname (ch : In_channel.t) : string =
     (* show_scr_module ast *)
     let protocols = ast.protocols in
     try
-      let g_types = List.map ~f:global_type_of_protocol protocols in
-      String.concat ~sep:"\n" (List.map ~f:show_global_type g_types)
+      let g_types =
+        List.map
+          ~f:(fun p -> (global_type_of_protocol p, p.value.roles))
+          protocols
+      in
+      let g_types_str =
+        String.concat ~sep:"\n"
+          (List.map ~f:(fun (g, _) -> show_global_type g) g_types)
+      in
+      let l_types =
+        List.map
+          ~f:(fun (g, roles) -> List.map ~f:(project g roles) roles)
+          g_types
+      in
+      let l_types_str =
+        String.concat ~sep:"\n"
+          (List.map
+             ~f:(fun ls ->
+               String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
+             l_types)
+      in
+      g_types_str ^ "\n" ^ l_types_str
     with UnImplemented desc ->
       "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"
   with
