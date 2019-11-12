@@ -18,7 +18,10 @@ let rec project (gType : global_type) (roles : name list)
   match gType with
   | EndG -> EndL
   | TVarG name -> TVarL name
-  | MuG (name, gType) -> MuL (name, project gType roles projected_role)
+  | MuG (name, gType) -> (
+    match project gType roles projected_role with
+    | EndL -> EndL
+    | lType -> MuL (name, lType) )
   | MessageG (m, send_r, recv_r, gType) -> (
     match projected_role with
     | _ when String.equal projected_role send_r ->
