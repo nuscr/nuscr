@@ -20,7 +20,7 @@ let rec project (gType : global_type) (roles : name list)
   | TVarG name -> TVarL name
   | MuG (name, gType) -> (
     match project gType roles projected_role with
-    | EndL -> EndL
+    | TVarL _ | EndL -> EndL
     | lType -> MuL (name, lType) )
   | MessageG (m, send_r, recv_r, gType) -> (
     match projected_role with
