@@ -90,3 +90,51 @@ let%test "Flatten Example" =
   in
   let after = ChoiceG ("A", [mkMG m1; mkMG m2; mkMG m3]) in
   flatten before = after
+
+let rec substitute g tvar g_sub =
+  match g with
+  | TVarG tvar_ when String.equal tvar tvar_ -> g_sub
+  | TVarG _ -> g
+  | MuG (tvar_, _) when String.equal tvar tvar_ -> g
+  | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
+  | EndG -> EndG
+  | MessageG (m, r1, r2, g_) ->
+      MessageG (m, r1, r2, substitute g_ tvar g_sub)
+  | ChoiceG (r, g_) ->
+      ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
+
+let rec unfold = function
+  | MuG (tvar, g_) as g -> substitute g_ tvar g
+  | g -> g
+
+let rec normal_form = function
+  | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, normal_form g_)
+  | ChoiceG (r, g_) ->
+      let g_ = List.map ~f:normal_form g_ in
+      flatten (ChoiceG (r, g_))
+  | (EndG | TVarG _) as g -> g
+  | MuG (tvar, g_) -> unfold (MuG (tvar, normal_form g_))
+
+let%test "Normal Form Example" =
+  let mkMsg name = Message {name; payload= []} in
+  let m1 = mkMsg "m1" in
+  let m2 = mkMsg "m2" in
+  let m3 = mkMsg "m3" in
+  let mkMG m c = MessageG (m, "A", "B", c) in
+  let before =
+    ChoiceG
+      ( "A"
+      , [ MuG ("Loop", ChoiceG ("A", [mkMG m1 (TVarG "Loop"); mkMG m2 EndG]))
+        ; mkMG m3 EndG ] )
+  in
+  let after =
+    ChoiceG
+      ( "A"
+      , [ mkMG m1
+            (MuG
+               ( "Loop"
+               , ChoiceG ("A", [mkMG m1 (TVarG "Loop"); mkMG m2 EndG]) ))
+        ; mkMG m2 EndG
+        ; mkMG m3 EndG ] )
+  in
+  normal_form before = after
