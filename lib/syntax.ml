@@ -30,7 +30,7 @@ type raw_qname = name list [@@deriving show]
 
 type qname = raw_qname located [@@deriving show]
 
-let qname_to_string qn = String.concat "." qn
+let qname_to_string qn = String.concat "." qn.value
 
 type annotation = string [@@deriving show]
 
