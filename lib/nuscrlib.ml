@@ -13,6 +13,7 @@ let process_ch fname (ch : In_channel.t) : string =
   let lexbuf = set_filename fname (Lexing.from_channel ch) in
   try
     let ast = Parser.scr_module Lexer.token lexbuf in
+    let show ~f ~sep xs = String.concat ~sep (List.map ~f xs) in
     (* show_scr_module ast *)
     let protocols = ast.protocols in
     try
@@ -22,8 +23,13 @@ let process_ch fname (ch : In_channel.t) : string =
           protocols
       in
       let g_types_str =
-        String.concat ~sep:"\n"
-          (List.map ~f:(fun (g, _) -> show_global_type g) g_types)
+        show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types
+      in
+      let g_types =
+        List.map ~f:(fun (g, roles) -> (normal_form g, roles)) g_types
+      in
+      let gnf_types_str =
+        show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types
       in
       let l_types =
         List.map
@@ -37,7 +43,7 @@ let process_ch fname (ch : In_channel.t) : string =
                String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
              l_types)
       in
-      g_types_str ^ "\n" ^ l_types_str
+      String.concat ~sep:"\n\n\n" [g_types_str; gnf_types_str; l_types_str]
     with UnImplemented desc ->
       "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"
   with
