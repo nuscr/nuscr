@@ -66,3 +66,27 @@ let global_type_of_protocol global_protocol =
     else converted
   in
   converted
+
+let rec flatten = function
+  | ChoiceG (role, choices) ->
+      let choices = List.map ~f:flatten choices in
+      let lift = function
+        | ChoiceG (role_, choices_) when String.equal role role_ -> choices_
+        | ChoiceG (_role, _choices) ->
+            unimpl "Error message for inconsistent choices"
+        | g -> [g]
+      in
+      ChoiceG (role, List.concat_map ~f:lift choices)
+  | g -> g
+
+let%test "Flatten Example" =
+  let mkMsg name = Message {name; payload= []} in
+  let m1 = mkMsg "m1" in
+  let m2 = mkMsg "m2" in
+  let m3 = mkMsg "m3" in
+  let mkMG m = MessageG (m, "A", "B", EndG) in
+  let before =
+    ChoiceG ("A", [ChoiceG ("A", [mkMG m1; mkMG m2]); mkMG m3])
+  in
+  let after = ChoiceG ("A", [mkMG m1; mkMG m2; mkMG m3]) in
+  flatten before = after
