@@ -61,6 +61,11 @@ type message =
   | MessageQName of qname
 [@@deriving show]
 
+let message_label = function
+  | Message {name; _} -> name
+  | MessageName name -> name
+  | MessageQName qn -> qname_to_string qn
+
 type global_interaction = raw_global_interaction located [@@deriving show]
 
 and raw_global_interaction =
