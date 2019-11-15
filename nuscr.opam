@@ -1,12 +1,12 @@
 opam-version: "2.0"
 version: "1.0"
 maintainer: "Francisco Ferreira <email.here>"
-authors: ["Francisco Ferreira"]
-homepage: "https://gitlab.com/MustardWatch/nuscr"
-bug-reports: "https://gitlab.com/MustardWatch/nuscr/issues"
-dev-repo: "git+https://gitlab.com/MustardWatch/nuscr.git"
+authors: ["Francisco Ferreira", "Fangyi Zhou"]
+homepage: "https://github.com/nuscr/nuscr"
+bug-reports: "https://github.com/nuscr/nuscr/issues"
+dev-repo: "git+https://github.com/nuscr/nuscr.git"
 license: "GPL"
-synopsis: "New Scribble"
+synopsis: "A tool to manipulate and validate Scribble-style multiparty protocols"
 build: [
   ["dune" "build" "-p" name "-j" jobs]
 ]
