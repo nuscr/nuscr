@@ -10,7 +10,35 @@ type local_type =
   | TVarL of name
   | MuL of name * local_type
   | EndL
-[@@deriving show {with_path= false}]
+
+let show_local_type =
+  let indent_here indent = String.make (indent * 2) ' ' in
+  let rec show_local_type_internal indent =
+    let current_indent = indent_here indent in
+    function
+    | RecvL (m, r, l) ->
+        sprintf "%s%s from %s;\n%s" current_indent (show_message m) r
+          (show_local_type_internal indent l)
+    | SendL (m, r, l) ->
+        sprintf "%s%s to %s;\n%s" current_indent (show_message m) r
+          (show_local_type_internal indent l)
+    | MuL (n, l) ->
+        sprintf "%srec %s {\n%s%s}\n" current_indent n
+          (show_local_type_internal (indent + 1) l)
+          current_indent
+    | TVarL n -> sprintf "%s%s\n" current_indent n
+    | EndL -> sprintf "%send\n" current_indent
+    | ChoiceL (r, ls) ->
+        let pre = sprintf "%schoice at %s {\n" current_indent r in
+        let intermission = sprintf "%s} or {\n" current_indent in
+        let post = sprintf "%s}\n" current_indent in
+        let choices =
+          List.map ~f:(show_local_type_internal (indent + 1)) ls
+        in
+        let ls = String.concat ~sep:intermission choices in
+        pre ^ ls ^ post
+  in
+  show_local_type_internal 0
 
 exception Unmergable of local_type * local_type
 
