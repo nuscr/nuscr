@@ -18,29 +18,31 @@ let rec merge projected_role lty1 lty2 =
   let fail () = raise (Unmergable (lty1, lty2)) in
   let merge_recv r recvs =
     let rec aux (acc : (string * local_type) list) = function
-      | RecvL (m, _, lty) -> (
+      | RecvL (m, _, lty) as l -> (
           let label = message_label m in
           match List.Assoc.find acc ~equal:String.equal label with
-          | None -> (label, lty) :: acc
-          | Some lty_ ->
+          | None -> (label, l) :: acc
+          | Some (RecvL (m, r, l_)) ->
               List.Assoc.add acc ~equal:String.equal label
-                (merge projected_role lty lty_) )
-      | _ -> failwith "Impossible"
+                (RecvL (m, r, merge projected_role lty l_))
+          | _ -> failwith "Impossible" )
+      | l -> failwith ("Impossible " ^ show_local_type l ^ " r " ^ r)
     in
     let conts = List.fold ~f:aux ~init:[] recvs in
     match conts with
+    | [] -> EndL
     | [(_, lty)] -> lty
     | conts -> ChoiceL (r, List.map ~f:snd conts)
   in
   match (lty1, lty2) with
-  | RecvL (_m1, r1, _lty1_), RecvL (_m2, r2, _lty2_) ->
+  | RecvL (_, r1, _), RecvL (_, r2, _) ->
       if not @@ String.equal r1 r2 then fail () ;
       merge_recv r1 [lty1; lty2]
-  | ChoiceL (r1, ltys1), RecvL (_m, r2, lty2) when String.equal r1 r2 ->
+  | ChoiceL (r1, ltys1), RecvL (_, r2, _) when String.equal r1 r2 ->
       (* Choice is a set of receive *)
       merge_recv r1 (lty2 :: ltys1)
-  | RecvL (_m, r2, lty2), ChoiceL (r1, _ltys1) when String.equal r1 r2 ->
-      merge projected_role lty2 lty1
+  | RecvL (_, r2, _), ChoiceL (r1, ltys2) when String.equal r1 r2 ->
+      merge_recv r1 (lty1 :: ltys2)
   | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
     when String.equal r1 r2 && not (String.equal r1 projected_role) ->
       merge_recv r1 (ltys1 @ ltys2)
@@ -82,16 +84,16 @@ let rec project (gType : global_type) (roles : name list)
         List.fold ~f:(check_consistent_gchoice choice_r) ~init:None gTypes
       in
       let recv_r = Option.value_exn recv_r in
+      let l_types =
+        List.map ~f:(fun g -> project g roles projected_role) gTypes
+      in
+      let l_types = List.filter ~f:(( <> ) EndL) l_types in
       match projected_role with
       | _
         when String.equal projected_role choice_r
              || String.equal projected_role recv_r ->
-          ChoiceL
-            ( choice_r
-            , List.map ~f:(fun g -> project g roles projected_role) gTypes
-            )
-      | _ ->
-          let lTypes =
-            List.map ~f:(fun g -> project g roles projected_role) gTypes
-          in
-          List.reduce_exn ~f:(merge projected_role) lTypes )
+          ChoiceL (choice_r, l_types)
+      | _ -> (
+        match List.reduce ~f:(merge projected_role) l_types with
+        | Some l -> l
+        | None -> EndL ) )
