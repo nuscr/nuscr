@@ -8,7 +8,7 @@ type global_type =
   | TVarG of name
   | ChoiceG of name * global_type list
   | EndG
-[@@deriving show]
+[@@deriving show { with_path = false }]
 
 let global_type_of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in

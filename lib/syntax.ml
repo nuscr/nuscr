@@ -23,20 +23,20 @@ type 'a located =
  *   | Con of string *)
 
 (* a simple name *)
-type name = string [@@deriving show]
+type name = string [@@deriving show { with_path = false }]
 
 (* a qualified name *)
-type raw_qname = name list [@@deriving show]
+type raw_qname = name list [@@deriving show { with_path = false }]
 
-type qname = raw_qname located [@@deriving show]
+type qname = raw_qname located [@@deriving show { with_path = false }]
 
 let qname_to_string qn = String.concat "." qn.value
 
-type annotation = string [@@deriving show]
+type annotation = string [@@deriving show { with_path = false }]
 
-type raw_mod_decl = {module_name: qname} [@@deriving show]
+type raw_mod_decl = {module_name: qname} [@@deriving show { with_path = false }]
 
-type mod_decl = raw_mod_decl located [@@deriving show]
+type mod_decl = raw_mod_decl located [@@deriving show { with_path = false }]
 
 type raw_type_decl =
   { domain: string (* where does the type come from java|xsd|... *)
@@ -44,29 +44,29 @@ type raw_type_decl =
   ; location: string (* location of the the type definition *)
   ; type_name: string (* the name of the defined type *)
   ; is_type: bool (* true for types, false for signatures *) }
-[@@deriving show]
+[@@deriving show { with_path = false }]
 
-type type_decl = raw_type_decl located [@@deriving show]
+type type_decl = raw_type_decl located [@@deriving show { with_path = false }]
 
 type payloadt =
   | PayloadName of name
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadQName of qname
   | PayloadBnd of name * qname (* var : type *)
-[@@deriving show]
+[@@deriving show { with_path = false }]
 
 type message =
   | Message of {name: name; payload: payloadt list}
   | MessageName of name
   | MessageQName of qname
-[@@deriving show]
+[@@deriving show { with_path = false }]
 
 let message_label = function
   | Message {name; _} -> name
   | MessageName name -> name
   | MessageQName qn -> qname_to_string qn
 
-type global_interaction = raw_global_interaction located [@@deriving show]
+type global_interaction = raw_global_interaction located [@@deriving show { with_path = false }]
 
 and raw_global_interaction =
   | MessageTransfer of
@@ -84,9 +84,9 @@ and raw_global_interaction =
   (* message, from, to *)
   | Connect of message option * name * name * annotation option
   | Disconnect of name * name
-[@@deriving show]
+[@@deriving show { with_path = false }]
 
-type protocol_mods = Aux | AuxExplicit | Explicit [@@deriving show]
+type protocol_mods = Aux | AuxExplicit | Explicit [@@deriving show { with_path = false }]
 
 type raw_global_protocol =
   { name: name
@@ -99,10 +99,10 @@ type raw_global_protocol =
   ; roles: name list
   ; interactions: global_interaction list
   ; ann: annotation option }
-[@@deriving show]
+[@@deriving show { with_path = false }]
 
-type global_protocol = raw_global_protocol located [@@deriving show]
+type global_protocol = raw_global_protocol located [@@deriving show { with_path = false }]
 
 type scr_module =
   {decl: mod_decl; types: type_decl list; protocols: global_protocol list}
-[@@deriving show]
+[@@deriving show { with_path = false }]
