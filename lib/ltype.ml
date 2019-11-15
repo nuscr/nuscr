@@ -10,7 +10,7 @@ type local_type =
   | TVarL of name
   | MuL of name * local_type
   | EndL
-[@@deriving show { with_path = false }]
+[@@deriving show {with_path= false}]
 
 exception Unmergable of local_type * local_type
 
