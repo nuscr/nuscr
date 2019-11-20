@@ -13,8 +13,7 @@ let render_pos_interval (startp, endp) : string =
 type 'a located =
   { loc: source_loc
         [@printer
-          fun fmt interval ->
-            fprintf fmt "%s" (render_pos_interval interval)]
+          fun fmt interval -> fprintf fmt "%s" (render_pos_interval interval)]
   ; value: 'a [@main] }
 [@@deriving show, make]
 
@@ -40,8 +39,7 @@ let qname_to_string qn = String.concat ~sep:"." qn.value
 
 type annotation = string [@@deriving show {with_path= false}]
 
-type raw_mod_decl = {module_name: qname}
-[@@deriving show {with_path= false}]
+type raw_mod_decl = {module_name: qname} [@@deriving show {with_path= false}]
 
 type mod_decl = raw_mod_decl located [@@deriving show {with_path= false}]
 

@@ -111,9 +111,7 @@ let%test "Flatten Example" =
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
   let mkMG m = MessageG (m, "A", "B", EndG) in
-  let before =
-    ChoiceG ("A", [ChoiceG ("A", [mkMG m1; mkMG m2]); mkMG m3])
-  in
+  let before = ChoiceG ("A", [ChoiceG ("A", [mkMG m1; mkMG m2]); mkMG m3]) in
   let after = ChoiceG ("A", [mkMG m1; mkMG m2; mkMG m3]) in
   flatten before = after
 
@@ -124,8 +122,7 @@ let rec substitute g tvar g_sub =
   | MuG (tvar_, _) when String.equal tvar tvar_ -> g
   | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
   | EndG -> EndG
-  | MessageG (m, r1, r2, g_) ->
-      MessageG (m, r1, r2, substitute g_ tvar g_sub)
+  | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
   | ChoiceG (r, g_) ->
       ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
 
@@ -158,8 +155,7 @@ let%test "Normal Form Example" =
       ( "A"
       , [ mkMG m1
             (MuG
-               ( "Loop"
-               , ChoiceG ("A", [mkMG m1 (TVarG "Loop"); mkMG m2 EndG]) ))
+               ("Loop", ChoiceG ("A", [mkMG m1 (TVarG "Loop"); mkMG m2 EndG])))
         ; mkMG m2 EndG
         ; mkMG m3 EndG ] )
   in
