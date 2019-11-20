@@ -59,13 +59,13 @@ let conv_ltype lty =
   let g = G.create () in
   let rec conv_ltype_aux tyvars = function
     | RecvL (m, n, l) ->
-        let next = conv_ltype_aux tyvars l in
         let curr = fresh () in
+        let next = conv_ltype_aux tyvars l in
         let e = (curr, RecvA (n, m), next) in
         G.add_edge_e g e ; curr
     | SendL (m, n, l) ->
-        let next = conv_ltype_aux tyvars l in
         let curr = fresh () in
+        let next = conv_ltype_aux tyvars l in
         let e = (curr, SendA (n, m), next) in
         G.add_edge_e g e ; curr
     | ChoiceL (_r, ltys) ->
