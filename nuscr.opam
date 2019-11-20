@@ -14,7 +14,7 @@ depends: [
   "menhir" {build}
   "ppx_deriving"
   "dune" {build}
-  "ocamlformat" {build}
+  "ocamlformat" {build & >= "0.12"}
   "core_kernel"
   "ppx_inline_test" {dev}
 ]

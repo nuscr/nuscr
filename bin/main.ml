@@ -13,6 +13,5 @@ let () =
   let pwd = Sys.getenv "PWD" in
   if Array.length Sys.argv <> 2 then
     print_endline
-      ( "Usage: " ^ Sys.argv.(0) ^ " <scribble source> \n Running at: "
-      ^ pwd )
+      ("Usage: " ^ Sys.argv.(0) ^ " <scribble source> \n Running at: " ^ pwd)
   else run Sys.argv.(1)
