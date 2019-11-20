@@ -3,6 +3,7 @@ open Syntax
 open Err
 open Gtype
 open Ltype
+open Efsm
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
@@ -43,7 +44,17 @@ let process_ch fname (ch : In_channel.t) : string =
                String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
              l_types)
       in
-      String.concat ~sep:"\n\n\n" [g_types_str; gnf_types_str; l_types_str]
+      let efsmss = List.map ~f:(List.map ~f:conv_ltype) l_types in
+      let efsmss_str =
+        String.concat ~sep:"\n"
+          (List.map
+             ~f:(fun efsms ->
+               String.concat ~sep:"\n"
+                 (List.map ~f:(fun (_, g) -> show_efsm g) efsms))
+             efsmss)
+      in
+      String.concat ~sep:"\n\n\n"
+        [g_types_str; gnf_types_str; l_types_str; efsmss_str]
     with UnImplemented desc ->
       "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"
   with
