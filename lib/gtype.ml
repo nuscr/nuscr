@@ -8,7 +8,33 @@ type global_type =
   | TVarG of name
   | ChoiceG of name * global_type list
   | EndG
-[@@deriving show {with_path= false}]
+
+let show_global_type =
+  let indent_here indent = String.make (indent * 2) ' ' in
+  let rec show_global_type_internal indent =
+    let current_indent = indent_here indent in
+    function
+    | MessageG (m, r1, r2, g) ->
+        sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m) r1
+          r2
+          (show_global_type_internal indent g)
+    | MuG (n, g) ->
+        sprintf "%srec %s {\n%s%s}\n" current_indent n
+          (show_global_type_internal (indent + 1) g)
+          current_indent
+    | TVarG n -> sprintf "%s%s\n" current_indent n
+    | EndG -> sprintf "%send\n" current_indent
+    | ChoiceG (r, gs) ->
+        let pre = sprintf "%schoice at %s {\n" current_indent r in
+        let intermission = sprintf "%s} or {\n" current_indent in
+        let post = sprintf "%s}\n" current_indent in
+        let choices =
+          List.map ~f:(show_global_type_internal (indent + 1)) gs
+        in
+        let gs = String.concat ~sep:intermission choices in
+        pre ^ gs ^ post
+  in
+  show_global_type_internal 0
 
 let global_type_of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in

@@ -1,11 +1,13 @@
+open! Core_kernel
+
 type source_loc = Lexing.position * Lexing.position
 
 let render_pos pos =
-  Printf.sprintf "%d:%d" pos.Lexing.pos_lnum
+  sprintf "%d:%d" pos.Lexing.pos_lnum
     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
 
 let render_pos_interval (startp, endp) : string =
-  Printf.sprintf "%s to %s in: %s" (render_pos startp) (render_pos endp)
+  sprintf "%s to %s in: %s" (render_pos startp) (render_pos endp)
     startp.Lexing.pos_fname
 
 type 'a located =
@@ -26,11 +28,15 @@ type 'a located =
 type name = string [@@deriving show {with_path= false}]
 
 (* a qualified name *)
-type raw_qname = name list [@@deriving show {with_path= false}]
+type raw_qname = name list
+
+let show_raw_qname = String.concat ~sep:"."
+
+let pp_raw_qname fmt qn = Format.fprintf fmt "%s" (show_raw_qname qn)
 
 type qname = raw_qname located [@@deriving show {with_path= false}]
 
-let qname_to_string qn = String.concat "." qn.value
+let qname_to_string qn = String.concat ~sep:"." qn.value
 
 type annotation = string [@@deriving show {with_path= false}]
 
@@ -53,14 +59,31 @@ type payloadt =
   | PayloadName of name
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadQName of qname
-  | PayloadBnd of name * qname (* var : type *)
-[@@deriving show {with_path= false}]
+  | PayloadBnd of name * qname
+
+(* var : type *)
+
+let show_payloadt = function
+  | PayloadName n -> n
+  | PayloadDel (p, r) -> sprintf "%s @ %s" p r
+  | PayloadQName qn -> qname_to_string qn
+  | PayloadBnd (n, qn) -> sprintf "%s: %s" n (qname_to_string qn)
+
+let pp_payloadt fmt p = Format.fprintf fmt "%s" (show_payloadt p)
 
 type message =
   | Message of {name: name; payload: payloadt list}
   | MessageName of name
   | MessageQName of qname
-[@@deriving show {with_path= false}]
+
+let show_message = function
+  | Message {name; payload} ->
+      sprintf "%s(%s)" name
+        (String.concat ~sep:" ," (List.map ~f:show_payloadt payload))
+  | MessageName n -> n
+  | MessageQName qn -> qname_to_string qn
+
+let pp_message fmt m = Format.fprintf fmt "%s" (show_message m)
 
 let message_label = function
   | Message {name; _} -> name
