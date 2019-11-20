@@ -1,6 +1,8 @@
 (executables
  (names main)
- (libraries nuscrlib))
+ (preprocess
+  (pps ppx_jane))
+ (libraries nuscrlib core))
 
 (install
  (section bin)

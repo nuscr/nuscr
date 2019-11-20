@@ -1,4 +1,5 @@
 open Nuscrlib__.Err
+open Core
 
 let run fn =
   try
@@ -7,11 +8,18 @@ let run fn =
   with
   | UserError msg -> "User error: " ^ show_user_error msg |> print_endline
   | Violation msg -> "Violation: " ^ msg |> print_endline
-  | e -> "Reported problem:\n " ^ Printexc.to_string e |> print_endline
+  | e -> "Reported problem:\n " ^ Exn.to_string e |> print_endline
+
+let get_pwd () = Sys.getenv_exn "PWD"
+
+let command =
+  let open Command.Let_syntax in
+  Command.basic ~summary:"Project global types onto local types and CFSMs"
+    ~readme:(fun () -> "Running from: " ^ get_pwd ())
+    [%map_open
+      let file_name = anon ("FILE" %: string) in
+      fun () -> run file_name]
 
 let () =
-  let pwd = Sys.getenv "PWD" in
-  if Array.length Sys.argv <> 2 then
-    print_endline
-      ("Usage: " ^ Sys.argv.(0) ^ " <scribble source> \n Running at: " ^ pwd)
-  else run Sys.argv.(1)
+  Command.run ~version:"0.00" ~build_info:"I'm sorry, no build info... yet?"
+    command

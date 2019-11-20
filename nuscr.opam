@@ -15,7 +15,7 @@ depends: [
   "ppx_deriving"
   "dune" {build}
   "ocamlformat" {build & >= "0.12"}
-  "core_kernel"
+  "core"
   "ppx_inline_test" {dev}
   "ocamlgraph"
 ]
