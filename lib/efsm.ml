@@ -86,5 +86,8 @@ let conv_ltype lty =
   (start, g)
 
 let show_efsm g =
-  DotOutput.fprint_graph Format.str_formatter g ;
-  Format.flush_str_formatter ()
+  let buffer = Buffer.create 4196 in
+  let formatter = Format.formatter_of_buffer buffer in
+  DotOutput.fprint_graph formatter g ;
+  Format.pp_print_flush formatter () ;
+  Buffer.contents buffer
