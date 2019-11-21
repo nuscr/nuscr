@@ -34,9 +34,12 @@ let run filename verbose enumerate proj _fsm =
     ()
   with
   | Err.UserError msg ->
-      "User error: " ^ Err.show_user_error msg |> print_endline
-  | Err.Violation msg -> "Violation: " ^ msg |> print_endline
-  | e -> "Reported problem:\n " ^ Exn.to_string e |> print_endline
+      "User error: " ^ Err.show_user_error msg |> prerr_endline
+  | Err.Violation msg -> "Violation: " ^ msg |> prerr_endline
+  | Err.UnImplemented desc ->
+      "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"
+      |> prerr_endline
+  | e -> "Reported problem:\n " ^ Exn.to_string e |> prerr_endline
 
 let get_pwd () = Sys.getenv_exn "PWD"
 
