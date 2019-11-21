@@ -50,9 +50,9 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
   In_channel.close input
 
 let process_files fns =
-  let error_buffer = ref "" in
+  let buffer = Buffer.create 1024 in
   let rec pf cnt_ok cnt_err = function
-    | [] -> (cnt_ok, cnt_err, !error_buffer)
+    | [] -> (cnt_ok, cnt_err, Buffer.contents buffer)
     | f :: fs -> (
       try
         let run fn in_channel =
@@ -70,7 +70,8 @@ let process_files fns =
           Printf.sprintf "File: %s -- Error message: %s\n" f
             (Exn.to_string e)
         in
-        error_buffer := !error_buffer ^ msg ^ "\n" ;
+        Buffer.add_string buffer msg ;
+        Buffer.add_char buffer '\n' ;
         pf cnt_ok (cnt_err + 1) fs )
   in
   pf 0 0 fns
