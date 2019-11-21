@@ -18,4 +18,6 @@ depends: [
   "core"
   "ppx_inline_test" {dev}
   "ocamlgraph"
+  "js_of_ocaml"
+  "js_of_ocaml-ppx"
 ]
