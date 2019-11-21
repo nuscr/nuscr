@@ -92,7 +92,6 @@ let check_consistent_gchoice choice_r recv_r =
 
 let rec project (gType : global_type) (roles : name list)
     (projected_role : name) =
-  assert (List.mem roles projected_role ~equal:String.equal) ;
   match gType with
   | EndG -> EndL
   | TVarG name -> TVarL name

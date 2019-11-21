@@ -23,14 +23,12 @@ let run filename verbose enumerate proj _fsm =
     else () ;
     let _ =
       gen_output ast
-        (fun ast r n ->
-          Lib.project_role ast r n |> Ltype.show_local_type)
+        (fun ast r n -> Lib.project_role ast r n |> Ltype.show_local_type)
         proj
     in
     let _ =
       gen_output ast
-        (fun ast r n ->
-          Lib.generate_fsm ast r n |> snd |> Efsm.show_efsm)
+        (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show_efsm)
         _fsm
     in
     ()
