@@ -1,3 +1,4 @@
+open! Core_kernel
 open Syntax
 
 type user_error =
@@ -34,3 +35,5 @@ exception Violation of string
 exception UnImplemented of string
 
 let unimpl desc = UnImplemented desc |> raise
+
+let uerr e = UserError e |> raise
