@@ -28,35 +28,28 @@ let validate_exn (ast : scr_module) verbose : unit =
     else ()
   in
   let protocols = ast.protocols in
-  try
-    let g_types =
-      List.map
-        ~f:(fun p -> (global_type_of_protocol p, p.value.roles))
-        protocols
-    in
-    let g_types =
-      List.map ~f:(fun (g, roles) -> (normal_form g, roles)) g_types
-    in
-    show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types ;
-    let l_types =
-      List.map
-        ~f:(fun (g, roles) -> List.map ~f:(project g roles) roles)
-        g_types
-    in
-    show ~sep:"\n"
-      ~f:(fun ls -> String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
-      l_types ;
-    let efsmss = List.map ~f:(List.map ~f:conv_ltype) l_types in
-    show ~sep:"\n"
-      ~f:(fun efsms ->
-        String.concat ~sep:"\n"
-          (List.map ~f:(fun (_, g) -> show_efsm g) efsms))
-      efsmss
-  with UnImplemented desc ->
-    Err.UserError
-      (Err.Unimplemented
-         ("I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"))
-    |> raise
+  let g_types =
+    List.map
+      ~f:(fun p -> (global_type_of_protocol p, p.value.roles))
+      protocols
+  in
+  let g_types =
+    List.map ~f:(fun (g, roles) -> (normal_form g, roles)) g_types
+  in
+  show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types ;
+  let l_types =
+    List.map
+      ~f:(fun (g, roles) -> List.map ~f:(project g roles) roles)
+      g_types
+  in
+  show ~sep:"\n"
+    ~f:(fun ls -> String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
+    l_types ;
+  let efsmss = List.map ~f:(List.map ~f:conv_ltype) l_types in
+  show ~sep:"\n"
+    ~f:(fun efsms ->
+      String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> show_efsm g) efsms))
+    efsmss
 
 let enumerate (ast : scr_module) : (string * string) list =
   let protocols = ast.protocols in
@@ -75,64 +68,3 @@ let project_role ast name role : local_type =
 let generate_fsm ast name role =
   let lt = project_role ast name role in
   conv_ltype lt
-
-let process_ch fname (ch : In_channel.t) : string =
-  let lexbuf = set_filename fname (Lexing.from_channel ch) in
-  try
-    let ast = Parser.scr_module Lexer.token lexbuf in
-    let show ~f ~sep xs = String.concat ~sep (List.map ~f xs) in
-    (* show_scr_module ast *)
-    let protocols = ast.protocols in
-    try
-      let g_types =
-        List.map
-          ~f:(fun p -> (global_type_of_protocol p, p.value.roles))
-          protocols
-      in
-      let g_types_str =
-        show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types
-      in
-      let g_types =
-        List.map ~f:(fun (g, roles) -> (normal_form g, roles)) g_types
-      in
-      let gnf_types_str =
-        show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types
-      in
-      let l_types =
-        List.map
-          ~f:(fun (g, roles) -> List.map ~f:(project g roles) roles)
-          g_types
-      in
-      let l_types_str =
-        String.concat ~sep:"\n"
-          (List.map
-             ~f:(fun ls ->
-               String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
-             l_types)
-      in
-      let efsmss = List.map ~f:(List.map ~f:conv_ltype) l_types in
-      let efsmss_str =
-        String.concat ~sep:"\n"
-          (List.map
-             ~f:(fun efsms ->
-               String.concat ~sep:"\n"
-                 (List.map ~f:(fun (_, g) -> show_efsm g) efsms))
-             efsmss)
-      in
-      String.concat ~sep:"\n\n\n"
-        [g_types_str; gnf_types_str; l_types_str; efsmss_str]
-    with UnImplemented desc ->
-      "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"
-  with
-  | Lexer.LexError msg -> Err.UserError (LexerError msg) |> raise
-  | Parser.Error ->
-      let err_interval =
-        (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
-      in
-      Err.UserError (ParserError err_interval) |> raise
-  | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
-
-let process_file (fn : string) : string =
-  let input = In_channel.create fn in
-  let res = process_ch fn input in
-  In_channel.close input ; res
