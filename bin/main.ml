@@ -15,7 +15,7 @@ let gen_output ast f = function
 let run filename verbose enumerate proj fsm =
   try
     let ast = process_file filename Lib.parse in
-    Lib.validate_exn ast verbose ;
+    Lib.validate_exn ast ~verbose ;
     if enumerate then
       Lib.enumerate ast
       |> List.map ~f:(fun (n, r) -> r ^ "@" ^ n)
