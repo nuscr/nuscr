@@ -55,7 +55,7 @@ let process_files fns =
     | [] -> (cnt_ok, cnt_err, !error_buffer)
     | f :: fs -> (
       try
-        let _ = process_file f in
+        let _ = process_file f Nuscrlib.Lib.parse in
         pf (cnt_ok + 1) cnt_err fs
       with e ->
         let msg =
