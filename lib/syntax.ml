@@ -15,7 +15,7 @@ type 'a located =
         [@printer
           fun fmt interval -> fprintf fmt "%s" (render_pos_interval interval)]
   ; value: 'a [@main] }
-[@@deriving show, make]
+[@@deriving show]
 
 (* type ast =
  *   raw_ast located

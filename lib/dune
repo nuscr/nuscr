@@ -5,7 +5,7 @@
  (libraries core_kernel ocamlgraph)
  (inline_tests)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.make ppx_inline_test)))
+  (pps ppx_deriving.show ppx_inline_test)))
 
 (ocamllex
  (modules lexer))
