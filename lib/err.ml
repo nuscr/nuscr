@@ -6,6 +6,8 @@ type user_error =
   | UnboundRecursionName of string * source_loc
   | RedefinedRecursionName of string * source_loc * source_loc
   | Uncategorised of string
+  | InvalidCommandLineParam of string
+  | Unimplemented of string
 
 exception UserError of user_error
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -23,6 +25,8 @@ let show_user_error = function
       ^ " and "
       ^ render_pos_interval interval2
   | Uncategorised msg -> "Error " ^ msg
+  | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
+  | Unimplemented msg -> msg
 
 exception Violation of string
 (** A Violation is reported when an impossible state was reached. It has to
