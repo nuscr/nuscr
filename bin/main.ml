@@ -12,7 +12,7 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-let run filename verbose enumerate proj _fsm =
+let run filename verbose enumerate proj fsm =
   try
     let ast = process_file filename Lib.parse in
     Lib.validate_exn ast verbose ;
@@ -29,7 +29,7 @@ let run filename verbose enumerate proj _fsm =
     let _ =
       gen_output ast
         (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show_efsm)
-        _fsm
+        fsm
     in
     ()
   with
