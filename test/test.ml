@@ -51,6 +51,8 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
   let _ = proc fn input in
   In_channel.close input
 
+exception ExpectFail
+
 let process_files fns =
   let buffer = Buffer.create 1024 in
   let rec pf cnt_ok cnt_err = function
@@ -58,11 +60,17 @@ let process_files fns =
     | f :: fs -> (
       try
         let run fn in_channel =
+          let is_negative_test =
+            Filename.check_suffix (Filename.dirname fn) "errors"
+          in
           try
             let ast = Nuscrlib.Lib.parse fn in_channel in
-            Nuscrlib.Lib.validate_exn ast ~verbose:false
+            Nuscrlib.Lib.validate_exn ast ~verbose:false ;
+            if is_negative_test then raise ExpectFail
           with
           | Nuscrlib.Err.UnImplemented _ -> ()
+          | ExpectFail when is_negative_test -> raise ExpectFail
+          | _ when is_negative_test -> ()
           | e -> raise e
         in
         let () = process_file f run in
