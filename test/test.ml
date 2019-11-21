@@ -41,8 +41,10 @@ let report dirs ok err msg =
 
 let write_report dirs ok err msg =
   let ch = Out_channel.create "test.report" in
-  Out_channel.output_string ch (report dirs ok err msg) ;
-  Out_channel.close ch
+  let report_content = report dirs ok err msg in
+  Out_channel.output_string ch report_content ;
+  Out_channel.close ch ;
+  report_content
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
   let input = In_channel.create fn in
@@ -86,6 +88,6 @@ let () =
       |> List.concat
     in
     let ok, err, errors = process_files files in
-    write_report dirs ok err errors ;
-    print_endline (if err = 0 then "Ok" else "Not ok")
+    let report = write_report dirs ok err errors in
+    print_endline (if err = 0 then "Ok" else "Not ok\n" ^ report)
   with e -> "Unexpected:\n" ^ Exn.to_string e |> print_endline
