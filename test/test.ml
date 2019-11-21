@@ -49,7 +49,7 @@ let process_files fns =
     | [] -> (cnt_ok, cnt_err, !error_buffer)
     | f :: fs -> (
       try
-        let _ = Nuscrlib.process_file f in
+        let _ = Nuscrlib.Lib.process_file f in
         pf (cnt_ok + 1) cnt_err fs
       with e ->
         let msg =

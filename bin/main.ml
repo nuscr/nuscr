@@ -1,13 +1,14 @@
-open Nuscrlib__.Err
 open Core
+open Nuscrlib
 
 let run fn =
   try
-    let str = Nuscrlib.process_file fn in
+    let str = Lib.process_file fn in
     print_endline str
   with
-  | UserError msg -> "User error: " ^ show_user_error msg |> print_endline
-  | Violation msg -> "Violation: " ^ msg |> print_endline
+  | Err.UserError msg ->
+      "User error: " ^ Err.show_user_error msg |> print_endline
+  | Err.Violation msg -> "Violation: " ^ msg |> print_endline
   | e -> "Reported problem:\n " ^ Exn.to_string e |> print_endline
 
 let get_pwd () = Sys.getenv_exn "PWD"
