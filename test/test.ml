@@ -55,7 +55,15 @@ let process_files fns =
     | [] -> (cnt_ok, cnt_err, !error_buffer)
     | f :: fs -> (
       try
-        let _ = process_file f Nuscrlib.Lib.parse in
+        let run fn in_channel =
+          try
+            let ast = Nuscrlib.Lib.parse fn in_channel in
+            Nuscrlib.Lib.validate_exn ast ~verbose:false
+          with
+          | Nuscrlib.Err.UnImplemented _ -> ()
+          | e -> raise e
+        in
+        let () = process_file f run in
         pf (cnt_ok + 1) cnt_err fs
       with e ->
         let msg =
