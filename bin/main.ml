@@ -11,8 +11,9 @@ let run filename verbose enumerate _proj _fsm =
     (let ast = process_file filename Lib.parse in
      Lib.validate_exn ast verbose ;
      if enumerate then
-       String.concat ~sep:"\n" (List.concat (Lib.enumerate ast))
-       |> print_endline
+       List.concat (Lib.enumerate ast)
+       |> List.map ~f:(fun (n, r) -> r ^ "@" ^ n)
+       |> String.concat ~sep:"\n" |> print_endline
      else ()) ;
     ()
   with
