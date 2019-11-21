@@ -6,15 +6,33 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let res = proc fn input in
   In_channel.close input ; res
 
-let run filename verbose enumerate _proj _fsm =
+let gen_output ast f = function
+  | Some (role, name) ->
+      let res = f ast name role in
+      print_endline res
+  | _ -> ()
+
+let run filename verbose enumerate proj _fsm =
   try
-    (let ast = process_file filename Lib.parse in
-     Lib.validate_exn ast verbose ;
-     if enumerate then
-       List.concat (Lib.enumerate ast)
-       |> List.map ~f:(fun (n, r) -> r ^ "@" ^ n)
-       |> String.concat ~sep:"\n" |> print_endline
-     else ()) ;
+    let ast = process_file filename Lib.parse in
+    Lib.validate_exn ast verbose ;
+    if enumerate then
+      Lib.enumerate ast
+      |> List.map ~f:(fun (n, r) -> r ^ "@" ^ n)
+      |> String.concat ~sep:"\n" |> print_endline
+    else () ;
+    let _ =
+      gen_output ast
+        (fun ast r n ->
+          Lib.project_role ast r n |> Ltype.show_local_type)
+        proj
+    in
+    let _ =
+      gen_output ast
+        (fun ast r n ->
+          Lib.generate_fsm ast r n |> snd |> Efsm.show_efsm)
+        _fsm
+    in
     ()
   with
   | Err.UserError msg ->

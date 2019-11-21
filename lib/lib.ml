@@ -58,13 +58,23 @@ let validate_exn (ast : scr_module) verbose : unit =
          ("I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"))
     |> raise
 
-let enumerate (ast : scr_module) : (string * string) list list =
+let enumerate (ast : scr_module) : (string * string) list =
   let protocols = ast.protocols in
   let roles p =
     let {value= {name; roles; _}; _} = p in
     List.map ~f:(fun role -> (name, role)) roles
   in
-  List.map ~f:(fun p -> roles p) protocols
+  List.concat_map ~f:(fun p -> roles p) protocols
+
+let project_role ast name role : local_type =
+  let gp = List.find_exn ~f:(fun gt -> gt.value.name = name) ast.protocols in
+  let roles = gp.value.roles in
+  let gt = global_type_of_protocol gp in
+  project gt roles role
+
+let generate_fsm ast name role =
+  let lt = project_role ast name role in
+  conv_ltype lt
 
 let process_ch fname (ch : In_channel.t) : string =
   let lexbuf = set_filename fname (Lexing.from_channel ch) in
