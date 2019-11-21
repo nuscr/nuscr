@@ -21,7 +21,7 @@ let parse fname (ch : In_channel.t) : scr_module =
       Err.UserError (ParserError err_interval) |> raise
   | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
 
-let validate_exn (ast : scr_module) verbose : unit =
+let validate_exn (ast : scr_module) ~verbose : unit =
   let show ~f ~sep xs =
     (* only show if verbose is on *)
     if verbose then String.concat ~sep (List.map ~f xs) |> print_endline
