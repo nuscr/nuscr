@@ -25,14 +25,18 @@ let make_link on_click string =
   a
 
 let make_combobox id list =
-  let select = get id in
-  let add_option (label, f) =
+  let select = Js.((Unsafe.coerce (get id) :> Dom_html.selectElement Js.t)) in
+  let add_option (label, _f) =
     let option = Dom_html.createOption Dom_html.document in
     option ##. innerHTML := Js.string label;
-    option ##. onclick := Dom_html.handler (fun _ -> f (); Js._true);
     ignore @@ select##appendChild ((option :> Dom.node Js.t))
   in
-  List.iter add_option list
+  let onclick _ =
+    List.assoc (Js.to_string (select ##. value)) list ();
+    Js._false
+  in
+  List.iter add_option list;
+  select ##. onchange := Dom_html.handler onclick
 
 let set_children (elem: #Dom.node Js.t) (children: #Dom.node Js.t list) =
   (* Remove all kids *)
