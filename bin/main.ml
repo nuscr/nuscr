@@ -23,7 +23,7 @@ let run filename verbose enumerate proj fsm =
     else () ;
     let _ =
       gen_output ast
-        (fun ast r n -> Lib.project_role ast r n |> Ltype.show_local_type)
+        (fun ast r n -> Lib.project_role ast r n |> Ltype.show)
         proj
     in
     let _ =

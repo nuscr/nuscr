@@ -2,14 +2,14 @@ open! Core_kernel
 open Syntax
 open Err
 
-type global_type =
-  | MessageG of message * name * name * global_type
-  | MuG of name * global_type
+type t =
+  | MessageG of message * name * name * t
+  | MuG of name * t
   | TVarG of name
-  | ChoiceG of name * global_type list
+  | ChoiceG of name * t list
   | EndG
 
-let show_global_type =
+let show =
   let indent_here indent = String.make (indent * 2) ' ' in
   let rec show_global_type_internal indent =
     let current_indent = indent_here indent in
@@ -36,7 +36,7 @@ let show_global_type =
   in
   show_global_type_internal 0
 
-let global_type_of_protocol global_protocol =
+let of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in
   let has_global_recursion = ref false in
   let global_recursion_name = "__" ^ name in
@@ -130,13 +130,13 @@ let rec unfold = function
   | MuG (tvar, g_) as g -> substitute g_ tvar g
   | g -> g
 
-let rec normal_form = function
-  | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, normal_form g_)
+let rec normalise = function
+  | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, normalise g_)
   | ChoiceG (r, g_) ->
-      let g_ = List.map ~f:normal_form g_ in
+      let g_ = List.map ~f:normalise g_ in
       flatten (ChoiceG (r, g_))
   | (EndG | TVarG _) as g -> g
-  | MuG (tvar, g_) -> unfold (MuG (tvar, normal_form g_))
+  | MuG (tvar, g_) -> unfold (MuG (tvar, normalise g_))
 
 let%test "Normal Form Example" =
   let mkMsg name = Message {name; payload= []} in
@@ -159,4 +159,4 @@ let%test "Normal Form Example" =
         ; mkMG m2 EndG
         ; mkMG m3 EndG ] )
   in
-  normal_form before = after
+  normalise before = after

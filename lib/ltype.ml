@@ -3,15 +3,15 @@ open Syntax
 open Gtype
 open Err
 
-type local_type =
-  | RecvL of message * name * local_type
-  | SendL of message * name * local_type
-  | ChoiceL of name * local_type list
+type t =
+  | RecvL of message * name * t
+  | SendL of message * name * t
+  | ChoiceL of name * t list
   | TVarL of name
-  | MuL of name * local_type
+  | MuL of name * t
   | EndL
 
-let show_local_type =
+let show =
   let indent_here indent = String.make (indent * 2) ' ' in
   let rec show_local_type_internal indent =
     let current_indent = indent_here indent in
@@ -40,12 +40,12 @@ let show_local_type =
   in
   show_local_type_internal 0
 
-exception Unmergable of local_type * local_type
+exception Unmergable of t * t
 
 let rec merge projected_role lty1 lty2 =
   let fail () = raise (Unmergable (lty1, lty2)) in
   let merge_recv r recvs =
-    let rec aux (acc : (string * local_type) list) = function
+    let rec aux (acc : (string * t) list) = function
       | RecvL (m, _, lty) as l -> (
           let label = message_label m in
           match List.Assoc.find acc ~equal:String.equal label with
@@ -54,7 +54,7 @@ let rec merge projected_role lty1 lty2 =
               List.Assoc.add acc ~equal:String.equal label
                 (RecvL (m, r, merge projected_role lty l_))
           | _ -> failwith "Impossible" )
-      | l -> failwith ("Impossible " ^ show_local_type l ^ " r " ^ r)
+      | l -> failwith ("Impossible " ^ show l ^ " r " ^ r)
     in
     let conts = List.fold ~f:aux ~init:[] recvs in
     match conts with
@@ -90,7 +90,7 @@ let check_consistent_gchoice choice_r recv_r =
           Some recv_r )
   | _ -> err ()
 
-let rec project (gType : global_type) (roles : name list)
+let rec project (gType : Gtype.t) (roles : name list)
     (projected_role : name) =
   match gType with
   | EndG -> EndL
