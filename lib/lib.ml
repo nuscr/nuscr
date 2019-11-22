@@ -8,8 +8,7 @@ let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
     {lexbuf.Lexing.lex_curr_p with Lexing.pos_fname= fname} ;
   lexbuf
 
-let parse fname (ch : In_channel.t) : scr_module =
-  let lexbuf = set_filename fname (Lexing.from_channel ch) in
+let parse_from_lexbuf lexbuf : scr_module =
   try Parser.scr_module Lexer.token lexbuf with
   | Lexer.LexError msg -> uerr (LexerError msg)
   | Parser.Error ->
@@ -18,6 +17,12 @@ let parse fname (ch : In_channel.t) : scr_module =
       in
       uerr (ParserError err_interval)
   | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
+
+let parse fname (ch : In_channel.t) : scr_module =
+  let lexbuf = set_filename fname (Lexing.from_channel ch) in
+  parse_from_lexbuf lexbuf
+
+let parse_string string = parse_from_lexbuf @@ Lexing.from_string string
 
 let validate_exn (ast : scr_module) ~verbose : unit =
   let show ~f ~sep xs =
