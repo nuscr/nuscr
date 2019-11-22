@@ -1,8 +1,6 @@
 open! Core_kernel
 open Syntax
 open Err
-open Gtype
-open Ltype
 open Efsm
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
@@ -30,20 +28,20 @@ let validate_exn (ast : scr_module) ~verbose : unit =
   let protocols = ast.protocols in
   let g_types =
     List.map
-      ~f:(fun p -> (global_type_of_protocol p, p.value.roles))
+      ~f:(fun p -> (Gtype.of_protocol p, p.value.roles))
       protocols
   in
   let g_types =
-    List.map ~f:(fun (g, roles) -> (normal_form g, roles)) g_types
+    List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles)) g_types
   in
-  show ~sep:"\n" ~f:(fun (g, _) -> show_global_type g) g_types ;
+  show ~sep:"\n" ~f:(fun (g, _) -> Gtype.show g) g_types ;
   let l_types =
     List.map
-      ~f:(fun (g, roles) -> List.map ~f:(project g roles) roles)
+      ~f:(fun (g, roles) -> List.map ~f:(Ltype.project g roles) roles)
       g_types
   in
   show ~sep:"\n"
-    ~f:(fun ls -> String.concat ~sep:"\n" (List.map ~f:show_local_type ls))
+    ~f:(fun ls -> String.concat ~sep:"\n" (List.map ~f:Ltype.show ls))
     l_types ;
   let efsmss = List.map ~f:(List.map ~f:conv_ltype) l_types in
   show ~sep:"\n"
@@ -59,11 +57,11 @@ let enumerate (ast : scr_module) : (string * string) list =
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
-let project_role ast name role : local_type =
+let project_role ast name role : Ltype.t = 
   let gp = List.find_exn ~f:(fun gt -> gt.value.name = name) ast.protocols in
   let roles = gp.value.roles in
-  let gt = global_type_of_protocol gp in
-  project gt roles role
+  let gt = Gtype.of_protocol gp in
+  Ltype.project gt roles role
 
 let generate_fsm ast name role =
   let lt = project_role ast name role in
