@@ -8,7 +8,7 @@ module W = Webutils
 
 let project scr (name, role) =
   let ltyp = Lib.project_role scr name role in
-  let s = Ltype.show_local_type ltyp in
+  let s = Ltype.show ltyp in
   (W.get "projected")##.innerHTML
   := Js.string @@ Printf.sprintf "Projected on to %s:%s:: %s" name role s
 
@@ -29,7 +29,7 @@ let analyse () =
   match Lib.parse_string protocol with
   | exception e -> Interface.Error.display_exn e
   | ast -> (
-    match Lib.validate_exn ast false with
+    match Lib.validate_exn ast ~verbose:false with
     | exception e -> Interface.Error.display_exn e
     | () ->
         let roles_html = display_roles ast @@ Lib.enumerate ast in
