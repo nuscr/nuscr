@@ -61,7 +61,7 @@ let of_protocol global_protocol =
           check_role from_role loc ;
           check_role to_role loc ;
           if String.equal from_role to_role then
-            unimpl "Error message for reflexive message" ;
+            uerr (ReflexiveMessage (from_role, loc)) ;
           MessageG
             (message, from_role, to_role, conv_interactions rec_names rest)
       | Recursion (rname, interactions) ->
