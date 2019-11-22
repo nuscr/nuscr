@@ -44,7 +44,19 @@ jobs:
             eval $(opam config env)
             dune build @fmt
 
+      - run:
+          name: Build web version
+          command: |
+            eval $(opam config env)
+            WHERE=../docs make -C web deploy
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - docs
+
       - save_cache:
           key: deps-{{ checksum "nuscr.opam" }}
           paths:
             - ~/.opam
+
