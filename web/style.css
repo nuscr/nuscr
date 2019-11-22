@@ -4,6 +4,8 @@ body{
     margin-top: 0px;
 }
 h1 {
+    padding-top: 10px;
+    font-size:5em;
     text-align: center;
 }
 
@@ -28,4 +30,19 @@ h1 {
     padding: 10px;
     margin: 10px;
     display: none;
+}
+
+#mainbody{
+    display: grid;
+    grid-template-columns: 50% 50%;
+}
+#left{
+    width: 50%;
+}
+
+#button{
+    text-align: center;
+}
+select:invalid {
+    color: gray;
 }

@@ -12,12 +12,18 @@
       <h1>Scribble live</h1>
       <div id="errorbox"></div>
 
-      <div id="mainbody" display="grid">
+      <div id="mainbody">
         <div id="left">
           <textarea rows="30" cols="80" id="protocol-textarea" default="Enter text..."></textarea>
           <br />
-          <input type="submit" id="button" value="Analyse" />
-          <br />
+          <div style="text-align: center">
+            <select required id="examples">
+              <option value="" disabled selected hidden>Load an example</option>
+            </select>
+            <br/>
+            <input type="submit" id="button" value="Analyse" />
+            <br />
+            </div>
           <div id="roles"></div>
         </div>
         <div id="right">
