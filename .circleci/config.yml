@@ -73,9 +73,12 @@ jobs:
             npm install -g --silent gh-pages@2.0.1
             git config user.email "nuscr@no.email"
             git config user.name "NuScr"
+      - add_ssh_keys:
+          fingerprints:
+            - "a3:67:ce:56:d5:34:4c:2a:f4:b8:53:bd:b0:db:2d:cb"
       - run:
           name: Deploy docs to gh-pages branch
-          command: gh-pages --dist docs
+          command: gh-pages --dist docs --dotfiles --message "[skip ci] change" --dist docs
 
 
 workflows:
