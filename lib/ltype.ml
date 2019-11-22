@@ -10,6 +10,7 @@ type t =
   | TVarL of name
   | MuL of name * t
   | EndL
+[@@deriving sexp_of]
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -40,7 +41,7 @@ let show =
   in
   show_local_type_internal 0
 
-exception Unmergable of t * t
+exception Unmergable of t * t [@@deriving sexp_of]
 
 let rec merge projected_role lty1 lty2 =
   let fail () = raise (Unmergable (lty1, lty2)) in

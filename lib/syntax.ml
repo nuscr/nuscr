@@ -2,6 +2,8 @@ open! Core_kernel
 
 type source_loc = Lexing.position * Lexing.position
 
+let sexp_of_source_loc _ = Sexp.Atom "<opaque>"
+
 let render_pos pos =
   sprintf "%d:%d" pos.Lexing.pos_lnum
     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
@@ -24,7 +26,7 @@ type 'a located =
  *   | Con of string *)
 
 (* a simple name *)
-type name = string [@@deriving show {with_path= false}]
+type name = string [@@deriving show {with_path= false}, sexp_of]
 
 (* a qualified name *)
 type raw_qname = name list
@@ -82,6 +84,8 @@ let show_message = function
   | MessageQName qn -> qname_to_string qn
 
 let pp_message fmt m = Format.fprintf fmt "%s" (show_message m)
+
+let sexp_of_message m = Sexp.Atom (show_message m)
 
 let message_label = function
   | Message {name; _} -> name
