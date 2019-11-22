@@ -27,9 +27,7 @@ let validate_exn (ast : scr_module) verbose : unit =
   in
   let protocols = ast.protocols in
   let g_types =
-    List.map
-      ~f:(fun p -> (Gtype.of_protocol p, p.value.roles))
-      protocols
+    List.map ~f:(fun p -> (Gtype.of_protocol p, p.value.roles)) protocols
   in
   let g_types =
     List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles)) g_types
@@ -57,7 +55,7 @@ let enumerate (ast : scr_module) : (string * string) list =
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
-let project_role ast name role : Ltype.t = 
+let project_role ast name role : Ltype.t =
   let gp = List.find_exn ~f:(fun gt -> gt.value.name = name) ast.protocols in
   let roles = gp.value.roles in
   let gt = Gtype.of_protocol gp in

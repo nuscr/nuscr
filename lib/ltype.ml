@@ -90,8 +90,8 @@ let check_consistent_gchoice choice_r recv_r =
           Some recv_r )
   | _ -> err ()
 
-let rec project (gType : Gtype.t) (roles : name list)
-    (projected_role : name) =
+let rec project (gType : Gtype.t) (roles : name list) (projected_role : name)
+    =
   match gType with
   | EndG -> EndL
   | TVarG name -> TVarL name
