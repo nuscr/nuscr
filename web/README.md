@@ -1,5 +1,5 @@
-nuScribble live
-===============
+nuScr live
+=========
 
 
 Building and installing
@@ -16,7 +16,3 @@ Details of the files
 - `interface`: code to manipulate the web interface
 - `live`: glue that links the `interface` with `nuscrlib`
 - `genex.sh`: generates `examples.ml` from the directory `/examples`
-
-
-
-

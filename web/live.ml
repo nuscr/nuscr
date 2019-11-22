@@ -1,4 +1,4 @@
-(* nuScribble live *)
+(* nuScr live *)
 open Js_of_ocaml
 open Nuscrlib
 module Html = Dom_html
