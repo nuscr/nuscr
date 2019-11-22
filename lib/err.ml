@@ -8,8 +8,10 @@ type user_error =
   | RedefinedRecursionName of string * source_loc * source_loc
   | Uncategorised of string
   | InvalidCommandLineParam of string
+[@@deriving sexp_of]
 
 exception UserError of user_error
+[@@deriving sexp_of]
 (** UserError is a user error and should be reported back so it can be fixed *)
 
 let show_user_error = function
@@ -28,11 +30,12 @@ let show_user_error = function
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
 
 exception Violation of string
+[@@deriving sexp_of]
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
     user error *)
 
-exception UnImplemented of string
+exception UnImplemented of string [@@deriving sexp_of]
 
 let unimpl desc = UnImplemented desc |> raise
 
