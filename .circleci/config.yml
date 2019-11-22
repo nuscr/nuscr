@@ -76,3 +76,16 @@ jobs:
       - run:
           name: Deploy docs to gh-pages branch
           command: gh-pages --dist docs
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - docs-deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
