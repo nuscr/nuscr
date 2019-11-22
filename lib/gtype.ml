@@ -41,8 +41,7 @@ let of_protocol global_protocol =
   let has_global_recursion = ref false in
   let global_recursion_name = "__" ^ name in
   let assert_empty l =
-    if not @@ List.is_empty l then
-      uerr (NonTailRecursive (List.hd_exn l).loc)
+    if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
   let check_role r loc =
     if not @@ List.mem roles r ~equal:String.equal then

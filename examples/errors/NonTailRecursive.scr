@@ -1,9 +1,0 @@
-module Fail;
-protocol Bad(role A, role B) {
-  choice at A {
-    Hello from A to B;
-  } or {
-    Bye from A to B;
-  }
-  Haha from B to A;
-}
