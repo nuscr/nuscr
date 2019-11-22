@@ -9,6 +9,7 @@ type user_error =
   | Uncategorised of string
   | InvalidCommandLineParam of string
   | UnboundRole of string * source_loc
+  | NonTailRecursive of source_loc
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -31,6 +32,9 @@ let show_user_error = function
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole (r, interval) ->
       "Unbound role " ^ r ^ " in " ^ render_pos_interval interval
+  | NonTailRecursive interval ->
+      "Protocol is not tail recursive - Check "
+      ^ render_pos_interval interval
 
 exception Violation of string
 [@@deriving sexp_of]
