@@ -46,3 +46,11 @@ h1 {
 select:invalid {
     color: gray;
 }
+a {
+    color:blue;
+}
+              
+a:hover {
+    cursor:pointer;
+    text-decoration: underline;
+}
