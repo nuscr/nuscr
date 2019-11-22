@@ -1,9 +1,11 @@
 (* nuScribble live *)
 open Js_of_ocaml
 open Nuscrlib
-module W = Webutils
 module Html = Dom_html
-(*open Tyxml.Html*)
+module T = Js_of_ocaml_tyxml.Tyxml_js.Html
+open Js_of_ocaml_tyxml.Tyxml_js         
+module W = Webutils
+   
 
 let project scr (name, role) =
   let ltyp = Lib.project_role scr name role in
@@ -11,6 +13,18 @@ let project scr (name, role) =
   (W.get "projected") ##. innerHTML := Js.string @@ Printf.sprintf "Projected on to %s:%s:: %s" name role s
         
 
+let display_role scr (name, protocol) =
+  let lk = Of_dom.of_anchor
+               (W.make_link (fun () -> project scr (name, protocol))
+                  "Project")
+  in
+  T.(li [txt (Printf.sprintf "%s: %s" name protocol);
+         txt " [ "; lk; txt " ] "])
+  
+let display_roles scr l =
+  To_dom.of_element @@ T.(ul (List.map (display_role scr) l))
+
+  
 let analyse () =
   let () = Interface.Error.reset () in
   let protocol = Interface.Code.get () in
@@ -21,11 +35,8 @@ let analyse () =
      begin match Lib.validate_exn ast false with
      | exception e -> Interface.Error.display_exn e
      | () ->
-        let roles = Lib.enumerate ast in
-        W.(set_inner_html (get "roles")
-          "Roles of the protocol: %s"
-          (String.concat ", "
-           @@ List.map (fun (a, b) -> Printf.sprintf "%s:%s" a b) roles))
+        let roles_html = display_roles ast @@ Lib.enumerate ast in
+        W.(set_children (get "roles") [(roles_html :> Dom.node Js.t)])
      end
   end
   

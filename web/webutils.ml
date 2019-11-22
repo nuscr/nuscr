@@ -21,7 +21,8 @@ let get_textarea id =
 let make_link on_click string =
   let a = Dom_html.createA Dom_html.document in
   a ##. onclick := Dom_html.handler (fun _ -> on_click (); Js._true);
-  a ##. innerHTML := Js.string string
+  a ##. innerHTML := Js.string string;
+  a
 
 let make_combobox id list =
   let select = get id in
@@ -32,3 +33,14 @@ let make_combobox id list =
     ignore @@ select##appendChild ((option :> Dom.node Js.t))
   in
   List.iter add_option list
+
+let set_children (elem: #Dom.node Js.t) (children: #Dom.node Js.t list) =
+  (* Remove all kids *)
+  let old_kids = elem ##. childNodes in
+  for i = 0 to old_kids ##. length do
+    match Js.Opt.to_option (old_kids ## item (i)) with
+    | Some kid -> Dom.removeChild elem kid
+    | None -> ()
+  done;
+  List.iter (fun kid -> ignore @@ elem ## appendChild(kid)) children
+    
