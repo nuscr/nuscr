@@ -10,6 +10,7 @@ type user_error =
   | InvalidCommandLineParam of string
   | UnboundRole of string * source_loc
   | NonTailRecursive of source_loc
+  | ReflexiveMessage of string * source_loc
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -34,6 +35,9 @@ let show_user_error = function
       "Unbound role " ^ r ^ " in " ^ render_pos_interval interval
   | NonTailRecursive interval ->
       "Protocol is not tail recursive - Check "
+      ^ render_pos_interval interval
+  | ReflexiveMessage (r, interval) ->
+      "Reflexive message of Role " ^ r ^ " at "
       ^ render_pos_interval interval
 
 exception Violation of string
