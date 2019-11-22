@@ -1,0 +1,35 @@
+(** Main entry point of the library *)
+
+(** {1 Parsing} *)
+
+(** This section deals with parsing protocols. *)
+
+val parse_string : string -> Syntax.scr_module
+(** Parse a string into a {!Syntax.scr_module}. *)
+
+val parse : string -> Core_kernel.In_channel.t -> Syntax.scr_module
+(** Parse from an input channel. The first parameter is the filename, for use
+    in error messages. *)
+
+(** {1 Validation} *)
+
+val validate_exn : Syntax.scr_module -> verbose:bool -> unit
+(** [validate_exn module ~verbose] validates the module [module] by
+    performing standard checks. If [verbose] is set to true, output messages
+    in the process. *)
+
+(** {1 Other operations} *)
+
+val enumerate : Syntax.scr_module -> (string * string) list
+(** [enumerate module] enumrates the roles occurring in [module]. The output
+    is a list of pair [(protocol, role-name)]. *)
+
+val project_role : Syntax.scr_module -> string -> string -> Ltype.t
+(** [project_role module protocol role] computes the local type for role
+    [role] in the protocol [protocol]. *)
+
+val generate_fsm : Syntax.scr_module -> string -> string -> int * Efsm.G.t
+(** [generate_fsm module protocol role] computes the finite state machine of
+    role [role] in protocol [protocol], in module [module]. It returns a pair
+    [(v, g)] where [g] is the graph describing the fsm, and [v] is the root
+    index. *)
