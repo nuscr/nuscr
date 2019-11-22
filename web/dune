@@ -1,3 +1,8 @@
+(rule
+ (targets examples.ml)
+ (action
+  (run ./genex_dune.sh)))
+
 (executable
  (name live)
  (modules examples interface webutils live)

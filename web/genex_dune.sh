@@ -1,7 +1,6 @@
 #! /bin/sh
 # Generate the examples.ml file
-EXAMPLE_DIR=$1
-EXAMPLE_DIR=${EXAMPLE_DIR:="../examples"}
+EXAMPLE_DIR="../../../examples"
 (echo 'let list = [';
 find $EXAMPLE_DIR -name "*.scr" -printf "%P\n" | while read file; do
     echo -n "\"$file\","
