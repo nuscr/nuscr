@@ -23,6 +23,8 @@ let fsm : (string * string) option ref = ref None
 
 let project : (string * string) option ref = ref None
 
+let gencode : (string * string) option ref = ref None
+
 let argspec =
   let open Caml in
   [ ( "-enum"
@@ -38,8 +40,8 @@ let argspec =
     , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
     , ": project the CFSM for the specified role" )
   ; ( "-project"
-    , Arg.String (fun s -> project := parse_role_protocol_exn s |> Some)
-    , ": project the local type for the specified role" ) ]
+    , Arg.String (fun s -> gencode := parse_role_protocol_exn s |> Some)
+    , ": generate OCaml code for the specified role" ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
@@ -52,7 +54,7 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-let run filename verbose enumerate proj fsm =
+let run filename verbose enumerate proj fsm gencode =
   try
     let ast = process_file filename Lib.parse in
     Lib.validate_exn ast ~verbose ;
@@ -70,6 +72,11 @@ let run filename verbose enumerate proj fsm =
       gen_output ast
         (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show_efsm)
         fsm
+    in
+    let _ =
+      gen_output ast
+        (fun ast r n -> Lib.generate_fsm ast r n |> Codegen.gen_code (r, n))
+        gencode
     in
     ()
   with
@@ -92,4 +99,4 @@ let () =
   Caml.Arg.parse argspec (fun fn -> filename := fn) @@ usage () ;
   if !version then print_endline @@ version_string ()
   else if String.length !filename = 0 then usage () |> print_endline
-  else run !filename !verbose !enum !project !fsm
+  else run !filename !verbose !enum !project !fsm !gencode
