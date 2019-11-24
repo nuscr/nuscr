@@ -79,7 +79,7 @@ type message =
 let show_message = function
   | Message {name; payload} ->
       sprintf "%s(%s)" name
-        (String.concat ~sep:" ," (List.map ~f:show_payloadt payload))
+        (String.concat ~sep:", " (List.map ~f:show_payloadt payload))
   | MessageName n -> n
   | MessageQName qn -> qname_to_string qn
 
