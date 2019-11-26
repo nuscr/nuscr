@@ -97,6 +97,7 @@ let gen_callback_typedef (g : G.t) : structure_item =
         G.fold_succ_e gen_recv g st acc
   in
   let callbacks = G.fold_vertex f g [] in
+  let callbacks = List.rev callbacks in
   let callbacks =
     Type.mk ~kind:(Ptype_record callbacks) (Location.mknoloc "callbacks")
   in
