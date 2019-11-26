@@ -24,7 +24,9 @@ module Error = struct
   let display_exn = function
     | Err.UserError e ->
         display "<b>User error</b>: %s" (Err.show_user_error e)
-    | _ -> ()
+    | Err.UnImplemented s -> display "<b>Feature not implemented</b>: %s" s
+    | Err.Violation s -> display "<b>Violation</b>: %s" s
+    | e -> display "<b>Unknown error</b>: %s" (Printexc.to_string e)
 
   let reset () = Webutils.(set_display (get "errorbox") "none")
 end
