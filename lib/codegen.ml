@@ -1,15 +1,12 @@
 open! Core_kernel
-open! Migrate_parsetree
 
 (* open Efsm *)
 
-open! Ast_407
+open! Ppxlib_ast
 open Parsetree
-open Ast_helper
+open! Ast_helper
 open Syntax
 open Efsm
-
-let migrate = Versions.migrate Versions.ocaml_407 Versions.ocaml_current
 
 let state_action_type (g : G.t) (st : int) =
   let merge_state_action_type aty1 aty2 =
@@ -115,7 +112,6 @@ let gen_code (proto, role) (start, g) =
   let buffer = Buffer.create 4196 in
   let formatter = Format.formatter_of_buffer buffer in
   let ast = gen_ast (proto, role) (start, g) in
-  let ast = migrate.Versions.copy_structure ast in
   Pprintast.structure formatter ast ;
   Format.pp_print_flush formatter () ;
   Buffer.contents buffer
