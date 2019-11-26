@@ -31,10 +31,13 @@ let state_action_type (g : G.t) (st : int) =
   in
   G.fold_succ_e f g st `Terminal
 
+let mk_constr id = Typ.constr (Location.mknoloc (Longident.parse id)) []
+
+let loc = Location.none
+
+let unit = [%type: unit]
+
 let gen_callback_typedef (g : G.t) : structure_item =
-  let loc = Location.none in
-  let unit = [%type: unit] in
-  let mk_constr id = Typ.constr (Location.mknoloc (Longident.parse id)) [] in
   let f st acc =
     match state_action_type g st with
     | `Mixed -> failwith "Impossible"
@@ -97,16 +100,50 @@ let gen_callback_typedef (g : G.t) : structure_item =
   let callbacks =
     Type.mk ~kind:(Ptype_record callbacks) (Location.mknoloc "callbacks")
   in
-  let ret = Str.type_ Asttypes.Nonrecursive [callbacks] in
-  (* let ret_ = migrate.Versions.copy_structure [ret] in Printast.structure 0
-     (Format.formatter_of_out_channel stdout) ret_ ; *)
-  ret
+  Str.type_ Asttypes.Nonrecursive [callbacks]
+
+let find_all_payloads g =
+  let module S = String.Set in
+  let f (_, a, _) acc =
+    match a with
+    | SendA (_, msg) | RecvA (_, msg) -> (
+        let payloads = message_payload_ty msg in
+        match payloads with
+        | [] -> S.add acc "unit"
+        | _ -> List.fold ~f:S.add ~init:acc payloads )
+    | _ -> failwith "Impossible"
+  in
+  G.fold_edges_e f g (S.singleton "string") |> S.to_list
+
+let gen_comms_typedef payload_types =
+  let mk_recv payload_ty_str =
+    let payload_ty = mk_constr payload_ty_str in
+    let field_ty = Typ.arrow Asttypes.Nolabel unit payload_ty in
+    let field_name = "recv_" ^ payload_ty_str in
+    Type.field (Location.mknoloc field_name) field_ty
+  in
+  let mk_send payload_ty_str =
+    let payload_ty = mk_constr payload_ty_str in
+    let field_ty = Typ.arrow Asttypes.Nolabel payload_ty unit in
+    let field_name = "send_" ^ payload_ty_str in
+    Type.field (Location.mknoloc field_name) field_ty
+  in
+  let send_functions = List.map ~f:mk_send payload_types in
+  let recv_functions = List.map ~f:mk_recv payload_types in
+  let comms =
+    Type.mk
+      ~kind:(Ptype_record (send_functions @ recv_functions))
+      (Location.mknoloc "comms")
+  in
+  Str.type_ Asttypes.Nonrecursive [comms]
 
 let gen_ast (_proto, _role) (_start, g) : structure =
   let loc = Location.none in
   let callback_typedef = gen_callback_typedef g in
+  let payload_types = find_all_payloads g in
+  let comms_typedef = gen_comms_typedef payload_types in
   let vb = [%stri let hello = "hello"] in
-  [callback_typedef; vb]
+  [callback_typedef; comms_typedef; vb]
 
 let gen_code (proto, role) (start, g) =
   let buffer = Buffer.create 4196 in
