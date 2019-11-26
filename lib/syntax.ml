@@ -93,6 +93,17 @@ let message_label = function
   | MessageName name -> name
   | MessageQName qn -> qname_to_string qn
 
+let message_payload_ty =
+  let payload_type_of_payload_t = function
+    | PayloadName n -> n
+    | PayloadDel (_p, _r) -> failwith "Delegation is not supported"
+    | PayloadQName qn -> qname_to_string qn
+    | PayloadBnd (_n, qn) -> qname_to_string qn
+  in
+  function
+  | Message {payload; _} -> List.map ~f:payload_type_of_payload_t payload
+  | _ -> []
+
 type global_interaction = raw_global_interaction located
 [@@deriving show {with_path= false}]
 
