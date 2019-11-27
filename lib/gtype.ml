@@ -80,7 +80,8 @@ let of_protocol global_protocol =
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do (name_, _, roles_, _)
-        when String.equal name name_ && List.equal String.equal roles roles_ ->
+        when String.equal name name_ && List.equal String.equal roles roles_
+        ->
           has_global_recursion := true ;
           assert_empty rest ;
           TVarG global_recursion_name

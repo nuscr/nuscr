@@ -62,7 +62,11 @@ let enumerate (ast : scr_module) : (string * string) list =
   List.concat_map ~f:(fun p -> roles p) protocols
 
 let project_role ast name role : Ltype.t =
-  let gp = List.find_exn ~f:(fun gt -> String.equal gt.value.name name) ast.protocols in
+  let gp =
+    List.find_exn
+      ~f:(fun gt -> String.equal gt.value.name name)
+      ast.protocols
+  in
   let roles = gp.value.roles in
   let gt = Gtype.of_protocol gp in
   Ltype.project gt roles role
