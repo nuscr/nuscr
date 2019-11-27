@@ -2,7 +2,7 @@
  (names main)
  (preprocess
   (pps ppx_jane))
- (libraries nuscrlib base stdio))
+ (libraries nuscrlib base stdio dune-build-info))
 
 (install
  (section bin)

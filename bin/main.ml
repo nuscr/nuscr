@@ -1,33 +1,45 @@
 open Base
 open Stdio
-
 open Nuscrlib
 
 let parse_role_protocol_exn rp =
   match String.split rp ~on:'@' with
   | [role; protocol] -> (role, protocol)
   | _ ->
-     Err.UserError
-       (InvalidCommandLineParam
-          "Role and protocol have to be for the form role@protocol")
-     |> raise
+      Err.UserError
+        (InvalidCommandLineParam
+           "Role and protocol have to be for the form role@protocol")
+      |> raise
 
 let enum = ref false
+
 let verbose = ref false
+
 let version = ref false
+
 let help = ref false
-let fsm : (string * string) option ref  = ref None
-let project : (string * string) option ref  = ref None
+
+let fsm : (string * string) option ref = ref None
+
+let project : (string * string) option ref = ref None
 
 let argspec =
   let open Caml in
-  [ ("-enum", Arg.Unit (fun () -> enum := true), ": list the roles and protocols in the file")
-  ; ("-verbose", Arg.Unit (fun () -> verbose := true), ": print extra information")
-  ; ("-version", Arg.Unit (fun () -> version := true), ": print the version number")
-  ; ("-fsm", Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some), ": project the CFSM for the specified role")
-  ; ("-project", Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some), ": project the local type for the specified role")
-  ]
-
+  [ ( "-enum"
+    , Arg.Unit (fun () -> enum := true)
+    , ": list the roles and protocols in the file" )
+  ; ( "-verbose"
+    , Arg.Unit (fun () -> verbose := true)
+    , ": print extra information" )
+  ; ( "-version"
+    , Arg.Unit (fun () -> version := true)
+    , ": print the version number" )
+  ; ( "-fsm"
+    , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
+    , ": project the CFSM for the specified role" )
+  ; ( "-project"
+    , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
+    , ": project the local type for the specified role" ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
@@ -69,16 +81,15 @@ let run filename verbose enumerate proj fsm =
       |> prerr_endline
   | e -> "Reported problem:\n " ^ Exn.to_string e |> prerr_endline
 
-let usage () = "usage: " ^ Sys.argv.(0) ^ " [-e][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
+let usage () =
+  "usage: " ^ Sys.argv.(0)
+  ^ " [-e][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
 
-let version_string () = "Version 0.00"
+let version_string () = "%%VERSION%%"
 
 let () =
   let filename = ref "" in
-  Caml.Arg.parse
-    argspec
-    (fun fn -> filename := fn)
-  @@ usage () ;
+  Caml.Arg.parse argspec (fun fn -> filename := fn) @@ usage () ;
   if !version then print_endline @@ version_string () else () ;
-  if String.length !filename = 0 then () else
-  run !filename !verbose !enum !project !fsm ;
+  if String.length !filename = 0 then ()
+  else run !filename !verbose !enum !project !fsm
