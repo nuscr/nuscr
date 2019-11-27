@@ -7,7 +7,7 @@
 val parse_string : string -> Syntax.scr_module
 (** Parse a string into a {!Syntax.scr_module}. *)
 
-val parse : string -> Core_kernel.In_channel.t -> Syntax.scr_module
+val parse : string -> Stdio.In_channel.t -> Syntax.scr_module
 (** Parse from an input channel. The first parameter is the filename, for use
     in error messages. *)
 

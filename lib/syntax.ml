@@ -1,4 +1,5 @@
-open! Core_kernel
+open! Base
+open Printf
 
 type source_loc = Lexing.position * Lexing.position
 
@@ -33,7 +34,7 @@ type raw_qname = name list
 
 let show_raw_qname = String.concat ~sep:"."
 
-let pp_raw_qname fmt qn = Format.fprintf fmt "%s" (show_raw_qname qn)
+let pp_raw_qname fmt qn = Caml.Format.fprintf fmt "%s" (show_raw_qname qn)
 
 type qname = raw_qname located [@@deriving show {with_path= false}]
 
@@ -69,7 +70,7 @@ let show_payloadt = function
   | PayloadQName qn -> qname_to_string qn
   | PayloadBnd (n, qn) -> sprintf "%s: %s" n (qname_to_string qn)
 
-let pp_payloadt fmt p = Format.fprintf fmt "%s" (show_payloadt p)
+let pp_payloadt fmt p = Caml.Format.fprintf fmt "%s" (show_payloadt p)
 
 type message =
   | Message of {name: name; payload: payloadt list}
@@ -83,7 +84,7 @@ let show_message = function
   | MessageName n -> n
   | MessageQName qn -> qname_to_string qn
 
-let pp_message fmt m = Format.fprintf fmt "%s" (show_message m)
+let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
 
 let sexp_of_message m = Sexp.Atom (show_message m)
 

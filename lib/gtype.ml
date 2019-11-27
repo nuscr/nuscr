@@ -1,4 +1,5 @@
-open! Core_kernel
+open! Base
+open Printf
 open Syntax
 open Err
 
@@ -79,7 +80,7 @@ let of_protocol global_protocol =
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do (name_, _, roles_, _)
-        when name = name_ && List.equal String.equal roles roles_ ->
+        when String.equal name name_ && List.equal String.equal roles roles_ ->
           has_global_recursion := true ;
           assert_empty rest ;
           TVarG global_recursion_name
@@ -113,7 +114,7 @@ let%test "Flatten Example" =
   let mkMG m = MessageG (m, "A", "B", EndG) in
   let before = ChoiceG ("A", [ChoiceG ("A", [mkMG m1; mkMG m2]); mkMG m3]) in
   let after = ChoiceG ("A", [mkMG m1; mkMG m2; mkMG m3]) in
-  flatten before = after
+  Poly.equal (flatten before) after
 
 let rec substitute g tvar g_sub =
   match g with
@@ -159,4 +160,4 @@ let%test "Normal Form Example" =
         ; mkMG m2 EndG
         ; mkMG m3 EndG ] )
   in
-  normalise before = after
+  Poly.equal (normalise before) after
