@@ -1,5 +1,33 @@
-open Core
+open Base
+open Stdio
+
 open Nuscrlib
+
+let parse_role_protocol_exn rp =
+  match String.split rp ~on:'@' with
+  | [role; protocol] -> (role, protocol)
+  | _ ->
+     Err.UserError
+       (InvalidCommandLineParam
+          "Role and protocol have to be for the form role@protocol")
+     |> raise
+
+let enum = ref false
+let verbose = ref false
+let version = ref false
+let help = ref false
+let fsm : (string * string) option ref  = ref None
+let project : (string * string) option ref  = ref None
+
+let argspec =
+  let open Caml in
+  [ ("-enum", Arg.Unit (fun () -> enum := true), ": list the roles and protocols in the file")
+  ; ("-verbose", Arg.Unit (fun () -> verbose := true), ": print extra information")
+  ; ("-version", Arg.Unit (fun () -> version := true), ": print the version number")
+  ; ("-fsm", Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some), ": project the CFSM for the specified role")
+  ; ("-project", Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some), ": project the local type for the specified role")
+  ]
+
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
@@ -41,37 +69,16 @@ let run filename verbose enumerate proj fsm =
       |> prerr_endline
   | e -> "Reported problem:\n " ^ Exn.to_string e |> prerr_endline
 
-let get_pwd () = Sys.getenv_exn "PWD"
+let usage () = "usage: " ^ Sys.argv.(0) ^ " [-e][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
 
-let role_protocol =
-  Command.Arg_type.create (fun rp ->
-      match String.split rp ~on:'@' with
-      | [role; protocol] -> (role, protocol)
-      | _ ->
-          Err.UserError
-            (InvalidCommandLineParam
-               "Role and protocol have to be for the form role@protocol")
-          |> raise)
-
-let command =
-  let open Command.Let_syntax in
-  Command.basic ~summary:"Project global types onto local types and CFSMs"
-    ~readme:(fun () -> "Running from: " ^ get_pwd ())
-    [%map_open
-      let file_name = anon ("FILE" %: string)
-      and verbose =
-        flag "-verbose" no_arg ~doc:" verbosely process the files"
-      and enumerate =
-        flag "-enum" no_arg ~doc:" enumerate the contents of the file"
-      and project =
-        flag "-project" (optional role_protocol)
-          ~doc:" project the local type of..."
-      and fsm =
-        flag "-fsm" (optional role_protocol)
-          ~doc:" project the state machine of..."
-      in
-      fun () -> run file_name verbose enumerate project fsm]
+let version_string () = "Version 0.00"
 
 let () =
-  Command.run ~version:"0.00" ~build_info:"I'm sorry, no build info... yet?"
-    command
+  let filename = ref "" in
+  Caml.Arg.parse
+    argspec
+    (fun fn -> filename := fn)
+  @@ usage () ;
+  if !version then print_endline @@ version_string () else () ;
+  if String.length !filename = 0 then () else
+  run !filename !verbose !enum !project !fsm ;
