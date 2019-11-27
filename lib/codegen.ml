@@ -31,7 +31,9 @@ let state_action_type (g : G.t) (st : int) =
   in
   G.fold_succ_e f g st `Terminal
 
-let mk_constr id = Typ.constr (Location.mknoloc (Longident.parse id)) []
+let mk_lid id = Location.mknoloc (Longident.parse id)
+
+let mk_constr id = Typ.constr (mk_lid id) []
 
 let loc = Location.none
 
@@ -152,14 +154,131 @@ let gen_role_ty roles =
   let role_ty = Typ.variant (List.map ~f roles) Asttypes.Closed None in
   role_ty
 
-let gen_ast (_proto, _role) (_start, g) : structure =
+let gen_run_expr start g =
+  let get_transitions st =
+    let f (_, a, next) acc =
+      match a with
+      | SendA (r, msg) | RecvA (r, msg) ->
+          (r, message_label msg, message_payload_ty msg, next) :: acc
+      | _ -> failwith "Impossible"
+    in
+    G.fold_succ_e f g st []
+  in
+  let mk_run_state_name st = sprintf "run_state_%d" st in
+  let mk_run_state_ident st = Exp.ident (mk_lid (mk_run_state_name st)) in
+  let f st acc =
+    let run_state_expr =
+      match state_action_type g st with
+      | `Send ->
+          let send_fn_name = sprintf "state%dSend" st in
+          let send_callback =
+            Exp.field (Exp.ident (mk_lid "callbacks")) (mk_lid send_fn_name)
+          in
+          let transitions = get_transitions st in
+          let role, _, _, _ = List.hd_exn transitions in
+          let role = Exp.variant role None in
+          let comms = [%expr router [%e role]] in
+          let mk_match_case (_, label, payload_ty, next) =
+            let label_e = Exp.constant (Const.string label) in
+            let send_label = [%expr comms.send_string [%e label_e]] in
+            let send_payload =
+              match payload_ty with
+              | [] -> [%expr comms.send_unit ()]
+              | [payload_ty] ->
+                  let send_payload_func =
+                    Exp.field
+                      (Exp.ident (mk_lid "comms"))
+                      (mk_lid (sprintf "send_%s" payload_ty))
+                  in
+                  [%expr [%e send_payload_func] payload]
+              | _ -> failwith "TODO"
+            in
+            let next_state = mk_run_state_ident next in
+            let e =
+              [%expr
+                [%e send_label] ;
+                [%e send_payload] ;
+                [%e next_state] ()]
+            in
+            { pc_lhs=
+                Pat.variant label
+                  (Some (Pat.var (Location.mknoloc "payload")))
+            ; pc_guard= None
+            ; pc_rhs= e }
+          in
+          let match_cases = List.map ~f:mk_match_case transitions in
+          let e = Exp.match_ [%expr [%e send_callback] ()] match_cases in
+          [%expr
+            let comms = [%e comms] in
+            [%e e]]
+      | `Recv ->
+          let transitions = get_transitions st in
+          let role, _, _, _ = List.hd_exn transitions in
+          let role = Exp.variant role None in
+          let comms = [%expr router [%e role]] in
+          let mk_match_case (_, label, payload_ty, next) =
+            let recv_payload =
+              match payload_ty with
+              | [] -> [%expr comms.recv_unit ()]
+              | [payload_ty] ->
+                  let recv_payload_func =
+                    Exp.field
+                      (Exp.ident (mk_lid "comms"))
+                      (mk_lid (sprintf "recv_%s" payload_ty))
+                  in
+                  [%expr [%e recv_payload_func] ()]
+              | _ -> failwith "TODO"
+            in
+            let recv_callback_name = sprintf "state%dReceive%s" st label in
+            let recv_callback =
+              Exp.field
+                (Exp.ident (mk_lid "callbacks"))
+                (mk_lid recv_callback_name)
+            in
+            let next_state = mk_run_state_ident next in
+            let e =
+              [%expr
+                let payload = [%e recv_payload] in
+                [%e recv_callback] payload ;
+                [%e next_state] ()]
+            in
+            { pc_lhs= Pat.constant (Const.string label)
+            ; pc_guard= None
+            ; pc_rhs= e }
+          in
+          let impossible_case =
+            {pc_lhs= Pat.any (); pc_guard= None; pc_rhs= [%expr assert false]}
+          in
+          let match_cases = List.map ~f:mk_match_case transitions in
+          let e =
+            Exp.match_ [%expr comms.recv_string ()]
+              (match_cases @ [impossible_case])
+          in
+          [%expr
+            let comms = [%e comms] in
+            [%e e]]
+      | `Terminal -> [%expr ()]
+      | `Mixed -> failwith "Impossible"
+    in
+    let run_state_expr = [%expr fun () -> [%e run_state_expr]] in
+    let pat = Pat.var (Location.mknoloc (mk_run_state_name st)) in
+    Vb.mk pat run_state_expr :: acc
+  in
+  let bindings = G.fold_vertex f g [] in
+  let bindings = List.rev bindings in
+  let init_expr =
+    Exp.apply (mk_run_state_ident start) [(Asttypes.Nolabel, [%expr ()])]
+  in
+  Exp.let_ Asttypes.Recursive bindings init_expr
+
+let gen_ast (_proto, _role) (start, g) : structure =
   let loc = Location.none in
   let callback_typedef = gen_callback_typedef g in
   let payload_types = find_all_payloads g in
   let comms_typedef = gen_comms_typedef payload_types in
   let roles = find_all_roles g in
   let role_ty = gen_role_ty roles in
-  let run_expr = [%expr ()] in
+  let run_expr = gen_run_expr start g in
   let run =
     [%stri
       let run (router : [%t role_ty] -> comms) (callbacks : callbacks) =
