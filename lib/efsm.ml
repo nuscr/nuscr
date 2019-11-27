@@ -1,4 +1,5 @@
-open! Core_kernel
+open! Base
+open Printf
 open Syntax
 open Ltype
 open Graph
@@ -13,7 +14,7 @@ let show_action = function
 module Label = struct
   type t = action
 
-  let compare = compare
+  let compare = Poly.compare
 
   let default = Epsilon
 end
@@ -23,7 +24,7 @@ module G = Persistent.Digraph.ConcreteLabeled (Int) (Label)
 module Display = struct
   include G
 
-  let vertex_name = string_of_int
+  let vertex_name = Int.to_string
 
   let graph_attributes _ = []
 
@@ -127,7 +128,7 @@ let conv_ltype lty =
 
 let show_efsm g =
   let buffer = Buffer.create 4196 in
-  let formatter = Format.formatter_of_buffer buffer in
+  let formatter = Caml.Format.formatter_of_buffer buffer in
   DotOutput.fprint_graph formatter g ;
-  Format.pp_print_flush formatter () ;
+  Caml.Format.pp_print_flush formatter () ;
   Buffer.contents buffer

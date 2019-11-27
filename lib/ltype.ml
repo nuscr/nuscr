@@ -1,4 +1,5 @@
-open! Core_kernel
+open! Base
+open Printf
 open Syntax
 open Gtype
 open Err
@@ -75,7 +76,7 @@ let rec merge projected_role lty1 lty2 =
   | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
     when String.equal r1 r2 && not (String.equal r1 projected_role) ->
       merge_recv r1 (ltys1 @ ltys2)
-  | _ -> if lty1 = lty2 then lty1 else fail ()
+  | _ -> if Poly.equal lty1 lty2 then lty1 else fail ()
 
 (* Check whether the first message in a g choice is from choice_r to recv_r,
    if recv_r is Some; return receive role *)
@@ -91,31 +92,31 @@ let check_consistent_gchoice choice_r recv_r =
           Some recv_r )
   | _ -> err ()
 
-let rec project (gType : Gtype.t) (roles : name list) (projected_role : name)
+let rec project (g_type : Gtype.t) (roles : name list) (projected_role : name)
     =
-  match gType with
+  match g_type with
   | EndG -> EndL
   | TVarG name -> TVarL name
-  | MuG (name, gType) -> (
-    match project gType roles projected_role with
+  | MuG (name, g_type) -> (
+    match project g_type roles projected_role with
     | TVarL _ | EndL -> EndL
     | lType -> MuL (name, lType) )
-  | MessageG (m, send_r, recv_r, gType) -> (
+  | MessageG (m, send_r, recv_r, g_type) -> (
     match projected_role with
     | _ when String.equal projected_role send_r ->
-        SendL (m, recv_r, project gType roles projected_role)
+        SendL (m, recv_r, project g_type roles projected_role)
     | _ when String.equal projected_role recv_r ->
-        RecvL (m, send_r, project gType roles projected_role)
-    | _ -> project gType roles projected_role )
-  | ChoiceG (choice_r, gTypes) -> (
+        RecvL (m, send_r, project g_type roles projected_role)
+    | _ -> project g_type roles projected_role )
+  | ChoiceG (choice_r, g_types) -> (
       let recv_r =
-        List.fold ~f:(check_consistent_gchoice choice_r) ~init:None gTypes
+        List.fold ~f:(check_consistent_gchoice choice_r) ~init:None g_types
       in
       let recv_r = Option.value_exn recv_r in
       let l_types =
-        List.map ~f:(fun g -> project g roles projected_role) gTypes
+        List.map ~f:(fun g -> project g roles projected_role) g_types
       in
-      let l_types = List.filter ~f:(( <> ) EndL) l_types in
+      let l_types = List.filter ~f:(function | EndL -> false | _ -> true) l_types in
       match projected_role with
       | _
         when String.equal projected_role choice_r

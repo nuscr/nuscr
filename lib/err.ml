@@ -1,4 +1,4 @@
-open! Core_kernel
+open! Base
 open Syntax
 
 type user_error =

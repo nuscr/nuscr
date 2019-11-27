@@ -2,7 +2,7 @@
  (flags
   (:standard -w +A-39-4-42))
  (name nuscrlib)
- (libraries core_kernel ocamlgraph)
+ (libraries base stdio ocamlgraph)
  (inline_tests)
  (preprocess
   (pps ppx_deriving.show ppx_inline_test ppx_sexp_conv)))
