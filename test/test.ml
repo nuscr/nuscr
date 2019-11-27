@@ -1,5 +1,6 @@
 (* directorires to test *)
-open! Core
+open! Base
+open! Stdio
 
 let dirs = ["examples"]
 
@@ -14,9 +15,9 @@ let avoid =
 let get_files (dir : string) : string list =
   let rec loop res = function
     | [] -> res
-    | f :: fs when Sys.is_directory f = `Yes ->
+    | f :: fs when (Caml.Sys.is_directory f) ->
         let fs' =
-          Sys.readdir f |> Array.to_list |> List.map ~f:(Filename.concat f)
+          Caml.Sys.readdir f |> Array.to_list |> List.map ~f:(Caml.Filename.concat f)
         in
         loop res (fs' @ fs)
     | f :: fs -> loop (f :: res) fs
@@ -25,11 +26,11 @@ let get_files (dir : string) : string list =
 
 let get_scribble_files (dir : string) : string list =
   let fs = get_files dir in
-  List.filter ~f:(fun f -> Filename.check_suffix f ".scr") fs
+  List.filter ~f:(fun f -> Caml.Filename.check_suffix f ".scr") fs
 
 let get_scribble_test_files (dir : string) (avoid : string list) :
     string list =
-  let is_avoid f = List.exists ~f:(Filename.check_suffix f) avoid in
+  let is_avoid f = List.exists ~f:(Caml.Filename.check_suffix f) avoid in
   let fs = get_scribble_files dir in
   List.filter ~f:(fun f -> not (is_avoid f)) fs
 
@@ -61,7 +62,7 @@ let process_files fns =
       try
         let run fn in_channel =
           let is_negative_test =
-            Filename.check_suffix (Filename.dirname fn) "errors"
+            Caml.Filename.check_suffix (Caml.Filename.dirname fn) "errors"
           in
           try
             let ast = Nuscrlib.Lib.parse fn in_channel in
@@ -89,8 +90,8 @@ let process_files fns =
 (* test the parser *)
 let () =
   try
-    let pwd = Sys.getenv_exn "PWD" in
-    let dirs = List.map ~f:(Filename.concat pwd) dirs in
+    let pwd = Caml.Sys.getenv "PWD" in
+    let dirs = List.map ~f:(Caml.Filename.concat pwd) dirs in
     let files =
       List.map ~f:(fun dir -> get_scribble_test_files dir avoid) dirs
       |> List.concat
