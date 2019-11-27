@@ -15,9 +15,10 @@ let avoid =
 let get_files (dir : string) : string list =
   let rec loop res = function
     | [] -> res
-    | f :: fs when (Caml.Sys.is_directory f) ->
+    | f :: fs when Caml.Sys.is_directory f ->
         let fs' =
-          Caml.Sys.readdir f |> Array.to_list |> List.map ~f:(Caml.Filename.concat f)
+          Caml.Sys.readdir f |> Array.to_list
+          |> List.map ~f:(Caml.Filename.concat f)
         in
         loop res (fs' @ fs)
     | f :: fs -> loop (f :: res) fs

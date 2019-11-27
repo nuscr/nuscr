@@ -92,8 +92,8 @@ let check_consistent_gchoice choice_r recv_r =
           Some recv_r )
   | _ -> err ()
 
-let rec project (g_type : Gtype.t) (roles : name list) (projected_role : name)
-    =
+let rec project (g_type : Gtype.t) (roles : name list)
+    (projected_role : name) =
   match g_type with
   | EndG -> EndL
   | TVarG name -> TVarL name
@@ -116,7 +116,9 @@ let rec project (g_type : Gtype.t) (roles : name list) (projected_role : name)
       let l_types =
         List.map ~f:(fun g -> project g roles projected_role) g_types
       in
-      let l_types = List.filter ~f:(function | EndL -> false | _ -> true) l_types in
+      let l_types =
+        List.filter ~f:(function EndL -> false | _ -> true) l_types
+      in
       match projected_role with
       | _
         when String.equal projected_role choice_r
