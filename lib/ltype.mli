@@ -22,5 +22,5 @@ type t =
 val show : t -> string
 (** Converts a local type to a string. *)
 
-val project : Gtype.t -> name list -> name -> t
+val project : name -> Gtype.t -> t
 (** Project a global type into a particular role. *)

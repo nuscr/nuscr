@@ -94,30 +94,25 @@ let check_consistent_gchoice choice_r recv_r =
           Some recv_r )
   | _ -> err ()
 
-let rec project (g_type : Gtype.t) (roles : name list)
-    (projected_role : name) =
-  match g_type with
+let rec project (projected_role : name) = function
   | EndG -> EndL
   | TVarG name -> TVarL name
   | MuG (name, g_type) -> (
-    match project g_type roles projected_role with
+    match project projected_role g_type with
     | TVarL _ | EndL -> EndL
     | lType -> MuL (name, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-    match projected_role with
-    | _ when String.equal projected_role send_r ->
-        SendL (m, recv_r, project g_type roles projected_role)
-    | _ when String.equal projected_role recv_r ->
-        RecvL (m, send_r, project g_type roles projected_role)
-    | _ -> project g_type roles projected_role )
+      let next = project projected_role g_type in
+      match projected_role with
+      | _ when String.equal projected_role send_r -> SendL (m, recv_r, next)
+      | _ when String.equal projected_role recv_r -> RecvL (m, send_r, next)
+      | _ -> next )
   | ChoiceG (choice_r, g_types) -> (
       let recv_r =
         List.fold ~f:(check_consistent_gchoice choice_r) ~init:None g_types
       in
       let recv_r = Option.value_exn recv_r in
-      let l_types =
-        List.map ~f:(fun g -> project g roles projected_role) g_types
-      in
+      let l_types = List.map ~f:(project projected_role) g_types in
       let l_types =
         List.filter ~f:(function EndL -> false | _ -> true) l_types
       in
