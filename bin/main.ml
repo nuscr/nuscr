@@ -73,7 +73,7 @@ let run filename verbose enumerate proj fsm gencode =
     in
     let _ =
       gen_output ast
-        (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show_efsm)
+        (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show)
         fsm
     in
     let _ =
