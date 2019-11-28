@@ -40,8 +40,8 @@ let loc = Location.none
 
 let unit = [%type: unit]
 
-let gen_callback_typedef (g : G.t) : structure_item =
-  let env = [%type: 'env] in
+let gen_callback_module (g : G.t) : structure_item =
+  let env = [%type: t] in
   let f st acc =
     match state_action_type g st with
     | `Mixed -> failwith "Impossible"
@@ -73,10 +73,10 @@ let gen_callback_typedef (g : G.t) : structure_item =
               Typ.variant rows Closed None
         in
         let return_ty = [%type: [%t env] * [%t return_ty]] in
-        let field_name = sprintf "state%dSend" st in
-        let field_ty = [%type: [%t env] -> [%t return_ty]] in
-        let field = Type.field (Location.mknoloc field_name) field_ty in
-        field :: acc
+        let name = sprintf "state%dSend" st in
+        let ty = [%type: [%t env] -> [%t return_ty]] in
+        let val_ = Val.mk (Location.mknoloc name) ty in
+        val_ :: acc
     | `Recv ->
         let gen_recv (_, a, _) callbacks =
           match a with
@@ -89,26 +89,19 @@ let gen_callback_typedef (g : G.t) : structure_item =
                 | [x] -> mk_constr x
                 | _ -> Typ.tuple (List.map ~f:mk_constr payload_type)
               in
-              let field_ty =
-                [%type: [%t env] -> [%t payload_type] -> [%t env]]
-              in
-              let field_name = sprintf "state%dReceive%s" st label in
-              let field =
-                Type.field (Location.mknoloc field_name) field_ty
-              in
-              field :: callbacks
+              let ty = [%type: [%t env] -> [%t payload_type] -> [%t env]] in
+              let name = sprintf "state%dReceive%s" st label in
+              let val_ = Val.mk (Location.mknoloc name) ty in
+              val_ :: callbacks
           | _ -> failwith "Impossible"
         in
         G.fold_succ_e gen_recv g st acc
   in
   let callbacks = G.fold_vertex f g [] in
-  let callbacks = List.rev callbacks in
-  let callbacks =
-    Type.mk ~kind:(Ptype_record callbacks)
-      ~params:[(Typ.var "env", Invariant)]
-      (Location.mknoloc "callbacks")
-  in
-  Str.type_ Nonrecursive [callbacks]
+  let callbacks = List.rev_map ~f:(Sig.value ~loc) callbacks in
+  let env_type = Sig.type_ Nonrecursive [Type.mk (Location.mknoloc "env")] in
+  let callbacks = Mty.signature (env_type :: callbacks) in
+  Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Callbacks"))
 
 let find_all_payloads g =
   let f (_, a, _) acc =
@@ -282,8 +275,7 @@ let gen_run_expr start g =
   Exp.let_ Recursive bindings init_expr
 
 let gen_ast (_proto, _role) (start, g) : structure =
-  let loc = Location.none in
-  let callback_typedef = gen_callback_typedef g in
+  let callback_module = gen_callback_module g in
   let payload_types = find_all_payloads g in
   let comms_typedef = gen_comms_typedef payload_types in
   let roles = find_all_roles g in
@@ -295,7 +287,7 @@ let gen_ast (_proto, _role) (start, g) : structure =
           (env : 'env) =
         [%e run_expr]]
   in
-  [callback_typedef; comms_typedef; run]
+  [callback_module; comms_typedef; run]
 
 let gen_code (proto, role) (start, g) =
   let buffer = Buffer.create 4196 in
