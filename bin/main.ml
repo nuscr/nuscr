@@ -90,6 +90,6 @@ let version_string () = "%%VERSION%%"
 let () =
   let filename = ref "" in
   Caml.Arg.parse argspec (fun fn -> filename := fn) @@ usage () ;
-  if !version then print_endline @@ version_string () else () ;
-  if String.length !filename = 0 then usage () |> print_endline
+  if !version then print_endline @@ version_string ()
+  else if String.length !filename = 0 then usage () |> print_endline
   else run !filename !verbose !enum !project !fsm
