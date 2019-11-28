@@ -40,6 +40,21 @@ let loc = Location.none
 
 let unit = [%type: unit]
 
+let mk_receive_callback st label = sprintf "state%dReceive%s" st label
+
+let mk_send_callback st = sprintf "state%dSend" st
+
+let process_msg msg =
+  let label = message_label msg in
+  let payload_type = message_payload_ty msg in
+  let payload_type =
+    match payload_type with
+    | [] -> unit
+    | [x] -> mk_constr x
+    | _ -> Typ.tuple (List.map ~f:mk_constr payload_type)
+  in
+  (label, payload_type)
+
 let gen_callback_module (g : G.t) : structure_item =
   let env = [%type: t] in
   let f st acc =
@@ -50,30 +65,19 @@ let gen_callback_module (g : G.t) : structure_item =
         let gen_send (_, a, _) acc =
           match a with
           | SendA (_, msg) ->
-              let label = message_label msg in
-              let payload_type = message_payload_ty msg in
-              let payload_type =
-                match payload_type with
-                | [] -> unit
-                | [x] -> mk_constr x
-                | _ -> Typ.tuple (List.map ~f:mk_constr payload_type)
+              let label, payload_type = process_msg msg in
+              let row =
+                Rtag (Location.mknoloc label, [], true, [payload_type])
               in
-              (label, payload_type) :: acc
+              row :: acc
           | _ -> failwith "Impossible"
         in
-        let return_ty = G.fold_succ_e gen_send g st [] in
-        let return_ty =
-          match return_ty with
-          | [] -> unit
-          | _ ->
-              let f (label, payload_ty) =
-                Rtag (Location.mknoloc label, [], true, [payload_ty])
-              in
-              let rows = List.map ~f return_ty in
-              Typ.variant rows Closed None
+        let rows = G.fold_succ_e gen_send g st [] in
+        let rows =
+          match rows with [] -> unit | _ -> Typ.variant rows Closed None
         in
-        let return_ty = [%type: [%t env] * [%t return_ty]] in
-        let name = sprintf "state%dSend" st in
+        let return_ty = [%type: [%t env] * [%t rows]] in
+        let name = mk_send_callback st in
         let ty = [%type: [%t env] -> [%t return_ty]] in
         let val_ = Val.mk (Location.mknoloc name) ty in
         val_ :: acc
@@ -81,16 +85,9 @@ let gen_callback_module (g : G.t) : structure_item =
         let gen_recv (_, a, _) callbacks =
           match a with
           | RecvA (_, msg) ->
-              let label = message_label msg in
-              let payload_type = message_payload_ty msg in
-              let payload_type =
-                match payload_type with
-                | [] -> unit
-                | [x] -> mk_constr x
-                | _ -> Typ.tuple (List.map ~f:mk_constr payload_type)
-              in
+              let label, payload_type = process_msg msg in
               let ty = [%type: [%t env] -> [%t payload_type] -> [%t env]] in
-              let name = sprintf "state%dReceive%s" st label in
+              let name = mk_receive_callback st label in
               let val_ = Val.mk (Location.mknoloc name) ty in
               val_ :: callbacks
           | _ -> failwith "Impossible"
@@ -143,11 +140,6 @@ let gen_comms_typedef payload_types =
       ~kind:(Ptype_record (send_functions @ recv_functions))
       (Location.mknoloc "comms")
   in
-  (* let s = [%stri type 'a t = {x: 'a}] in let s = [s] in let migrate =
-     Migrate_parsetree.Versions.migrate Migrate_parsetree.Versions.ocaml_407
-     Migrate_parsetree.Versions.ocaml_current in let s =
-     migrate.copy_structure s in Printast.structure 0 (Format.std_formatter)
-     s; *)
   Str.type_ Nonrecursive [comms]
 
 let gen_role_ty roles =
@@ -155,109 +147,98 @@ let gen_role_ty roles =
   let role_ty = Typ.variant (List.map ~f roles) Closed None in
   role_ty
 
-let gen_run_expr start g =
-  let get_transitions st =
-    let f (_, a, next) acc =
-      match a with
-      | SendA (r, msg) | RecvA (r, msg) ->
-          (r, message_label msg, message_payload_ty msg, next) :: acc
-      | _ -> failwith "Impossible"
-    in
-    G.fold_succ_e f g st []
+let get_transitions g st =
+  let f (_, a, next) acc =
+    match a with
+    | SendA (r, msg) | RecvA (r, msg) ->
+        (r, message_label msg, message_payload_ty msg, next) :: acc
+    | _ -> failwith "Impossible"
   in
+  G.fold_succ_e f g st []
+
+let gen_run_expr start g =
   let mk_run_state_name st = sprintf "run_state_%d" st in
   let mk_run_state_ident st = Exp.ident (mk_lid (mk_run_state_name st)) in
   let f st acc =
-    let run_state_expr =
+    let run_state_expr_inner =
       match state_action_type g st with
-      | `Send ->
+      | `Terminal -> [%expr env]
+      | `Mixed -> failwith "Impossible"
+      | (`Send | `Recv) as action ->
+          let transitions = get_transitions g st in
+          let role, _, _, _ = List.hd_exn transitions in
+          let role = Exp.variant role None in
+          let comms = [%expr router [%e role]] in
           let send_fn_name = sprintf "state%dSend" st in
           let send_callback = Exp.ident (mk_lid send_fn_name) in
-          let transitions = get_transitions st in
-          let role, _, _, _ = List.hd_exn transitions in
-          let role = Exp.variant role None in
-          let comms = [%expr router [%e role]] in
+          let comm_payload_func action payload_ty =
+            let verb =
+              match action with `Send -> "send" | `Recv -> "recv"
+            in
+            Exp.field
+              (Exp.ident (mk_lid "comms"))
+              (mk_lid (sprintf "%s_%s" verb payload_ty))
+          in
+          let comm_payload action = function
+            | [] ->
+                let comm_func = comm_payload_func action "unit" in
+                [%expr [%e comm_func] ()]
+            | [payload_ty] ->
+                let comm_payload_func =
+                  comm_payload_func action payload_ty
+                in
+                let arg =
+                  match action with
+                  | `Send -> [%expr payload]
+                  | `Recv -> [%expr ()]
+                in
+                [%expr [%e comm_payload_func] [%e arg]]
+            | _ -> failwith "TODO"
+          in
           let mk_match_case (_, label, payload_ty, next) =
-            let label_e = Exp.constant (Const.string label) in
-            let send_label = [%expr comms.send_string [%e label_e]] in
-            let send_payload =
-              match payload_ty with
-              | [] -> [%expr comms.send_unit ()]
-              | [payload_ty] ->
-                  let send_payload_func =
-                    Exp.field
-                      (Exp.ident (mk_lid "comms"))
-                      (mk_lid (sprintf "send_%s" payload_ty))
-                  in
-                  [%expr [%e send_payload_func] payload]
-              | _ -> failwith "TODO"
-            in
             let next_state = mk_run_state_ident next in
-            let e =
-              [%expr
-                [%e send_label] ;
-                [%e send_payload] ;
-                [%e next_state] env]
-            in
-            { pc_lhs=
-                Pat.tuple
-                  [ Pat.var (Location.mknoloc "env")
-                  ; Pat.variant label
-                      (Some (Pat.var (Location.mknoloc "payload"))) ]
-            ; pc_guard= None
-            ; pc_rhs= e }
+            match action with
+            | `Send ->
+                let label_e = Exp.constant (Const.string label) in
+                let send_label = [%expr comms.send_string [%e label_e]] in
+                let send_payload = comm_payload `Send payload_ty in
+                { pc_lhs=
+                    Pat.tuple
+                      [[%pat? env]; Pat.variant label (Some [%pat? payload])]
+                ; pc_guard= None
+                ; pc_rhs=
+                    [%expr
+                      [%e send_label] ;
+                      [%e send_payload] ;
+                      [%e next_state] env] }
+            | `Recv ->
+                let recv_payload = comm_payload `Recv payload_ty in
+                let recv_callback_name = mk_receive_callback st label in
+                let recv_callback = Exp.ident (mk_lid recv_callback_name) in
+                { pc_lhs= Pat.constant (Const.string label)
+                ; pc_guard= None
+                ; pc_rhs=
+                    [%expr
+                      let payload = [%e recv_payload] in
+                      let env = [%e recv_callback] env payload in
+                      [%e next_state] env] }
           in
           let match_cases = List.map ~f:mk_match_case transitions in
-          let e = Exp.match_ [%expr [%e send_callback] env] match_cases in
-          [%expr
-            let comms = [%e comms] in
-            [%e e]]
-      | `Recv ->
-          let transitions = get_transitions st in
-          let role, _, _, _ = List.hd_exn transitions in
-          let role = Exp.variant role None in
-          let comms = [%expr router [%e role]] in
-          let mk_match_case (_, label, payload_ty, next) =
-            let recv_payload =
-              match payload_ty with
-              | [] -> [%expr comms.recv_unit ()]
-              | [payload_ty] ->
-                  let recv_payload_func =
-                    Exp.field
-                      (Exp.ident (mk_lid "comms"))
-                      (mk_lid (sprintf "recv_%s" payload_ty))
-                  in
-                  [%expr [%e recv_payload_func] ()]
-              | _ -> failwith "TODO"
-            in
-            let recv_callback_name = sprintf "state%dReceive%s" st label in
-            let recv_callback = Exp.ident (mk_lid recv_callback_name) in
-            let next_state = mk_run_state_ident next in
-            let e =
-              [%expr
-                let payload = [%e recv_payload] in
-                let env = [%e recv_callback] env payload in
-                [%e next_state] env]
-            in
-            { pc_lhs= Pat.constant (Const.string label)
-            ; pc_guard= None
-            ; pc_rhs= e }
-          in
           let impossible_case =
             {pc_lhs= Pat.any (); pc_guard= None; pc_rhs= [%expr assert false]}
           in
-          let match_cases = List.map ~f:mk_match_case transitions in
           let e =
-            Exp.match_ [%expr comms.recv_string ()]
-              (match_cases @ [impossible_case])
+            match action with
+            | `Send -> Exp.match_ [%expr [%e send_callback] env] match_cases
+            | `Recv ->
+                Exp.match_ [%expr comms.recv_string ()]
+                  (match_cases @ [impossible_case])
           in
           [%expr
             let comms = [%e comms] in
             [%e e]]
-      | `Terminal -> [%expr env]
-      | `Mixed -> failwith "Impossible"
     in
-    let run_state_expr = [%expr fun env -> [%e run_state_expr]] in
+    let run_state_expr = [%expr fun env -> [%e run_state_expr_inner]] in
     let pat = Pat.var (Location.mknoloc (mk_run_state_name st)) in
     Vb.mk pat run_state_expr :: acc
   in
