@@ -40,6 +40,9 @@ let argspec =
     , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
     , ": project the CFSM for the specified role" )
   ; ( "-project"
+    , Arg.String (fun s -> project := parse_role_protocol_exn s |> Some)
+    , ": project the local types for the specified role" )
+  ; ( "-gencode"
     , Arg.String (fun s -> gencode := parse_role_protocol_exn s |> Some)
     , ": generate OCaml code for the specified role" ) ]
 
