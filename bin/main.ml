@@ -38,7 +38,7 @@ let argspec =
     , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
     , ": project the CFSM for the specified role" )
   ; ( "-project"
-    , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
+    , Arg.String (fun s -> project := parse_role_protocol_exn s |> Some)
     , ": project the local type for the specified role" ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
