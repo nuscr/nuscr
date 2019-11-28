@@ -40,6 +40,7 @@ let loc = Location.none
 let unit = [%type: unit]
 
 let gen_callback_typedef (g : G.t) : structure_item =
+  let env = [%type: 'env] in
   let f st acc =
     match state_action_type g st with
     | `Mixed -> failwith "Impossible"
@@ -70,10 +71,9 @@ let gen_callback_typedef (g : G.t) : structure_item =
               let rows = List.map ~f return_ty in
               Typ.variant rows Asttypes.Closed None
         in
+        let return_ty = [%type: [%t env] * [%t return_ty]] in
         let field_name = sprintf "state%dSend" st in
-        let field_ty =
-          Typ.arrow Asttypes.Nolabel (mk_constr "unit") return_ty
-        in
+        let field_ty = [%type: [%t env] -> [%t return_ty]] in
         let field = Type.field (Location.mknoloc field_name) field_ty in
         field :: acc
     | `Recv ->
@@ -88,7 +88,9 @@ let gen_callback_typedef (g : G.t) : structure_item =
                 | [x] -> mk_constr x
                 | _ -> Typ.tuple (List.map ~f:mk_constr payload_type)
               in
-              let field_ty = Typ.arrow Asttypes.Nolabel payload_type unit in
+              let field_ty =
+                [%type: [%t env] -> [%t payload_type] -> [%t env]]
+              in
               let field_name = sprintf "state%dReceive%s" st label in
               let field =
                 Type.field (Location.mknoloc field_name) field_ty
@@ -101,7 +103,9 @@ let gen_callback_typedef (g : G.t) : structure_item =
   let callbacks = G.fold_vertex f g [] in
   let callbacks = List.rev callbacks in
   let callbacks =
-    Type.mk ~kind:(Ptype_record callbacks) (Location.mknoloc "callbacks")
+    Type.mk ~kind:(Ptype_record callbacks)
+      ~params:[(Typ.var "env", Asttypes.Invariant)]
+      (Location.mknoloc "callbacks")
   in
   Str.type_ Asttypes.Nonrecursive [callbacks]
 
@@ -147,6 +151,11 @@ let gen_comms_typedef payload_types =
       ~kind:(Ptype_record (send_functions @ recv_functions))
       (Location.mknoloc "comms")
   in
+  (* let s = [%stri type 'a t = {x: 'a}] in let s = [s] in let migrate =
+     Migrate_parsetree.Versions.migrate Migrate_parsetree.Versions.ocaml_407
+     Migrate_parsetree.Versions.ocaml_current in let s =
+     migrate.copy_structure s in Printast.structure 0 (Format.std_formatter)
+     s; *)
   Str.type_ Asttypes.Nonrecursive [comms]
 
 let gen_role_ty roles =
@@ -198,16 +207,18 @@ let gen_run_expr start g =
               [%expr
                 [%e send_label] ;
                 [%e send_payload] ;
-                [%e next_state] ()]
+                [%e next_state] env]
             in
             { pc_lhs=
-                Pat.variant label
-                  (Some (Pat.var (Location.mknoloc "payload")))
+                Pat.tuple
+                  [ Pat.var (Location.mknoloc "env")
+                  ; Pat.variant label
+                      (Some (Pat.var (Location.mknoloc "payload"))) ]
             ; pc_guard= None
             ; pc_rhs= e }
           in
           let match_cases = List.map ~f:mk_match_case transitions in
-          let e = Exp.match_ [%expr [%e send_callback] ()] match_cases in
+          let e = Exp.match_ [%expr [%e send_callback] env] match_cases in
           [%expr
             let comms = [%e comms] in
             [%e e]]
@@ -239,8 +250,8 @@ let gen_run_expr start g =
             let e =
               [%expr
                 let payload = [%e recv_payload] in
-                [%e recv_callback] payload ;
-                [%e next_state] ()]
+                let env = [%e recv_callback] env payload in
+                [%e next_state] env]
             in
             { pc_lhs= Pat.constant (Const.string label)
             ; pc_guard= None
@@ -257,17 +268,17 @@ let gen_run_expr start g =
           [%expr
             let comms = [%e comms] in
             [%e e]]
-      | `Terminal -> [%expr ()]
+      | `Terminal -> [%expr env]
       | `Mixed -> failwith "Impossible"
     in
-    let run_state_expr = [%expr fun () -> [%e run_state_expr]] in
+    let run_state_expr = [%expr fun env -> [%e run_state_expr]] in
     let pat = Pat.var (Location.mknoloc (mk_run_state_name st)) in
     Vb.mk pat run_state_expr :: acc
   in
   let bindings = G.fold_vertex f g [] in
   let bindings = List.rev bindings in
   let init_expr =
-    Exp.apply (mk_run_state_ident start) [(Asttypes.Nolabel, [%expr ()])]
+    Exp.apply (mk_run_state_ident start) [(Asttypes.Nolabel, [%expr env])]
   in
   Exp.let_ Asttypes.Recursive bindings init_expr
 
@@ -281,7 +292,8 @@ let gen_ast (_proto, _role) (start, g) : structure =
   let run_expr = gen_run_expr start g in
   let run =
     [%stri
-      let run (router : [%t role_ty] -> comms) (callbacks : callbacks) =
+      let run (router : [%t role_ty] -> comms) (callbacks : 'env callbacks)
+          (env : 'env) =
         [%e run_expr]]
   in
   [callback_typedef; comms_typedef; run]
