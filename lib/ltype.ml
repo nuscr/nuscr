@@ -52,7 +52,8 @@ let rec merge projected_role lty1 lty2 =
           let label = message_label m in
           match List.Assoc.find acc ~equal:String.equal label with
           | None -> (label, l) :: acc
-          | Some (RecvL (m_, r, l_)) when Poly.equal m m_ ->
+          | Some (RecvL (m_, r, l_))
+            when Poly.equal (message_payload_ty m) (message_payload_ty m_) ->
               List.Assoc.add acc ~equal:String.equal label
                 (RecvL (m, r, merge projected_role lty l_))
           | Some (RecvL _) -> fail ()
