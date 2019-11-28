@@ -41,7 +41,7 @@ let validate_exn (ast : scr_module) ~verbose : unit =
   show ~sep:"\n" ~f:(fun (g, _) -> Gtype.show g) g_types ;
   let l_types =
     List.map
-      ~f:(fun (g, roles) -> List.map ~f:(Ltype.project g roles) roles)
+      ~f:(fun (g, roles) -> List.map ~f:(fun r -> Ltype.project r g) roles)
       g_types
   in
   show ~sep:"\n"
@@ -67,9 +67,8 @@ let project_role ast name role : Ltype.t =
       ~f:(fun gt -> String.equal gt.value.name name)
       ast.protocols
   in
-  let roles = gp.value.roles in
   let gt = Gtype.of_protocol gp in
-  Ltype.project gt roles role
+  Ltype.project role gt
 
 let generate_fsm ast name role =
   let lt = project_role ast name role in
