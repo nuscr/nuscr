@@ -21,6 +21,10 @@ end
 
 module G = Persistent.Digraph.ConcreteLabeled (Int) (Label)
 
+type t = G.t
+
+type state = int
+
 module Display = struct
   include G
 
@@ -40,15 +44,6 @@ module Display = struct
 end
 
 module DotOutput = Graphviz.Dot (Display)
-
-let is_internal_choice = function
-  | ChoiceL (_, ltys) -> (
-      let lty = List.hd_exn ltys in
-      match lty with
-      | SendL (_, _, _) -> true
-      | RecvL (_, _, _) -> false
-      | _ -> failwith "Impossible" )
-  | _ -> failwith "Impossible"
 
 type conv_env = {g: G.t; tyvars: (string * int) list}
 
@@ -74,7 +69,7 @@ let merge_state_rev st_base g st_remove =
   let g = G.remove_vertex g st_remove in
   g
 
-let conv_ltype lty =
+let of_local_type lty =
   let count = ref 0 in
   let fresh () =
     let n = !count in
@@ -126,7 +121,7 @@ let conv_ltype lty =
   let env, start = conv_ltype_aux init_conv_env lty in
   (start, env.g)
 
-let show_efsm g =
+let show g =
   let buffer = Buffer.create 4196 in
   let formatter = Caml.Format.formatter_of_buffer buffer in
   DotOutput.fprint_graph formatter g ;

@@ -9,7 +9,7 @@ module S = Set
 open Syntax
 open Efsm
 
-let state_action_type (g : G.t) (st : int) =
+let state_action_type (g : Efsm.t) (st : int) =
   let merge_state_action_type aty1 aty2 =
     match (aty1, aty2) with
     | `Terminal, aty2 -> aty2

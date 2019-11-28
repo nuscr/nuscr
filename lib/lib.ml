@@ -2,7 +2,6 @@ open! Base
 open! Stdio
 open Syntax
 open Err
-open Efsm
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
@@ -47,10 +46,10 @@ let validate_exn (ast : scr_module) ~verbose : unit =
   show ~sep:"\n"
     ~f:(fun ls -> String.concat ~sep:"\n" (List.map ~f:Ltype.show ls))
     l_types ;
-  let efsmss = List.map ~f:(List.map ~f:conv_ltype) l_types in
+  let efsmss = List.map ~f:(List.map ~f:Efsm.of_local_type) l_types in
   show ~sep:"\n"
     ~f:(fun efsms ->
-      String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> show_efsm g) efsms))
+      String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
     efsmss
 
 let enumerate (ast : scr_module) : (string * string) list =
@@ -73,4 +72,4 @@ let project_role ast name role : Ltype.t =
 
 let generate_fsm ast name role =
   let lt = project_role ast name role in
-  conv_ltype lt
+  Efsm.of_local_type lt
