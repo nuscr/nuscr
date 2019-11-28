@@ -50,6 +50,14 @@ jobs:
             eval $(opam config env)
             WHERE=../docs make -C web deploy
 
+      - run:
+          name: Build docs
+          command: |
+            eval $(opan config env)
+            dune build @doc
+            mkdir -p docs/docs
+            cp -r _build/default/_doc/_html docs/docs
+
       - persist_to_workspace:
           root: .
           paths:
