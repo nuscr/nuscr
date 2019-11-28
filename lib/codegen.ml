@@ -4,6 +4,8 @@ open! Core_kernel
 
 open! Ppxlib_ast
 open Parsetree
+open Asttypes
+open Longident
 open! Ast_helper
 open Syntax
 open Efsm
@@ -31,7 +33,7 @@ let state_action_type (g : G.t) (st : int) =
   in
   G.fold_succ_e f g st `Terminal
 
-let mk_lid id = Location.mknoloc (Longident.parse id)
+let mk_lid id = Location.mknoloc (parse id)
 
 let mk_constr id = Typ.constr (mk_lid id) []
 
@@ -69,7 +71,7 @@ let gen_callback_typedef (g : G.t) : structure_item =
                 Rtag (Location.mknoloc label, [], true, [payload_ty])
               in
               let rows = List.map ~f return_ty in
-              Typ.variant rows Asttypes.Closed None
+              Typ.variant rows Closed None
         in
         let return_ty = [%type: [%t env] * [%t return_ty]] in
         let field_name = sprintf "state%dSend" st in
@@ -104,10 +106,10 @@ let gen_callback_typedef (g : G.t) : structure_item =
   let callbacks = List.rev callbacks in
   let callbacks =
     Type.mk ~kind:(Ptype_record callbacks)
-      ~params:[(Typ.var "env", Asttypes.Invariant)]
+      ~params:[(Typ.var "env", Invariant)]
       (Location.mknoloc "callbacks")
   in
-  Str.type_ Asttypes.Nonrecursive [callbacks]
+  Str.type_ Nonrecursive [callbacks]
 
 let find_all_payloads g =
   let module S = String.Set in
@@ -134,13 +136,13 @@ let find_all_roles g =
 let gen_comms_typedef payload_types =
   let mk_recv payload_ty_str =
     let payload_ty = mk_constr payload_ty_str in
-    let field_ty = Typ.arrow Asttypes.Nolabel unit payload_ty in
+    let field_ty = Typ.arrow Nolabel unit payload_ty in
     let field_name = "recv_" ^ payload_ty_str in
     Type.field (Location.mknoloc field_name) field_ty
   in
   let mk_send payload_ty_str =
     let payload_ty = mk_constr payload_ty_str in
-    let field_ty = Typ.arrow Asttypes.Nolabel payload_ty unit in
+    let field_ty = Typ.arrow Nolabel payload_ty unit in
     let field_name = "send_" ^ payload_ty_str in
     Type.field (Location.mknoloc field_name) field_ty
   in
@@ -156,11 +158,11 @@ let gen_comms_typedef payload_types =
      Migrate_parsetree.Versions.ocaml_current in let s =
      migrate.copy_structure s in Printast.structure 0 (Format.std_formatter)
      s; *)
-  Str.type_ Asttypes.Nonrecursive [comms]
+  Str.type_ Nonrecursive [comms]
 
 let gen_role_ty roles =
   let f role = Rtag (Location.mknoloc role, [], true, []) in
-  let role_ty = Typ.variant (List.map ~f roles) Asttypes.Closed None in
+  let role_ty = Typ.variant (List.map ~f roles) Closed None in
   role_ty
 
 let gen_run_expr start g =
@@ -278,9 +280,9 @@ let gen_run_expr start g =
   let bindings = G.fold_vertex f g [] in
   let bindings = List.rev bindings in
   let init_expr =
-    Exp.apply (mk_run_state_ident start) [(Asttypes.Nolabel, [%expr env])]
+    Exp.apply (mk_run_state_ident start) [(Nolabel, [%expr env])]
   in
-  Exp.let_ Asttypes.Recursive bindings init_expr
+  Exp.let_ Recursive bindings init_expr
 
 let gen_ast (_proto, _role) (start, g) : structure =
   let loc = Location.none in
