@@ -1,12 +1,12 @@
-open! Core_kernel
-
-(* open Efsm *)
-
+open! Base
+open Printf
 open! Ppxlib_ast
 open Parsetree
 open Asttypes
 open Longident
 open! Ast_helper
+module S = Set
+
 open Syntax
 open Efsm
 
@@ -112,7 +112,6 @@ let gen_callback_typedef (g : G.t) : structure_item =
   Str.type_ Nonrecursive [callbacks]
 
 let find_all_payloads g =
-  let module S = String.Set in
   let f (_, a, _) acc =
     match a with
     | SendA (_, msg) | RecvA (_, msg) -> (
@@ -122,16 +121,15 @@ let find_all_payloads g =
         | _ -> List.fold ~f:S.add ~init:acc payloads )
     | _ -> failwith "Impossible"
   in
-  G.fold_edges_e f g (S.singleton "string") |> S.to_list
+  G.fold_edges_e f g (S.singleton (module String) "string") |> S.to_list
 
 let find_all_roles g =
-  let module S = String.Set in
   let f (_, a, _) acc =
     match a with
     | SendA (r, _) | RecvA (r, _) -> S.add acc r
     | _ -> failwith "Impossible"
   in
-  G.fold_edges_e f g S.empty |> S.to_list
+  G.fold_edges_e f g (S.empty (module String)) |> S.to_list
 
 let gen_comms_typedef payload_types =
   let mk_recv payload_ty_str =
@@ -302,8 +300,8 @@ let gen_ast (_proto, _role) (start, g) : structure =
 
 let gen_code (proto, role) (start, g) =
   let buffer = Buffer.create 4196 in
-  let formatter = Format.formatter_of_buffer buffer in
+  let formatter = Caml.Format.formatter_of_buffer buffer in
   let ast = gen_ast (proto, role) (start, g) in
   Pprintast.structure formatter ast ;
-  Format.pp_print_flush formatter () ;
+  Caml.Format.pp_print_flush formatter () ;
   Buffer.contents buffer
