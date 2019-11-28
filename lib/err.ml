@@ -12,6 +12,7 @@ type user_error =
   | UnboundRole of name * source_loc
   | ReflexiveMessage of name * source_loc
   | UnableToMerge of string
+  | RedefinedProtocol of name * source_loc * source_loc
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -38,6 +39,9 @@ let show_user_error = function
       "Reflexive message of Role " ^ Name.user r ^ " at "
       ^ show_source_loc interval
   | UnableToMerge s -> "Unable to merge: " ^ s
+  | RedefinedProtocol (name, interval1, interval2) ->
+      "Redefined protocol " ^ Name.user name ^ " at "
+      ^ show_source_loc interval1 ^ " and " ^ show_source_loc interval2
 
 exception Violation of string
 [@@deriving sexp_of]
