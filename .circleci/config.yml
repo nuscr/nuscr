@@ -53,7 +53,7 @@ jobs:
       - run:
           name: Build docs
           command: |
-            eval $(opan config env)
+            eval $(opam config env)
             dune build @doc
             mkdir -p docs/docs
             cp -r _build/default/_doc/_html docs/docs
