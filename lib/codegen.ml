@@ -99,7 +99,7 @@ let gen_callback_module (g : G.t) : structure_item =
   in
   let callbacks = G.fold_vertex f g [] in
   let callbacks = List.rev_map ~f:(Sig.value ~loc) callbacks in
-  let env_type = Sig.type_ Nonrecursive [Type.mk (Location.mknoloc "env")] in
+  let env_type = Sig.type_ Nonrecursive [Type.mk (Location.mknoloc "t")] in
   let callbacks = Mty.signature (env_type :: callbacks) in
   Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Callbacks"))
 
@@ -172,9 +172,7 @@ let gen_run_expr start g =
       match state_action_type g st with
       | `Send ->
           let send_fn_name = sprintf "state%dSend" st in
-          let send_callback =
-            Exp.field (Exp.ident (mk_lid "callbacks")) (mk_lid send_fn_name)
-          in
+          let send_callback = Exp.ident (mk_lid send_fn_name) in
           let transitions = get_transitions st in
           let role, _, _, _ = List.hd_exn transitions in
           let role = Exp.variant role None in
@@ -233,11 +231,7 @@ let gen_run_expr start g =
               | _ -> failwith "TODO"
             in
             let recv_callback_name = sprintf "state%dReceive%s" st label in
-            let recv_callback =
-              Exp.field
-                (Exp.ident (mk_lid "callbacks"))
-                (mk_lid recv_callback_name)
-            in
+            let recv_callback = Exp.ident (mk_lid recv_callback_name) in
             let next_state = mk_run_state_ident next in
             let e =
               [%expr
@@ -274,8 +268,8 @@ let gen_run_expr start g =
   in
   Exp.let_ Recursive bindings init_expr
 
-let gen_ast (_proto, _role) (start, g) : structure =
-  let callback_module = gen_callback_module g in
+let gen_impl_module proto role start g =
+  let module_name = sprintf "Impl_%s_%s" proto role in
   let payload_types = find_all_payloads g in
   let comms_typedef = gen_comms_typedef payload_types in
   let roles = find_all_roles g in
@@ -283,11 +277,22 @@ let gen_ast (_proto, _role) (start, g) : structure =
   let run_expr = gen_run_expr start g in
   let run =
     [%stri
-      let run (router : [%t role_ty] -> comms) (callbacks : 'env callbacks)
-          (env : 'env) =
+      let run (router : [%t role_ty] -> comms) (env : CB.t) =
+        let open CB in
         [%e run_expr]]
   in
-  [callback_module; comms_typedef; run]
+  let inner_structure = Mod.structure [comms_typedef; run] in
+  let module_ =
+    Mod.functor_ (Location.mknoloc "CB")
+      (Some (Mty.ident (mk_lid "Callbacks")))
+      inner_structure
+  in
+  Str.module_ (Mb.mk (Location.mknoloc module_name) module_)
+
+let gen_ast (proto, role) (start, g) : structure =
+  let callback_module_sig = gen_callback_module g in
+  let impl_module = gen_impl_module proto role start g in
+  [callback_module_sig; impl_module]
 
 let gen_code (proto, role) (start, g) =
   let buffer = Buffer.create 4196 in
