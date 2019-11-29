@@ -16,17 +16,17 @@ let show =
     let current_indent = indent_here indent in
     function
     | MessageG (m, r1, r2, g) ->
-        sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m) r1
-          r2
-          (show_global_type_internal indent g)
+       sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m)
+         r1.value r2.value
+         (show_global_type_internal indent g)
     | MuG (n, g) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent n
+        sprintf "%srec %s {\n%s%s}\n" current_indent n.value
           (show_global_type_internal (indent + 1) g)
           current_indent
-    | TVarG n -> sprintf "%s%s\n" current_indent n
+    | TVarG n -> sprintf "%s%s\n" current_indent n.value
     | EndG -> sprintf "%send\n" current_indent
     | ChoiceG (r, gs) ->
-        let pre = sprintf "%schoice at %s {\n" current_indent r in
+        let pre = sprintf "%schoice at %s {\n" current_indent r.value in
         let intermission = sprintf "%s} or {\n" current_indent in
         let post = sprintf "%s}\n" current_indent in
         let choices =
@@ -40,13 +40,13 @@ let show =
 let of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in
   let has_global_recursion = ref false in
-  let global_recursion_name = "__" ^ name in
+  let global_recursion_name = "__" ^ name.value in
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
   let check_role r loc =
-    if not @@ List.mem roles r ~equal:String.equal then
-      uerr (UnboundRole (r, loc))
+    if not @@ List.mem roles r ~equal:name_equal then
+      uerr @@ UnboundRole (r, loc)
   in
   let rec conv_interactions rec_names
       (interactions : global_interaction list) =
@@ -60,17 +60,17 @@ let of_protocol global_protocol =
           let to_role = Option.value_exn (List.hd to_roles) in
           check_role from_role loc ;
           check_role to_role loc ;
-          if String.equal from_role to_role then
+          if name_equal from_role to_role then
             uerr (ReflexiveMessage (from_role, loc)) ;
           MessageG
             (message, from_role, to_role, conv_interactions rec_names rest)
       | Recursion (rname, interactions) ->
-          if List.mem rec_names rname ~equal:String.equal then
+          if List.mem rec_names rname ~equal:name_equal then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
           MuG (rname, conv_interactions (rname :: rec_names) interactions)
       | Continue name ->
-          if List.mem rec_names name ~equal:String.equal then (
+          if List.mem rec_names name ~equal:name_equal then (
             assert_empty rest ; TVarG name )
           else unimpl "Error message for Unbound TVar"
       | Choice (role, interactions_list) ->
@@ -80,7 +80,7 @@ let of_protocol global_protocol =
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do (name_, _, roles_, _)
-        when String.equal name name_ && List.equal String.equal roles roles_
+        when name_equal name name_ && List.equal name_equal roles roles_
         ->
           has_global_recursion := true ;
           assert_empty rest ;

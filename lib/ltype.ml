@@ -19,19 +19,19 @@ let show =
     let current_indent = indent_here indent in
     function
     | RecvL (m, r, l) ->
-        sprintf "%s%s from %s;\n%s" current_indent (show_message m) r
+        sprintf "%s%s from %s;\n%s" current_indent (show_message m) r.value
           (show_local_type_internal indent l)
     | SendL (m, r, l) ->
-        sprintf "%s%s to %s;\n%s" current_indent (show_message m) r
+        sprintf "%s%s to %s;\n%s" current_indent (show_message m) r.value
           (show_local_type_internal indent l)
     | MuL (n, l) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent n
+        sprintf "%srec %s {\n%s%s}\n" current_indent n.value
           (show_local_type_internal (indent + 1) l)
           current_indent
-    | TVarL n -> sprintf "%s%s\n" current_indent n
+    | TVarL n -> sprintf "%s%s\n" current_indent n.value
     | EndL -> sprintf "%send\n" current_indent
     | ChoiceL (r, ls) ->
-        let pre = sprintf "%schoice at %s {\n" current_indent r in
+        let pre = sprintf "%schoice at %s {\n" current_indent r.value in
         let intermission = sprintf "%s} or {\n" current_indent in
         let post = sprintf "%s}\n" current_indent in
         let choices =

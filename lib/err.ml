@@ -8,8 +8,8 @@ type user_error =
   | RedefinedRecursionName of string * source_loc * source_loc
   | Uncategorised of string
   | InvalidCommandLineParam of string
-  | UnboundRole of string * source_loc
-  | ReflexiveMessage of string * source_loc
+  | UnboundRole of name * source_loc
+  | ReflexiveMessage of name * source_loc
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -31,9 +31,10 @@ let show_user_error = function
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole (r, interval) ->
-      "Unbound role " ^ r ^ " in " ^ render_pos_interval interval
+     "Unbound role " ^ r.value ^ " in " ^ render_pos_interval interval ^
+       "(" ^ render_pos_interval r.loc ^ ")"
   | ReflexiveMessage (r, interval) ->
-      "Reflexive message of Role " ^ r ^ " at "
+      "Reflexive message of Role " ^ r.value ^ " at "
       ^ render_pos_interval interval
 
 exception Violation of string

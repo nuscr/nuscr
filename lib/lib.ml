@@ -56,7 +56,7 @@ let enumerate (ast : scr_module) : (string * string) list =
   let protocols = ast.protocols in
   let roles p =
     let {value= {name; roles; _}; _} = p in
-    List.map ~f:(fun role -> (name, role)) roles
+    List.map ~f:(fun role -> (name.value, role.value)) roles
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
