@@ -32,6 +32,10 @@ let validate_exn (ast : scr_module) ~verbose : unit =
     else ()
   in
   let protocols = ast.protocols in
+  let protocols =
+    List.map ~f:(Protocol.expand_global_protocol ast) protocols
+  in
+  show ~sep:"\n" ~f:show_global_protocol protocols ;
   let g_types =
     List.map ~f:(fun p -> (Gtype.of_protocol p, p.value.roles)) protocols
   in
@@ -65,6 +69,7 @@ let project_role ast name role : Ltype.t =
   let gp =
     List.find_exn ~f:(fun gt -> Name.equal gt.value.name name) ast.protocols
   in
+  let gp = Protocol.expand_global_protocol ast gp in
   let gt = Gtype.of_protocol gp in
   Ltype.project role gt
 
