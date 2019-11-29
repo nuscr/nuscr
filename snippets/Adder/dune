@@ -1,0 +1,9 @@
+(executable
+ (name Adder)
+ (modules Adder C S)
+ (libraries threads))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
