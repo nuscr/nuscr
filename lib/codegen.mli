@@ -5,8 +5,9 @@
 open Syntax
 open! Ppxlib_ast
 
-val gen_ast : name * name -> int * Efsm.t -> Parsetree.structure
+val gen_ast :
+  ?monad:bool -> name * name -> Efsm.state * Efsm.t -> Parsetree.structure
 (** Generate AST presentation of a projected EFSM *)
 
-val gen_code : name * name -> int * Efsm.t -> string
+val gen_code : ?monad:bool -> name * name -> Efsm.state * Efsm.t -> string
 (** Generate string representation of a projected EFSM *)

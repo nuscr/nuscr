@@ -120,16 +120,17 @@ let find_all_roles g =
   in
   G.fold_edges_e f g (S.empty (module String)) |> S.to_list
 
-let gen_comms_typedef payload_types =
+let gen_comms_typedef ~monad payload_types =
+  let mk_monadic ty = if monad then [%type: [%t ty] M.t] else ty in
   let mk_recv payload_ty_str =
     let payload_ty = mk_constr payload_ty_str in
-    let field_ty = Typ.arrow Nolabel unit payload_ty in
+    let field_ty = Typ.arrow Nolabel unit (mk_monadic payload_ty) in
     let field_name = "recv_" ^ payload_ty_str in
     Type.field (Location.mknoloc field_name) field_ty
   in
   let mk_send payload_ty_str =
     let payload_ty = mk_constr payload_ty_str in
-    let field_ty = Typ.arrow Nolabel payload_ty unit in
+    let field_ty = Typ.arrow Nolabel payload_ty (mk_monadic unit) in
     let field_name = "send_" ^ payload_ty_str in
     Type.field (Location.mknoloc field_name) field_ty
   in
@@ -156,13 +157,14 @@ let get_transitions g st =
   in
   G.fold_succ_e f g st []
 
-let gen_run_expr start g =
+let gen_run_expr ~monad start g =
+  ignore monad ;
   let mk_run_state_name st = sprintf "run_state_%d" st in
   let mk_run_state_ident st = Exp.ident (mk_lid (mk_run_state_name st)) in
   let f st acc =
     let run_state_expr_inner =
       match state_action_type g st with
-      | `Terminal -> [%expr env]
+      | `Terminal -> [%expr M.return env]
       | `Mixed -> failwith "Impossible"
       | (`Send | `Recv) as action ->
           let transitions = get_transitions g st in
@@ -208,9 +210,10 @@ let gen_run_expr start g =
                 ; pc_guard= None
                 ; pc_rhs=
                     [%expr
-                      [%e send_label] ;
-                      [%e send_payload] ;
-                      [%e next_state] env] }
+                      let ret = [%e send_label] in
+                      M.bind ret (fun () ->
+                          let ret = [%e send_payload] in
+                          M.bind ret (fun () -> [%e next_state] env))] }
             | `Recv ->
                 let recv_payload = comm_payload `Recv payload_ty in
                 let recv_callback_name = mk_receive_callback st label in
@@ -220,8 +223,9 @@ let gen_run_expr start g =
                 ; pc_rhs=
                     [%expr
                       let payload = [%e recv_payload] in
-                      let env = [%e recv_callback] env payload in
-                      [%e next_state] env] }
+                      M.bind payload (fun payload ->
+                          let env = [%e recv_callback] env payload in
+                          [%e next_state] env)] }
           in
           let match_cases = List.map ~f:mk_match_case transitions in
           let impossible_case =
@@ -231,8 +235,12 @@ let gen_run_expr start g =
             match action with
             | `Send -> Exp.match_ [%expr [%e send_callback] env] match_cases
             | `Recv ->
-                Exp.match_ [%expr comms.recv_string ()]
-                  (match_cases @ [impossible_case])
+                let e =
+                  Exp.match_ [%expr label] (match_cases @ [impossible_case])
+                in
+                [%expr
+                  let label = comms.recv_string () in
+                  M.bind label (fun label -> [%e e])]
           in
           [%expr
             let comms = [%e comms] in
@@ -249,13 +257,13 @@ let gen_run_expr start g =
   in
   Exp.let_ Recursive bindings init_expr
 
-let gen_impl_module proto role start g =
+let gen_impl_module ~monad proto role start g =
   let module_name = sprintf "Impl_%s_%s" proto role in
   let payload_types = find_all_payloads g in
-  let comms_typedef = gen_comms_typedef payload_types in
+  let comms_typedef = gen_comms_typedef ~monad payload_types in
   let roles = find_all_roles g in
   let role_ty = gen_role_ty roles in
-  let run_expr = gen_run_expr start g in
+  let run_expr = gen_run_expr ~monad start g in
   let run =
     [%stri
       let run (router : [%t role_ty] -> comms) (env : CB.t) =
@@ -263,6 +271,13 @@ let gen_impl_module proto role start g =
         [%e run_expr]]
   in
   let inner_structure = Mod.structure [comms_typedef; run] in
+  let inner_structure =
+    if monad then
+      Mod.functor_ (Location.mknoloc "M")
+        (Some (Mty.ident (mk_lid "Monad")))
+        inner_structure
+    else inner_structure
+  in
   let module_ =
     Mod.functor_ (Location.mknoloc "CB")
       (Some (Mty.ident (mk_lid "Callbacks")))
@@ -270,15 +285,32 @@ let gen_impl_module proto role start g =
   in
   Str.module_ (Mb.mk (Location.mknoloc module_name) module_)
 
-let gen_ast (proto, role) (start, g) : structure =
-  let callback_module_sig = gen_callback_module g in
-  let impl_module = gen_impl_module proto role start g in
-  [callback_module_sig; impl_module]
+let monad_signature =
+  let monad_type =
+    Sig.type_ Nonrecursive
+      [Type.mk ~params:[(Typ.var "a", Invariant)] (Location.mknoloc "t")]
+  in
+  let return =
+    Sig.value (Val.mk (Location.mknoloc "return") [%type: 'a -> 'a t])
+  in
+  let bind =
+    Sig.value
+      (Val.mk (Location.mknoloc "bind")
+         [%type: 'a t -> ('a -> 'b t) -> 'b t])
+  in
+  let callbacks = Mty.signature [monad_type; return; bind] in
+  Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Monad"))
 
-let gen_code (proto, role) (start, g) =
+let gen_ast ?(monad = false) (proto, role) (start, g) : structure =
+  let callback_module_sig = gen_callback_module g in
+  let impl_module = gen_impl_module ~monad proto role start g in
+  let all = [callback_module_sig; impl_module] in
+  if monad then monad_signature :: all else all
+
+let gen_code ?(monad = false) (proto, role) (start, g) =
   let buffer = Buffer.create 4196 in
   let formatter = Caml.Format.formatter_of_buffer buffer in
-  let ast = gen_ast (proto, role) (start, g) in
+  let ast = gen_ast ~monad (proto, role) (start, g) in
   Pprintast.structure formatter ast ;
   Caml.Format.pp_print_flush formatter () ;
   Buffer.contents buffer
