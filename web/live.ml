@@ -6,19 +6,23 @@ module T = Js_of_ocaml_tyxml.Tyxml_js.Html
 open Js_of_ocaml_tyxml.Tyxml_js
 module W = Webutils
 
+let show_protocol_role protocol role = Printf.sprintf "%s@%s" role protocol
+
 let project scr (name, role) =
   let ltyp = Lib.project_role scr name role in
   let s = Ltype.show ltyp in
   (W.get "projected")##.innerHTML
-  := Js.string @@ Printf.sprintf "Projected on to %s:%s:: %s" name role s
+  := Js.string
+     @@ Printf.sprintf "Projected on to %s :\n%s"
+          (show_protocol_role name role)
+          s
 
 let display_role scr (name, protocol) =
   let lk =
     Of_dom.of_anchor
       (W.make_link (fun () -> project scr (name, protocol)) "Project")
   in
-  T.(
-    li [txt (Printf.sprintf "%s: %s" name protocol); txt " [ "; lk; txt " ] "])
+  T.(li [txt (show_protocol_role protocol name); txt " [ "; lk; txt " ] "])
 
 let display_roles scr l =
   To_dom.of_element @@ T.(ul (List.map (display_role scr) l))
