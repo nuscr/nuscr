@@ -5,3 +5,5 @@
 *.install
 _build/
 .merlin
+
+*.opam
