@@ -7,8 +7,8 @@ open Graph
 type action = SendA of name * message | RecvA of name * message | Epsilon
 
 let show_action = function
-  | SendA (r, msg) -> sprintf "%s!%s" r (show_message msg)
-  | RecvA (r, msg) -> sprintf "%s?%s" r (show_message msg)
+  | SendA (r, msg) -> sprintf "%s!%s" r.value (show_message msg)
+  | RecvA (r, msg) -> sprintf "%s?%s" r.value (show_message msg)
   | Epsilon -> "ε"
 
 module Label = struct

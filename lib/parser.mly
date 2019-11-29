@@ -49,8 +49,10 @@
   type name_or_qname = Name of name | QName of qname
 
   let noq (nm : qname) : name_or_qname =
-  if List.length (nm.value) = 1 then Name (List.hd (nm.value))                                             else QName nm
-
+    if List.length (nm.value) = 1 then Name { value = (List.hd (nm.value))
+					    ; loc = nm.loc
+					    }
+    else QName nm
   (* list of 'a list option *)
   let loalo = function None -> [] | Some n -> n
 %}
@@ -109,8 +111,8 @@ let protocol_decl == global_protocol_decl (* local pending *)
 (* nuScr extension, the keyword global protocol can be shortened to either *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
-  opts = protocol_options? ; protocol_hdr ; nm = IDENT ;
-  pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ; 
+  opts = protocol_options? ; protocol_hdr ; nm = name ;
+  pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ;
   ann = annotation? ; ints = global_protocol_block ;
   { { name = nm
     ; options = opts
@@ -143,12 +145,12 @@ let parameter_decl :=
 let rec_parameter_decls ==
   LPAR ; pars = separated_nonempty_list(COMMA, rec_parameter_decl) ; RPAR ; { pars }
 
-let rec_parameter_decl == nm = IDENT ; COLON ; ann = IDENT ; { (nm, ann) }
+let rec_parameter_decl == nm = name ; COLON ; ann = IDENT ; { (nm, ann) }
 
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }
 
-let role_decl == ROLE_KW ; nm = IDENT ; { nm }
+let role_decl == ROLE_KW ; nm = name ; { nm }
 
 let global_protocol_block ==
   LCURLY ; ints = global_interaction* ; RCURLY ; { ints }
@@ -166,21 +168,21 @@ let raw_global_interaction ==
   /* | global_wrap */
 
 let global_disconnect ==
-  DISCONNECT_KW ; ~ = IDENT ; AND_KW ; ~ = IDENT ; SEMICOLON ; < Disconnect >
+  DISCONNECT_KW ; ~ = name ; AND_KW ; ~ = name2 ; SEMICOLON ; < Disconnect >
 
 let global_connect ==
-  ~ = message? ; CONNECT_KW ; ~ = IDENT ;
-  TO_KW ; ~ = IDENT ; SEMICOLON ; ~ = annotation? ; < Connect >
+  ~ = message? ; CONNECT_KW ; ~ = name ;
+  TO_KW ; ~ = name2 ; SEMICOLON ; ~ = annotation? ; < Connect >
 
   /* | CONNECT_KW ; IDENT ; TO_KW ; IDENT ; SEMICOLON */
 
 let global_do ==
-  DO_KW ; nm = IDENT ; nra = non_role_args? ;
+  DO_KW ; nm = name ; nra = non_role_args? ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
   { Do (nm, loalo nra, loalo ra, ann) }
 
 let role_args ==
-  LPAR ; nm = separated_nonempty_list(COMMA, IDENT) ; RPAR ; { nm }
+  LPAR ; nm = separated_nonempty_list(COMMA, name) ; RPAR ; { nm }
 
 let non_role_args ==
   LT ; nras = separated_nonempty_list(COMMA, non_role_arg) ; GT ; { nras }
@@ -196,19 +198,19 @@ let non_role_arg ==
                  }
 
 let global_choice ==
-  CHOICE_KW ; AT_KW ; ~ = IDENT ;
+  CHOICE_KW ; AT_KW ; ~ = name ;
   ~ = separated_nonempty_list(OR_KW, global_protocol_block) ;
   < Choice >
 
 let global_continue ==
-  CONTINUE_KW ; ~ = IDENT ; SEMICOLON ; < Continue >
+  CONTINUE_KW ; ~ = name ; SEMICOLON ; < Continue >
 
 let global_recursion ==
-  REC_KW ; ~ = IDENT ; ~ = global_protocol_block ; < Recursion >
+  REC_KW ; ~ = name ; ~ = global_protocol_block ; < Recursion >
 
 let global_message_transfer ==
-  msg = message ; FROM_KW ; frn = IDENT ;
-  TO_KW ; trns = separated_nonempty_list(COMMA, IDENT) ;
+  msg = message ; FROM_KW ; frn = name ;
+  TO_KW ; trns = separated_nonempty_list(COMMA, name) ;
   SEMICOLON ; ann = annotation? ;
   { MessageTransfer
       { message = msg
@@ -222,12 +224,12 @@ let global_message_transfer ==
    Scribble parser *)
 let message ==
   msg = message_signature ; { msg }
-  | ~ = IDENT ; < MessageName >
+  | ~ = name ; < MessageName >
 
 (* this corresponds to siglit in Scribble.g *)
 let message_signature ==
   /* LPAR ; payload ; RPAR */
-  | nm=IDENT ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
+  | nm=name ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
       { Message { name = nm
                 ; payload = pars
                 }
@@ -237,12 +239,12 @@ let message_signature ==
 
 let payload_el ==
   (* protocol @ role (delegation) *)
-  |  ~ = IDENT ; ARROBA ;  ~ = IDENT ; < PayloadDel >
+  | ~ = name ; ARROBA ; ~ = name2  ; < PayloadDel >
   | nm = qname ; { match noq nm with
                    | Name n -> PayloadName n
                    | QName n -> PayloadQName n
                  }
-  | ~ = IDENT ; COLON ; ~ = qname ; < PayloadBnd >
+  | ~ = name ; COLON ; ~ = qname ; < PayloadBnd >
 
 
 let annotation == ARROBA ; ann = EXTIDENT ; { ann }
@@ -257,6 +259,11 @@ let qname == located (raw_qname)
 
 let raw_qname ==
   separated_nonempty_list(DOT, IDENT)
+
+let name == located(raw_name)
+let name2 == name
+
+let raw_name == IDENT
 
 (* utilities *)
 let located(x) ==

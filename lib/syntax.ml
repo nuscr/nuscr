@@ -18,7 +18,7 @@ type 'a located =
         [@printer
           fun fmt interval -> fprintf fmt "%s" (render_pos_interval interval)]
   ; value: 'a [@main] }
-[@@deriving show]
+[@@deriving show, sexp_of]
 
 (* type ast =
  *   raw_ast located
@@ -27,10 +27,12 @@ type 'a located =
  *   | Con of string *)
 
 (* a simple name *)
-type name = string [@@deriving show {with_path= false}, sexp_of]
+
+type name = string located [@@deriving show {with_path= false}, sexp_of]
+let name_equal n m = String.equal n.value m.value
 
 (* a qualified name *)
-type raw_qname = name list
+type raw_qname = string list
 
 let show_raw_qname = String.concat ~sep:"."
 
@@ -65,10 +67,10 @@ type payloadt =
 (* var : type *)
 
 let show_payloadt = function
-  | PayloadName n -> n
-  | PayloadDel (p, r) -> sprintf "%s @ %s" p r
+  | PayloadName n -> n.value
+  | PayloadDel (p, r) -> sprintf "%s @ %s" p.value r.value
   | PayloadQName qn -> qname_to_string qn
-  | PayloadBnd (n, qn) -> sprintf "%s: %s" n (qname_to_string qn)
+  | PayloadBnd (n, qn) -> sprintf "%s: %s" n.value (qname_to_string qn)
 
 let pp_payloadt fmt p = Caml.Format.fprintf fmt "%s" (show_payloadt p)
 
@@ -79,9 +81,9 @@ type message =
 
 let show_message = function
   | Message {name; payload} ->
-      sprintf "%s(%s)" name
+      sprintf "%s(%s)" name.value
         (String.concat ~sep:", " (List.map ~f:show_payloadt payload))
-  | MessageName n -> n
+  | MessageName n -> n.value
   | MessageQName qn -> qname_to_string qn
 
 let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
@@ -89,13 +91,13 @@ let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
 let sexp_of_message m = Sexp.Atom (show_message m)
 
 let message_label = function
-  | Message {name; _} -> name
-  | MessageName name -> name
+  | Message {name; _} -> name.value
+  | MessageName name -> name.value
   | MessageQName qn -> qname_to_string qn
 
 let message_payload_ty =
   let payload_type_of_payload_t = function
-    | PayloadName n -> n
+    | PayloadName n -> n.value
     | PayloadDel (_p, _r) -> failwith "Delegation is not supported"
     | PayloadQName qn -> qname_to_string qn
     | PayloadBnd (_n, qn) -> qname_to_string qn
@@ -134,8 +136,8 @@ type raw_global_protocol =
         (* if parameter is ("foo", None) it's a type *)
         (* if parameter is ("foo", Some "bar") it's a sig *)
         (* neither case I know what it is *)
-  ; parameters: (name * name option) list
-  ; rec_parameters: (name * name) list (* parameters for the recursion *)
+  ; parameters: (string * string option) list
+  ; rec_parameters: (name * annotation) list (* parameters for the recursion *)
   ; roles: name list
   ; interactions: global_interaction list
   ; ann: annotation option }
