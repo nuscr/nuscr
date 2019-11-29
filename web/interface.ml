@@ -30,3 +30,24 @@ module Error = struct
 
   let reset () = Webutils.(set_display (get "errorbox") "none")
 end
+
+module Graph = struct
+  let id = "efsm"
+
+  let clear () = Webutils.set_children (Webutils.get id) []
+
+  let set (svg : Dom.node Js.t) =
+    Webutils.set_children (Webutils.get id) [svg]
+
+  let set_dot (dot : string) =
+    let dot = Js.string dot in
+    let viz = Js.Unsafe.global##._Viz in
+    let viz = Js.Unsafe.new_obj viz [||] in
+    let promise =
+      Js.Unsafe.meth_call viz "renderSVGElement" [|Js.Unsafe.inject dot|]
+    in
+    let _promise =
+      Js.Unsafe.meth_call promise "then" [|Js.Unsafe.inject set|]
+    in
+    ()
+end

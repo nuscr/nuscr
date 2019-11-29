@@ -17,12 +17,28 @@ let project scr (name, role) =
           (show_protocol_role name role)
           s
 
+let fsm scr (name, role) =
+  let _, fsm = Lib.generate_fsm scr name role in
+  let dot = Efsm.show fsm in
+  Interface.Graph.set_dot dot
+
 let display_role scr (name, protocol) =
-  let lk =
+  let lk_p =
     Of_dom.of_anchor
       (W.make_link (fun () -> project scr (name, protocol)) "Project")
   in
-  T.(li [txt (show_protocol_role protocol name); txt " [ "; lk; txt " ] "])
+  let lk_f =
+    Of_dom.of_anchor (W.make_link (fun () -> fsm scr (name, protocol)) "FSM")
+  in
+  T.(
+    li
+      [ txt (show_protocol_role protocol name)
+      ; txt " [ "
+      ; lk_p
+      ; txt " ] "
+      ; txt " [ "
+      ; lk_f
+      ; txt " ] " ])
 
 let display_roles scr l =
   To_dom.of_element @@ T.(ul (List.map (display_role scr) l))
