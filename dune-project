@@ -25,6 +25,6 @@
     (js_of_ocaml (>= 3.5.1))
     (js_of_ocaml-ppx (>= 3.5.1))
     (js_of_ocaml-tyxml (>= 3.5.1))
-    (ppxlib (>= 0.8.1))
+    (ppxlib (and (>= 0.8.1) (< 0.9.0)))
   )
 )
