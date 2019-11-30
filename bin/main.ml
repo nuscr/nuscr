@@ -66,21 +66,15 @@ let run filename verbose enumerate proj fsm gencode =
       |> List.map ~f:(fun (n, r) -> r ^ "@" ^ n)
       |> String.concat ~sep:"\n" |> print_endline
     else () ;
-    let _ =
-      gen_output ast
-        (fun ast r n -> Lib.project_role ast r n |> Ltype.show)
-        proj
-    in
-    let _ =
-      gen_output ast
-        (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show)
-        fsm
-    in
-    let _ =
-      gen_output ast
-        (fun ast r n -> Lib.generate_fsm ast r n |> Codegen.gen_code (r, n))
-        gencode
-    in
+    gen_output ast
+      (fun ast r n -> Lib.project_role ast r n |> Ltype.show)
+      proj ;
+    gen_output ast
+      (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show)
+      fsm ;
+    gen_output ast
+      (fun ast r n -> Lib.generate_fsm ast r n |> Codegen.gen_code (r, n))
+      gencode ;
     ()
   with
   | Err.UserError msg ->
