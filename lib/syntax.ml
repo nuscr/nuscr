@@ -3,6 +3,8 @@ open Printf
 
 type source_loc = Lexing.position * Lexing.position
 
+let ghost_loc = (Lexing.dummy_pos, Lexing.dummy_pos)
+
 let sexp_of_source_loc _ = Sexp.Atom "<opaque>"
 
 let render_pos pos =
@@ -30,6 +32,7 @@ type 'a located =
 
 type name = string located [@@deriving show {with_path= false}, sexp_of]
 let name_equal n m = String.equal n.value m.value
+let name_of_string s = {value = s ; loc = ghost_loc}
 
 (* a qualified name *)
 type raw_qname = string list

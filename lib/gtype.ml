@@ -40,7 +40,7 @@ let show =
 let of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in
   let has_global_recursion = ref false in
-  let global_recursion_name = "__" ^ name.value in
+  let global_recursion_name = {name with value = "__" ^ name.value} in
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
@@ -99,7 +99,7 @@ let rec flatten = function
   | ChoiceG (role, choices) ->
       let choices = List.map ~f:flatten choices in
       let lift = function
-        | ChoiceG (role_, choices_) when String.equal role role_ -> choices_
+        | ChoiceG (role_, choices_) when name_equal role role_ -> choices_
         | ChoiceG (_role, _choices) ->
             unimpl "Error message for inconsistent choices"
         | g -> [g]
@@ -108,20 +108,21 @@ let rec flatten = function
   | g -> g
 
 let%test "Flatten Example" =
-  let mkMsg name = Message {name; payload= []} in
+  let nos = name_of_string in
+  let mkMsg str = Message {name = nos str; payload= []} in
   let m1 = mkMsg "m1" in
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
-  let mkMG m = MessageG (m, "A", "B", EndG) in
-  let before = ChoiceG ("A", [ChoiceG ("A", [mkMG m1; mkMG m2]); mkMG m3]) in
-  let after = ChoiceG ("A", [mkMG m1; mkMG m2; mkMG m3]) in
+  let mkMG m = MessageG (m, nos "A", nos "B", EndG) in
+  let before = ChoiceG (nos "A", [ChoiceG (nos "A", [mkMG m1; mkMG m2]); mkMG m3]) in
+  let after = ChoiceG (nos "A", [mkMG m1; mkMG m2; mkMG m3]) in
   Poly.equal (flatten before) after
 
 let rec substitute g tvar g_sub =
   match g with
-  | TVarG tvar_ when String.equal tvar tvar_ -> g_sub
+  | TVarG tvar_ when name_equal tvar tvar_ -> g_sub
   | TVarG _ -> g
-  | MuG (tvar_, _) when String.equal tvar tvar_ -> g
+  | MuG (tvar_, _) when name_equal tvar tvar_ -> g
   | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
   | EndG -> EndG
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
@@ -141,23 +142,24 @@ let rec normalise = function
   | MuG (tvar, g_) -> unfold (MuG (tvar, normalise g_))
 
 let%test "Normal Form Example" =
-  let mkMsg name = Message {name; payload= []} in
+  let nos = name_of_string in
+  let mkMsg name = Message {name = nos name; payload= []} in
   let m1 = mkMsg "m1" in
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
-  let mkMG m c = MessageG (m, "A", "B", c) in
+  let mkMG m c = MessageG (m, nos "A", nos "B", c) in
   let before =
     ChoiceG
-      ( "A"
-      , [ MuG ("Loop", ChoiceG ("A", [mkMG m1 (TVarG "Loop"); mkMG m2 EndG]))
+      ( nos "A"
+      , [ MuG (nos "Loop", ChoiceG (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG]))
         ; mkMG m3 EndG ] )
   in
   let after =
     ChoiceG
-      ( "A"
+      ( nos "A"
       , [ mkMG m1
             (MuG
-               ("Loop", ChoiceG ("A", [mkMG m1 (TVarG "Loop"); mkMG m2 EndG])))
+               (nos "Loop", ChoiceG (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG])))
         ; mkMG m2 EndG
         ; mkMG m3 EndG ] )
   in

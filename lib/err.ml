@@ -10,6 +10,7 @@ type user_error =
   | InvalidCommandLineParam of string
   | UnboundRole of name * source_loc
   | ReflexiveMessage of name * source_loc
+  | UnableToMerge of string
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -36,6 +37,7 @@ let show_user_error = function
   | ReflexiveMessage (r, interval) ->
       "Reflexive message of Role " ^ r.value ^ " at "
       ^ render_pos_interval interval
+  | UnableToMerge s -> "Unable to merge: " ^ s
 
 exception Violation of string
 [@@deriving sexp_of]
