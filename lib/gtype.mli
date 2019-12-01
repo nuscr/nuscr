@@ -1,3 +1,4 @@
+open Loc
 open Syntax
 (** Global types *)
 

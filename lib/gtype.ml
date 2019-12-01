@@ -1,6 +1,7 @@
 open! Base
 open Printf
 open Syntax
+open Loc
 open Err
 
 type t =

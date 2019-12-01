@@ -1,4 +1,5 @@
 open! Base
+open Loc
 open Syntax
 
 type user_error =

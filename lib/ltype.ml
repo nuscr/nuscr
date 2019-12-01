@@ -1,5 +1,6 @@
 open! Base
 open Printf
+open Loc
 open Syntax
 open Gtype
 open Err
