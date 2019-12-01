@@ -16,6 +16,8 @@ let render_pos_interval (startp, endp) : string =
   sprintf "%s to %s in: %s" (render_pos startp) (render_pos endp)
     startp.Lexing.pos_fname
 
+let build p = p
+
 type 'a located =
   { loc: source_loc
         [@printer
