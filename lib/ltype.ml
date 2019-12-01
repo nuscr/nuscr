@@ -46,46 +46,46 @@ exception Unmergable of t * t [@@deriving sexp_of]
 
 let rec merge projected_role lty1 lty2 =
   try
-  let fail () = raise (Unmergable (lty1, lty2)) in
-  let merge_recv r recvs =
-    let rec aux (acc : (string * t) list) = function
-      | RecvL (m, _, lty) as l -> (
-          let label = message_label m in
-          match List.Assoc.find acc ~equal:String.equal label with
-          | None -> (label, l) :: acc
-          | Some (RecvL (m_, r, l_))
-            when Poly.equal (message_payload_ty m) (message_payload_ty m_) ->
-              List.Assoc.add acc ~equal:String.equal label
-                (RecvL (m, r, merge projected_role lty l_))
-          | Some (RecvL _) -> fail ()
-          | _ -> failwith "Impossible" )
-      | l -> failwith ("Impossible " ^ show l ^ " r " ^ r.value)
+    let fail () = raise (Unmergable (lty1, lty2)) in
+    let merge_recv r recvs =
+      let rec aux (acc : (string * t) list) = function
+        | RecvL (m, _, lty) as l -> (
+            let label = message_label m in
+            match List.Assoc.find acc ~equal:String.equal label with
+            | None -> (label, l) :: acc
+            | Some (RecvL (m_, r, l_))
+              when Poly.equal (message_payload_ty m) (message_payload_ty m_)
+              ->
+                List.Assoc.add acc ~equal:String.equal label
+                  (RecvL (m, r, merge projected_role lty l_))
+            | Some (RecvL _) -> fail ()
+            | _ -> failwith "Impossible" )
+        | l -> failwith ("Impossible " ^ show l ^ " r " ^ r.value)
+      in
+      let conts = List.fold ~f:aux ~init:[] recvs in
+      match conts with
+      | [] -> EndL
+      | [(_, lty)] -> lty
+      | conts -> ChoiceL (r, List.map ~f:snd conts)
     in
-    let conts = List.fold ~f:aux ~init:[] recvs in
-    match conts with
-    | [] -> EndL
-    | [(_, lty)] -> lty
-    | conts -> ChoiceL (r, List.map ~f:snd conts)
-  in
-  match (lty1, lty2) with
-  | RecvL (_, r1, _), RecvL (_, r2, _) ->
-      if not @@ name_equal r1 r2 then fail () ;
-      merge_recv r1 [lty1; lty2]
-  | ChoiceL (r1, ltys1), RecvL (_, r2, _) when name_equal r1 r2 ->
-      (* Choice is a set of receive *)
-      merge_recv r1 (lty2 :: ltys1)
-  | RecvL (_, r2, _), ChoiceL (r1, ltys2) when name_equal r1 r2 ->
-      merge_recv r1 (lty1 :: ltys2)
-  | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
-    when name_equal r1 r2 && not (name_equal r1 projected_role) ->
-      merge_recv r1 (ltys1 @ ltys2)
-  | _ -> if Poly.equal lty1 lty2 then lty1 else fail ()
-  with
-  | Unmergable (l1, l2) ->
-     let s1 = Sexp.to_string (sexp_of_t l1) in
-     let s2 = Sexp.to_string (sexp_of_t l2) in
-     let error = s1 ^ " " ^ s2 in
-     Err.UserError (Err.UnableToMerge error) |>raise
+    match (lty1, lty2) with
+    | RecvL (_, r1, _), RecvL (_, r2, _) ->
+        if not @@ name_equal r1 r2 then fail () ;
+        merge_recv r1 [lty1; lty2]
+    | ChoiceL (r1, ltys1), RecvL (_, r2, _) when name_equal r1 r2 ->
+        (* Choice is a set of receive *)
+        merge_recv r1 (lty2 :: ltys1)
+    | RecvL (_, r2, _), ChoiceL (r1, ltys2) when name_equal r1 r2 ->
+        merge_recv r1 (lty1 :: ltys2)
+    | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
+      when name_equal r1 r2 && not (name_equal r1 projected_role) ->
+        merge_recv r1 (ltys1 @ ltys2)
+    | _ -> if Poly.equal lty1 lty2 then lty1 else fail ()
+  with Unmergable (l1, l2) ->
+    let s1 = Sexp.to_string (sexp_of_t l1) in
+    let s2 = Sexp.to_string (sexp_of_t l2) in
+    let error = s1 ^ " " ^ s2 in
+    Err.UserError (Err.UnableToMerge error) |> raise
 
 (* Check whether the first message in a g choice is from choice_r to recv_r,
    if recv_r is Some; return receive role *)

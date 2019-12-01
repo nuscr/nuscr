@@ -16,9 +16,9 @@ let show =
     let current_indent = indent_here indent in
     function
     | MessageG (m, r1, r2, g) ->
-       sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m)
-         r1.value r2.value
-         (show_global_type_internal indent g)
+        sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m)
+          r1.value r2.value
+          (show_global_type_internal indent g)
     | MuG (n, g) ->
         sprintf "%srec %s {\n%s%s}\n" current_indent n.value
           (show_global_type_internal (indent + 1) g)
@@ -40,7 +40,7 @@ let show =
 let of_protocol global_protocol =
   let {value= {name; roles; interactions; _}; _} = global_protocol in
   let has_global_recursion = ref false in
-  let global_recursion_name = {name with value = "__" ^ name.value} in
+  let global_recursion_name = {name with value= "__" ^ name.value} in
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
@@ -80,8 +80,7 @@ let of_protocol global_protocol =
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do (name_, _, roles_, _)
-        when name_equal name name_ && List.equal name_equal roles roles_
-        ->
+        when name_equal name name_ && List.equal name_equal roles roles_ ->
           has_global_recursion := true ;
           assert_empty rest ;
           TVarG global_recursion_name
@@ -109,12 +108,14 @@ let rec flatten = function
 
 let%test "Flatten Example" =
   let nos = name_of_string in
-  let mkMsg str = Message {name = nos str; payload= []} in
+  let mkMsg str = Message {name= nos str; payload= []} in
   let m1 = mkMsg "m1" in
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
   let mkMG m = MessageG (m, nos "A", nos "B", EndG) in
-  let before = ChoiceG (nos "A", [ChoiceG (nos "A", [mkMG m1; mkMG m2]); mkMG m3]) in
+  let before =
+    ChoiceG (nos "A", [ChoiceG (nos "A", [mkMG m1; mkMG m2]); mkMG m3])
+  in
   let after = ChoiceG (nos "A", [mkMG m1; mkMG m2; mkMG m3]) in
   Poly.equal (flatten before) after
 
@@ -143,7 +144,7 @@ let rec normalise = function
 
 let%test "Normal Form Example" =
   let nos = name_of_string in
-  let mkMsg name = Message {name = nos name; payload= []} in
+  let mkMsg name = Message {name= nos name; payload= []} in
   let m1 = mkMsg "m1" in
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
@@ -151,7 +152,10 @@ let%test "Normal Form Example" =
   let before =
     ChoiceG
       ( nos "A"
-      , [ MuG (nos "Loop", ChoiceG (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG]))
+      , [ MuG
+            ( nos "Loop"
+            , ChoiceG (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG])
+            )
         ; mkMG m3 EndG ] )
   in
   let after =
@@ -159,7 +163,9 @@ let%test "Normal Form Example" =
       ( nos "A"
       , [ mkMG m1
             (MuG
-               (nos "Loop", ChoiceG (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG])))
+               ( nos "Loop"
+               , ChoiceG
+                   (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG]) ))
         ; mkMG m2 EndG
         ; mkMG m3 EndG ] )
   in

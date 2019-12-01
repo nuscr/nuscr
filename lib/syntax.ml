@@ -31,8 +31,10 @@ type 'a located =
 (* a simple name *)
 
 type name = string located [@@deriving show {with_path= false}, sexp_of]
+
 let name_equal n m = String.equal n.value m.value
-let name_of_string s = {value = s ; loc = ghost_loc}
+
+let name_of_string s = {value= s; loc= ghost_loc}
 
 (* a qualified name *)
 type raw_qname = string list
@@ -141,7 +143,8 @@ type raw_global_protocol =
         (* if parameter is ("foo", Some "bar") it's a sig *)
         (* neither case I know what it is *)
   ; parameters: (string * string option) list
-  ; rec_parameters: (name * annotation) list (* parameters for the recursion *)
+  ; rec_parameters: (name * annotation) list
+        (* parameters for the recursion *)
   ; roles: name list
   ; interactions: global_interaction list
   ; ann: annotation option }

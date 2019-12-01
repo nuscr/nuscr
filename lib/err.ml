@@ -32,8 +32,9 @@ let show_user_error = function
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole (r, interval) ->
-     "Unbound role " ^ r.value ^ " in " ^ render_pos_interval interval ^
-       "(" ^ render_pos_interval r.loc ^ ")"
+      "Unbound role " ^ r.value ^ " in "
+      ^ render_pos_interval interval
+      ^ "(" ^ render_pos_interval r.loc ^ ")"
   | ReflexiveMessage (r, interval) ->
       "Reflexive message of Role " ^ r.value ^ " at "
       ^ render_pos_interval interval
