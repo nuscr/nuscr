@@ -1,6 +1,5 @@
 open! Base
 open Printf
-open Loc
 open Syntax
 open Ltype
 open Graph
@@ -8,8 +7,8 @@ open Graph
 type action = SendA of name * message | RecvA of name * message | Epsilon
 
 let show_action = function
-  | SendA (r, msg) -> sprintf "%s!%s" r.value (show_message msg)
-  | RecvA (r, msg) -> sprintf "%s?%s" r.value (show_message msg)
+  | SendA (r, msg) -> sprintf "%s!%s" (Name.user r) (show_message msg)
+  | RecvA (r, msg) -> sprintf "%s?%s" (Name.user r) (show_message msg)
   | Epsilon -> "ε"
 
 module Label = struct
@@ -117,7 +116,7 @@ let of_local_type lty =
         let env, curr = conv_ltype_aux env l in
         let g = merge_state env.g curr new_st in
         ({old_env with g}, curr)
-    | TVarL tv -> (env, List.Assoc.find_exn ~equal:name_equal env.tyvars tv)
+    | TVarL tv -> (env, List.Assoc.find_exn ~equal:Name.equal env.tyvars tv)
   in
   let env, start = conv_ltype_aux init_conv_env lty in
   (start, env.g)

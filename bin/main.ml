@@ -3,7 +3,7 @@ open Stdio
 open Nuscrlib
 
 let parse_role_protocol_exn rp =
-  let nos = Syntax.name_of_string in
+  let nos = Name.of_string in
   match String.split rp ~on:'@' with
   | [role; protocol] -> (nos role, nos protocol)
   | _ ->
@@ -64,7 +64,7 @@ let run filename verbose enumerate proj fsm gencode =
     Lib.validate_exn ast ~verbose ;
     if enumerate then
       Lib.enumerate ast
-      |> List.map ~f:(fun (n, r) -> r.value ^ "@" ^ n.value)
+      |> List.map ~f:(fun (n, r) -> Name.user r ^ "@" ^ Name.user n)
       |> String.concat ~sep:"\n" |> print_endline
     else () ;
     gen_output ast

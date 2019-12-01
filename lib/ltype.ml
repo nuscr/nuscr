@@ -1,6 +1,5 @@
 open! Base
 open Printf
-open Loc
 open Syntax
 open Gtype
 open Err
@@ -8,9 +7,9 @@ open Err
 type t =
   | RecvL of message * name * t
   | SendL of message * name * t
-  | ChoiceL of name * t list
-  | TVarL of name
-  | MuL of name * t
+  | ChoiceL of Name.t * t list
+  | TVarL of Name.t
+  | MuL of Name.t * t
   | EndL
 [@@deriving sexp_of]
 
@@ -20,19 +19,23 @@ let show =
     let current_indent = indent_here indent in
     function
     | RecvL (m, r, l) ->
-        sprintf "%s%s from %s;\n%s" current_indent (show_message m) r.value
+        sprintf "%s%s from %s;\n%s" current_indent (show_message m)
+          (Name.user r)
           (show_local_type_internal indent l)
     | SendL (m, r, l) ->
-        sprintf "%s%s to %s;\n%s" current_indent (show_message m) r.value
+        sprintf "%s%s to %s;\n%s" current_indent (show_message m)
+          (Name.user r)
           (show_local_type_internal indent l)
     | MuL (n, l) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent n.value
+        sprintf "%srec %s {\n%s%s}\n" current_indent (Name.user n)
           (show_local_type_internal (indent + 1) l)
           current_indent
-    | TVarL n -> sprintf "%s%s\n" current_indent n.value
+    | TVarL n -> sprintf "%s%s\n" current_indent (Name.user n)
     | EndL -> sprintf "%send\n" current_indent
     | ChoiceL (r, ls) ->
-        let pre = sprintf "%schoice at %s {\n" current_indent r.value in
+        let pre =
+          sprintf "%schoice at %s {\n" current_indent (Name.user r)
+        in
         let intermission = sprintf "%s} or {\n" current_indent in
         let post = sprintf "%s}\n" current_indent in
         let choices =
@@ -61,7 +64,7 @@ let rec merge projected_role lty1 lty2 =
                   (RecvL (m, r, merge projected_role lty l_))
             | Some (RecvL _) -> fail ()
             | _ -> failwith "Impossible" )
-        | l -> failwith ("Impossible " ^ show l ^ " r " ^ r.value)
+        | l -> failwith ("Impossible " ^ show l ^ " r " ^ Name.user r)
       in
       let conts = List.fold ~f:aux ~init:[] recvs in
       match conts with
@@ -71,15 +74,15 @@ let rec merge projected_role lty1 lty2 =
     in
     match (lty1, lty2) with
     | RecvL (_, r1, _), RecvL (_, r2, _) ->
-        if not @@ name_equal r1 r2 then fail () ;
+        if not @@ Name.equal r1 r2 then fail () ;
         merge_recv r1 [lty1; lty2]
-    | ChoiceL (r1, ltys1), RecvL (_, r2, _) when name_equal r1 r2 ->
+    | ChoiceL (r1, ltys1), RecvL (_, r2, _) when Name.equal r1 r2 ->
         (* Choice is a set of receive *)
         merge_recv r1 (lty2 :: ltys1)
-    | RecvL (_, r2, _), ChoiceL (r1, ltys2) when name_equal r1 r2 ->
+    | RecvL (_, r2, _), ChoiceL (r1, ltys2) when Name.equal r1 r2 ->
         merge_recv r1 (lty1 :: ltys2)
     | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
-      when name_equal r1 r2 && not (name_equal r1 projected_role) ->
+      when Name.equal r1 r2 && not (Name.equal r1 projected_role) ->
         merge_recv r1 (ltys1 @ ltys2)
     | _ -> if Poly.equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
@@ -94,11 +97,11 @@ let check_consistent_gchoice choice_r recv_r =
   let err () = unimpl "Error message for inconsistent choice" in
   function
   | MessageG (_, send_r, recv_r_, _) -> (
-      if not @@ name_equal send_r choice_r then err () ;
+      if not @@ Name.equal send_r choice_r then err () ;
       match recv_r with
       | None -> Some recv_r_
       | Some recv_r ->
-          if not @@ name_equal recv_r recv_r then err () ;
+          if not @@ Name.equal recv_r recv_r then err () ;
           Some recv_r )
   | _ -> err ()
 
@@ -112,8 +115,8 @@ let rec project (projected_role : name) = function
   | MessageG (m, send_r, recv_r, g_type) -> (
       let next = project projected_role g_type in
       match projected_role with
-      | _ when name_equal projected_role send_r -> SendL (m, recv_r, next)
-      | _ when name_equal projected_role recv_r -> RecvL (m, send_r, next)
+      | _ when Name.equal projected_role send_r -> SendL (m, recv_r, next)
+      | _ when Name.equal projected_role recv_r -> RecvL (m, send_r, next)
       | _ -> next )
   | ChoiceG (choice_r, g_types) -> (
       let recv_r =
@@ -126,8 +129,8 @@ let rec project (projected_role : name) = function
       in
       match projected_role with
       | _
-        when name_equal projected_role choice_r
-             || name_equal projected_role recv_r ->
+        when Name.equal projected_role choice_r
+             || Name.equal projected_role recv_r ->
           ChoiceL (choice_r, l_types)
       | _ -> (
         match List.reduce ~f:(merge projected_role) l_types with

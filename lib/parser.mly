@@ -44,16 +44,16 @@
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> scr_module
-%{ open Syntax
+%{ module S = Syntax
    open Loc
 
-  type name_or_qname = Name of name | QName of qname
+  type name_or_qname = SimplName of Name.t | QName of S.qname
 
-  let noq (nm : qname) : name_or_qname =
-    if List.length (nm.value) = 1 then Name { value = (List.hd (nm.value))
-					    ; loc = nm.loc
-					    }
+  let noq (nm : S.qname) : name_or_qname =
+    if List.length (nm.value) = 1
+    then SimplName (Name.create (List.hd nm.value) nm.loc)
     else QName nm
+
   (* list of 'a list option *)
   let loalo = function None -> [] | Some n -> n
 %}
@@ -65,12 +65,12 @@ let scr_module :=
   ts = payload_type_decl* ;
   ps = protocol_decl* ;
   EOI ;
-    { {decl= md ; types = ts ; protocols = ps } }
+    { let open S in {decl= md ; types = ts ; protocols = ps } }
 
 let module_decl == located (raw_module_decl)
 
 let raw_module_decl ==
-  MODULE_KW ; nm = qname ; SEMICOLON ; { {module_name= nm} }
+  MODULE_KW ; nm = qname ; SEMICOLON ; { { S.module_name= nm } }
 
 (* types and messages *)
 
@@ -82,7 +82,8 @@ let raw_payload_type_decl ==
   TYPE_KW ; LT ; d = IDENT ; GT ; ts = EXTIDENT ;
   FROM_KW ; l = EXTIDENT ; AS_KW ; tn = IDENT ;
   SEMICOLON ;
-    { { domain = d
+    { let open S in
+      { domain = d
       ; type_spec = ts
       ; location = l
       ; type_name = tn
@@ -92,11 +93,11 @@ let raw_payload_type_decl ==
 | SIG_KW ; LT ; d = IDENT ; GT ; ts = EXTIDENT ;
   FROM_KW ; l = EXTIDENT ; AS_KW ; tn = IDENT ;
   SEMICOLON ;
-    { { domain = d
-      ; type_spec = ts
-      ; location = l
-      ; type_name = tn
-      ; is_type = true
+    { { S.domain = d
+      ; S.type_spec = ts
+      ; S.location = l
+      ; S.type_name = tn
+      ; S.is_type = true
       }
     }
 
@@ -115,13 +116,13 @@ let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = name ;
   pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ;
   ann = annotation? ; ints = global_protocol_block ;
-  { { name = nm
-    ; options = opts
-    ; parameters = (match pars with Some p -> p | _ -> [])
-    ; rec_parameters = (match rp with Some p -> p | _ -> [])
-    ; roles = rs
-    ; interactions = ints
-    ; ann = ann
+  { { S.name = nm
+    ; S.options = opts
+    ; S.parameters = (match pars with Some p -> p | _ -> [])
+    ; S.rec_parameters = (match rp with Some p -> p | _ -> [])
+    ; S.roles = rs
+    ; S.interactions = ints
+    ; S.ann = ann
   } }
 
 let protocol_hdr ==
@@ -129,9 +130,9 @@ let protocol_hdr ==
   | PROTOCOL_KW
 
 let protocol_options ==
-  AUX_KW ; { Aux }
-  | AUX_KW ; EXPLICIT_KW ; { AuxExplicit }
-  | EXPLICIT_KW ; { Explicit }
+  AUX_KW ; { S.Aux }
+  | AUX_KW ; EXPLICIT_KW ; { S.AuxExplicit }
+  | EXPLICIT_KW ; { S.Explicit }
 
 let parameter_decls ==
   LT ; pars = separated_nonempty_list(COMMA, parameter_decl) ; GT ; { pars }
@@ -169,18 +170,18 @@ let raw_global_interaction ==
   /* | global_wrap */
 
 let global_disconnect ==
-  DISCONNECT_KW ; ~ = name ; AND_KW ; ~ = name2 ; SEMICOLON ; < Disconnect >
+  DISCONNECT_KW ; n1 = name ; AND_KW ; n2 = name ; SEMICOLON ; { S.Disconnect (n1, n2) }
 
 let global_connect ==
-  ~ = message? ; CONNECT_KW ; ~ = name ;
-  TO_KW ; ~ = name2 ; SEMICOLON ; ~ = annotation? ; < Connect >
+  m = message? ; CONNECT_KW ; n1 = name ;
+  TO_KW ; n2 = name ; SEMICOLON ; ann = annotation? ; { S.Connect (m, n1, n2, ann) }
 
   /* | CONNECT_KW ; IDENT ; TO_KW ; IDENT ; SEMICOLON */
 
 let global_do ==
   DO_KW ; nm = name ; nra = non_role_args? ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
-  { Do (nm, loalo nra, loalo ra, ann) }
+  { S.Do (nm, loalo nra, loalo ra, ann) }
 
 let role_args ==
   LPAR ; nm = separated_nonempty_list(COMMA, name) ; RPAR ; { nm }
@@ -193,27 +194,28 @@ let non_role_args ==
 let non_role_arg ==
   msg = message_signature ; { msg }
   /* | ~ = IDENT ; < MessageName > */
-  | nm = qname ; { match noq nm with
-                   | Name n -> MessageName n
+  | nm = qname ; { let open S in
+                   match noq nm with
+                   | SimplName n -> MessageName n
                    | QName n -> MessageQName n
                  }
 
 let global_choice ==
   CHOICE_KW ; AT_KW ; ~ = name ;
   ~ = separated_nonempty_list(OR_KW, global_protocol_block) ;
-  < Choice >
+  < S.Choice >
 
 let global_continue ==
-  CONTINUE_KW ; ~ = name ; SEMICOLON ; < Continue >
+  CONTINUE_KW ; ~ = name ; SEMICOLON ; < S.Continue >
 
 let global_recursion ==
-  REC_KW ; ~ = name ; ~ = global_protocol_block ; < Recursion >
+  REC_KW ; ~ = name ; ~ = global_protocol_block ; < S.Recursion >
 
 let global_message_transfer ==
   msg = message ; FROM_KW ; frn = name ;
   TO_KW ; trns = separated_nonempty_list(COMMA, name) ;
   SEMICOLON ; ann = annotation? ;
-  { MessageTransfer
+  { S.MessageTransfer
       { message = msg
       ; from_role = frn
       ; to_roles = trns
@@ -225,13 +227,13 @@ let global_message_transfer ==
    Scribble parser *)
 let message ==
   msg = message_signature ; { msg }
-  | ~ = name ; < MessageName >
+  | ~ = name ; < S.MessageName >
 
 (* this corresponds to siglit in Scribble.g *)
 let message_signature ==
   /* LPAR ; payload ; RPAR */
   | nm=name ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
-      { Message { name = nm
+      { S.Message { name = nm
                 ; payload = pars
                 }
       }
@@ -240,12 +242,13 @@ let message_signature ==
 
 let payload_el ==
   (* protocol @ role (delegation) *)
-  | ~ = name ; ARROBA ; ~ = name2  ; < PayloadDel >
-  | nm = qname ; { match noq nm with
-                   | Name n -> PayloadName n
+  | n1 = name ; ARROBA ; n2 = name  ; { S.PayloadDel(n1, n2) }
+  | nm = qname ; { let open S in
+                   match noq nm with
+                   | SimplName n -> PayloadName n
                    | QName n -> PayloadQName n
                  }
-  | ~ = name ; COLON ; ~ = qname ; < PayloadBnd >
+  | ~ = name ; COLON ; ~ = qname ; < S.PayloadBnd >
 
 
 let annotation == ARROBA ; ann = EXTIDENT ; { ann }
@@ -261,11 +264,13 @@ let qname == located (raw_qname)
 let raw_qname ==
   separated_nonempty_list(DOT, IDENT)
 
-let name == located(raw_name)
-let name2 == name
+let name == create(raw_name)
 
 let raw_name == IDENT
 
 (* utilities *)
 let located(x) ==
   ~ = x; { { loc = build $loc; value = x } }
+
+let create(x) ==
+  ~ = x; { Name.create x (build $loc)}

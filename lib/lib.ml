@@ -1,6 +1,5 @@
 open! Base
 open! Stdio
-
 open Loc
 open Syntax
 open Err
@@ -64,7 +63,7 @@ let enumerate (ast : scr_module) : (name * name) list =
 
 let project_role ast name role : Ltype.t =
   let gp =
-    List.find_exn ~f:(fun gt -> name_equal gt.value.name name) ast.protocols
+    List.find_exn ~f:(fun gt -> Name.equal gt.value.name name) ast.protocols
   in
   let gt = Gtype.of_protocol gp in
   Ltype.project role gt

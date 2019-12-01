@@ -33,11 +33,13 @@ let show_user_error = function
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole (r, interval) ->
-      "Unbound role " ^ r.value ^ " in "
+      "Unbound role " ^ Name.user r ^ " in "
       ^ render_pos_interval interval
-      ^ "(" ^ render_pos_interval r.loc ^ ")"
+      ^ "("
+      ^ render_pos_interval (Name.where r)
+      ^ ")"
   | ReflexiveMessage (r, interval) ->
-      "Reflexive message of Role " ^ r.value ^ " at "
+      "Reflexive message of Role " ^ Name.user r ^ " at "
       ^ render_pos_interval interval
   | UnableToMerge s -> "Unable to merge: " ^ s
 
