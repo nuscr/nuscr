@@ -1,5 +1,7 @@
 open! Base
 open! Stdio
+
+open Loc
 open Syntax
 open Err
 

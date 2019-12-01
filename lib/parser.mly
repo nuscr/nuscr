@@ -45,6 +45,7 @@
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> scr_module
 %{ open Syntax
+   open Loc
 
   type name_or_qname = Name of name | QName of qname
 

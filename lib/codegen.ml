@@ -6,6 +6,7 @@ open Asttypes
 open Longident
 open! Ast_helper
 module S = Set
+open Loc
 open Syntax
 open Efsm
 
