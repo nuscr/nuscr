@@ -17,7 +17,7 @@ let parse_from_lexbuf lexbuf : scr_module =
       let err_interval =
         (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
       in
-      uerr (ParserError err_interval)
+      uerr (ParserError (build err_interval))
   | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
 
 let parse fname (ch : In_channel.t) : scr_module =

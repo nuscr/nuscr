@@ -268,4 +268,4 @@ let raw_name == IDENT
 
 (* utilities *)
 let located(x) ==
-  ~ = x; { { loc = $loc; value = x } }
+  ~ = x; { { loc = build $loc; value = x } }
