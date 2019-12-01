@@ -8,4 +8,4 @@ val render_pos_interval : source_loc -> Base.string
 
 val build : Lexing.position * Lexing.position -> source_loc
 
-type 'a located = { loc : source_loc; value : 'a; } [@@deriving show, sexp_of]
+type 'a located = {loc: source_loc; value: 'a} [@@deriving show, sexp_of]

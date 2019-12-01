@@ -1,4 +1,4 @@
-open !Base
+open! Base
 open Printf
 
 type source_loc = Lexing.position * Lexing.position
@@ -6,7 +6,6 @@ type source_loc = Lexing.position * Lexing.position
 let ghost_loc = (Lexing.dummy_pos, Lexing.dummy_pos)
 
 let sexp_of_source_loc _ = Sexp.Atom "<opaque>"
-
 
 let render_pos pos =
   sprintf "%d:%d" pos.Lexing.pos_lnum

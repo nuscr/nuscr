@@ -1,6 +1,5 @@
 open! Base
 open Printf
-
 open Loc
 
 (* type ast =
@@ -10,12 +9,9 @@ open Loc
  *   | Con of string *)
 
 (* a simple name *)
+module N = Name
 
-type name = string located [@@deriving show {with_path= false}, sexp_of]
-
-let name_equal n m = String.equal n.value m.value
-
-let name_of_string s = {value= s; loc= ghost_loc}
+type name = N.t [@@deriving show {with_path= false}, sexp_of]
 
 (* a qualified name *)
 type raw_qname = string list
@@ -54,10 +50,10 @@ type payloadt =
 (* var : type *)
 
 let show_payloadt = function
-  | PayloadName n -> n.value
-  | PayloadDel (p, r) -> sprintf "%s @ %s" p.value r.value
+  | PayloadName n -> N.user n
+  | PayloadDel (p, r) -> sprintf "%s @ %s" (N.user p) (N.user r)
   | PayloadQName qn -> qname_to_string qn
-  | PayloadBnd (n, qn) -> sprintf "%s: %s" n.value (qname_to_string qn)
+  | PayloadBnd (n, qn) -> sprintf "%s: %s" (N.user n) (qname_to_string qn)
 
 let pp_payloadt fmt p = Caml.Format.fprintf fmt "%s" (show_payloadt p)
 
@@ -68,9 +64,9 @@ type message =
 
 let show_message = function
   | Message {name; payload} ->
-      sprintf "%s(%s)" name.value
+      sprintf "%s(%s)" (N.user name)
         (String.concat ~sep:", " (List.map ~f:show_payloadt payload))
-  | MessageName n -> n.value
+  | MessageName n -> N.user n
   | MessageQName qn -> qname_to_string qn
 
 let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
@@ -78,13 +74,13 @@ let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
 let sexp_of_message m = Sexp.Atom (show_message m)
 
 let message_label = function
-  | Message {name; _} -> name.value
-  | MessageName name -> name.value
+  | Message {name; _} -> N.user name
+  | MessageName name -> N.user name
   | MessageQName qn -> qname_to_string qn
 
 let message_payload_ty =
   let payload_type_of_payload_t = function
-    | PayloadName n -> n.value
+    | PayloadName n -> N.user n
     | PayloadDel (_p, _r) -> failwith "Delegation is not supported"
     | PayloadQName qn -> qname_to_string qn
     | PayloadBnd (_n, qn) -> qname_to_string qn
