@@ -52,18 +52,18 @@ let validate_exn (ast : scr_module) ~verbose : unit =
       String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
     efsmss
 
-let enumerate (ast : scr_module) : (string * string) list =
+let enumerate (ast : scr_module) : (name * name) list =
   let protocols = ast.protocols in
   let roles p =
     let {value= {name; roles; _}; _} = p in
-    List.map ~f:(fun role -> (name.value, role.value)) roles
+    List.map ~f:(fun role -> (name, role)) roles
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
 let project_role ast name role : Ltype.t =
   let gp =
     List.find_exn
-      ~f:(fun gt -> String.equal gt.value.name name)
+      ~f:(fun gt -> name_equal gt.value.name name)
       ast.protocols
   in
   let gt = Gtype.of_protocol gp in

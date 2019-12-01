@@ -112,13 +112,14 @@ let find_all_payloads g =
   in
   G.fold_edges_e f g (S.singleton (module String) "string") |> S.to_list
 
-let find_all_roles g =
-  let f (_, a, _) acc =
+let find_all_roles _g =
+  let _f (_, a, _) acc =
     match a with
     | SendA (r, _) | RecvA (r, _) -> S.add acc r
     | _ -> failwith "Impossible"
   in
-  G.fold_edges_e f g (S.empty (module String)) |> S.to_list
+  (* G.fold_edges_e f g (S.empty (module String)) |> S.to_list *)
+  assert false
 
 let gen_comms_typedef ~monad payload_types =
   let mk_monadic ty = if monad then [%type: [%t ty] M.t] else ty in
@@ -169,7 +170,7 @@ let gen_run_expr ~monad start g =
       | (`Send | `Recv) as action ->
           let transitions = get_transitions g st in
           let role, _, _, _ = List.hd_exn transitions in
-          let role = Exp.variant role None in
+          let role = Exp.variant role.value None in
           let comms = [%expr router [%e role]] in
           let send_fn_name = sprintf "state%dSend" st in
           let send_callback = Exp.ident (mk_lid send_fn_name) in
@@ -257,8 +258,8 @@ let gen_run_expr ~monad start g =
   in
   Exp.let_ Recursive bindings init_expr
 
-let gen_impl_module ~monad proto role start g =
-  let module_name = sprintf "Impl_%s_%s" proto role in
+let gen_impl_module ~monad (proto : name) (role : name) start g =
+  let module_name = sprintf "Impl_%s_%s" proto.value role.value in
   let payload_types = find_all_payloads g in
   let comms_typedef = gen_comms_typedef ~monad payload_types in
   let roles = find_all_roles g in
@@ -301,7 +302,7 @@ let monad_signature =
   let callbacks = Mty.signature [monad_type; return; bind] in
   Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Monad"))
 
-let gen_ast ?(monad = false) (proto, role) (start, g) : structure =
+let gen_ast ?(monad = false) (proto, role : name * name) (start, g) : structure =
   let callback_module_sig = gen_callback_module g in
   let impl_module = gen_impl_module ~monad proto role start g in
   let all = [callback_module_sig; impl_module] in

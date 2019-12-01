@@ -45,7 +45,7 @@ end
 
 module DotOutput = Graphviz.Dot (Display)
 
-type conv_env = {g: G.t; tyvars: (string * int) list}
+type conv_env = {g: G.t; tyvars: (name * int) list}
 
 let init_conv_env = {g= G.empty; tyvars= []}
 
@@ -116,7 +116,7 @@ let of_local_type lty =
         let env, curr = conv_ltype_aux env l in
         let g = merge_state env.g curr new_st in
         ({old_env with g}, curr)
-    | TVarL tv -> (env, List.Assoc.find_exn ~equal:String.equal env.tyvars tv)
+    | TVarL tv -> (env, List.Assoc.find_exn ~equal:name_equal env.tyvars tv)
   in
   let env, start = conv_ltype_aux init_conv_env lty in
   (start, env.g)
