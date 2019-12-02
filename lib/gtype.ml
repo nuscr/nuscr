@@ -57,15 +57,15 @@ let of_protocol global_protocol =
     | {value; _} :: rest -> (
       match value with
       | MessageTransfer {message; from_role; to_roles; _} ->
-          if List.length to_roles <> 1 then
-            unimpl "Sending to multiple roles" ;
-          let to_role = Option.value_exn (List.hd to_roles) in
           check_role from_role ;
-          check_role to_role ;
-          if Name.equal from_role to_role then
-            uerr (ReflexiveMessage from_role) ;
-          MessageG
-            (message, from_role, to_role, conv_interactions rec_names rest)
+          let init = conv_interactions rec_names rest in
+          let f to_role acc =
+            check_role to_role ;
+            if Name.equal from_role to_role then
+              uerr (ReflexiveMessage from_role) ;
+            MessageG (message, from_role, to_role, acc)
+          in
+          List.fold_right ~f ~init to_roles
       | Recursion (rname, interactions) ->
           if List.mem rec_names rname ~equal:Name.equal then
             unimpl "Alpha convert recursion names"
