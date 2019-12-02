@@ -1,8 +1,9 @@
 open! Base
 open Syntax
+open Loc
 open Err
 
-let rec swap_role swap_role_f {Loc.value; Loc.loc} =
+let rec swap_role swap_role_f {value; loc} =
   let value =
     match value with
     | MessageTransfer {message; from_role; to_roles; ann} ->
@@ -50,7 +51,7 @@ let rec_var_of_protocol_roles (name, roles) =
   Name.of_string @@ Printf.sprintf "__%s" (String.concat ~sep:"_" names)
 
 let mk_protocol_map scr_module =
-  let f acc {Loc.value= p; Loc.loc} =
+  let f acc {value= p; loc} =
     match
       Map.add acc ~key:(Name.user p.name) ~data:(p, loc, List.length p.roles)
     with
@@ -77,8 +78,8 @@ let expand_global_protocol (scr_module : scr_module)
     let has_recursion = Map.find_exn known (name, roles) in
     let interactions =
       if has_recursion then
-        [ { Loc.loc
-          ; Loc.value=
+        [ { loc
+          ; value=
               Recursion
                 (rec_var_of_protocol_roles (name, roles), interactions) } ]
       else interactions
@@ -86,7 +87,7 @@ let expand_global_protocol (scr_module : scr_module)
     interactions
   in
   let rec expand_aux known interactions =
-    let expand_single known ({Loc.value; Loc.loc} as i) =
+    let expand_single known ({value; loc} as i) =
       (* known is a map to (protocol, name) -> bool
        * true indicates that the protocol has been called, meaning it is recursive;
        * false otherwise *)
@@ -94,8 +95,8 @@ let expand_global_protocol (scr_module : scr_module)
       | Do (name, [], roles, None) when Map.Poly.mem known (name, roles) ->
           let known = Map.update known (name, roles) ~f:(fun _ -> true) in
           ( known
-          , [ { Loc.value= Continue (rec_var_of_protocol_roles (name, roles))
-              ; loc } ] )
+          , [{value= Continue (rec_var_of_protocol_roles (name, roles)); loc}]
+          )
       | Do (name, [], roles, None) ->
           let protocol_to_expand = Map.find protocols (Name.user name) in
           let protocol_to_expand, _, arity =
@@ -138,4 +139,4 @@ let expand_global_protocol (scr_module : scr_module)
   let interactions =
     maybe_add_recursion ~loc:protocol.loc ~known top_level interactions
   in
-  {protocol with Loc.value= {protocol.Loc.value with interactions}}
+  {protocol with value= {protocol.value with interactions}}
