@@ -86,9 +86,7 @@ let rec merge projected_role lty1 lty2 =
         merge_recv r1 (ltys1 @ ltys2)
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
-    let s1 = Sexp.to_string (sexp_of_t l1) in
-    let s2 = Sexp.to_string (sexp_of_t l2) in
-    let error = s1 ^ " " ^ s2 in
+    let error = show l1 ^ " " ^ show l2 in
     Err.UserError (Err.UnableToMerge error) |> raise
 
 (* Check whether the first message in a g choice is from choice_r to recv_r,

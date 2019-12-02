@@ -20,16 +20,16 @@ val validate_exn : Syntax.scr_module -> verbose:bool -> unit
 
 (** {1 Other operations} *)
 
-val enumerate : Syntax.scr_module -> (Syntax.name * Syntax.name) list
+val enumerate : Syntax.scr_module -> (Name.t * Name.t) list
 (** [enumerate module] enumrates the roles occurring in [module]. The output
     is a list of pair [(protocol, role-name)]. *)
 
-val project_role : Syntax.scr_module -> Syntax.name -> Syntax.name -> Ltype.t
+val project_role : Syntax.scr_module -> Name.t -> Name.t -> Ltype.t
 (** [project_role module protocol role] computes the local type for role
     [role] in the protocol [protocol]. *)
 
 val generate_fsm :
-  Syntax.scr_module -> Syntax.name -> Syntax.name -> int * Efsm.t
+  Syntax.scr_module -> Name.t -> Name.t -> int * Efsm.t
 (** [generate_fsm module protocol role] computes the finite state machine of
     role [role] in protocol [protocol], in module [module]. It returns a pair
     [(v, g)] where [g] is the graph describing the fsm, and [v] is the root
