@@ -305,7 +305,8 @@ let monad_signature =
   let callbacks = Mty.signature [monad_type; return; bind] in
   Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Monad"))
 
-let gen_ast ?(monad = false) ((proto, role) : name * name) (start, g) : structure =
+let gen_ast ?(monad = false) ((proto, role) : name * name) (start, g) :
+    structure =
   let callback_module_sig = gen_callback_module g in
   let impl_module = gen_impl_module ~monad proto role start g in
   let all = [callback_module_sig; impl_module] in
