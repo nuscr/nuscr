@@ -6,7 +6,10 @@ module T = Js_of_ocaml_tyxml.Tyxml_js.Html
 open Js_of_ocaml_tyxml.Tyxml_js
 module W = Webutils
 
-let show_protocol_role protocol role = Printf.sprintf "%s@%s" role protocol
+let show_protocol_role protocol role =
+  let protocol = Name.user protocol in
+  let role = Name.user role in
+  Printf.sprintf "%s@%s" role protocol
 
 let project scr (name, role) =
   let ltyp = Lib.project_role scr name role in
