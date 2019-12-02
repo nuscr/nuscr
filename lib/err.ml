@@ -9,8 +9,8 @@ type user_error =
   | RedefinedRecursionName of string * source_loc * source_loc
   | Uncategorised of string
   | InvalidCommandLineParam of string
-  | UnboundRole of name * source_loc
-  | ReflexiveMessage of name * source_loc
+  | UnboundRole of name
+  | ReflexiveMessage of name
   | UnableToMerge of string
 [@@deriving sexp_of]
 
@@ -30,13 +30,12 @@ let show_user_error = function
       ^ " and " ^ show_source_loc interval2
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
-  | UnboundRole (r, interval) ->
-      "Unbound role " ^ Name.user r ^ " in " ^ show_source_loc interval ^ "("
-      ^ show_source_loc (Name.where r)
-      ^ ")"
-  | ReflexiveMessage (r, interval) ->
-      "Reflexive message of Role " ^ Name.user r ^ " at "
-      ^ show_source_loc interval
+  | UnboundRole r ->
+      "Unbound role " ^ Name.user r ^ " in " ^ show_source_loc
+      @@ Name.where r
+  | ReflexiveMessage r ->
+      "Reflexive message of Role " ^ Name.user r ^ " at " ^ show_source_loc
+      @@ Name.where r
   | UnableToMerge s -> "Unable to merge: " ^ s
 
 exception Violation of string
