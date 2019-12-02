@@ -41,9 +41,7 @@ let show =
   show_global_type_internal 0
 
 let of_protocol global_protocol =
-  let {value= {name; roles; interactions; _}; _} = global_protocol in
-  let has_global_recursion = ref false in
-  let global_recursion_name = Name.rename name ("__" ^ Name.user name) in
+  let {Loc.value= {roles; interactions; _}; _} = global_protocol in
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
@@ -81,20 +79,10 @@ let of_protocol global_protocol =
           ChoiceG
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
-      | Do (name_, _, roles_, _)
-        when Name.equal name name_ && List.equal Name.equal roles roles_ ->
-          has_global_recursion := true ;
-          assert_empty rest ;
-          TVarG global_recursion_name
-      | Do _ -> unimpl "handle `do` that are non-identical to top level"
+      | Do _ -> assert false
       | _ -> unimpl "Other Scribble constructs" )
   in
-  let converted = conv_interactions [global_recursion_name] interactions in
-  let converted =
-    if !has_global_recursion then MuG (global_recursion_name, converted)
-    else converted
-  in
-  converted
+  conv_interactions [] interactions
 
 let rec flatten = function
   | ChoiceG (role, choices) ->
