@@ -21,9 +21,6 @@ let rec swap_role swap_role_f {value; loc} =
           , List.map ~f:(List.map ~f:(swap_role swap_role_f)) gs )
     | Do (proto, msgs, roles, ann) ->
         Do (proto, msgs, List.map ~f:swap_role_f roles, ann)
-    | Connect (msg, r1, r2, ann) ->
-        Connect (msg, swap_role_f r1, swap_role_f r2, ann)
-    | Disconnect (r1, r2) -> Disconnect (swap_role_f r1, swap_role_f r2)
   in
   {value; loc}
 

@@ -111,9 +111,6 @@ and raw_global_interaction =
   | Choice of name * global_interaction list list
   (* protocol * non role args * roles *)
   | Do of name * message list * name list * annotation option
-  (* message, from, to *)
-  | Connect of message option * name * name * annotation option
-  | Disconnect of name * name
 [@@deriving show {with_path= false}]
 
 type protocol_mods = Aux | AuxExplicit | Explicit
