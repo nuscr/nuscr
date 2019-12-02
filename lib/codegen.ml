@@ -120,7 +120,6 @@ let find_all_roles g =
   in
   G.fold_edges_e f g (S.empty (module String)) |> S.to_list
 
-(* assert false *)
 
 let gen_comms_typedef ~monad payload_types =
   let mk_monadic ty = if monad then [%type: [%t ty] M.t] else ty in
