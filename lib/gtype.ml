@@ -79,7 +79,9 @@ let of_protocol global_protocol =
           ChoiceG
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
-      | Do _ -> assert false
+      | Do _ ->
+          Violation "The do constructor should not be here. This cannot be!"
+          |> raise
       | _ -> unimpl "Other Scribble constructs" )
   in
   conv_interactions [] interactions
