@@ -49,9 +49,7 @@ let rec_var_of_protocol_roles (name, roles) =
   let names = List.map ~f:Name.user (name :: roles) in
   Name.of_string @@ Printf.sprintf "__%s" (String.concat ~sep:"_" names)
 
-(** Unroll `do` in protocol *)
-let expand_global_protocol (scr_module : scr_module)
-    (protocol : global_protocol) =
+let mk_protocol_map scr_module =
   let f acc {Loc.value= p; Loc.loc} =
     match
       Map.add acc ~key:(Name.user p.name) ~data:(p, loc, List.length p.roles)
@@ -64,13 +62,34 @@ let expand_global_protocol (scr_module : scr_module)
   let protocols =
     List.fold ~f ~init:(Map.empty (module String)) scr_module.protocols
   in
+  protocols
+
+(** Unroll `do` in protocol *)
+let expand_global_protocol (scr_module : scr_module)
+    (protocol : global_protocol) =
+  let protocols = mk_protocol_map scr_module in
   let known_roles = protocol.value.roles in
   let check_role r =
     if List.mem known_roles ~equal:Name.equal r then ()
     else unimpl "Error message for unbound role"
   in
+  let maybe_add_recursion ~loc ~known (name, roles) interactions =
+    let has_recursion = Map.find_exn known (name, roles) in
+    let interactions =
+      if has_recursion then
+        [ { Loc.loc
+          ; Loc.value=
+              Recursion
+                (rec_var_of_protocol_roles (name, roles), interactions) } ]
+      else interactions
+    in
+    interactions
+  in
   let rec expand_aux known interactions =
     let expand_single known ({Loc.value; Loc.loc} as i) =
+      (* known is a map to (protocol, name) -> bool
+       * true indicates that the protocol has been called, meaning it is recursive;
+       * false otherwise *)
       match value with
       | Do (name, [], roles, None) when Map.Poly.mem known (name, roles) ->
           let known = Map.update known (name, roles) ~f:(fun _ -> true) in
@@ -88,20 +107,14 @@ let expand_global_protocol (scr_module : scr_module)
             unimpl "Error msg for arity mismatch" ;
           List.iter ~f:check_role roles ;
           let known = Map.add_exn known ~key:(name, roles) ~data:false in
-          let known, is =
+          let known, interactions =
             expand_aux known (instantiate protocol_to_expand roles)
           in
-          let has_recursion = Map.find_exn known (name, roles) in
-          let is =
-            if has_recursion then
-              [ { Loc.loc
-                ; Loc.value=
-                    Recursion (rec_var_of_protocol_roles (name, roles), is)
-                } ]
-            else is
+          let interactions =
+            maybe_add_recursion ~loc ~known (name, roles) interactions
           in
           let known = Map.remove known (name, roles) in
-          (known, is)
+          (known, interactions)
       | Do _ -> unimpl "Do with other features"
       | Recursion (r, is) ->
           let known, is = expand_aux known is in
@@ -122,13 +135,7 @@ let expand_global_protocol (scr_module : scr_module)
       (Map.Poly.singleton top_level false)
       protocol.value.interactions
   in
-  let has_recursion = Map.find_exn known top_level in
   let interactions =
-    if has_recursion then
-      [ { Loc.loc= protocol.loc
-        ; Loc.value=
-            Recursion (rec_var_of_protocol_roles top_level, interactions) }
-      ]
-    else interactions
+    maybe_add_recursion ~loc:protocol.loc ~known top_level interactions
   in
   {protocol with Loc.value= {protocol.Loc.value with interactions}}
