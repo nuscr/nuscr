@@ -5,7 +5,7 @@ open Nuscrlib
 let parse_role_protocol_exn rp =
   let nos = Name.of_string in
   match String.split rp ~on:'@' with
-  | [role; protocol] -> (nos role, nos protocol)
+  | [role; protocol] -> Some (nos role, nos protocol)
   | _ ->
       Err.UserError
         (InvalidCommandLineParam
@@ -38,13 +38,13 @@ let argspec =
     , Arg.Unit (fun () -> version := true)
     , ": print the version number" )
   ; ( "-fsm"
-    , Arg.String (fun s -> fsm := parse_role_protocol_exn s |> Some)
+    , Arg.String (fun s -> fsm := parse_role_protocol_exn s)
     , ": project the CFSM for the specified role" )
   ; ( "-project"
-    , Arg.String (fun s -> project := parse_role_protocol_exn s |> Some)
+    , Arg.String (fun s -> project := parse_role_protocol_exn s)
     , ": project the local type for the specified role" )
   ; ( "-gencode"
-    , Arg.String (fun s -> gencode := parse_role_protocol_exn s |> Some)
+    , Arg.String (fun s -> gencode := parse_role_protocol_exn s)
     , ": generate OCaml code for the specified role" ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
