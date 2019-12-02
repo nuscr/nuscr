@@ -5,13 +5,13 @@ open Gtype
 open Err
 
 type t =
-  | RecvL of message * name * t
-  | SendL of message * name * t
+  | RecvL of message * Name.t * t
+  | SendL of message * Name.t * t
   | ChoiceL of Name.t * t list
   | TVarL of Name.t
   | MuL of Name.t * t
   | EndL
-[@@deriving sexp_of]
+[@@deriving sexp_of, eq]
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -84,7 +84,7 @@ let rec merge projected_role lty1 lty2 =
     | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
       when Name.equal r1 r2 && not (Name.equal r1 projected_role) ->
         merge_recv r1 (ltys1 @ ltys2)
-    | _ -> if Poly.equal lty1 lty2 then lty1 else fail ()
+    | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
     let s1 = Sexp.to_string (sexp_of_t l1) in
     let s2 = Sexp.to_string (sexp_of_t l2) in

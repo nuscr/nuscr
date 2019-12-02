@@ -16,3 +16,5 @@ let where n = n.L.loc
 let create value loc : t =
   let open Loc in
   {value; loc}
+
+let compare n n' = String.compare n.L.value n'.L.value
