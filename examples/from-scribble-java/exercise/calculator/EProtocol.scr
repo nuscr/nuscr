@@ -1,4 +1,4 @@
-//$ bin/scribblec.sh -d modules/core/src/test/scrib/ modules/core/src/test/scrib/exercise/calculator/EProtocol.scr -api Calc C
+
 
 module exercise.calculator.EProtocol;
 

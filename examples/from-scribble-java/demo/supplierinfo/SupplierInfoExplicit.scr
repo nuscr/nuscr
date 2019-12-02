@@ -1,4 +1,4 @@
-//$ bin/scribblec.sh scribble-core/src/test/scrib/demo/supplierinfo/SupplierInfoExplicit.scr -fsm InfoAuth Client
+
 
 
 module src.SupplierInfoExplicit;
