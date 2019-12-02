@@ -5,6 +5,7 @@ open Ltype
 open Graph
 
 type action = SendA of name * message | RecvA of name * message | Epsilon
+[@@deriving ord]
 
 let show_action = function
   | SendA (r, msg) -> sprintf "%s!%s" (Name.user r) (show_message msg)
@@ -14,7 +15,7 @@ let show_action = function
 module Label = struct
   type t = action
 
-  let compare = Poly.compare
+  let compare = compare_action
 
   let default = Epsilon
 end
