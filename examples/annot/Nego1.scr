@@ -1,4 +1,4 @@
-//$ ./scribblec.sh -ip scribble-demos/scrib/nego/src -d scribble-demos/scrib/nego/src scribble-demos/scrib/nego/src/nego/Nego1.scr
+
 
 module nego.Nego1;
 

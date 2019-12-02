@@ -1,4 +1,4 @@
-//$ bin/scribblec.sh modules/core/src/test/scrib/Test.scr -ip modules/core/src/test/scrib/ -d modules/core/src/test/scrib/
+
 
 
 module Demo;

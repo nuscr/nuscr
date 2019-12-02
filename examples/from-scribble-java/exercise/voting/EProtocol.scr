@@ -1,4 +1,4 @@
-//$ bin/scribblec.sh -d modules/core/src/test/scrib/ modules/core/src/test/scrib/exercise/voting/EProtocol.scr -api EVoting C
+
 
 module exercise.voting.EProtocol;
 
