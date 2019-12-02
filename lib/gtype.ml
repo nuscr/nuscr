@@ -47,24 +47,23 @@ let of_protocol global_protocol =
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
-  let check_role r loc =
-    if not @@ List.mem roles r ~equal:Name.equal then
-      uerr @@ UnboundRole (r, loc)
+  let check_role r =
+    if not @@ List.mem roles r ~equal:Name.equal then uerr @@ UnboundRole r
   in
   let rec conv_interactions rec_names
       (interactions : global_interaction list) =
     match interactions with
     | [] -> EndG
-    | {value; loc} :: rest -> (
+    | {value; _} :: rest -> (
       match value with
       | MessageTransfer {message; from_role; to_roles; _} ->
           if List.length to_roles <> 1 then
             unimpl "Sending to multiple roles" ;
           let to_role = Option.value_exn (List.hd to_roles) in
-          check_role from_role loc ;
-          check_role to_role loc ;
+          check_role from_role ;
+          check_role to_role ;
           if Name.equal from_role to_role then
-            uerr (ReflexiveMessage (from_role, loc)) ;
+            uerr (ReflexiveMessage from_role) ;
           MessageG
             (message, from_role, to_role, conv_interactions rec_names rest)
       | Recursion (rname, interactions) ->
@@ -78,7 +77,7 @@ let of_protocol global_protocol =
           else unimpl "Error message for Unbound TVar"
       | Choice (role, interactions_list) ->
           assert_empty rest ;
-          check_role role loc ;
+          check_role role ;
           ChoiceG
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
