@@ -1,6 +1,5 @@
-open Loc
-
 open Syntax
+
 (** Global types *)
 
 (** The type of global types *)
@@ -18,7 +17,7 @@ type t =
 val show : t -> string
 (** Provides a textual representation of a global type *)
 
-val of_protocol : raw_global_protocol located -> t
+val of_protocol : raw_global_protocol Loc.located -> t
 (** Turn a raw protocol (from the parser) into a global type *)
 
 val normalise : t -> t
