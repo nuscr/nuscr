@@ -17,9 +17,11 @@ let render_pos_interval (startp, endp) : string =
 
 let build p = p
 
+let equal_source_loc _ _ = true
+
 type 'a located =
   { loc: source_loc
         [@printer
           fun fmt interval -> fprintf fmt "%s" (render_pos_interval interval)]
   ; value: 'a [@main] }
-[@@deriving show, sexp_of]
+[@@deriving show, sexp_of, eq]

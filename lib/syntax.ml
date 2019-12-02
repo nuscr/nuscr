@@ -13,14 +13,16 @@ module N = Name
 
 type name = N.t [@@deriving show {with_path= false}, sexp_of]
 
+let equal_name = N.equal
+
 (* a qualified name *)
-type raw_qname = string list
+type raw_qname = string list [@@deriving eq]
 
 let show_raw_qname = String.concat ~sep:"."
 
 let pp_raw_qname fmt qn = Caml.Format.fprintf fmt "%s" (show_raw_qname qn)
 
-type qname = raw_qname located [@@deriving show {with_path= false}]
+type qname = raw_qname located [@@deriving show {with_path= false}, eq]
 
 let qname_to_string qn = String.concat ~sep:"." qn.value
 
@@ -46,6 +48,7 @@ type payloadt =
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadQName of qname
   | PayloadBnd of name * qname
+[@@deriving eq]
 
 (* var : type *)
 
@@ -61,6 +64,7 @@ type message =
   | Message of {name: name; payload: payloadt list}
   | MessageName of name
   | MessageQName of qname
+[@@deriving eq]
 
 let show_message = function
   | Message {name; payload} ->

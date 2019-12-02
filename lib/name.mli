@@ -11,3 +11,5 @@ val user : t -> string
 val where : t -> Loc.source_loc
 
 val create : string -> Loc.source_loc -> t
+
+val compare : t -> t -> int

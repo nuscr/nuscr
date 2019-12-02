@@ -112,14 +112,15 @@ let find_all_payloads g =
   in
   G.fold_edges_e f g (S.singleton (module String) "string") |> S.to_list
 
-let find_all_roles _g =
-  let _f (_, a, _) acc =
+let find_all_roles g =
+  let f (_, a, _) acc =
     match a with
-    | SendA (r, _) | RecvA (r, _) -> S.add acc r
+    | SendA (r, _) | RecvA (r, _) -> S.add acc (Name.user r)
     | _ -> failwith "Impossible"
   in
-  (* G.fold_edges_e f g (S.empty (module String)) |> S.to_list *)
-  assert false
+  G.fold_edges_e f g (S.empty (module String)) |> S.to_list
+
+(* assert false *)
 
 let gen_comms_typedef ~monad payload_types =
   let mk_monadic ty = if monad then [%type: [%t ty] M.t] else ty in
