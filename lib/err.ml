@@ -21,26 +21,22 @@ exception UserError of user_error
 let show_user_error = function
   | LexerError msg -> "Lexer error: " ^ msg
   | ParserError interval ->
-      "Parser error: An error occurred at " ^ render_pos_interval interval
+      "Parser error: An error occurred at " ^ show_source_loc interval
   | UnboundRecursionName (name, interval) ->
       "Unbound name " ^ name ^ " in `continue` at "
-      ^ render_pos_interval interval
+      ^ show_source_loc interval
   | RedefinedRecursionName (name, interval1, interval2) ->
-      "Redefined name " ^ name ^ " of `rec` at "
-      ^ render_pos_interval interval1
-      ^ " and "
-      ^ render_pos_interval interval2
+      "Redefined name " ^ name ^ " of `rec` at " ^ show_source_loc interval1
+      ^ " and " ^ show_source_loc interval2
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole (r, interval) ->
-      "Unbound role " ^ Name.user r ^ " in "
-      ^ render_pos_interval interval
-      ^ "("
-      ^ render_pos_interval (Name.where r)
+      "Unbound role " ^ Name.user r ^ " in " ^ show_source_loc interval ^ "("
+      ^ show_source_loc (Name.where r)
       ^ ")"
   | ReflexiveMessage (r, interval) ->
       "Reflexive message of Role " ^ Name.user r ^ " at "
-      ^ render_pos_interval interval
+      ^ show_source_loc interval
   | UnableToMerge s -> "Unable to merge: " ^ s
 
 exception Violation of string
