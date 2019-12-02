@@ -9,8 +9,8 @@ jobs:
 
       - restore_cache:
           keys:
-            - deps-{{ checksum "dune-project" }}
-            - deps-
+            - deps-v2-{{ checksum "nuscr.opam" }}
+            - deps-v2-
 
       - run:
           name: Install m4
@@ -64,7 +64,7 @@ jobs:
             - docs
 
       - save_cache:
-          key: deps-{{ checksum "dune-project" }}
+          key: deps-v2-{{ checksum "nuscr.opam" }}
           paths:
             - ~/.opam
 
