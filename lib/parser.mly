@@ -58,7 +58,7 @@
 
 (* modules *)
 let scr_module :=
-  md = module_decl ;
+  md = module_decl? ;
   ts = payload_type_decl* ;
   ps = protocol_decl* ;
   EOI ;

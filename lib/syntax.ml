@@ -44,7 +44,7 @@ type annotation = string [@@deriving show {with_path= false}]
 
 type raw_mod_decl = {module_name: qname} [@@deriving show {with_path= false}]
 
-type mod_decl = raw_mod_decl located [@@deriving show {with_path= false}]
+type mod_decl = raw_mod_decl located option [@@deriving show {with_path= false}]
 
 type raw_type_decl =
   { domain: string (* where does the type come from java|xsd|... *)
