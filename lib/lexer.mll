@@ -88,9 +88,11 @@ and token = parse
 | "role" { ROLE_KW }
 | "sig" { SIG_KW }
 | "as" { AS_KW }
+(*
 | "connect" { CONNECT_KW }
 | "disconnect" { DISCONNECT_KW }
 | "wrap" { WRAP_KW }
+*)
 | "from" { FROM_KW }
 | "to" { TO_KW }
 | "choice" { CHOICE_KW }
@@ -98,7 +100,9 @@ and token = parse
 | "or" { OR_KW }
 | "rec" { REC_KW }
 | "continue" { CONTINUE_KW }
+(*
 | "and" { AND_KW }
+*)
 | "do" { DO_KW }
 
 
