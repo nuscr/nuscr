@@ -76,10 +76,10 @@ and token = parse
 | '}' { RCURLY }
 | '@' { ARROBA }
 
-(* keyworkds *)
+(* keywords *)
 
 | "module" { MODULE_KW }
-| "import" { IMPORT_KW }
+| "import" { RESERVED }
 | "type" { TYPE_KW }
 | "protocol" { PROTOCOL_KW }
 | "global" { GLOBAL_KW }
@@ -88,11 +88,10 @@ and token = parse
 | "role" { ROLE_KW }
 | "sig" { SIG_KW }
 | "as" { AS_KW }
-(*
-| "connect" { CONNECT_KW }
-| "disconnect" { DISCONNECT_KW }
-| "wrap" { WRAP_KW }
-*)
+| "connect" { RESERVED }
+| "disconnect" { RESERVED }
+| "wrap" { RESERVED }
+| "and" { RESERVED }
 | "from" { FROM_KW }
 | "to" { TO_KW }
 | "choice" { CHOICE_KW }
@@ -100,9 +99,6 @@ and token = parse
 | "or" { OR_KW }
 | "rec" { REC_KW }
 | "continue" { CONTINUE_KW }
-(*
-| "and" { AND_KW }
-*)
 | "do" { DO_KW }
 
 

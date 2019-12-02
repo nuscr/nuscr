@@ -17,9 +17,10 @@
 %token RCURLY
 %token ARROBA
 
+%token RESERVED
+
 (* keywords from Scribble.g with original comments *)
 %token MODULE_KW
-%token IMPORT_KW
 %token TYPE_KW
 %token PROTOCOL_KW
 %token GLOBAL_KW
@@ -29,11 +30,6 @@
 %token SIG_KW
 %token AS_KW
 
-(*
-%token CONNECT_KW
-%token DISCONNECT_KW
-%token WRAP_KW
-*)
 %token FROM_KW
 %token TO_KW
 %token CHOICE_KW
@@ -41,9 +37,6 @@
 %token OR_KW
 %token REC_KW
 %token CONTINUE_KW
-(*
-%token AND_KW  // Needed for disconnect
-*)
 %token DO_KW
 
 (* ---------------------------------------- *)
@@ -167,24 +160,7 @@ let raw_global_interaction ==
   | global_recursion
   | global_continue
   | global_choice
-  /* | global_continue */
   | global_do
-  (*
-  | global_connect
-  | global_disconnect
-  | global_wrap
-  *)
-
-(*
-let global_disconnect ==
-  DISCONNECT_KW ; n1 = name ; AND_KW ; n2 = name ; SEMICOLON ; { Disconnect (n1, n2) }
-
-let global_connect ==
-  m = message? ; CONNECT_KW ; n1 = name ;
-  TO_KW ; n2 = name ; SEMICOLON ; ann = annotation? ; { Connect (m, n1, n2, ann) }
-
-  /* | CONNECT_KW ; IDENT ; TO_KW ; IDENT ; SEMICOLON */
-*)
 
 let global_do ==
   DO_KW ; nm = name ; nra = non_role_args? ;
