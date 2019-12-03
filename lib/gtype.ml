@@ -72,7 +72,7 @@ let of_protocol global_protocol =
       | Continue name ->
           if List.mem rec_names name ~equal:Name.equal then (
             assert_empty rest ; TVarG name )
-          else unimpl "Error message for Unbound TVar"
+          else uerr (UnboundRecursionName name)
       | Choice (role, interactions_list) ->
           assert_empty rest ;
           check_role role ;
