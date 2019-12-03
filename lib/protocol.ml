@@ -69,7 +69,7 @@ let expand_global_protocol (scr_module : scr_module)
   let known_roles = protocol.value.roles in
   let check_role r =
     if List.mem known_roles ~equal:Name.equal r then ()
-    else unimpl "Error message for unbound role"
+    else uerr (UnboundRole r)
   in
   let maybe_add_recursion ~loc ~known (name, roles) interactions =
     let has_recursion = Map.find_exn known (name, roles) in
