@@ -5,7 +5,7 @@ open Syntax
 type user_error =
   | LexerError of string
   | ParserError of source_loc
-  | UnboundRecursionName of string * source_loc
+  | UnboundRecursionName of name
   | RedefinedRecursionName of string * source_loc * source_loc
   | Uncategorised of string
   | InvalidCommandLineParam of string
@@ -25,9 +25,9 @@ let show_user_error = function
   | LexerError msg -> "Lexer error: " ^ msg
   | ParserError interval ->
       "Parser error: An error occurred at " ^ show_source_loc interval
-  | UnboundRecursionName (name, interval) ->
-      "Unbound name " ^ name ^ " in `continue` at "
-      ^ show_source_loc interval
+  | UnboundRecursionName n ->
+      "Unbound name " ^ Name.user n ^ " in `continue` at "
+      ^ show_source_loc (Name.where n)
   | RedefinedRecursionName (name, interval1, interval2) ->
       "Redefined name " ^ name ^ " of `rec` at " ^ show_source_loc interval1
       ^ " and " ^ show_source_loc interval2
