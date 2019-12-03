@@ -13,6 +13,7 @@ type user_error =
   | ReflexiveMessage of name
   | UnableToMerge of string
   | RedefinedProtocol of name * source_loc * source_loc
+  | UnboundProtocol of name
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -32,7 +33,7 @@ let show_user_error = function
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole r ->
-      "Unbound role " ^ Name.user r ^ " in " ^ show_source_loc
+      "Unbound role " ^ Name.user r ^ " at " ^ show_source_loc
       @@ Name.where r
   | ReflexiveMessage r ->
       "Reflexive message of Role " ^ Name.user r ^ " at " ^ show_source_loc
@@ -41,6 +42,9 @@ let show_user_error = function
   | RedefinedProtocol (name, interval1, interval2) ->
       "Redefined protocol " ^ Name.user name ^ " at "
       ^ show_source_loc interval1 ^ " and " ^ show_source_loc interval2
+  | UnboundProtocol p ->
+      "Unbound protocol call " ^ Name.user p ^ " at " ^ show_source_loc
+      @@ Name.where p
 
 exception Violation of string
 [@@deriving sexp_of]
