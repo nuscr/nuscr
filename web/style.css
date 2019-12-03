@@ -5,8 +5,9 @@ body{
 }
 h1 {
     padding-top: 10px;
-    font-size:5em;
+    font-size: 5em;
     text-align: center;
+    height: 100px;
 }
 
 #content{
@@ -49,8 +50,13 @@ select:invalid {
 a {
     color:blue;
 }
-              
+
 a:hover {
     cursor:pointer;
     text-decoration: underline;
+}
+
+img {
+    max-width: 100%;
+    max-height: 100%;
 }
