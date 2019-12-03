@@ -14,6 +14,7 @@ type user_error =
   | UnableToMerge of string
   | RedefinedProtocol of name * source_loc * source_loc
   | UnboundProtocol of name
+  | ArityMismatch of name * int * int
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -45,6 +46,10 @@ let show_user_error = function
   | UnboundProtocol p ->
       "Unbound protocol call " ^ Name.user p ^ " at " ^ show_source_loc
       @@ Name.where p
+  | ArityMismatch (p, expected, actual) ->
+      "Protocol arity mismatch, " ^ Name.user p ^ " requires "
+      ^ Int.to_string expected ^ " roles, but " ^ Int.to_string actual
+      ^ " is given"
 
 exception Violation of string
 [@@deriving sexp_of]
