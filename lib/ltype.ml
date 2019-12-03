@@ -63,8 +63,13 @@ let rec merge projected_role lty1 lty2 =
                 List.Assoc.add acc ~equal:String.equal label
                   (RecvL (m, r, merge projected_role lty l_))
             | Some (RecvL _) -> fail ()
-            | _ -> failwith "Impossible" )
-        | l -> failwith ("Impossible " ^ show l ^ " r " ^ Name.user r)
+            | _ ->
+                raise
+                  (Violation
+                     "Merge receive must be merging receive local types") )
+        | _ ->
+            raise
+              (Violation "Merge receive must be merging receive local types")
       in
       let conts = List.fold ~f:aux ~init:[] recvs in
       match conts with
