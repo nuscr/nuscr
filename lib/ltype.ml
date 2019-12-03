@@ -96,17 +96,20 @@ let rec merge projected_role lty1 lty2 =
 
 (* Check whether the first message in a g choice is from choice_r to recv_r,
    if recv_r is Some; return receive role *)
-let check_consistent_gchoice choice_r recv_r =
-  let err () = unimpl "Error message for inconsistent choice" in
-  function
+let check_consistent_gchoice choice_r recv_r = function
   | MessageG (_, send_r, recv_r_, _) -> (
-      if not @@ Name.equal send_r choice_r then err () ;
+      if not @@ Name.equal send_r choice_r then
+        uerr (RoleMismatch (choice_r, send_r)) ;
       match recv_r with
       | None -> Some recv_r_
       | Some recv_r ->
-          if not @@ Name.equal recv_r recv_r then err () ;
+          if not @@ Name.equal recv_r recv_r_ then
+            uerr (RoleMismatch (recv_r, recv_r_)) ;
           Some recv_r )
-  | _ -> err ()
+  | _ ->
+      raise
+        (Violation
+           "Normalised global type always has a message in choice branches")
 
 let rec project (projected_role : name) = function
   | EndG -> EndL
