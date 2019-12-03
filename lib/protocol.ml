@@ -103,7 +103,7 @@ let expand_global_protocol (scr_module : scr_module)
             | None -> uerr (UnboundProtocol name)
           in
           if List.length roles <> arity then
-            unimpl "Error msg for arity mismatch" ;
+            uerr (ArityMismatch (name, arity, List.length roles)) ;
           List.iter ~f:check_role roles ;
           let known = Map.add_exn known ~key:(name, roles) ~data:false in
           let known, interactions =
