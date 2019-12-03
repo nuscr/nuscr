@@ -15,6 +15,7 @@ type user_error =
   | RedefinedProtocol of name * source_loc * source_loc
   | UnboundProtocol of name
   | ArityMismatch of name * int * int
+  | InconsistentNestedChoice of name * name
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -50,6 +51,11 @@ let show_user_error = function
       "Protocol arity mismatch, " ^ Name.user p ^ " requires "
       ^ Int.to_string expected ^ " roles, but " ^ Int.to_string actual
       ^ " is given"
+  | InconsistentNestedChoice (r1, r2) ->
+      "Inconsistent nested choice, a choice at " ^ Name.user r1 ^ " at "
+      ^ show_source_loc (Name.where r1)
+      ^ " cannot be followed with a choice at " ^ Name.user r2 ^ " at "
+      ^ show_source_loc (Name.where r2)
 
 exception Violation of string
 [@@deriving sexp_of]

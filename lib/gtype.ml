@@ -90,8 +90,8 @@ let rec flatten = function
       let choices = List.map ~f:flatten choices in
       let lift = function
         | ChoiceG (role_, choices_) when Name.equal role role_ -> choices_
-        | ChoiceG (_role, _choices) ->
-            unimpl "Error message for inconsistent choices"
+        | ChoiceG (role_, _choices) ->
+            uerr (InconsistentNestedChoice (role, role_))
         | g -> [g]
       in
       ChoiceG (role, List.concat_map ~f:lift choices)
