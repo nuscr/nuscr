@@ -30,7 +30,8 @@ let instantiate (protocol : raw_global_protocol)
   let replacement_map = List.zip original_roles replacement_roles in
   let replacement_map =
     match replacement_map with
-    | List.Or_unequal_lengths.Unequal_lengths -> unimpl "Mismatched arity"
+    | List.Or_unequal_lengths.Unequal_lengths ->
+        raise (Violation "Must check arity before calling `instantiate`")
     | List.Or_unequal_lengths.Ok replacement_map -> replacement_map
   in
   let replacement_map =
@@ -99,7 +100,7 @@ let expand_global_protocol (scr_module : scr_module)
           let protocol_to_expand, _, arity =
             match protocol_to_expand with
             | Some p -> p
-            | None -> unimpl "Error msg for unbound protocol"
+            | None -> uerr (UnboundProtocol name)
           in
           if List.length roles <> arity then
             unimpl "Error msg for arity mismatch" ;
