@@ -16,6 +16,7 @@ type user_error =
   | UnboundProtocol of name
   | ArityMismatch of name * int * int
   | InconsistentNestedChoice of name * name
+  | RoleMismatch of name * name
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -56,6 +57,10 @@ let show_user_error = function
       ^ show_source_loc (Name.where r1)
       ^ " cannot be followed with a choice at " ^ Name.user r2 ^ " at "
       ^ show_source_loc (Name.where r2)
+  | RoleMismatch (expected, actual) ->
+      "Expecting role " ^ Name.user expected ^ ", but got "
+      ^ Name.user actual ^ " at "
+      ^ show_source_loc (Name.where actual)
 
 exception Violation of string
 [@@deriving sexp_of]
