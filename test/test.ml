@@ -10,7 +10,11 @@ let avoid =
     "examples/from-scribble-java/tmp/Test.scr"
   ; "examples/from-scribble-java/tmp/Test2.scr"
   ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.scr"
-  ; "examples/consensus/ClockAnnotRec.scr" ]
+  ; "examples/consensus/ClockAnnotRec.scr"
+  ; "examples/from-scribble-java/test/test5/Test5.scr"
+  ; "examples/from-scribble-java/test/test8/Test8.scr"
+  ; "examples/from-scribble-java/test/foo/Foo.scr"
+  ; "examples/from-scribble-java/demo/fase17/overview/P1.scr" ]
 
 let get_files (dir : string) : string list =
   let rec loop res = function
