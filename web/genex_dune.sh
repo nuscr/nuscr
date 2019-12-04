@@ -2,7 +2,7 @@
 # Generate the examples.ml file
 EXAMPLE_DIR="../../../"
 (echo 'let list = [';
-cat examplelist.txt | while read file; do
+cat ../../../web/examplelist.txt | while read file; do
     echo -n "\"$file\","
     echo -n '"'
     cat $EXAMPLE_DIR/$file | sed 's/"/\\"/g'
