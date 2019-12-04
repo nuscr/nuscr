@@ -13,7 +13,7 @@ bug-reports: "https://github.com/nuscr/nuscr/issues"
 depends: [
   "menhir" {build & >= "20190924"}
   "ppx_deriving" {build & >= "4.4"}
-  "dune" {build & >= "1.11.4"}
+  "dune" {>= "1.11.4"}
   "base" {>= "v0.12.0"}
   "stdio" {>= "v0.12.0"}
   "ppx_sexp_conv" {>= "v0.12.0"}
