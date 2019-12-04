@@ -1,5 +1,6 @@
-(test
- (name test)
- (flags
-  (:standard -w +A-39-4-21))
- (libraries nuscrlib base stdio))
+(library
+ (name nuscrlib_tests)
+ (inline_tests)
+ (libraries nuscrlib base stdio)
+ (preprocess
+  (pps ppx_inline_test)))
