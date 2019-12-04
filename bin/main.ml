@@ -76,15 +76,21 @@ let run filename verbose enumerate proj fsm gencode =
     gen_output ast
       (fun ast r n -> Lib.generate_fsm ast r n |> Codegen.gen_code (r, n))
       gencode ;
-    ()
+    true
   with
   | Err.UserError msg ->
-      "User error: " ^ Err.show_user_error msg |> prerr_endline
-  | Err.Violation msg -> "Violation: " ^ msg |> prerr_endline
+      "User error: " ^ Err.show_user_error msg |> prerr_endline ;
+      false
+  | Err.Violation msg ->
+      "Violation: " ^ msg |> prerr_endline ;
+      false
   | Err.UnImplemented desc ->
       "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented"
-      |> prerr_endline
-  | e -> "Reported problem:\n " ^ Exn.to_string e |> prerr_endline
+      |> prerr_endline ;
+      false
+  | e ->
+      "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
+      false
 
 let usage () =
   "usage: " ^ Sys.argv.(0)
@@ -97,4 +103,6 @@ let () =
   Caml.Arg.parse argspec (fun fn -> filename := fn) @@ usage () ;
   if !version then print_endline @@ version_string ()
   else if String.length !filename = 0 then usage () |> print_endline
-  else run !filename !verbose !enum !project !fsm !gencode
+  else if run !filename !verbose !enum !project !fsm !gencode then
+    Caml.exit 0
+  else Caml.exit 1
