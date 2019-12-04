@@ -1,8 +1,8 @@
 #! /bin/sh
 # Generate the examples.ml file
-EXAMPLE_DIR="../../../examples"
+EXAMPLE_DIR="../../../"
 (echo 'let list = [';
-find $EXAMPLE_DIR -name "*.scr" -printf "%P\n" | while read file; do
+cat examplelist.txt | while read file; do
     echo -n "\"$file\","
     echo -n '"'
     cat $EXAMPLE_DIR/$file | sed 's/"/\\"/g'
