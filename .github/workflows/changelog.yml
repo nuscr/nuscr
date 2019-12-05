@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Changelog Reminder
-      uses: peterjgrainger/action-changelog-reminder@v1.1.0
+      uses: peterjgrainger/action-changelog-reminder@v1.1.1
       with:
         changelog_regex: '^CHANGES.md$'
       env:
