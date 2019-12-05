@@ -33,9 +33,7 @@
     :build
     (>= 20190924)))
   (ppx_deriving
-   (and
-    :build
-    (>= 4.4)))
+   (>= 4.4))
   (dune
    (>= 1.11.4))
   (base
