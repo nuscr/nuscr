@@ -11,14 +11,17 @@ let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf
 
 let parse_from_lexbuf lexbuf : scr_module =
-  try Parser.scr_module Lexer.token lexbuf with
-  | Lexer.LexError msg -> uerr (LexerError msg)
-  | Parser.Error ->
-      let err_interval =
-        (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
-      in
-      uerr (ParserError (build err_interval))
-  | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
+  let _, m =
+    try Parser.doc Lexer.token lexbuf with
+    | Lexer.LexError msg -> uerr (LexerError msg)
+    | Parser.Error ->
+        let err_interval =
+          (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
+        in
+        uerr (ParserError (build err_interval))
+    | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
+  in
+  m
 
 let parse fname (ch : In_channel.t) : scr_module =
   let lexbuf = set_filename fname (Lexing.from_channel ch) in
