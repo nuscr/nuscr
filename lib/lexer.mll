@@ -63,6 +63,9 @@ and token = parse
 | "/*" { c_style_block lexbuf }
 | "(*" { ml_style_block 1 lexbuf }
 
+(* pragmas *)
+| "(%.*%)" as str { PRAGMA str }
+
 (* symbols *)
 | ',' { COMMA }
 | ';' { SEMICOLON }

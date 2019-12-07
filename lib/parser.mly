@@ -2,6 +2,7 @@
 
 %token <string>IDENT
 %token <string>EXTIDENT
+%token <string>PRAGMA
 
 %token EOI
 
@@ -40,7 +41,7 @@
 %token DO_KW
 
 (* ---------------------------------------- *)
-%start <Syntax.scr_module> scr_module
+%start <string option * Syntax.scr_module> doc
 %{ open Syntax
    open Loc
    module Name = Name.Name
@@ -56,6 +57,13 @@
   let loalo = function None -> [] | Some n -> n
 %}
 %%
+
+(* document *)
+
+let doc :=
+  p = PRAGMA? ;
+  m = scr_module ;
+  { (p, m) }
 
 (* modules *)
 let scr_module :=
