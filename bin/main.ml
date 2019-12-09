@@ -53,8 +53,8 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   In_channel.close input ; res
 
 let gen_output ast f = function
-  | Some (role, name) ->
-      let res = f ast name role in
+  | Some (role, protocol) ->
+      let res = f ast protocol role in
       print_endline res
   | _ -> ()
 
@@ -68,13 +68,16 @@ let run filename verbose enumerate proj fsm gencode =
       |> String.concat ~sep:"\n" |> print_endline
     else () ;
     gen_output ast
-      (fun ast r n -> Lib.project_role ast r n |> Ltype.show)
+      (fun ast protocol role ->
+        Lib.project_role ast ~protocol ~role |> Ltype.show)
       proj ;
     gen_output ast
-      (fun ast r n -> Lib.generate_fsm ast r n |> snd |> Efsm.show)
+      (fun ast protocol role ->
+        Lib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show)
       fsm ;
     gen_output ast
-      (fun ast r n -> Lib.generate_fsm ast r n |> Codegen.gen_code (r, n))
+      (fun ast protocol role ->
+        Lib.generate_code ~monad:false ast ~protocol ~role)
       gencode ;
     true
   with

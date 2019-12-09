@@ -12,7 +12,7 @@ let show_protocol_role protocol role =
   Printf.sprintf "%s@%s" role protocol
 
 let project scr (name, role) =
-  let ltyp = Lib.project_role scr name role in
+  let ltyp = Lib.project_role scr ~protocol:name ~role in
   let s = Ltype.show ltyp in
   (W.get "projected")##.innerHTML
   := Js.string
@@ -21,7 +21,7 @@ let project scr (name, role) =
           s
 
 let fsm scr (name, role) =
-  let _, fsm = Lib.generate_fsm scr name role in
+  let _, fsm = Lib.generate_fsm scr ~protocol:name ~role in
   let dot = Efsm.show fsm in
   Interface.Graph.set_dot dot
 
