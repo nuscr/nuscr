@@ -65,22 +65,24 @@ let enumerate (ast : scr_module) : (name * name) list =
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
-let project_role ast name role : Ltype.t =
+let project_role ast ~protocol ~role : Ltype.t =
   let gp =
-    List.find_exn ~f:(fun gt -> Name.equal gt.value.name name) ast.protocols
+    List.find_exn
+      ~f:(fun gt -> Name.equal gt.value.name protocol)
+      ast.protocols
   in
   let gp = Protocol.expand_global_protocol ast gp in
   let gt = Gtype.of_protocol gp in
   Ltype.project role gt
 
-let generate_fsm ast name role =
-  let lt = project_role ast name role in
+let generate_fsm ast ~protocol ~role =
+  let lt = project_role ast ~protocol ~role in
   Efsm.of_local_type lt
 
-let generate_code ~monad ast proto role =
-  let fsm = generate_fsm ast proto role in
-  Codegen.gen_code ~monad (proto, role) fsm
+let generate_code ~monad ast ~protocol ~role =
+  let fsm = generate_fsm ast ~protocol ~role in
+  Codegen.gen_code ~monad (protocol, role) fsm
 
-let generate_ast ~monad ast proto role =
-  let fsm = generate_fsm ast proto role in
-  Codegen.gen_ast ~monad (proto, role) fsm
+let generate_ast ~monad ast ~protocol ~role =
+  let fsm = generate_fsm ast ~protocol ~role in
+  Codegen.gen_ast ~monad (protocol, role) fsm
