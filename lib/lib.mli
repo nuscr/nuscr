@@ -28,7 +28,8 @@ val project_role : Syntax.scr_module -> Name.t -> Name.t -> Ltype.t
 (** [project_role module protocol role] computes the local type for role
     [role] in the protocol [protocol]. *)
 
-val generate_fsm : Syntax.scr_module -> Name.t -> Name.t -> int * Efsm.t
+val generate_fsm :
+  Syntax.scr_module -> Name.t -> Name.t -> Efsm.state * Efsm.t
 (** [generate_fsm module protocol role] computes the finite state machine of
     role [role] in protocol [protocol], in module [module]. It returns a pair
     [(v, g)] where [g] is the graph describing the fsm, and [v] is the root
