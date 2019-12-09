@@ -33,3 +33,18 @@ val generate_fsm : Syntax.scr_module -> Name.t -> Name.t -> int * Efsm.t
     role [role] in protocol [protocol], in module [module]. It returns a pair
     [(v, g)] where [g] is the graph describing the fsm, and [v] is the root
     index. *)
+
+val generate_code :
+  monad:bool -> Syntax.scr_module -> Name.t -> Name.t -> string
+(** [generate_code ~monad module protocol role] generates event-style OCaml
+    code for the [role] in [protocol], inside a [module] [monad] indicates
+    whether the generated code uses a monad for transport (e.g. Lwt, Async) *)
+
+val generate_ast :
+     monad:bool
+  -> Syntax.scr_module
+  -> Name.t
+  -> Name.t
+  -> Ppxlib_ast.Parsetree.structure
+(** [generate_ast ~monad module protocol role] is similar to [generate_code],
+    except it returns an AST instead of a string *)
