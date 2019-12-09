@@ -76,3 +76,11 @@ let project_role ast name role : Ltype.t =
 let generate_fsm ast name role =
   let lt = project_role ast name role in
   Efsm.of_local_type lt
+
+let generate_code ~monad ast proto role =
+  let fsm = generate_fsm ast proto role in
+  Codegen.gen_code ~monad (proto, role) fsm
+
+let generate_ast ~monad ast proto role =
+  let fsm = generate_fsm ast proto role in
+  Codegen.gen_ast ~monad (proto, role) fsm
