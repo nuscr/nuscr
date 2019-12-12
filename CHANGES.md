@@ -3,6 +3,7 @@
 ## Added
 
 ## Changed
+- Modernised Web Interface
 
 ## Deprecated
 
