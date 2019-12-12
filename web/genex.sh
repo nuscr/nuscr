@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 # Generate the examples.ml file
 EXAMPLE_DIR=$1
 EXAMPLE_DIR=${EXAMPLE_DIR:="../"}
