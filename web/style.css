@@ -10,3 +10,7 @@ textarea {
     width: 100%;
     font-family: 'Fira Code';
 }
+
+pre {
+    font-family: 'Fira Code';
+}
