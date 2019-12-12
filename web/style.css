@@ -1,62 +1,12 @@
-body{
-    background-color:gray;
-    padding-top: 0px;
-    margin-top: 0px;
-}
-h1 {
-    padding-top: 10px;
-    font-size: 5em;
-    text-align: center;
-    height: 100px;
+.main.container {
+    margin-top: 7em;
 }
 
-#content{
-    border-left:1px solid;
-    border-right:1px solid;
-    padding-left: 10px;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    padding-top: 0px;
-    margin-bottom: 0px;
-    padding-right: 10px;
-    margin-left: 20px;
-    margin-right: 20px;
-    background-color:white;
+.ui.menu .item img.logo {
+    margin-right: 1.5em;
 }
 
-#errorbox {
-    border: 1px solid;
-    background-color: #ff88aa;
-    display: block;
-    padding: 10px;
-    margin: 10px;
-    display: none;
-}
-
-#mainbody{
-    display: grid;
-    grid-template-columns: 50% 50%;
-}
-#left{
-    width: 50%;
-}
-
-#button{
-    text-align: center;
-}
-select:invalid {
-    color: gray;
-}
-a {
-    color:blue;
-}
-
-a:hover {
-    cursor:pointer;
-    text-decoration: underline;
-}
-
-img {
-    max-width: 100%;
-    max-height: 100%;
+textarea {
+    width: 100%;
+    font-family: 'Fira Code';
 }
