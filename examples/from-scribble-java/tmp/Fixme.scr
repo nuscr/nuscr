@@ -6,25 +6,25 @@
 module Fixme;
 
 
-	// TODO: (re)connect/wrap, e.g. SMTP
+  // TODO: (re)connect/wrap, e.g. SMTP
 
-	// TODO: "introduces" well-formedness?
-	// e.g. "A from B to C;"
-	// e.g. "a from A to B; A[a] from B to C;"
-	// e.g. connect A to B; connect B to C; connect C to A;  // connect A to C would be bad
-	//.. expliconn+introduces vs. delegation -- MPST with explicit (shared/sess) channels
+  // TODO: "introduces" well-formedness?
+  // e.g. "A from B to C;"
+  // e.g. "a from A to B; A[a] from B to C;"
+  // e.g. connect A to B; connect B to C; connect C to A;  // connect A to C would be bad
+  //.. expliconn+introduces vs. delegation -- MPST with explicit (shared/sess) channels
 
-	// TODO: API gen
-	// - connect/disconnect -- need to make backwards compatible with non-explicit
-	//   -- non-explicit just has implicit initial connects -- just need to make sure no deadlock
-	//   -- consider accept for callbacks?
-	// - factor out Scribble abstract transport wrappers with language-specific plugins; take as parameter for "wrap" action
-	// - non-det EFSMs -- minimisation will remove all mergeable non-det actions, but non-mergeable non-det actions can exist due to explicit connect
+  // TODO: API gen
+  // - connect/disconnect -- need to make backwards compatible with non-explicit
+  //   -- non-explicit just has implicit initial connects -- just need to make sure no deadlock
+  //   -- consider accept for callbacks?
+  // - factor out Scribble abstract transport wrappers with language-specific plugins; take as parameter for "wrap" action
+  // - non-det EFSMs -- minimisation will remove all mergeable non-det actions, but non-mergeable non-det actions can exist due to explicit connect
 
 
 //.. output and connect can be mixed in a state... check where getStateKind used for any problems
 //    -- getTakeable in WFConfig for model building (but maybe ends up OK, just treat connect/accept the same way?)
-//		-- main approach should be generally consier mixed send/connect states, but differentiate connect for input blocking detection
+//    -- main approach should be generally consier mixed send/connect states, but differentiate connect for input blocking detection
 //.. check orphan messages wrt connect/accept states -- maybe OK, orphan check does consider connectedness
 
 
@@ -60,18 +60,18 @@ module Fixme;
 /*
 global protocol Proto1(role A, role B, role C)
 {
-	choice at A
-	{
-		1() from A to B;
-		3() from B to C;
-		4() from A to C;  // TODO: standard syntactic merge
-	}
-	or
-	{
-		2() from A to B;
-		3() from B to C;
-		5() from A to C;
-	}
+  choice at A
+  {
+    1() from A to B;
+    3() from B to C;
+    4() from A to C;  // TODO: standard syntactic merge
+  }
+  or
+  {
+    2() from A to B;
+    3() from B to C;
+    5() from A to C;
+  }
 }
 //*/
 
@@ -79,12 +79,12 @@ global protocol Proto1(role A, role B, role C)
 /*
 global protocol Proto1(role A, role B)
 {
-	(Proto2@C) from A to B;   // FIXME: should not be aux? (or if aux should check WF as root?)
+  (Proto2@C) from A to B;   // FIXME: should not be aux? (or if aux should check WF as root?)
 }
 
 aux global protocol Proto2(role C, role D)
 {
-	1() from C to D;
+  1() from C to D;
 }
 //*/
 
@@ -92,10 +92,10 @@ aux global protocol Proto2(role C, role D)
 /*
 explicit global protocol Proto(role A, role B, role C, role D)
 {
-	connect A to B;
-	connect C to D;
-	//... A, B  // FIXME: investigate
-	//... C, D
+  connect A to B;
+  connect C to D;
+  //... A, B  // FIXME: investigate
+  //... C, D
 }
 //*/
 
@@ -103,12 +103,12 @@ explicit global protocol Proto(role A, role B, role C, role D)
 /*
 explicit global protocol Proto(role A, role B, role C, role D)
 {
-	connect A to B;
-	connect A to C;
-	connect A to D;
-	connect C to D;
-	disconnect A and C;  // FIXME: investigate
-	disconnect A and D;
+  connect A to B;
+  connect A to C;
+  connect A to D;
+  connect C to D;
+  disconnect A and C;  // FIXME: investigate
+  disconnect A and D;
 }
 //*/
 
@@ -116,22 +116,22 @@ explicit global protocol Proto(role A, role B, role C, role D)
 /*
 global protocol Proto1(role A, role B, role C, role D)
 {
-	rec X
-	{
-		choice at A
-		{
-			m1(Int) from A to B;
-			continue X;
-			//m4(int) from A to B;
-		}
-		or
-		{
-			m2(Int) from A to B;
-			//m3(int) from A to B;
-		}
-		1() from C to D;  // FIXME: wrong enabled check result -- maybe not? under unfolding it is captured inside the choice
-	}
-	//* /
+  rec X
+  {
+    choice at A
+    {
+      m1(Int) from A to B;
+      continue X;
+      //m4(int) from A to B;
+    }
+    or
+    {
+      m2(Int) from A to B;
+      //m3(int) from A to B;
+    }
+    1() from C to D;  // FIXME: wrong enabled check result -- maybe not? under unfolding it is captured inside the choice
+  }
+  //* /
 }
 //*/
 

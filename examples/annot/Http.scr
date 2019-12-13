@@ -6,133 +6,133 @@ module icse18.Http;
 
 global protocol Http(role C, role S)
 {
-	do Request(C, S); 
-	do Response(C, S);
+  do Request(C, S);
+  do Response(C, S);
 }
 
 aux global protocol Request(role C, role S)
 {
-	choice at C
-	{
-		REQUESTL() from C to S;  
-		rec X
-		{
-			choice at C
-			{
-				HOST() from C to S; 
-				continue X;
-			}
-			or
-			{
-				USERA() from C to S;  
-				continue X;
-			}
-			or
-			{
-				ACCEPT() from C to S; 
-				continue X;
-			}
-			or
-			{
-				ACCEPTL() from C to S; 
-				continue X;
-			}
-			or
-			{
-				ACCEPTE() from C to S; 
-				continue X;
-			}
-			or
-			{
-				DNT() from C to S; 
-				continue X;
-			}
-			or
-			{
-				CONNECTION() from C to S; 
-				continue X;
-			}
-			or
-			{
-				UPGRADEIR() from C to S; 
-				continue X;
-			}
-			or
-			{
-				//CRLF from C to S;  
-				BODY() from C to S; 
-			}
-		}
-	}
+  choice at C
+  {
+    REQUESTL() from C to S;
+    rec X
+    {
+      choice at C
+      {
+        HOST() from C to S;
+        continue X;
+      }
+      or
+      {
+        USERA() from C to S;
+        continue X;
+      }
+      or
+      {
+        ACCEPT() from C to S;
+        continue X;
+      }
+      or
+      {
+        ACCEPTL() from C to S;
+        continue X;
+      }
+      or
+      {
+        ACCEPTE() from C to S;
+        continue X;
+      }
+      or
+      {
+        DNT() from C to S;
+        continue X;
+      }
+      or
+      {
+        CONNECTION() from C to S;
+        continue X;
+      }
+      or
+      {
+        UPGRADEIR() from C to S;
+        continue X;
+      }
+      or
+      {
+        //CRLF from C to S;
+        BODY() from C to S;
+      }
+    }
+  }
 }
-	
+
 aux global protocol Response(role C, role S)
 {
-	HTTPV() from S to C;  
-	choice at S
-	{
-		200() from S to C;  
-	}
-	or
-	{
-		404() from S to C;
-	}
+  HTTPV() from S to C;
+  choice at S
+  {
+    200() from S to C;
+  }
+  or
+  {
+    404() from S to C;
+  }
 
-	rec Y
-	{
-		choice at S
-		{
-			DATE() from S to C; 
-			continue Y;
-		}
-		or
-		{
-			SERVER() from S to C; 
-			continue Y;
-		}
-		or
-		{
-			STRICTTS() from S to C;  
-			continue Y;
-		}
-		or
-		{
-			LASTM() from S to C;  
-			continue Y;
-		}
-		or
-		{
-			ETAG() from S to C; 
-			continue Y;
-		}
-		or
-		{
-			ACCEPTR() from S to C;  
-			continue Y;
-		}
-		or
-		{
-			CONTENTL() from S to C;  
-			continue Y;
-		}
-		or
-		{
-			VARY() from S to C;  
-			continue Y;
-		}
-		or
-		{
-			CONTENTT() from S to C; 
-			continue Y;
-		}
-		or
-		{
-			VIA() from S to C;  
-			continue Y;
-		}
-		or
-		{
-			BODY() from S to C;  
-		}
-	}
+  rec Y
+  {
+    choice at S
+    {
+      DATE() from S to C;
+      continue Y;
+    }
+    or
+    {
+      SERVER() from S to C;
+      continue Y;
+    }
+    or
+    {
+      STRICTTS() from S to C;
+      continue Y;
+    }
+    or
+    {
+      LASTM() from S to C;
+      continue Y;
+    }
+    or
+    {
+      ETAG() from S to C;
+      continue Y;
+    }
+    or
+    {
+      ACCEPTR() from S to C;
+      continue Y;
+    }
+    or
+    {
+      CONTENTL() from S to C;
+      continue Y;
+    }
+    or
+    {
+      VARY() from S to C;
+      continue Y;
+    }
+    or
+    {
+      CONTENTT() from S to C;
+      continue Y;
+    }
+    or
+    {
+      VIA() from S to C;
+      continue Y;
+    }
+    or
+    {
+      BODY() from S to C;
+    }
+  }
 }

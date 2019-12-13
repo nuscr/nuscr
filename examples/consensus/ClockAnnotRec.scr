@@ -4,26 +4,26 @@ type <java> "java.lang.Integer" from "rt.jar" as int;
 
 global protocol Lock(role A, role B, role C) (tsa:int, tsb:int, tsc:int)@"(0,0,0)"
 {
-	REQ (ts_rab:int) from A to B; @"ts_rab > tsa"
-	REQ (ts_rac:int) from A to C; @"ts_rac > ts_rab "
-	choice at B
-	{
-		ACK (ts_aba:int) from B to A; @"ts_aba > max(ts_rab, tsb)"
-	}
-	or
-	{
-		do Lock(B, A, C); @"(ts_rac+1, ts_aba+1, tsc)" // new initial values
-	}
+  REQ (ts_rab:int) from A to B; @"ts_rab > tsa"
+  REQ (ts_rac:int) from A to C; @"ts_rac > ts_rab "
+  choice at B
+  {
+    ACK (ts_aba:int) from B to A; @"ts_aba > max(ts_rab, tsb)"
+  }
+  or
+  {
+    do Lock(B, A, C); @"(ts_rac+1, ts_aba+1, tsc)" // new initial values
+  }
 
-	choice at C
-	{
-		ACK (ts_aca:int) from C to A; @"ts_aca > max(ts_rac, tsc)"
-	}
-	or
-	{
-		do Lock(C, A, B); @"(ts_rac+1,tsb,ts_aca+1)" //new initial values
-	}
-	
-	REL (ts_reab:int) from A to B; @"ts_reab > ts_rab"
-	REL (ts_reac:int) from A to C; @"ts_reac > ts_rac"
+  choice at C
+  {
+    ACK (ts_aca:int) from C to A; @"ts_aca > max(ts_rac, tsc)"
+  }
+  or
+  {
+    do Lock(C, A, B); @"(ts_rac+1,tsb,ts_aca+1)" //new initial values
+  }
+
+  REL (ts_reab:int) from A to B; @"ts_reab > ts_rab"
+  REL (ts_reac:int) from A to C; @"ts_reac > ts_rac"
 }

@@ -8,12 +8,12 @@ type <java> "java.lang.String"  from "rt.jar" as Str;
 
 global protocol Proto1(role A, role B)
 {
-	choice at A
-	{
-		1(Int) from A to B;
-	}
-	or
-	{
-		2(Str) from A to B;
-	}
+  choice at A
+  {
+    1(Int) from A to B;
+  }
+  or
+  {
+    2(Str) from A to B;
+  }
 }

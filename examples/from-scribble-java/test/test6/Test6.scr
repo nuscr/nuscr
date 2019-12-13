@@ -8,8 +8,8 @@ type <java> "java.lang.String"  from "rt.jar" as Str;
 
 global protocol Proto1(role A, role B)
 {
-	1(Int) from A to B;
-	2(Str) from B to A;
-	1(Int) from A to B;
-	2(Str) from B to A;
+  1(Int) from A to B;
+  2(Str) from B to A;
+  1(Int) from A to B;
+  2(Str) from B to A;
 }

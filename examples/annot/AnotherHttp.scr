@@ -1,6 +1,6 @@
 module demo;
 
-type <fsharp> "System.String" from "fs.dll" as string; 
+type <fsharp> "System.String" from "fs.dll" as string;
 type <fsharp> "System.Int32" from "fs.dll" as int;
 type <fsharp> "System.DateTime" from "fs.dll" as date;
 
@@ -13,7 +13,7 @@ global protocol AnotherHttp(role C, role S)
 global protocol Request(role C, role S)
 {
   choice at C {
-    GET(string) from C to S; 
+    GET(string) from C to S;
   } or {
     POST(string) from C to S;
   }
@@ -22,7 +22,7 @@ global protocol Request(role C, role S)
   {
       choice at C
       {
-        HOST(string) from C to S; 
+        HOST(string) from C to S;
         continue X;
       }
       or
@@ -34,14 +34,14 @@ global protocol Request(role C, role S)
 
 global protocol Response(role C, role S)
 {
-  HTTP(string) from S to C; 
+  HTTP(string) from S to C;
   choice at S
   {
-    d200(string) from S to C; 
+    d200(string) from S to C;
   }
   or
   {
-    d404(string) from S to C; 
+    d404(string) from S to C;
   }
 
   rec Y

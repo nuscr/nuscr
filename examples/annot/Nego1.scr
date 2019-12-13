@@ -8,37 +8,37 @@ type <java> "test.nego.SAP" from "test/nego/SAP.java" as SAP;
 // C = Consumer, P = Producer
 global protocol Negotiation(role C, role P)
 {
-	propose(int) from C to P;
-	rec X
-	{
-		HELLO() from P to C;
-		choice at P
-		{
-			accpt() from P to C;
-			confirm() from C to P;
-		}
-		or
-		{
-			reject() from P to C;
-		}
-		or
-		{
-			propose(int) from P to C;
-			choice at C
-			{
-				accpt() from C to P;
-				confirm() from P to C;
-			}
-			or
-			{
-				reject() from C to P;
-			}
-			or
-			{
-				propose(int) from C to P;
-				continue X;
-			}
-		}
-	}
+  propose(int) from C to P;
+  rec X
+  {
+    HELLO() from P to C;
+    choice at P
+    {
+      accpt() from P to C;
+      confirm() from C to P;
+    }
+    or
+    {
+      reject() from P to C;
+    }
+    or
+    {
+      propose(int) from P to C;
+      choice at C
+      {
+        accpt() from C to P;
+        confirm() from P to C;
+      }
+      or
+      {
+        reject() from C to P;
+      }
+      or
+      {
+        propose(int) from C to P;
+        continue X;
+      }
+    }
+  }
 }
 
