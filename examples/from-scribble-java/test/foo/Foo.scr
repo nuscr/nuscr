@@ -14,14 +14,14 @@ module test.foo.Foo;
 
 global protocol Foo(role A, role B, role C)
 {
-	choice at A
-	{
-		1() from A to B;
-		2() from A to C;
-	}
-	or
-	{
-		1() from A to C;
-		2() from A to B;
-	}
+  choice at A
+  {
+    1() from A to B;
+    2() from A to C;
+  }
+  or
+  {
+    1() from A to C;
+    2() from A to B;
+  }
 }

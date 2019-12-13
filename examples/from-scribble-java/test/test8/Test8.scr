@@ -8,21 +8,21 @@ type <java> "java.lang.String"  from "rt.jar" as Str;
 
 global protocol Proto1(role A, role B, role C)
 {
-	choice at A
-	{
-		1(Int) from A to B;
-		1(Int) from A to B;
-		3() from A to C;
-		//1(Int) from A to C;
-	}
-	or
-	{	
-		2(Int) from A to C;
-		3(Int) from A to B;
-	}
-	or
-	{
-		4(Str) from A to C;
-		4(Str) from A to B;
-	}	
+  choice at A
+  {
+    1(Int) from A to B;
+    1(Int) from A to B;
+    3() from A to C;
+    //1(Int) from A to C;
+  }
+  or
+  {
+    2(Int) from A to C;
+    3(Int) from A to B;
+  }
+  or
+  {
+    4(Str) from A to C;
+    4(Str) from A to B;
+  }
 }

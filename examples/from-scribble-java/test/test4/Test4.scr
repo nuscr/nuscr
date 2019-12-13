@@ -8,13 +8,13 @@ sig <java> "test.test4.sig.Bar" from "test/test4/sig/Bar.java" as Bar;
 
 global protocol Proto1(role A, role B)
 {
-	choice at A
-	{
-		Foo from A to B;
-		do Proto1(A, B);
-	}
-	or
-	{
-		Bar from A to B;
-	}
+  choice at A
+  {
+    Foo from A to B;
+    do Proto1(A, B);
+  }
+  or
+  {
+    Bar from A to B;
+  }
 }

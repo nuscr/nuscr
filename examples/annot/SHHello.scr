@@ -1,61 +1,61 @@
 module assrt.sh.SHHello;
 
-// This is version of the algorithm with initial hellp messages, used mainly for testing. 
+// This is version of the algorithm with initial hellp messages, used mainly for testing.
 // See SH.scr for the pure version of the protocol without auxiliary messages
 
 type <dotnet> "System.UInt32" from "..." as int;
 
 global protocol SH(role P, role R, role C)
 {
-	hello() from P to R; 
-	hello() from R to P; 
-	hello() from P to C;
-	hello() from C to P; 
-	Plane(x1:int, x2:int, x3:int, x4:int) from P to R;
-	do Loop(P, R, C);
+  hello() from P to R;
+  hello() from R to P;
+  hello() from P to C;
+  hello() from C to P;
+  Plane(x1:int, x2:int, x3:int, x4:int) from P to R;
+  do Loop(P, R, C);
 }
 
 aux global protocol Loop(role P, role R, role C)
 {
-	choice at P
-	{
-		IsAbove(v1:int) from P to R;   
-		Res(b1:int) from R to P; // @"b1=0 || b1=1"
-		IsAbove(v2:int) from P to R;   
-		Res(b2:int) from R to P; // @"b2=0 || b2=1"
-		choice at P
-		{
-			BothIn() from P to R; // @"b1=1 && b2=1"
-			BothIn(r1:int) from P to C;
-			do Loop(P, R, C);
-		}
-		or
-		{
-			BothOut() from P to R; // @"b1=0 && b2=0"
-			BothOut() from P to C;
-			do Loop(P, R, C);
-		}
-		or
-		{
-			Intersct(y1:int, y2:int) from P to R; // @"(b1=1 && b2=0) || (b1=0 && b2=1)" // && y1=v1 && y2:v2
-			Res(i:int) from R to P;
-			choice at P
-			{
-				SecOut(r2:int) from P to C; // @"b2=0" // && r2=i
-				do Loop(P, R, C);
-			}
-			or
-			{
-				SecIn(r3:int, r4:int) from P to C; // @"b2=1" //  && (r3=i && r4=v2)
-				do Loop(P, R, C);
-			}
-		}
-	}
-	or
-	{
-		Close() from P to R;   
-		Close() from P to C;
-	}
+  choice at P
+  {
+    IsAbove(v1:int) from P to R;
+    Res(b1:int) from R to P; // @"b1=0 || b1=1"
+    IsAbove(v2:int) from P to R;
+    Res(b2:int) from R to P; // @"b2=0 || b2=1"
+    choice at P
+    {
+      BothIn() from P to R; // @"b1=1 && b2=1"
+      BothIn(r1:int) from P to C;
+      do Loop(P, R, C);
+    }
+    or
+    {
+      BothOut() from P to R; // @"b1=0 && b2=0"
+      BothOut() from P to C;
+      do Loop(P, R, C);
+    }
+    or
+    {
+      Intersct(y1:int, y2:int) from P to R; // @"(b1=1 && b2=0) || (b1=0 && b2=1)" // && y1=v1 && y2:v2
+      Res(i:int) from R to P;
+      choice at P
+      {
+        SecOut(r2:int) from P to C; // @"b2=0" // && r2=i
+        do Loop(P, R, C);
+      }
+      or
+      {
+        SecIn(r3:int, r4:int) from P to C; // @"b2=1" //  && (r3=i && r4=v2)
+        do Loop(P, R, C);
+      }
+    }
+  }
+  or
+  {
+    Close() from P to R;
+    Close() from P to C;
+  }
 }
 
 

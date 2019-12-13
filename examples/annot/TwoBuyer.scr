@@ -9,18 +9,18 @@ type <java> "test.twobuyer.Date" from "test/twobuyer/Date.java" as Date;
 
 global protocol TwoBuyer(role A, role B, role S)
 {
-	title(int) from A to S;
-	//quote(int) from S to A, B;  // EFSM building for multicast not currently supported
-	quote(x: int) from S to A;
-	quote(y: int) from S to B; 
-	quoteByTwo(z:int) from A to B;
-	choice at B
-	{
-		ok(int) from B to S; @"z > y - 2"  
-		empty1(int) from S to B;
-	}
-	or
-	{
-		quit() from B to S; @"z <= y - 2"
-	}
+  title(int) from A to S;
+  //quote(int) from S to A, B;  // EFSM building for multicast not currently supported
+  quote(x: int) from S to A;
+  quote(y: int) from S to B;
+  quoteByTwo(z:int) from A to B;
+  choice at B
+  {
+    ok(int) from B to S; @"z > y - 2"
+    empty1(int) from S to B;
+  }
+  or
+  {
+    quit() from B to S; @"z <= y - 2"
+  }
 }

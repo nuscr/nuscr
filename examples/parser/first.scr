@@ -19,14 +19,14 @@ type <xsd> "{http://www.acme.com/financial}Order" from "http://www.acme.com/sche
 
 
 global protocol GMessageTest(role Buyer,role SellerA,role SellerB) {
-	buy(Order,Customer) from Buyer to SellerA;
-	buy(Order,Customer) from Buyer to SellerA,SellerB;
+  buy(Order,Customer) from Buyer to SellerA;
+  buy(Order,Customer) from Buyer to SellerA,SellerB;
 (*) this next line doesn't seem to be in Scribble.g
-(*)	buy(o:Order,c:Customer) from Buyer to SellerA;
-	buy(Order,Customer) from Buyer to SellerA;
-	buy(Order) from Buyer to SellerA,SellerB;
+(*)  buy(o:Order,c:Customer) from Buyer to SellerA;
+  buy(Order,Customer) from Buyer to SellerA;
+  buy(Order) from Buyer to SellerA,SellerB;
 (*) this next line doesn't seem to be in Scribble.g
-(*)	buy(ord:Order) from Buyer to SellerA;
+(*)  buy(ord:Order) from Buyer to SellerA;
 }
 
 global protocol PlaceOrder(role Buyer,role Seller) {

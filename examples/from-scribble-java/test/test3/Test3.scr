@@ -8,15 +8,15 @@ type <java> "java.lang.String"  from "rt.jar" as Str;
 
 global protocol Proto1(role A, role B, role C)
 {
-	choice at A
-	{
-		1(Int) from A to B;  //@ statename="mystatename"
-		2(Int) from B to C;
-		do Proto1(A, B, C);
-	}
-	or
-	{
-		3(Str) from A to B;
-		4(Str) from B to C;
-	}
+  choice at A
+  {
+    1(Int) from A to B;  //@ statename="mystatename"
+    2(Int) from B to C;
+    do Proto1(A, B, C);
+  }
+  or
+  {
+    3(Str) from A to B;
+    4(Str) from B to C;
+  }
 }

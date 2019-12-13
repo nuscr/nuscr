@@ -13,22 +13,22 @@ type <java> "test.twobuyer.Date" from "test/twobuyer/Date.java" as Date;
 // 1 = B, 2 = A, 3 = S
 global protocol TwoBuyer(role A, role B, role S)
 {
-	empty1(int) from A to S;
-	empty2(int) from S to A;
-	empty3(int) from S to B;
-	empty4(int) from A to B;
+  empty1(int) from A to S;
+  empty2(int) from S to A;
+  empty3(int) from S to B;
+  empty4(int) from A to B;
 
-	choice at B
-	{
-		ok(int) from B to A;
-		ok(int) from B to S;
-		empty5(int) from S to B;
-	}
-	or
-	{
-		quit() from B to A;
-		quit() from B to S;
-	}
+  choice at B
+  {
+    ok(int) from B to A;
+    ok(int) from B to S;
+    empty5(int) from S to B;
+  }
+  or
+  {
+    quit() from B to A;
+    quit() from B to S;
+  }
 }
 
 
