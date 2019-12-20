@@ -63,6 +63,23 @@ let mk_protocol_map scr_module =
   in
   protocols
 
+module ProtocolCall = struct
+  module T = struct
+    type t = Name.t * Name.t list
+
+    let compare (protocol1, roles1) (protocol2, roles2) =
+      let cmp_protocol = Name.compare protocol1 protocol2 in
+      if cmp_protocol = 0 then List.compare Name.compare roles1 roles2
+      else cmp_protocol
+
+    let sexp_of_t (protocol, roles) =
+      Sexp.List (sexp_of_name protocol :: List.map ~f:sexp_of_name roles)
+  end
+
+  include T
+  include Comparator.Make (T)
+end
+
 (** Unroll `do` in protocol *)
 let expand_global_protocol (scr_module : scr_module)
     (protocol : global_protocol) =
@@ -90,7 +107,7 @@ let expand_global_protocol (scr_module : scr_module)
        * true indicates that the protocol has been called, meaning it is recursive;
        * false otherwise *)
       match value with
-      | Do (name, [], roles, None) when Map.Poly.mem known (name, roles) ->
+      | Do (name, [], roles, None) when Map.mem known (name, roles) ->
           let known = Map.update known (name, roles) ~f:(fun _ -> true) in
           ( known
           , [{value= Continue (rec_var_of_protocol_roles (name, roles)); loc}]
@@ -131,7 +148,7 @@ let expand_global_protocol (scr_module : scr_module)
   let top_level = (protocol.value.name, protocol.value.roles) in
   let known, interactions =
     expand_aux
-      (Map.Poly.singleton top_level false)
+      (Map.singleton (module ProtocolCall) top_level false)
       protocol.value.interactions
   in
   let interactions =
