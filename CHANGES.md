@@ -11,6 +11,7 @@
 ## Deprecated
 
 ## Fixed
+- Fix usage in executable
 
 ## Removed
 

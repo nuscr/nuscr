@@ -97,7 +97,7 @@ let run filename verbose enumerate proj fsm gencode =
 
 let usage () =
   "usage: " ^ Sys.argv.(0)
-  ^ " [-e][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
+  ^ " [-enum][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
 
 let version_string () = "%%VERSION%%"
 
