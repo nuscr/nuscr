@@ -158,13 +158,12 @@ let get_transitions g st =
   G.fold_succ_e f g st []
 
 let gen_run_expr ~monad start g =
-  ignore monad ;
   let mk_run_state_name st = sprintf "run_state_%d" st in
   let mk_run_state_ident st = Exp.ident (mk_lid (mk_run_state_name st)) in
   let f st acc =
     let run_state_expr_inner =
       match state_action_type g st with
-      | `Terminal -> [%expr M.return env]
+      | `Terminal -> if monad then [%expr M.return env] else [%expr env]
       | `Mixed -> failwith "Impossible"
       | (`Send | `Recv) as action ->
           let transitions = get_transitions g st in
@@ -209,11 +208,17 @@ let gen_run_expr ~monad start g =
                       [[%pat? env]; Pat.variant label (Some [%pat? payload])]
                 ; pc_guard= None
                 ; pc_rhs=
-                    [%expr
-                      let ret = [%e send_label] in
-                      M.bind ret (fun () ->
-                          let ret = [%e send_payload] in
-                          M.bind ret (fun () -> [%e next_state] env))] }
+                    ( if monad then
+                      [%expr
+                        let ret = [%e send_label] in
+                        M.bind ret (fun () ->
+                            let ret = [%e send_payload] in
+                            M.bind ret (fun () -> [%e next_state] env))]
+                    else
+                      [%expr
+                        [%e send_label] ;
+                        [%e send_payload] ;
+                        [%e next_state] env] ) }
             | `Recv ->
                 let recv_payload = comm_payload `Recv payload_ty in
                 let recv_callback_name = mk_receive_callback st label in
@@ -221,11 +226,17 @@ let gen_run_expr ~monad start g =
                 { pc_lhs= Pat.constant (Const.string label)
                 ; pc_guard= None
                 ; pc_rhs=
-                    [%expr
-                      let payload = [%e recv_payload] in
-                      M.bind payload (fun payload ->
-                          let env = [%e recv_callback] env payload in
-                          [%e next_state] env)] }
+                    ( if monad then
+                      [%expr
+                        let payload = [%e recv_payload] in
+                        M.bind payload (fun payload ->
+                            let env = [%e recv_callback] env payload in
+                            [%e next_state] env)]
+                    else
+                      [%expr
+                        let payload = [%e recv_payload] in
+                        let env = [%e recv_callback] env payload in
+                        [%e next_state] env] ) }
           in
           let match_cases = List.map ~f:mk_match_case transitions in
           let impossible_case =
@@ -238,9 +249,14 @@ let gen_run_expr ~monad start g =
                 let e =
                   Exp.match_ [%expr label] (match_cases @ [impossible_case])
                 in
-                [%expr
-                  let label = comms.recv_string () in
-                  M.bind label (fun label -> [%e e])]
+                if monad then
+                  [%expr
+                    let label = comms.recv_string () in
+                    M.bind label (fun label -> [%e e])]
+                else
+                  [%expr
+                    let label = comms.recv_string () in
+                    [%e e]]
           in
           [%expr
             let comms = [%e comms] in
