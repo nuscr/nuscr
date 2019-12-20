@@ -12,6 +12,7 @@
 
 ## Fixed
 - Fix usage in executable
+- Fix non-monadic code generation
 
 ## Removed
 
