@@ -25,7 +25,8 @@ module Impl_Adder_S (CB : Callbacks) = struct
     let open CB in
     let rec run_state_1 env =
       let comms = router `C in
-      match comms.recv_string () with
+      let label = comms.recv_string () in
+      match label with
       | "bye" ->
           let payload = comms.recv_unit () in
           let env = state1Receivebye env payload in
@@ -37,7 +38,8 @@ module Impl_Adder_S (CB : Callbacks) = struct
       | _ -> assert false
     and run_state_3 env =
       let comms = router `C in
-      match comms.recv_string () with
+      let label = comms.recv_string () in
+      match label with
       | "add" ->
           let payload = comms.recv_int () in
           let env = state3Receiveadd env payload in
