@@ -36,11 +36,8 @@ let mk_lid id = Location.mknoloc (parse id)
 
 let mk_constr id = Typ.constr (mk_lid id) []
 
-let mk_variant desc = {
-  prf_desc = desc;
-  prf_loc = Location.none;
-  prf_attributes = [];
-}
+let mk_variant desc =
+  {prf_desc= desc; prf_loc= Location.none; prf_attributes= []}
 
 let loc = Location.none
 
@@ -72,7 +69,9 @@ let gen_callback_module (g : G.t) : structure_item =
           match a with
           | SendA (_, msg) ->
               let label, payload_type = process_msg msg in
-              let row = mk_variant (Rtag (Location.mknoloc label, true, [payload_type]))
+              let row =
+                mk_variant
+                  (Rtag (Location.mknoloc label, true, [payload_type]))
               in
               row :: acc
           | _ -> failwith "Impossible"
