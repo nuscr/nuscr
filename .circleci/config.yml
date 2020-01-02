@@ -39,12 +39,6 @@ jobs:
             dune runtest
 
       - run:
-          name: Check format
-          command: |
-            eval $(opam config env)
-            dune build @fmt
-
-      - run:
           name: Build web version
           command: |
             eval $(opam config env)
@@ -57,6 +51,13 @@ jobs:
             dune build @doc
             mkdir -p docs/docs
             cp -r _build/default/_doc/_html/* docs/docs
+
+      - run:
+          name: Check format
+          command: |
+            opam install ocamlformat
+            eval $(opam config env)
+            dune build @fmt
 
       - persist_to_workspace:
           root: .
