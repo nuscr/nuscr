@@ -8,6 +8,7 @@
 - Change signature of `generate_fsm` in Lib
 - Annotate signature of `project_role`, `generate_fsm` with names
 - Update ppxlib dependency version
+- Remove js_of_ocaml dependencies
 
 ## Deprecated
 

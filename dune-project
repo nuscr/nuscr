@@ -46,11 +46,22 @@
   (odoc :with-doc)
   (ocamlgraph
    (>= 1.8.8))
+  (ppxlib
+   (>= 0.9.0))))
+
+(package
+ (name nuscr-web)
+ (synopsis
+   "A tool to manipulate and validate Scribble-style multiparty protocols")
+ (description
+   "A toolkit to manipulate Scribble-style multiparty protocols, based on classical multiparty session type theory. The toolkit provides means to define global protocols, project to local protocols, convert local protocols to a CFSM representation, and generate OCaml code for protocol implementations.")
+ (depends
+  nuscr
+  (dune
+   (>= 1.11.4))
   (js_of_ocaml
    (>= 3.5.0))
   (js_of_ocaml-ppx
    (>= 3.5.0))
   (js_of_ocaml-tyxml
-   (>= 3.5.0))
-  (ppxlib
-   (>= 0.9.0))))
+   (>= 3.5.0))))

@@ -5,4 +5,5 @@
 (install
  (section bin)
  (files
-  (main.exe as nuscr)))
+  (main.exe as nuscr))
+ (package nuscr))
