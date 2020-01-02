@@ -18,7 +18,7 @@ depends: [
   "stdio" {>= "v0.12.0"}
   "ppx_sexp_conv" {>= "v0.12.0"}
   "ppx_inline_test" {with-test}
-  "odoc" {with-docs}
+  "odoc" {with-doc}
   "ocamlgraph" {>= "1.8.8"}
   "js_of_ocaml" {>= "3.5.0"}
   "js_of_ocaml-ppx" {>= "3.5.0"}
