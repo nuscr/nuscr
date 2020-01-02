@@ -24,7 +24,7 @@ jobs:
 
       - run:
           name: Install dependencies
-          command: opam install -bt . --deps-only
+          command: opam install -dt . --deps-only
 
       - run:
           name: Build
