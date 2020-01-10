@@ -10,6 +10,8 @@ let avoid =
     "examples/from-scribble-java/tmp/Test.scr"
   ; "examples/from-scribble-java/tmp/Test2.scr"
   ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.scr"
+  ; "examples/consensus/ClockTR.scr"
+  ; "examples/consensus/ClockAnnotTR.scr"
   ; "examples/consensus/ClockAnnotRec.scr"
   ; "examples/from-scribble-java/test/test5/Test5.scr"
   ; "examples/from-scribble-java/test/test8/Test8.scr"
