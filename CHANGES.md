@@ -1,4 +1,4 @@
-# Unreleased
+# 1.1.0 (2020-01-10)
 
 ## Added
 - Export code generation APIs in Lib
