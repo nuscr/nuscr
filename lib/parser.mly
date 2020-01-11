@@ -59,14 +59,15 @@
 %%
 
 (* pragmas -- should use pragma_lexer lexer *)
+
 let pragma_value :=
   | COLON ; v = IDENT ; { v }
 
-let one_pragma :=
+let pragma_decl :=
   | k = IDENT ; v = pragma_value? ; { k , v }
 
 let pragmas :=
-  | ps = one_pragma* ; EOI ; { ps }
+  | ps = separated_nonempty_list(COMMA, pragma_decl) ; EOI ; { ps }
 
 (* document -- should use toke lexer *)
 
