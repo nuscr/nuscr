@@ -39,6 +39,10 @@ rule line_comment = parse
 | '\n' {  new_line lexbuf ; token lexbuf }
 | _ { line_comment lexbuf }
 
+and ignore_pragma = parse
+| "#*)" { token lexbuf }
+| _ { ignore_pragma lexbuf }
+
 (* nuScr extension, nestable ml style comments *)
 and ml_style_block n = parse
 | "(*)" { ml_style_block n lexbuf }
@@ -57,14 +61,15 @@ and token = parse
 | ('\t'|' ')+ { token lexbuf}
 | ('\n'|'\r') { new_line lexbuf ; token lexbuf}
 
-(* comments *)
+(* comments and pragmas *)
 | "//" { line_comment lexbuf }
 | "(*)" { line_comment lexbuf }  (* nuScr extension: ml-style line comments *)
 | "/*" { c_style_block lexbuf }
+| "(*#" { ignore_pragma lexbuf }
 | "(*" { ml_style_block 1 lexbuf }
 
 (* pragmas *)
-| "(%.*%)" as str { PRAGMA str }
+| "(%.*%)" { token lexbuf }
 
 (* symbols *)
 | ',' { COMMA }
@@ -116,3 +121,18 @@ and token = parse
   let offset = Lexing.lexeme_start lexbuf in
   let str = Printf.sprintf "At offset %d: unexpected character('%c').\n" offset unrecog in
   LexError str |> raise }
+
+and pragma_token = parse
+(* whitespace *)
+| ('\t'|' ')+ { token lexbuf}
+| ('\n'|'\r') { new_line lexbuf ; token lexbuf}
+(* pragam structures *)
+| identifier as str { IDENT str }
+| "," { COMMA }
+| ":" { COLON }
+| "#*)" { pragma_lexer lexbuf }
+
+and pragma_lexer = parse
+| "(*#" { pragma_token lexbuf }
+| eof { EOI }
+| _ { pragma_lexer lexbuf }
