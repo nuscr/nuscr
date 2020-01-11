@@ -10,7 +10,7 @@ open Loc
 
 (* association list of pragmas *)
 
-type pragmas = (string * string option) list
+type pragmas = (string * string option) list [@@deriving show]
 
 (* a simple name *)
 module N = Name.Name
