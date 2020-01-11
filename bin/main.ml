@@ -61,6 +61,7 @@ let gen_output ast f = function
 
 let run filename verbose enumerate proj fsm gencode =
   try
+    let _pragmas = process_file filename Lib.parse_pragmas in
     let ast = process_file filename Lib.parse in
     Lib.validate_exn ast ~verbose ;
     if enumerate then

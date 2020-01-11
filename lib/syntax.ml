@@ -8,6 +8,10 @@ open Loc
  * and raw_ast =
  *   | Con of string *)
 
+(* association list of pragmas *)
+
+type pragmas = (string * string option) list
+
 (* a simple name *)
 module N = Name.Name
 

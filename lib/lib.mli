@@ -3,6 +3,15 @@ open Names
 
 (** {1 Parsing} *)
 
+(** This section deals with parsing pragmas *)
+
+val parse_pragmas_string : string -> Syntax.pragmas
+(** Parse a string into {!Syntax.pragmas}. *)
+
+val parse_pragmas : string -> Stdio.In_channel.t -> Syntax.pragmas
+(** Parse from an input channel. The first parameter is the filename, for use
+    in error messages. *)
+
 (** This section deals with parsing protocols. *)
 
 val parse_string : string -> Syntax.scr_module

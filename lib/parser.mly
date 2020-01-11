@@ -2,7 +2,6 @@
 
 %token <string>IDENT
 %token <string>EXTIDENT
-%token <string>PRAGMA
 
 %token EOI
 
@@ -41,7 +40,8 @@
 %token DO_KW
 
 (* ---------------------------------------- *)
-%start <string option * Syntax.scr_module> doc
+%start <Syntax.scr_module> doc
+%start <(string * string option) list> pragmas
 %{ open Syntax
    open Loc
    module Name = Name.Name
@@ -58,12 +58,21 @@
 %}
 %%
 
-(* document *)
+(* pragmas -- should use pragma_lexer lexer *)
+let pragma_value :=
+  | COLON ; v = IDENT ; { v }
+
+let one_pragma :=
+  | k = IDENT ; v = pragma_value? ; { k , v }
+
+let pragmas :=
+  | ps = one_pragma* ; EOI ; { ps }
+
+(* document -- should use toke lexer *)
 
 let doc :=
-  p = PRAGMA? ;
   m = scr_module ;
-  { (p, m) }
+  { m }
 
 (* modules *)
 let scr_module :=

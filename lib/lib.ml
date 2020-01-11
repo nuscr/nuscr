@@ -10,18 +10,35 @@ let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
     {lexbuf.Lexing.lex_curr_p with Lexing.pos_fname= fname} ;
   lexbuf
 
+(* pragmas *)
+let parse_pragmas_from_lexbuf lexbuf : Syntax.pragmas =
+  try Parser.pragmas Lexer.pragma_lexer lexbuf with
+  | Lexer.LexError msg -> uerr (LexerError msg)
+  | Parser.Error ->
+      let err_interval =
+        (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
+      in
+      uerr (ParserError (build err_interval))
+  | e ->
+      Err.Violation
+        ("Found a problem while parsing pragmas:" ^ Exn.to_string e)
+      |> raise
+
+let parse_pragmas fname (ch : In_channel.t) : Syntax.pragmas =
+  let lexbuf = set_filename fname (Lexing.from_channel ch) in
+  parse_pragmas_from_lexbuf lexbuf
+
+let parse_pragmas_string string = parse_pragmas_from_lexbuf @@ Lexing.from_string string
+
 let parse_from_lexbuf lexbuf : scr_module =
-  let _, m =
-    try Parser.doc Lexer.token lexbuf with
-    | Lexer.LexError msg -> uerr (LexerError msg)
-    | Parser.Error ->
-        let err_interval =
-          (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
-        in
-        uerr (ParserError (build err_interval))
-    | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
-  in
-  m
+  try Parser.doc Lexer.token lexbuf with
+  | Lexer.LexError msg -> uerr (LexerError msg)
+  | Parser.Error ->
+      let err_interval =
+        (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
+      in
+      uerr (ParserError (build err_interval))
+  | e -> Err.Violation ("Found a problem:" ^ Exn.to_string e) |> raise
 
 let parse fname (ch : In_channel.t) : scr_module =
   let lexbuf = set_filename fname (Lexing.from_channel ch) in
