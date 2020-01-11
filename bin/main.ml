@@ -59,9 +59,16 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
+let process_pragmas (pragmas : Syntax.pragmas) : unit =
+  Syntax.show_pragmas pragmas |> print_endline ;
+  match List.find ~f:(fun p -> String.(=) (fst p) "PrintPragmas") pragmas with
+  | Some _ -> print_endline "A pragma requested printing"
+  | _ -> ()
+
 let run filename verbose enumerate proj fsm gencode =
   try
-    let _pragmas = process_file filename Lib.parse_pragmas in
+    let pragmas = process_file filename Lib.parse_pragmas in
+    process_pragmas pragmas ;
     let ast = process_file filename Lib.parse in
     Lib.validate_exn ast ~verbose ;
     if enumerate then
