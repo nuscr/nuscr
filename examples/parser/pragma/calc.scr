@@ -1,5 +1,4 @@
-
-(*# SamplePragma, AnotherPragma: Value, PrintPragmas #*)
+(*# SamplePragma, AnotherPragma : WithValue, PrintPragmas #*)
 
 global protocol Calc(role S , role C ) {
   rec Loop {

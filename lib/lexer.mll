@@ -68,9 +68,6 @@ and token = parse
 | "(*#" { ignore_pragma lexbuf }
 | "(*" { ml_style_block 1 lexbuf }
 
-(* pragmas *)
-| "(%.*%)" { token lexbuf }
-
 (* symbols *)
 | ',' { COMMA }
 | ';' { SEMICOLON }
@@ -124,8 +121,8 @@ and token = parse
 
 and pragma_token = parse
 (* whitespace *)
-| ('\t'|' ')+ { token lexbuf}
-| ('\n'|'\r') { new_line lexbuf ; token lexbuf}
+| ('\t'|' ')+ { pragma_token lexbuf}
+| ('\n'|'\r') { new_line lexbuf ; pragma_token lexbuf}
 (* pragam structures *)
 | identifier as str { IDENT str }
 | "," { COMMA }
