@@ -3,12 +3,13 @@ open Printf
 open Syntax
 open Loc
 open Err
+open Names
 
 type t =
-  | MessageG of message * name * name * t
-  | MuG of name * t
-  | TVarG of name
-  | ChoiceG of name * t list
+  | MessageG of message * RoleName.t * RoleName.t * t
+  | MuG of TypeVariableName.t * t
+  | TVarG of TypeVariableName.t
+  | ChoiceG of RoleName.t * t list
   | EndG
 
 let show =
@@ -18,17 +19,18 @@ let show =
     function
     | MessageG (m, r1, r2, g) ->
         sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m)
-          (Name.user r1) (Name.user r2)
+          (RoleName.user r1) (RoleName.user r2)
           (show_global_type_internal indent g)
     | MuG (n, g) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent (Name.user n)
+        sprintf "%srec %s {\n%s%s}\n" current_indent
+          (TypeVariableName.user n)
           (show_global_type_internal (indent + 1) g)
           current_indent
-    | TVarG n -> sprintf "%s%s\n" current_indent (Name.user n)
+    | TVarG n -> sprintf "%s%s\n" current_indent (TypeVariableName.user n)
     | EndG -> sprintf "%send\n" current_indent
     | ChoiceG (r, gs) ->
         let pre =
-          sprintf "%schoice at %s {\n" current_indent (Name.user r)
+          sprintf "%schoice at %s {\n" current_indent (RoleName.user r)
         in
         let intermission = sprintf "%s} or {\n" current_indent in
         let post = sprintf "%s}\n" current_indent in
@@ -42,11 +44,13 @@ let show =
 
 let of_protocol global_protocol =
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
+  let roles = List.map ~f:RoleName.of_name roles in
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
   let check_role r =
-    if not @@ List.mem roles r ~equal:Name.equal then uerr @@ UnboundRole r
+    if not @@ List.mem roles r ~equal:RoleName.equal then
+      uerr @@ UnboundRole r
   in
   let rec conv_interactions rec_names
       (interactions : global_interaction list) =
@@ -55,25 +59,30 @@ let of_protocol global_protocol =
     | {value; _} :: rest -> (
       match value with
       | MessageTransfer {message; from_role; to_roles; _} ->
+          let from_role = RoleName.of_name from_role in
+          let to_roles = List.map ~f:RoleName.of_name to_roles in
           check_role from_role ;
           let init = conv_interactions rec_names rest in
           let f to_role acc =
             check_role to_role ;
-            if Name.equal from_role to_role then
+            if RoleName.equal from_role to_role then
               uerr (ReflexiveMessage from_role) ;
             MessageG (message, from_role, to_role, acc)
           in
           List.fold_right ~f ~init to_roles
       | Recursion (rname, interactions) ->
-          if List.mem rec_names rname ~equal:Name.equal then
+          let rname = TypeVariableName.of_name rname in
+          if List.mem rec_names rname ~equal:TypeVariableName.equal then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
           MuG (rname, conv_interactions (rname :: rec_names) interactions)
       | Continue name ->
-          if List.mem rec_names name ~equal:Name.equal then (
+          let name = TypeVariableName.of_name name in
+          if List.mem rec_names name ~equal:TypeVariableName.equal then (
             assert_empty rest ; TVarG name )
           else uerr (UnboundRecursionName name)
       | Choice (role, interactions_list) ->
+          let role = RoleName.of_name role in
           assert_empty rest ;
           check_role role ;
           ChoiceG
@@ -89,7 +98,8 @@ let rec flatten = function
   | ChoiceG (role, choices) ->
       let choices = List.map ~f:flatten choices in
       let lift = function
-        | ChoiceG (role_, choices_) when Name.equal role role_ -> choices_
+        | ChoiceG (role_, choices_) when RoleName.equal role role_ ->
+            choices_
         | ChoiceG (role_, _choices) ->
             uerr (InconsistentNestedChoice (role, role_))
         | g -> [g]
@@ -99,9 +109,9 @@ let rec flatten = function
 
 let rec substitute g tvar g_sub =
   match g with
-  | TVarG tvar_ when Name.equal tvar tvar_ -> g_sub
+  | TVarG tvar_ when TypeVariableName.equal tvar tvar_ -> g_sub
   | TVarG _ -> g
-  | MuG (tvar_, _) when Name.equal tvar tvar_ -> g
+  | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
   | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
   | EndG -> EndG
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)

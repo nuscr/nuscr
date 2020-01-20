@@ -3,13 +3,14 @@ open Printf
 open Syntax
 open Gtype
 open Err
+open Names
 
 type t =
-  | RecvL of message * Name.t * t
-  | SendL of message * Name.t * t
-  | ChoiceL of Name.t * t list
-  | TVarL of Name.t
-  | MuL of Name.t * t
+  | RecvL of message * RoleName.t * t
+  | SendL of message * RoleName.t * t
+  | ChoiceL of RoleName.t * t list
+  | TVarL of TypeVariableName.t
+  | MuL of TypeVariableName.t * t
   | EndL
 [@@deriving sexp_of, eq]
 
@@ -20,21 +21,22 @@ let show =
     function
     | RecvL (m, r, l) ->
         sprintf "%s%s from %s;\n%s" current_indent (show_message m)
-          (Name.user r)
+          (RoleName.user r)
           (show_local_type_internal indent l)
     | SendL (m, r, l) ->
         sprintf "%s%s to %s;\n%s" current_indent (show_message m)
-          (Name.user r)
+          (RoleName.user r)
           (show_local_type_internal indent l)
     | MuL (n, l) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent (Name.user n)
+        sprintf "%srec %s {\n%s%s}\n" current_indent
+          (TypeVariableName.user n)
           (show_local_type_internal (indent + 1) l)
           current_indent
-    | TVarL n -> sprintf "%s%s\n" current_indent (Name.user n)
+    | TVarL n -> sprintf "%s%s\n" current_indent (TypeVariableName.user n)
     | EndL -> sprintf "%send\n" current_indent
     | ChoiceL (r, ls) ->
         let pre =
-          sprintf "%schoice at %s {\n" current_indent (Name.user r)
+          sprintf "%schoice at %s {\n" current_indent (RoleName.user r)
         in
         let intermission = sprintf "%s} or {\n" current_indent in
         let post = sprintf "%s}\n" current_indent in
@@ -79,15 +81,15 @@ let rec merge projected_role lty1 lty2 =
     in
     match (lty1, lty2) with
     | RecvL (_, r1, _), RecvL (_, r2, _) ->
-        if not @@ Name.equal r1 r2 then fail () ;
+        if not @@ RoleName.equal r1 r2 then fail () ;
         merge_recv r1 [lty1; lty2]
-    | ChoiceL (r1, ltys1), RecvL (_, r2, _) when Name.equal r1 r2 ->
+    | ChoiceL (r1, ltys1), RecvL (_, r2, _) when RoleName.equal r1 r2 ->
         (* Choice is a set of receive *)
         merge_recv r1 (lty2 :: ltys1)
-    | RecvL (_, r2, _), ChoiceL (r1, ltys2) when Name.equal r1 r2 ->
+    | RecvL (_, r2, _), ChoiceL (r1, ltys2) when RoleName.equal r1 r2 ->
         merge_recv r1 (lty1 :: ltys2)
     | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
-      when Name.equal r1 r2 && not (Name.equal r1 projected_role) ->
+      when RoleName.equal r1 r2 && not (RoleName.equal r1 projected_role) ->
         merge_recv r1 (ltys1 @ ltys2)
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
@@ -98,12 +100,12 @@ let rec merge projected_role lty1 lty2 =
    if recv_r is Some; return receive role *)
 let check_consistent_gchoice choice_r recv_r = function
   | MessageG (_, send_r, recv_r_, _) -> (
-      if not @@ Name.equal send_r choice_r then
+      if not @@ RoleName.equal send_r choice_r then
         uerr (RoleMismatch (choice_r, send_r)) ;
       match recv_r with
       | None -> Some recv_r_
       | Some recv_r ->
-          if not @@ Name.equal recv_r recv_r_ then
+          if not @@ RoleName.equal recv_r recv_r_ then
             uerr (RoleMismatch (recv_r, recv_r_)) ;
           Some recv_r )
   | _ ->
@@ -111,7 +113,7 @@ let check_consistent_gchoice choice_r recv_r = function
         (Violation
            "Normalised global type always has a message in choice branches")
 
-let rec project (projected_role : name) = function
+let rec project (projected_role : RoleName.t) = function
   | EndG -> EndL
   | TVarG name -> TVarL name
   | MuG (name, g_type) -> (
@@ -121,8 +123,8 @@ let rec project (projected_role : name) = function
   | MessageG (m, send_r, recv_r, g_type) -> (
       let next = project projected_role g_type in
       match projected_role with
-      | _ when Name.equal projected_role send_r -> SendL (m, recv_r, next)
-      | _ when Name.equal projected_role recv_r -> RecvL (m, send_r, next)
+      | _ when RoleName.equal projected_role send_r -> SendL (m, recv_r, next)
+      | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
       | _ -> next )
   | ChoiceG (choice_r, g_types) -> (
       let check_distinct_prefix gtys =
@@ -149,8 +151,8 @@ let rec project (projected_role : name) = function
       in
       match projected_role with
       | _
-        when Name.equal projected_role choice_r
-             || Name.equal projected_role recv_r ->
+        when RoleName.equal projected_role choice_r
+             || RoleName.equal projected_role recv_r ->
           ChoiceL (choice_r, l_types)
       | _ -> (
         match List.reduce ~f:(merge projected_role) l_types with

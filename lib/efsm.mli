@@ -1,11 +1,12 @@
 (** Endpoint finite state machines (EFSM) *)
 
 open Syntax
+open Names
 
 (** Transitions in the EFSM *)
 type action =
-  | SendA of name * message  (** Sending a [message] to [name] *)
-  | RecvA of name * message  (** Receiving a [message] from [name] *)
+  | SendA of RoleName.t * message  (** Sending a [message] to [name] *)
+  | RecvA of RoleName.t * message  (** Receiving a [message] from [name] *)
   | Epsilon  (** Not used *)
 
 type state = int

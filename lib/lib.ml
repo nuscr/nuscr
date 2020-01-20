@@ -3,6 +3,7 @@ open! Stdio
 open Loc
 open Syntax
 open Err
+open Names
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
@@ -45,7 +46,8 @@ let validate_exn (ast : scr_module) ~verbose : unit =
   show ~sep:"\n" ~f:(fun (g, _) -> Gtype.show g) g_types ;
   let l_types =
     List.map
-      ~f:(fun (g, roles) -> List.map ~f:(fun r -> Ltype.project r g) roles)
+      ~f:(fun (g, roles) ->
+        List.map ~f:(fun r -> Ltype.project (RoleName.of_name r) g) roles)
       g_types
   in
   show ~sep:"\n"
@@ -57,18 +59,21 @@ let validate_exn (ast : scr_module) ~verbose : unit =
       String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
     efsmss
 
-let enumerate (ast : scr_module) : (name * name) list =
+let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
   let protocols = ast.protocols in
   let roles p =
     let {value= {name; roles; _}; _} = p in
-    List.map ~f:(fun role -> (name, role)) roles
+    List.map
+      ~f:(fun role -> (ProtocolName.of_name name, RoleName.of_name role))
+      roles
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
 let project_role ast ~protocol ~role : Ltype.t =
   let gp =
     List.find_exn
-      ~f:(fun gt -> Name.equal gt.value.name protocol)
+      ~f:(fun gt ->
+        ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol)
       ast.protocols
   in
   let gp = Protocol.expand_global_protocol ast gp in

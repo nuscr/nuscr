@@ -1,14 +1,15 @@
 (* nuScr live *)
 open Js_of_ocaml
 open Nuscrlib
+open Names
 module Html = Dom_html
 module T = Js_of_ocaml_tyxml.Tyxml_js.Html
 open Js_of_ocaml_tyxml.Tyxml_js
 module W = Webutils
 
 let show_protocol_role protocol role =
-  let protocol = Name.user protocol in
-  let role = Name.user role in
+  let protocol = ProtocolName.user protocol in
+  let role = RoleName.user role in
   Printf.sprintf "%s@%s" role protocol
 
 let project scr (name, role) =
@@ -25,17 +26,17 @@ let fsm scr (name, role) =
   let dot = Efsm.show fsm in
   Interface.Graph.set_dot dot
 
-let display_role scr (name, protocol) =
+let display_role scr (protocol, role) =
   let lk_p =
     Of_dom.of_anchor
-      (W.make_link (fun () -> project scr (name, protocol)) "Project")
+      (W.make_link (fun () -> project scr (protocol, role)) "Project")
   in
   let lk_f =
-    Of_dom.of_anchor (W.make_link (fun () -> fsm scr (name, protocol)) "FSM")
+    Of_dom.of_anchor (W.make_link (fun () -> fsm scr (protocol, role)) "FSM")
   in
   T.(
     li
-      [ txt (show_protocol_role protocol name)
+      [ txt (show_protocol_role protocol role)
       ; txt " [ "
       ; lk_p
       ; txt " ] "

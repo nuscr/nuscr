@@ -1,11 +1,12 @@
 open Base
 open Stdio
 open Nuscrlib
+open Names
 
 let parse_role_protocol_exn rp =
-  let nos = Name.of_string in
   match String.split rp ~on:'@' with
-  | [role; protocol] -> Some (nos role, nos protocol)
+  | [role; protocol] ->
+      Some (RoleName.of_string role, ProtocolName.of_string protocol)
   | _ ->
       Err.UserError
         (InvalidCommandLineParam
@@ -20,11 +21,11 @@ let version = ref false
 
 let help = ref false
 
-let fsm : (Syntax.name * Syntax.name) option ref = ref None
+let fsm : (RoleName.t * ProtocolName.t) option ref = ref None
 
-let project : (Syntax.name * Syntax.name) option ref = ref None
+let project : (RoleName.t * ProtocolName.t) option ref = ref None
 
-let gencode : (Syntax.name * Syntax.name) option ref = ref None
+let gencode : (RoleName.t * ProtocolName.t) option ref = ref None
 
 let argspec =
   let open Caml in
@@ -64,7 +65,8 @@ let run filename verbose enumerate proj fsm gencode =
     Lib.validate_exn ast ~verbose ;
     if enumerate then
       Lib.enumerate ast
-      |> List.map ~f:(fun (n, r) -> Name.user r ^ "@" ^ Name.user n)
+      |> List.map ~f:(fun (n, r) ->
+             RoleName.user r ^ "@" ^ ProtocolName.user n)
       |> String.concat ~sep:"\n" |> print_endline
     else () ;
     gen_output ast
