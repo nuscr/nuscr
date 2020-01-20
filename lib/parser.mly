@@ -43,6 +43,7 @@
 %start <Syntax.scr_module> scr_module
 %{ open Syntax
    open Loc
+   module Name = Name.Name_M
 
   type name_or_qname = SimplName of Name.t | QName of qname
 

@@ -1,3 +1,4 @@
+open Names
 (** Main entry point of the library *)
 
 (** {1 Parsing} *)
@@ -20,24 +21,31 @@ val validate_exn : Syntax.scr_module -> verbose:bool -> unit
 
 (** {1 Other operations} *)
 
-val enumerate : Syntax.scr_module -> (Name.t * Name.t) list
+val enumerate : Syntax.scr_module -> (ProtocolName.t * RoleName.t) list
 (** [enumerate module] enumrates the roles occurring in [module]. The output
     is a list of pair [(protocol, role-name)]. *)
 
 val project_role :
-  Syntax.scr_module -> protocol:Name.t -> role:Name.t -> Ltype.t
+  Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> Ltype.t
 (** [project_role module protocol role] computes the local type for role
     [role] in the protocol [protocol]. *)
 
 val generate_fsm :
-  Syntax.scr_module -> protocol:Name.t -> role:Name.t -> Efsm.state * Efsm.t
+     Syntax.scr_module
+  -> protocol:ProtocolName.t
+  -> role:RoleName.t
+  -> Efsm.state * Efsm.t
 (** [generate_fsm module protocol role] computes the finite state machine of
     role [role] in protocol [protocol], in module [module]. It returns a pair
     [(v, g)] where [g] is the graph describing the fsm, and [v] is the root
     index. *)
 
 val generate_code :
-  monad:bool -> Syntax.scr_module -> protocol:Name.t -> role:Name.t -> string
+     monad:bool
+  -> Syntax.scr_module
+  -> protocol:ProtocolName.t
+  -> role:RoleName.t
+  -> string
 (** [generate_code ~monad module protocol role] generates event-style OCaml
     code for the [role] in [protocol], inside a [module] [monad] indicates
     whether the generated code uses a monad for transport (e.g. Lwt, Async) *)
@@ -45,8 +53,8 @@ val generate_code :
 val generate_ast :
      monad:bool
   -> Syntax.scr_module
-  -> protocol:Name.t
-  -> role:Name.t
+  -> protocol:ProtocolName.t
+  -> role:RoleName.t
   -> Ppxlib_ast.Parsetree.structure
 (** [generate_ast ~monad module protocol role] is similar to [generate_code],
     except it returns an AST instead of a string *)

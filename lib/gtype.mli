@@ -1,15 +1,16 @@
 open Syntax
+open Names
 
 (** Global types *)
 
 (** The type of global types *)
 type t =
-  | MessageG of message * name * name * t
+  | MessageG of message * RoleName.t * RoleName.t * t
       (** [MessageG (msg, sender, receiver, t)] starts by sending message
           [msg] from [sender] to [receiver] and continues as [t] *)
-  | MuG of name * t  (** Fixpoint *)
-  | TVarG of name  (** Recursive variable *)
-  | ChoiceG of name * t list
+  | MuG of TypeVariableName.t * t  (** Fixpoint *)
+  | TVarG of TypeVariableName.t  (** Recursive variable *)
+  | ChoiceG of RoleName.t * t list
       (** [ChoiceG (name, ts)] expresses a choice located at participant
           [name] between the [ts] *)
   | EndG  (** Empty global type *)

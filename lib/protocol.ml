@@ -2,6 +2,7 @@ open! Base
 open Syntax
 open Loc
 open Err
+module Name = Name.Name_M
 
 let rec swap_role swap_role_f {value; loc} =
   let value =
@@ -56,7 +57,8 @@ let mk_protocol_map scr_module =
     | `Ok acc -> acc
     | `Duplicate ->
         let _, old_loc, _ = Map.find_exn acc (Name.user p.name) in
-        uerr (RedefinedProtocol (p.name, loc, old_loc))
+        uerr
+          (RedefinedProtocol (Names.ProtocolName.of_name p.name, loc, old_loc))
   in
   let protocols =
     List.fold ~f ~init:(Map.empty (module String)) scr_module.protocols
@@ -65,7 +67,7 @@ let mk_protocol_map scr_module =
 
 module ProtocolCall = struct
   module T = struct
-    type t = Name.t * Name.t list
+    type t = Syntax.name * Syntax.name list
 
     let compare (protocol1, roles1) (protocol2, roles2) =
       let cmp_protocol = Name.compare protocol1 protocol2 in
@@ -87,7 +89,7 @@ let expand_global_protocol (scr_module : scr_module)
   let known_roles = protocol.value.roles in
   let check_role r =
     if List.mem known_roles ~equal:Name.equal r then ()
-    else uerr (UnboundRole r)
+    else uerr (UnboundRole (Names.RoleName.of_name r))
   in
   let maybe_add_recursion ~loc ~known (name, roles) interactions =
     let has_recursion = Map.find_exn known (name, roles) in
@@ -117,10 +119,13 @@ let expand_global_protocol (scr_module : scr_module)
           let protocol_to_expand, _, arity =
             match protocol_to_expand with
             | Some p -> p
-            | None -> uerr (UnboundProtocol name)
+            | None ->
+                uerr (UnboundProtocol (Names.ProtocolName.of_name name))
           in
           if List.length roles <> arity then
-            uerr (ArityMismatch (name, arity, List.length roles)) ;
+            uerr
+              (ArityMismatch
+                 (Names.ProtocolName.of_name name, arity, List.length roles)) ;
           List.iter ~f:check_role roles ;
           let known = Map.add_exn known ~key:(name, roles) ~data:false in
           let known, interactions =

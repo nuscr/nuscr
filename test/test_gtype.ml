@@ -18,30 +18,32 @@ open Gtype
  *   Poly.equal (flatten before) after
  *)
 
+module Name = Name.Name_M
+open Names
+
 let%test "Normal Form Example" =
   let nos = Name.of_string in
+  let rnos = RoleName.of_string in
+  let tvnos = TypeVariableName.of_string in
   let mkMsg name = Message {name= nos name; payload= []} in
   let m1 = mkMsg "m1" in
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
-  let mkMG m c = MessageG (m, nos "A", nos "B", c) in
+  let a = rnos "A" in
+  let b = rnos "B" in
+  let loop = tvnos "Loop" in
+  let mkMG m c = MessageG (m, a, b, c) in
   let before =
     ChoiceG
-      ( nos "A"
-      , [ MuG
-            ( nos "Loop"
-            , ChoiceG (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG])
-            )
+      ( a
+      , [ MuG (loop, ChoiceG (a, [mkMG m1 (TVarG loop); mkMG m2 EndG]))
         ; mkMG m3 EndG ] )
   in
   let after =
     ChoiceG
-      ( nos "A"
+      ( a
       , [ mkMG m1
-            (MuG
-               ( nos "Loop"
-               , ChoiceG
-                   (nos "A", [mkMG m1 (TVarG (nos "Loop")); mkMG m2 EndG]) ))
+            (MuG (loop, ChoiceG (a, [mkMG m1 (TVarG loop); mkMG m2 EndG])))
         ; mkMG m2 EndG
         ; mkMG m3 EndG ] )
   in

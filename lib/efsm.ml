@@ -2,14 +2,18 @@ open! Base
 open Printf
 open Syntax
 open Ltype
+open Names
 open Graph
 
-type action = SendA of name * message | RecvA of name * message | Epsilon
+type action =
+  | SendA of RoleName.t * message
+  | RecvA of RoleName.t * message
+  | Epsilon
 [@@deriving ord]
 
 let show_action = function
-  | SendA (r, msg) -> sprintf "%s!%s" (Name.user r) (show_message msg)
-  | RecvA (r, msg) -> sprintf "%s?%s" (Name.user r) (show_message msg)
+  | SendA (r, msg) -> sprintf "%s!%s" (RoleName.user r) (show_message msg)
+  | RecvA (r, msg) -> sprintf "%s?%s" (RoleName.user r) (show_message msg)
   | Epsilon -> "ε"
 
 module Label = struct
@@ -46,7 +50,7 @@ end
 
 module DotOutput = Graphviz.Dot (Display)
 
-type conv_env = {g: G.t; tyvars: (name * int) list}
+type conv_env = {g: G.t; tyvars: (TypeVariableName.t * int) list}
 
 let init_conv_env = {g= G.empty; tyvars= []}
 
@@ -117,7 +121,8 @@ let of_local_type lty =
         let env, curr = conv_ltype_aux env l in
         let g = merge_state env.g curr new_st in
         ({old_env with g}, curr)
-    | TVarL tv -> (env, List.Assoc.find_exn ~equal:Name.equal env.tyvars tv)
+    | TVarL tv ->
+        (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
   in
   let env, start = conv_ltype_aux init_conv_env lty in
   (start, env.g)

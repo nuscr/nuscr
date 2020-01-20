@@ -1,22 +1,22 @@
 open! Base
 open Loc
-open Syntax
+open Names
 
 type user_error =
   | LexerError of string
   | ParserError of source_loc
-  | UnboundRecursionName of name
-  | RedefinedRecursionName of string * source_loc * source_loc
+  | UnboundRecursionName of TypeVariableName.t
+  | RedefinedRecursionName of TypeVariableName.t * source_loc * source_loc
   | Uncategorised of string
   | InvalidCommandLineParam of string
-  | UnboundRole of name
-  | ReflexiveMessage of name
+  | UnboundRole of RoleName.t
+  | ReflexiveMessage of RoleName.t
   | UnableToMerge of string
-  | RedefinedProtocol of name * source_loc * source_loc
-  | UnboundProtocol of name
-  | ArityMismatch of name * int * int
-  | InconsistentNestedChoice of name * name
-  | RoleMismatch of name * name
+  | RedefinedProtocol of ProtocolName.t * source_loc * source_loc
+  | UnboundProtocol of ProtocolName.t
+  | ArityMismatch of ProtocolName.t * int * int
+  | InconsistentNestedChoice of RoleName.t * RoleName.t
+  | RoleMismatch of RoleName.t * RoleName.t
   | DuplicateLabel of string
 [@@deriving sexp_of]
 
@@ -29,39 +29,41 @@ let show_user_error = function
   | ParserError interval ->
       "Parser error: An error occurred at " ^ show_source_loc interval
   | UnboundRecursionName n ->
-      "Unbound name " ^ Name.user n ^ " in `continue` at "
-      ^ show_source_loc (Name.where n)
+      "Unbound name " ^ TypeVariableName.user n ^ " in `continue` at "
+      ^ show_source_loc (TypeVariableName.where n)
   | RedefinedRecursionName (name, interval1, interval2) ->
-      "Redefined name " ^ name ^ " of `rec` at " ^ show_source_loc interval1
-      ^ " and " ^ show_source_loc interval2
+      "Redefined name "
+      ^ TypeVariableName.user name
+      ^ " of `rec` at " ^ show_source_loc interval1 ^ " and "
+      ^ show_source_loc interval2
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole r ->
-      "Unbound role " ^ Name.user r ^ " at " ^ show_source_loc
-      @@ Name.where r
+      "Unbound role " ^ RoleName.user r ^ " at " ^ show_source_loc
+      @@ RoleName.where r
   | ReflexiveMessage r ->
-      "Reflexive message of Role " ^ Name.user r ^ " at " ^ show_source_loc
-      @@ Name.where r
+      "Reflexive message of Role " ^ RoleName.user r ^ " at "
+      ^ show_source_loc @@ RoleName.where r
   | UnableToMerge s -> "Unable to merge: " ^ s
   | RedefinedProtocol (name, interval1, interval2) ->
-      "Redefined protocol " ^ Name.user name ^ " at "
+      "Redefined protocol " ^ ProtocolName.user name ^ " at "
       ^ show_source_loc interval1 ^ " and " ^ show_source_loc interval2
   | UnboundProtocol p ->
-      "Unbound protocol call " ^ Name.user p ^ " at " ^ show_source_loc
-      @@ Name.where p
+      "Unbound protocol call " ^ ProtocolName.user p ^ " at "
+      ^ show_source_loc @@ ProtocolName.where p
   | ArityMismatch (p, expected, actual) ->
-      "Protocol arity mismatch, " ^ Name.user p ^ " requires "
+      "Protocol arity mismatch, " ^ ProtocolName.user p ^ " requires "
       ^ Int.to_string expected ^ " roles, but " ^ Int.to_string actual
       ^ " is given"
   | InconsistentNestedChoice (r1, r2) ->
-      "Inconsistent nested choice, a choice at " ^ Name.user r1 ^ " at "
-      ^ show_source_loc (Name.where r1)
-      ^ " cannot be followed with a choice at " ^ Name.user r2 ^ " at "
-      ^ show_source_loc (Name.where r2)
+      "Inconsistent nested choice, a choice at " ^ RoleName.user r1 ^ " at "
+      ^ show_source_loc (RoleName.where r1)
+      ^ " cannot be followed with a choice at " ^ RoleName.user r2 ^ " at "
+      ^ show_source_loc (RoleName.where r2)
   | RoleMismatch (expected, actual) ->
-      "Expecting role " ^ Name.user expected ^ ", but got "
-      ^ Name.user actual ^ " at "
-      ^ show_source_loc (Name.where actual)
+      "Expecting role " ^ RoleName.user expected ^ ", but got "
+      ^ RoleName.user actual ^ " at "
+      ^ show_source_loc (RoleName.where actual)
   | DuplicateLabel l ->
       "Duplicate label " ^ l ^ " in choices. (Location unavailable)"
 
