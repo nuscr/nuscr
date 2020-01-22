@@ -28,7 +28,8 @@ let parse_pragmas fname (ch : In_channel.t) : Syntax.pragmas =
   let lexbuf = set_filename fname (Lexing.from_channel ch) in
   parse_pragmas_from_lexbuf lexbuf
 
-let parse_pragmas_string string = parse_pragmas_from_lexbuf @@ Lexing.from_string string
+let parse_pragmas_string string =
+  parse_pragmas_from_lexbuf @@ Lexing.from_string string
 
 let parse_from_lexbuf lexbuf : scr_module =
   try Parser.doc Lexer.token lexbuf with

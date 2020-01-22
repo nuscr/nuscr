@@ -3,6 +3,13 @@ open Stdio
 open Nuscrlib
 open Names
 
+let version_string () = "%%VERSION%%"
+
+let usage () =
+  "usage: "
+  ^ (Sys.get_argv ()).(0)
+  ^ " [-enum][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
+
 let parse_role_protocol_exn rp =
   match String.split rp ~on:'@' with
   | [role; protocol] ->
@@ -60,9 +67,10 @@ let gen_output ast f = function
   | _ -> ()
 
 let process_pragmas (pragmas : Syntax.pragmas) : unit =
-  Syntax.show_pragmas pragmas |> print_endline ;
-  match List.find ~f:(fun p -> String.(=) (fst p) "PrintPragmas") pragmas with
-  | Some _ -> print_endline "A pragma requested printing"
+  match
+    List.find ~f:(fun p -> String.( = ) (fst p) "PrintUsage") pragmas
+  with
+  | Some _ -> usage () |> print_endline
   | _ -> ()
 
 let run filename verbose enumerate proj fsm gencode =
@@ -104,13 +112,6 @@ let run filename verbose enumerate proj fsm gencode =
   | e ->
       "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
       false
-
-let usage () =
-  "usage: "
-  ^ (Sys.get_argv ()).(0)
-  ^ " [-enum][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
-
-let version_string () = "%%VERSION%%"
 
 let () =
   let filename = ref "" in
