@@ -3,6 +3,10 @@
   open Parser
 
   exception LexError of string
+
+  (* State for the pragma lexer to distinguish btw reading a pragma and
+     skipping the program *)
+  let in_pragma = ref false
 }
 
 (* some definitions of character classes *)
@@ -119,17 +123,20 @@ and token = parse
   let str = Printf.sprintf "At offset %d: unexpected character('%c').\n" offset unrecog in
   LexError str |> raise }
 
-and pragma_token = parse
-(* whitespace *)
-| ('\t'|' ')+ { pragma_token lexbuf}
-| ('\n'|'\r') { new_line lexbuf ; pragma_token lexbuf}
-(* pragam structures *)
-| identifier as str { IDENT str }
-| "," { COMMA }
-| ":" { COLON }
-| "#*)" { pragma_lexer lexbuf }
-
 and pragma_lexer = parse
-| "(*#" { pragma_token lexbuf }
+(* whitespace *)
+| ('\t'|' ')+ { pragma_lexer lexbuf}
+| ('\n'|'\r') { new_line lexbuf ; pragma_lexer lexbuf}
+(* pragam structures *)
+| identifier as str
+  { if !in_pragma then IDENT str else pragma_lexer lexbuf }
+| ","
+  { if !in_pragma then COMMA else pragma_lexer lexbuf }
+| ":"
+  { if !in_pragma then COLON else pragma_lexer lexbuf }
+| "#*)" {  in_pragma := false ; pragma_lexer lexbuf }
+
+
+| "(*#" { in_pragma := true ; pragma_lexer lexbuf }
 | eof { EOI }
 | _ { pragma_lexer lexbuf }
