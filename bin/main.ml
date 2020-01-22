@@ -66,10 +66,9 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-
 let process_pragmas (pragmas : Syntax.pragmas) : unit =
   let process_global_pragma (k, v) =
-    match k, v with
+    match (k, v) with
     | "PrintUsage", _ -> usage () |> print_endline
     | "ShowPragmas", _ -> Syntax.show_pragmas pragmas |> print_endline
     | _ -> ()
