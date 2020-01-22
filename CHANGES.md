@@ -17,6 +17,7 @@
 
 ## Added
 - Export code generation APIs in Lib
+- Added support for pragmas in code
 
 ## Changed
 - Modernised Web Interface
