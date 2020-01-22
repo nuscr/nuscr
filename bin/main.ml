@@ -66,12 +66,15 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
+
 let process_pragmas (pragmas : Syntax.pragmas) : unit =
-  match
-    List.find ~f:(fun p -> String.( = ) (fst p) "PrintUsage") pragmas
-  with
-  | Some _ -> usage () |> print_endline
-  | _ -> ()
+  let process_global_pragma (k, v) =
+    match k, v with
+    | "PrintUsage", _ -> usage () |> print_endline
+    | "ShowPragmas", _ -> Syntax.show_pragmas pragmas |> print_endline
+    | _ -> ()
+  in
+  List.iter ~f:process_global_pragma pragmas
 
 let run filename verbose enumerate proj fsm gencode =
   try
