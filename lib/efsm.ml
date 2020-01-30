@@ -1,19 +1,20 @@
 open! Base
 open Printf
-open Syntax
 open Ltype
 open Names
 open Graph
 
 type action =
-  | SendA of RoleName.t * message
-  | RecvA of RoleName.t * message
+  | SendA of RoleName.t * Gtype.message
+  | RecvA of RoleName.t * Gtype.message
   | Epsilon
 [@@deriving ord]
 
 let show_action = function
-  | SendA (r, msg) -> sprintf "%s!%s" (RoleName.user r) (show_message msg)
-  | RecvA (r, msg) -> sprintf "%s?%s" (RoleName.user r) (show_message msg)
+  | SendA (r, msg) ->
+      sprintf "%s!%s" (RoleName.user r) (Gtype.show_message msg)
+  | RecvA (r, msg) ->
+      sprintf "%s?%s" (RoleName.user r) (Gtype.show_message msg)
   | Epsilon -> "ε"
 
 module Label = struct

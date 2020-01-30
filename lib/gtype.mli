@@ -1,7 +1,14 @@
-open Syntax
 open Names
 
 (** Global types *)
+
+type payload =
+  | PValue of VariableName.t option * PayloadTypeName.t
+  | PDelegate of ProtocolName.t * RoleName.t
+[@@deriving eq, sexp_of, show, ord]
+
+type message = {label: LabelName.t; payload: payload list}
+[@@deriving eq, sexp_of, show, ord]
 
 (** The type of global types *)
 type t =
@@ -18,7 +25,7 @@ type t =
 val show : t -> string
 (** Provides a textual representation of a global type *)
 
-val of_protocol : raw_global_protocol Loc.located -> t
+val of_protocol : Syntax.global_protocol -> t
 (** Turn a raw protocol (from the parser) into a global type *)
 
 val normalise : t -> t

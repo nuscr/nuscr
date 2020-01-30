@@ -6,7 +6,6 @@ open Asttypes
 open Longident
 open! Ast_helper
 module S = Set
-open Syntax
 open Names
 open Efsm
 
@@ -48,14 +47,21 @@ let mk_receive_callback st label = sprintf "state%dReceive%s" st label
 
 let mk_send_callback st = sprintf "state%dSend" st
 
-let process_msg msg =
-  let label = message_label msg in
-  let payload_type = message_payload_ty msg in
+let payload_values payload =
+  let f = function
+    | Gtype.PValue (_, ty) -> PayloadTypeName.user ty
+    | _ -> raise (Err.Violation "Delegation is not supported")
+  in
+  List.map ~f payload
+
+let process_msg (msg : Gtype.message) =
+  let {Gtype.label; Gtype.payload} = msg in
+  let payload_values = payload_values payload in
   let payload_type =
-    match payload_type with
+    match payload_values with
     | [] -> unit
     | [x] -> mk_constr x
-    | _ -> Typ.tuple (List.map ~f:mk_constr payload_type)
+    | _ -> Typ.tuple (List.map ~f:mk_constr payload_values)
   in
   (label, payload_type)
 
@@ -72,7 +78,10 @@ let gen_callback_module (g : G.t) : structure_item =
               let label, payload_type = process_msg msg in
               let row =
                 mk_variant
-                  (Rtag (Location.mknoloc label, true, [payload_type]))
+                  (Rtag
+                     ( Location.mknoloc (LabelName.user label)
+                     , true
+                     , [payload_type] ))
               in
               row :: acc
           | _ -> failwith "Impossible"
@@ -92,7 +101,7 @@ let gen_callback_module (g : G.t) : structure_item =
           | RecvA (_, msg) ->
               let label, payload_type = process_msg msg in
               let ty = [%type: [%t env] -> [%t payload_type] -> [%t env]] in
-              let name = mk_receive_callback st label in
+              let name = mk_receive_callback st (LabelName.user label) in
               let val_ = Val.mk (Location.mknoloc name) ty in
               val_ :: callbacks
           | _ -> failwith "Impossible"
@@ -109,7 +118,8 @@ let find_all_payloads g =
   let f (_, a, _) acc =
     match a with
     | SendA (_, msg) | RecvA (_, msg) -> (
-        let payloads = message_payload_ty msg in
+        let {Gtype.payload; _} = msg in
+        let payloads = payload_values payload in
         match payloads with
         | [] -> S.add acc "unit"
         | _ -> List.fold ~f:S.add ~init:acc payloads )
@@ -157,7 +167,8 @@ let get_transitions g st =
   let f (_, a, next) acc =
     match a with
     | SendA (r, msg) | RecvA (r, msg) ->
-        (r, message_label msg, message_payload_ty msg, next) :: acc
+        let {Gtype.label; Gtype.payload} = msg in
+        (r, LabelName.user label, payload_values payload, next) :: acc
     | _ -> failwith "Impossible"
   in
   G.fold_succ_e f g st []

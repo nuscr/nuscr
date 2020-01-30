@@ -1,13 +1,12 @@
 open! Base
 open Printf
-open Syntax
 open Gtype
 open Err
 open Names
 
 type t =
-  | RecvL of message * RoleName.t * t
-  | SendL of message * RoleName.t * t
+  | RecvL of Gtype.message * RoleName.t * t
+  | SendL of Gtype.message * RoleName.t * t
   | ChoiceL of RoleName.t * t list
   | TVarL of TypeVariableName.t
   | MuL of TypeVariableName.t * t
@@ -54,15 +53,15 @@ let rec merge projected_role lty1 lty2 =
   try
     let fail () = raise (Unmergable (lty1, lty2)) in
     let merge_recv r recvs =
-      let rec aux (acc : (string * t) list) = function
+      let rec aux (acc : (LabelName.t * t) list) = function
         | RecvL (m, _, lty) as l -> (
-            let label = message_label m in
-            match List.Assoc.find acc ~equal:String.equal label with
+            let {label; _} = m in
+            match List.Assoc.find acc ~equal:LabelName.equal label with
             | None -> (label, l) :: acc
             | Some (RecvL (m_, r, l_))
-              when List.equal String.equal (message_payload_ty m)
-                     (message_payload_ty m_) ->
-                List.Assoc.add acc ~equal:String.equal label
+              when List.equal equal_payload m.Gtype.payload m_.Gtype.payload
+              ->
+                List.Assoc.add acc ~equal:LabelName.equal label
                   (RecvL (m, r, merge projected_role lty l_))
             | Some (RecvL _) -> fail ()
             | _ ->
