@@ -1,9 +1,63 @@
 open! Base
 open Printf
-open Syntax
 open Loc
 open Err
 open Names
+
+type payload =
+  | PValue of VariableName.t option * PayloadTypeName.t
+  | PDelegate of ProtocolName.t * RoleName.t
+[@@deriving eq, sexp_of, ord]
+
+let show_payload = function
+  | PValue (var, ty) ->
+      let var =
+        match var with
+        | Some var -> VariableName.user var ^ ": "
+        | None -> ""
+      in
+      sprintf "%s%s" var (PayloadTypeName.user ty)
+  | PDelegate (proto, role) ->
+      sprintf "%s @ %s" (ProtocolName.user proto) (RoleName.user role)
+
+let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
+
+let of_syntax_payload (payload : Syntax.payloadt) =
+  let open Syntax in
+  match payload with
+  | PayloadName n -> PValue (None, PayloadTypeName.of_name n)
+  | PayloadDel (p, r) ->
+      PDelegate (ProtocolName.of_name p, RoleName.of_name r)
+  | PayloadQName qn ->
+      PValue (None, PayloadTypeName.of_string (qname_to_string qn))
+      (* FIXME *)
+  | PayloadBnd (var, n) ->
+      PValue
+        ( Some (VariableName.of_name var)
+        , PayloadTypeName.of_string (qname_to_string n) )
+
+(* FIXME *)
+
+type message = {label: LabelName.t; payload: payload list}
+[@@deriving eq, sexp_of, ord]
+
+let show_message {label; payload} =
+  sprintf "%s(%s)" (LabelName.user label)
+    (String.concat ~sep:", " (List.map ~f:show_payload payload))
+
+let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
+
+let of_syntax_message (message : Syntax.message) =
+  let open Syntax in
+  match message with
+  | Message {name; payload} ->
+      { label= LabelName.of_name name
+      ; payload= List.map ~f:of_syntax_payload payload }
+  | MessageName name -> {label= LabelName.of_name name; payload= []}
+  | MessageQName qn ->
+      {label= LabelName.of_string (qname_to_string qn); payload= []}
+
+(* FIXME *)
 
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
@@ -42,7 +96,8 @@ let show =
   in
   show_global_type_internal 0
 
-let of_protocol global_protocol =
+let of_protocol (global_protocol : Syntax.global_protocol) =
+  let open Syntax in
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
   let roles = List.map ~f:RoleName.of_name roles in
   let assert_empty l =
@@ -67,7 +122,7 @@ let of_protocol global_protocol =
             check_role to_role ;
             if RoleName.equal from_role to_role then
               uerr (ReflexiveMessage from_role) ;
-            MessageG (message, from_role, to_role, acc)
+            MessageG (of_syntax_message message, from_role, to_role, acc)
           in
           List.fold_right ~f ~init to_roles
       | Recursion (rname, interactions) ->

@@ -2,15 +2,14 @@
 
 (** This module defines local types and basic operations on them. *)
 
-open Syntax
 open Names
 
 (** Local types. *)
 type t =
-  | RecvL of message * RoleName.t * t
+  | RecvL of Gtype.message * RoleName.t * t
       (** [RecvL (msg, name, t)] waits for message [msg] from [name] and
           continues as [t] *)
-  | SendL of message * RoleName.t * t
+  | SendL of Gtype.message * RoleName.t * t
       (** [SendL (msg, name, t)] sends message [msg] to [name] and continues
           as [t] *)
   | ChoiceL of RoleName.t * t list
