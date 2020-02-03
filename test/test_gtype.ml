@@ -1,6 +1,5 @@
 open! Base
 open Nuscrlib
-open Syntax
 open Gtype
 
 (*
@@ -22,10 +21,9 @@ module Name = Name.Name_M
 open Names
 
 let%test "Normal Form Example" =
-  let nos = Name.of_string in
   let rnos = RoleName.of_string in
   let tvnos = TypeVariableName.of_string in
-  let mkMsg name = Message {name= nos name; payload= []} in
+  let mkMsg name = {label= LabelName.of_string name; payload= []} in
   let m1 = mkMsg "m1" in
   let m2 = mkMsg "m2" in
   let m3 = mkMsg "m3" in
