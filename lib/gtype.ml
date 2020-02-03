@@ -7,7 +7,24 @@ open Names
 type payload =
   | PValue of VariableName.t option * PayloadTypeName.t
   | PDelegate of ProtocolName.t * RoleName.t
-[@@deriving eq, sexp_of, ord]
+[@@deriving sexp_of]
+
+(* Ignoring variable names for now *)
+let equal_payload p1 p2 =
+  match (p1, p2) with
+  | PValue (_, n1), PValue (_, n2) -> PayloadTypeName.equal n1 n2
+  | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
+      ProtocolName.equal pn1 pn2 && RoleName.equal rn1 rn2
+  | _, _ -> false
+
+let compare_payload p1 p2 =
+  match (p1, p2) with
+  | PValue (_, ptn1), PValue (_, ptn2) -> PayloadTypeName.compare ptn1 ptn2
+  | PValue _, PDelegate _ -> -1
+  | PDelegate _, PValue _ -> 1
+  | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
+      let comp_fst = ProtocolName.compare pn1 pn2 in
+      if comp_fst = 0 then RoleName.compare rn1 rn2 else comp_fst
 
 let show_payload = function
   | PValue (var, ty) ->
