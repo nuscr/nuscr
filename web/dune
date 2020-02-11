@@ -8,4 +8,4 @@
  (modules examples interface webutils live)
  (preprocess
   (pps js_of_ocaml.ppx))
- (libraries nuscr js_of_ocaml-tyxml js_of_ocaml))
+ (libraries nuscr.lib js_of_ocaml-tyxml js_of_ocaml))
