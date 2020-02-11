@@ -21,8 +21,8 @@ jobs:
       - run:
           name: Pin packages
           command: |
-            opam pin add --no-action -y nuscr -k path .
-            opam pin add --no-action -y nuscr-web -k path .
+            opam pin add --no-action -y nuscr.dev -k path .
+            opam pin add --no-action -y nuscr-web.dev -k path .
 
       - run:
           name: Install dependencies
