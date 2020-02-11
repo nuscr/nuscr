@@ -89,17 +89,14 @@ jobs:
             - "d7:04:a2:2e:53:da:b4:f7:22:fe:66:57:a1:f1:ef:c9"
       - run:
           name: Deploy docs to gh-pages branch
-          command: gh-pages --dist docs --dotfiles --message "change" --dist docs
+          command: gh-pages --dist docs --dotfiles --message "[skip ci] change" --dist docs
 
 
 workflows:
   version: 2
   build:
     jobs:
-      - build:
-          filters:
-            branches:
-              ignore: gh-pages
+      - build
       - docs-deploy:
           requires:
             - build
