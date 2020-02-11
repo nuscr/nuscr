@@ -28,21 +28,26 @@ which prints the version installed.
 ## Development
 
 We use the [dune](https://dune.readthedocs.io/en/stable) build system.
-To contribute, clone the repo and run 
+To contribute, clone the repo and run
 ```
   dune build
 ```
-to build
-You can run the the executable by
+to build.
+
+You can run the executable by
 ```
   dune exec nuscr -- [args]
 ```
 where `[args]` are the arguments to the main CLI program.
 
-You can run tests via
+You can run the tests via
 ```
   dune runtest
 ```
 
-When you submit a pull request, the continuous integration system will build, run tests and check the code formatting.
-Please also remember to update the `CHANGES.md` file for keeping a changelog.
+When you submit a pull request, the continuous integration system will build,
+run tests and check the code formatting. You may find `utils/fmt.sh` helpful
+for formatting the code.
+
+Please also remember to update the `CHANGES.md` file in order to keep track of
+the changes in each version.
