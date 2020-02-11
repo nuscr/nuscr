@@ -19,8 +19,10 @@ jobs:
             sudo apt-get install m4 -y
 
       - run:
-          name: Update opam
-          command: opam update
+          name: Pin packages
+          command: |
+            opam pin add --no-action -y nuscr -k path .
+            opam pin add --no-action -y nuscr-web -k path .
 
       - run:
           name: Install dependencies
