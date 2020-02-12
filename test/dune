@@ -1,6 +1,8 @@
 (library
  (name nuscrlib_tests)
- (inline_tests)
+ (inline_tests
+  (deps
+   (source_tree ../examples)))
  (libraries nuscr.lib base stdio)
  (preprocess
   (pps ppx_inline_test)))
