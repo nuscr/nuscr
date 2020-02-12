@@ -125,6 +125,20 @@ let rec project (projected_role : name) = function
       | _ when Name.equal projected_role recv_r -> RecvL (m, send_r, next)
       | _ -> next )
   | ChoiceG (choice_r, g_types) -> (
+      let check_distinct_prefix gtys =
+        let rec aux acc = function
+          | [] -> ()
+          | MessageG (m, _, _, _) :: rest ->
+              let l = message_label m in
+              if Set.mem acc l (* FIXME: Use 2 labels for location *) then
+                uerr (DuplicateLabel l)
+              else aux (Set.add acc l) rest
+          | _ -> (* FIXME: raise Violation *) assert false
+        in
+        (* FIXME: use Name instead of String *)
+        aux (Set.empty (module String)) gtys
+      in
+      check_distinct_prefix g_types ;
       let recv_r =
         List.fold ~f:(check_consistent_gchoice choice_r) ~init:None g_types
       in

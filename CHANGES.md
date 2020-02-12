@@ -1,3 +1,18 @@
+# Unreleased
+
+## Added
+
+## Changed
+
+## Deprecated
+
+## Fixed
+- Non-distinct choice prefixes now raise an error
+
+## Removed
+
+## Security
+
 # 1.1.0 (2020-01-10)
 
 ## Added
