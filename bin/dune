@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries nuscrlib base stdio unix))
+ (libraries nuscrlib base stdio unix cmdliner))
 
 (install
  (section bin)

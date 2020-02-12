@@ -49,7 +49,9 @@
   (ppxlib
    (and
    (>= 0.9.0)
-   (< 0.14.0)))))
+   (< 0.14.0)))
+  (cmdliner
+   (>= 1.0.4))))
 
 (package
  (name nuscr-web)
