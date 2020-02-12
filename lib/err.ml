@@ -17,6 +17,7 @@ type user_error =
   | ArityMismatch of name * int * int
   | InconsistentNestedChoice of name * name
   | RoleMismatch of name * name
+  | DuplicateLabel of string
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -61,6 +62,8 @@ let show_user_error = function
       "Expecting role " ^ Name.user expected ^ ", but got "
       ^ Name.user actual ^ " at "
       ^ show_source_loc (Name.where actual)
+  | DuplicateLabel l ->
+      "Duplicate label " ^ l ^ " in choices. (Location unavailable)"
 
 exception Violation of string
 [@@deriving sexp_of]
