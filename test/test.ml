@@ -105,5 +105,8 @@ let () =
     in
     let ok, err, errors = process_files files in
     let report = write_report dirs ok err errors in
-    print_endline (if err = 0 then "Ok" else "Not ok\n" ^ report)
-  with e -> "Unexpected:\n" ^ Exn.to_string e |> print_endline
+    print_endline (if err = 0 then "Ok" else "Not ok\n" ^ report) ;
+    if err <> 0 then Caml.exit 1
+  with e ->
+    "Unexpected:\n" ^ Exn.to_string e |> print_endline ;
+    Caml.exit 1
