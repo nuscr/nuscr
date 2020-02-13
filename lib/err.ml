@@ -26,7 +26,7 @@ exception UserError of user_error
 (** UserError is a user error and should be reported back so it can be fixed *)
 
 let show_user_error = function
-  | UnknownPragma prg -> "Unknown pragma:" ^ prg
+  | UnknownPragma prg -> "Unknown pragma: " ^ prg
   | LexerError msg -> "Lexer error: " ^ msg
   | ParserError interval ->
       "Parser error: An error occurred at " ^ show_source_loc interval
