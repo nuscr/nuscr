@@ -2,7 +2,7 @@ open! Base
 open Syntax
 open Loc
 open Err
-module Name = Name.Name_M
+module Name = Name.Name
 
 let rec swap_role swap_role_f {value; loc} =
   let value =

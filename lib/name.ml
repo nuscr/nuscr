@@ -1,10 +1,8 @@
 open! Base
 module L = Loc
 
-module type Name_S = sig
+module type S = sig
   type t [@@deriving show {with_path= false}, sexp_of]
-
-  val equal : t -> t -> bool
 
   val of_string : string -> t
 
@@ -16,25 +14,28 @@ module type Name_S = sig
 
   val create : string -> Loc.source_loc -> t
 
-  val compare : t -> t -> int
+  include Comparable.S with type t := t
 end
 
-module Name_M = struct
-  type t = string L.located [@@deriving show {with_path= false}, sexp_of]
+module Name = struct
+  module M = struct
+    type t = string L.located [@@deriving show {with_path= false}, sexp_of]
 
-  let equal n n' = String.equal n.L.value n'.L.value
+    let of_string s = {L.value= s; loc= Loc.ghost_loc}
 
-  let of_string s = {L.value= s; loc= Loc.ghost_loc}
+    let rename n s = {n with L.value= s}
 
-  let rename n s = {n with L.value= s}
+    let user n = n.L.value
 
-  let user n = n.L.value
+    let where n = n.L.loc
 
-  let where n = n.L.loc
+    let create value loc : t =
+      let open Loc in
+      {value; loc}
 
-  let create value loc : t =
-    let open Loc in
-    {value; loc}
+    let compare n n' = String.compare n.L.value n'.L.value
+  end
 
-  let compare n n' = String.compare n.L.value n'.L.value
+  include M
+  include Comparable.Make (M)
 end

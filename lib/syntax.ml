@@ -9,7 +9,7 @@ open Loc
  *   | Con of string *)
 
 (* a simple name *)
-module N = Name.Name_M
+module N = Name.Name
 
 type name = N.t [@@deriving show {with_path= false}, sexp_of]
 

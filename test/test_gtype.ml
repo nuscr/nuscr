@@ -17,7 +17,7 @@ open Gtype
  *   Poly.equal (flatten before) after
  *)
 
-module Name = Name.Name_M
+module Name = Name.Name
 open Names
 
 let%test "Normal Form Example" =
