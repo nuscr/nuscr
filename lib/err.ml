@@ -17,7 +17,7 @@ type user_error =
   | ArityMismatch of ProtocolName.t * int * int
   | InconsistentNestedChoice of RoleName.t * RoleName.t
   | RoleMismatch of RoleName.t * RoleName.t
-  | DuplicateLabel of string
+  | DuplicateLabel of LabelName.t
 [@@deriving sexp_of]
 
 exception UserError of user_error
@@ -65,7 +65,8 @@ let show_user_error = function
       ^ RoleName.user actual ^ " at "
       ^ show_source_loc (RoleName.where actual)
   | DuplicateLabel l ->
-      "Duplicate label " ^ l ^ " in choices. (Location unavailable)"
+      "Duplicate label " ^ LabelName.user l ^ " in choices at "
+      ^ show_source_loc (LabelName.where l)
 
 exception Violation of string
 [@@deriving sexp_of]

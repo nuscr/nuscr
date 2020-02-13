@@ -131,14 +131,12 @@ let rec project (projected_role : RoleName.t) = function
           | [] -> ()
           | MessageG (m, _, _, _) :: rest ->
               let l = m.label in
-              let l = LabelName.user l in
               if Set.mem acc l (* FIXME: Use 2 labels for location *) then
                 uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
           | _ -> (* FIXME: raise Violation *) assert false
         in
-        (* FIXME: use Name instead of String *)
-        aux (Set.empty (module String)) gtys
+        aux (Set.empty (module LabelName)) gtys
       in
       check_distinct_prefix g_types ;
       let recv_r =
