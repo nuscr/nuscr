@@ -71,7 +71,7 @@ let process_pragmas (pragmas : Syntax.pragmas) : unit =
     match (k, v) with
     | "PrintUsage", _ -> usage () |> print_endline
     | "ShowPragmas", _ -> Syntax.show_pragmas pragmas |> print_endline
-    | _ -> ()
+    | prg, _ -> Err.UnknownPragma prg |> Err.uerr
   in
   List.iter ~f:process_global_pragma pragmas
 
