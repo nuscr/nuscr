@@ -130,7 +130,8 @@ let rec project (projected_role : RoleName.t) = function
         let rec aux acc = function
           | [] -> ()
           | MessageG (m, _, _, _) :: rest ->
-              let l = message_label m in
+              let l = m.label in
+              let l = LabelName.user l in
               if Set.mem acc l (* FIXME: Use 2 labels for location *) then
                 uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
