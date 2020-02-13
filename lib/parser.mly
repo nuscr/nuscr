@@ -41,7 +41,7 @@
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
-%start <(string * string option) list> pragmas
+%start <Syntax.pragmas> pragmas
 %{ open Syntax
    open Loc
    module Name = Name.Name
