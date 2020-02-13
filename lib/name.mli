@@ -1,7 +1,7 @@
-module type Name_S = sig
-  type t [@@deriving show {with_path= false}, sexp_of]
+open! Base
 
-  val equal : t -> t -> bool
+module type S = sig
+  type t [@@deriving show {with_path= false}, sexp_of]
 
   val of_string : string -> t
 
@@ -13,10 +13,10 @@ module type Name_S = sig
 
   val create : string -> Loc.source_loc -> t
 
-  val compare : t -> t -> int
+  include Comparable.S with type t := t
 end
 
 (* Name_M is used for all identifiers in the concrete syntax tree,
  * for names in the abstract syntax tree, use the tagged names in the Names
  * module *)
-module Name_M : Name_S
+module Name : S
