@@ -61,6 +61,16 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
 
 exception ExpectFail
 
+let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
+  let process_global_pragma (k, v) =
+    match (k, v) with
+    | "PrintUsage", _ -> ()
+    | "ShowPragmas", _ ->
+        Nuscrlib.Syntax.show_pragmas pragmas |> print_endline
+    | prg, _ -> Nuscrlib.Err.UnknownPragma prg |> Nuscrlib.Err.uerr
+  in
+  List.iter ~f:process_global_pragma pragmas
+
 let process_files fns =
   let buffer = Buffer.create 1024 in
   let rec pf cnt_ok cnt_err = function
@@ -72,6 +82,8 @@ let process_files fns =
             Caml.Filename.check_suffix (Caml.Filename.dirname fn) "errors"
           in
           try
+            let pragmas = Nuscrlib.Lib.parse_pragmas fn in_channel in
+            process_pragmas pragmas ;
             let ast = Nuscrlib.Lib.parse fn in_channel in
             Nuscrlib.Lib.validate_exn ast ~verbose:false ;
             if is_negative_test then raise ExpectFail
