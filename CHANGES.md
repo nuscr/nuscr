@@ -10,6 +10,8 @@
 
 ## Fixed
 - Non-distinct choice prefixes now raise an error
+- Regression introduced with the addition of pragmas
+
 
 ## Removed
 
