@@ -67,7 +67,7 @@ let pragma_decl :=
   | k = IDENT ; v = pragma_value? ; { k , v }
 
 let pragmas :=
-  | ps = separated_nonempty_list(COMMA, pragma_decl) ; EOI ; { ps }
+  | ps = separated_list(COMMA, pragma_decl) ; EOI ; { ps }
 
 (* document -- should use toke lexer *)
 
