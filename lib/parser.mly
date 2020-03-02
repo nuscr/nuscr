@@ -46,13 +46,6 @@
    open Loc
    module Name = Name.Name
 
-  type name_or_qname = SimplName of Name.t | QName of qname
-
-  let noq (nm : qname) : name_or_qname =
-    if List.length (nm.value) = 1
-    then SimplName (Name.create (List.hd nm.value) nm.loc)
-    else QName nm
-
   (* list of 'a list option *)
   let loalo = function None -> [] | Some n -> n
 %}
@@ -90,8 +83,6 @@ let raw_module_decl ==
 
 (* types and messages *)
 
-//let datatype_decl := payload_type_decl
-
 let payload_type_decl == located (raw_payload_type_decl)
 
 let raw_payload_type_decl ==
@@ -122,9 +113,6 @@ let raw_payload_type_decl ==
 (* protocols *)
 
 let protocol_decl == global_protocol_decl (* local pending *)
-
-/* let global_protocol_decl == */
-/*   global_protocol_hdr ; global_protocol_def */
 
 (* nuScr extension, the keyword global protocol can be shortened to either *)
 let global_protocol_decl == located(raw_global_protocol_decl)
@@ -196,11 +184,7 @@ let non_role_args ==
 
 let non_role_arg ==
   msg = message_signature ; { msg }
-  /* | ~ = IDENT ; < MessageName > */
-  | nm = qname ; { match noq nm with
-                   | SimplName n -> MessageName n
-                   | QName n -> MessageQName n
-                 }
+  | nm = qname ; < MessageName >
 
 let global_choice ==
   CHOICE_KW ; AT_KW ; ~ = name ;
@@ -233,37 +217,29 @@ let message ==
 
 (* this corresponds to siglit in Scribble.g *)
 let message_signature ==
-  /* LPAR ; payload ; RPAR */
+  (* LPAR ; payload ; RPAR *)
   | nm=name ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
       { Message { name = nm
                 ; payload = pars
                 }
       }
-  /* | LPAR ; RPAR */
 
 
 let payload_el ==
   (* protocol @ role (delegation) *)
   | n1 = name ; ARROBA ; n2 = name  ; { PayloadDel(n1, n2) }
-  | nm = qname ; { match noq nm with
-                   | SimplName n -> PayloadName n
-                   | QName n -> PayloadQName n
-                 }
+  | nm = qname ; < PayloadName >
   | ~ = name ; COLON ; ~ = qname ; < PayloadBnd >
 
 
 let annotation == ARROBA ; ann = EXTIDENT ; { ann }
 
 
-/* let name_or_qname == */
-/*   ~ = qname ; < noq > */
-
 (* qualified names *)
-
-let qname == located (raw_qname)
+let qname == create (raw_qname)
 
 let raw_qname ==
-  separated_nonempty_list(DOT, IDENT)
+  names = separated_nonempty_list(DOT, IDENT); { String.concat "." names }
 
 let name == create(raw_name)
 

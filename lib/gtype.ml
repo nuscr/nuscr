@@ -45,15 +45,8 @@ let of_syntax_payload (payload : Syntax.payloadt) =
   | PayloadName n -> PValue (None, PayloadTypeName.of_name n)
   | PayloadDel (p, r) ->
       PDelegate (ProtocolName.of_name p, RoleName.of_name r)
-  | PayloadQName qn ->
-      PValue (None, PayloadTypeName.of_string (qname_to_string qn))
-      (* FIXME *)
   | PayloadBnd (var, n) ->
-      PValue
-        ( Some (VariableName.of_name var)
-        , PayloadTypeName.of_string (qname_to_string n) )
-
-(* FIXME *)
+      PValue (Some (VariableName.of_name var), PayloadTypeName.of_name n)
 
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, ord]
@@ -71,10 +64,6 @@ let of_syntax_message (message : Syntax.message) =
       { label= LabelName.of_name name
       ; payload= List.map ~f:of_syntax_payload payload }
   | MessageName name -> {label= LabelName.of_name name; payload= []}
-  | MessageQName qn ->
-      {label= LabelName.of_string (qname_to_string qn); payload= []}
-
-(* FIXME *)
 
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
