@@ -21,20 +21,9 @@ let equal_name = N.equal
 
 let compare_name = N.compare
 
-(* a qualified name *)
-type raw_qname = string list [@@deriving eq, ord]
-
-let show_raw_qname = String.concat ~sep:"."
-
-let pp_raw_qname fmt qn = Caml.Format.fprintf fmt "%s" (show_raw_qname qn)
-
-type qname = raw_qname located [@@deriving show {with_path= false}, eq, ord]
-
-let qname_to_string qn = String.concat ~sep:"." qn.value
-
 type annotation = string [@@deriving show {with_path= false}]
 
-type raw_mod_decl = {module_name: qname} [@@deriving show {with_path= false}]
+type raw_mod_decl = {module_name: name} [@@deriving show {with_path= false}]
 
 type mod_decl = raw_mod_decl located option
 [@@deriving show {with_path= false}]
@@ -52,8 +41,7 @@ type type_decl = raw_type_decl located [@@deriving show {with_path= false}]
 type payloadt =
   | PayloadName of name
   | PayloadDel of name * name (* protocol @ role *)
-  | PayloadQName of qname
-  | PayloadBnd of name * qname
+  | PayloadBnd of name * name
 [@@deriving eq, ord]
 
 (* var : type *)
@@ -61,15 +49,13 @@ type payloadt =
 let show_payloadt = function
   | PayloadName n -> N.user n
   | PayloadDel (p, r) -> sprintf "%s @ %s" (N.user p) (N.user r)
-  | PayloadQName qn -> qname_to_string qn
-  | PayloadBnd (n, qn) -> sprintf "%s: %s" (N.user n) (qname_to_string qn)
+  | PayloadBnd (n, n') -> sprintf "%s: %s" (N.user n) (N.user n')
 
 let pp_payloadt fmt p = Caml.Format.fprintf fmt "%s" (show_payloadt p)
 
 type message =
   | Message of {name: name; payload: payloadt list}
   | MessageName of name
-  | MessageQName of qname
 [@@deriving eq, ord]
 
 let show_message = function
@@ -77,7 +63,6 @@ let show_message = function
       sprintf "%s(%s)" (N.user name)
         (String.concat ~sep:", " (List.map ~f:show_payloadt payload))
   | MessageName n -> N.user n
-  | MessageQName qn -> qname_to_string qn
 
 let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
 
@@ -86,14 +71,12 @@ let sexp_of_message m = Sexp.Atom (show_message m)
 let message_label = function
   | Message {name; _} -> N.user name
   | MessageName name -> N.user name
-  | MessageQName qn -> qname_to_string qn
 
 let message_payload_ty =
   let payload_type_of_payload_t = function
     | PayloadName n -> N.user n
     | PayloadDel (_p, _r) -> failwith "Delegation is not supported"
-    | PayloadQName qn -> qname_to_string qn
-    | PayloadBnd (_n, qn) -> qname_to_string qn
+    | PayloadBnd (_n, n) -> N.user n
   in
   function
   | Message {payload; _} -> List.map ~f:payload_type_of_payload_t payload
