@@ -25,5 +25,5 @@ type 'a located =
   { loc: source_loc
         [@printer
           fun fmt interval -> fprintf fmt "%s" (show_source_loc interval)]
-  ; value: 'a [@main] }
+  ; value: 'a }
 [@@deriving show, sexp_of, eq, ord]
