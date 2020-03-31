@@ -22,6 +22,7 @@ let rec swap_role swap_role_f {value; loc} =
           , List.map ~f:(List.map ~f:(swap_role swap_role_f)) gs )
     | Do (proto, msgs, roles, ann) ->
         Do (proto, msgs, List.map ~f:swap_role_f roles, ann)
+    | Calls _ -> unimpl "Calls interaction not implemented"
   in
   {value; loc}
 
