@@ -98,6 +98,8 @@ and raw_global_interaction =
   | Choice of name * global_interaction list list
   (* protocol * non role args * roles *)
   | Do of name * message list * name list * annotation option
+  (* caller * protocol * non role args * roles *)
+  | Calls of name * name * message list * name list * annotation option
 [@@deriving show {with_path= false}]
 
 type protocol_mods = Aux | AuxExplicit | Explicit
@@ -113,6 +115,8 @@ type raw_global_protocol =
   ; rec_parameters: (name * annotation) list
         (* parameters for the recursion *)
   ; roles: name list
+  ; split_roles: name list * name list
+  ; nested_protocols: raw_global_protocol located list
   ; interactions: global_interaction list
   ; ann: annotation option }
 [@@deriving show {with_path= false}]
@@ -121,5 +125,8 @@ type global_protocol = raw_global_protocol located
 [@@deriving show {with_path= false}]
 
 type scr_module =
-  {decl: mod_decl; types: type_decl list; protocols: global_protocol list}
+  { decl: mod_decl
+  ; types: type_decl list
+  ; nested_protocols: global_protocol list
+  ; protocols: global_protocol list }
 [@@deriving show {with_path= false}]

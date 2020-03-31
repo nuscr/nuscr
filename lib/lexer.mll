@@ -92,6 +92,7 @@ and token = parse
 | "type" { TYPE_KW }
 | "protocol" { PROTOCOL_KW }
 | "global" { GLOBAL_KW }
+| "nested" { NESTED_KW }
 | "explicit" { EXPLICIT_KW }
 | "aux" { AUX_KW }
 | "role" { ROLE_KW }
@@ -109,6 +110,8 @@ and token = parse
 | "rec" { REC_KW }
 | "continue" { CONTINUE_KW }
 | "do" { DO_KW }
+| "calls" { CALLS_KW }
+| "new" { NEW_KW }
 
 
 (* other *)
