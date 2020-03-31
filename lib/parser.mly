@@ -24,6 +24,7 @@
 %token TYPE_KW
 %token PROTOCOL_KW
 %token GLOBAL_KW
+%token NESTED_KW
 %token EXPLICIT_KW
 %token AUX_KW
 %token ROLE_KW
@@ -38,6 +39,8 @@
 %token REC_KW
 %token CONTINUE_KW
 %token DO_KW
+%token CALLS_KW
+%token NEW_KW
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
@@ -68,13 +71,25 @@ let doc :=
   m = scr_module ;
   { m }
 
+(*
 (* modules *)
 let scr_module :=
   md = module_decl? ;
   ts = payload_type_decl* ;
   ps = protocol_decl* ;
   EOI ;
-    { {decl= md ; types = ts ; protocols = ps } }
+    { {decl= md ; types = ts ; nested_protocols = [] ; protocols = ps } }
+*)
+
+
+let scr_module :=
+  md = module_decl? ;
+  ts = payload_type_decl* ;
+  nps = nested_protocol_decl*;
+  ps = protocol_decl* ;
+  EOI ;
+    { {decl= md ; types = ts ; nested_protocols = nps ; protocols = ps } }
+
 
 let module_decl == located (raw_module_decl)
 
@@ -119,12 +134,35 @@ let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = name ;
   pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ;
-  ann = annotation? ; ints = global_protocol_block ;
-  { { name = nm
+  ann = annotation? ; body = global_protocol_body ;
+  { 
+    let (nested_protos, ints) = body in
+    { name = nm
     ; options = opts
     ; parameters = (match pars with Some p -> p | _ -> [])
     ; rec_parameters = (match rp with Some p -> p | _ -> [])
     ; roles = rs
+    ; split_roles = (rs, [])
+    ; nested_protocols = nested_protos
+    ; interactions = ints
+    ; ann = ann
+  } }
+
+let nested_protocol_decl == located(raw_nested_protocol_decl)
+(* TODO: Remove unnecessary stuff? *)
+let raw_nested_protocol_decl ==
+  nested_hdr ; nm = name ;
+  pars = parameter_decls? ; rs = nested_role_decls ; rp = rec_parameter_decls? ;
+  ann = annotation? ; body = global_protocol_body ;
+  {
+    let (nested_protos, ints) = body in
+    { name = nm
+    ; options = None
+    ; parameters = (match pars with Some p -> p | _ -> [])
+    ; rec_parameters = (match rp with Some p -> p | _ -> [])
+    ; roles = (let (rs', rs'') = rs in rs' @ rs'')
+    ; split_roles = rs
+    ; nested_protocols = nested_protos
     ; interactions = ints
     ; ann = ann
   } }
@@ -132,6 +170,9 @@ let raw_global_protocol_decl ==
 let protocol_hdr ==
   GLOBAL_KW ; PROTOCOL_KW?
   | PROTOCOL_KW
+
+let nested_hdr ==
+  NESTED_KW ; PROTOCOL_KW
 
 let protocol_options ==
   AUX_KW ; { Aux }
@@ -156,10 +197,25 @@ let rec_parameter_decl == nm = name ; COLON ; ann = IDENT ; { (nm, ann) }
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }
 
+
+let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ; 
+                         new_nms = new_role_decls? ; RPAR ; { (nms, loalo new_nms) }
+
 let role_decl == ROLE_KW ; nm = name ; { nm }
+
+
+let new_role_decls == SEMICOLON ; NEW_KW ; 
+                      nms = separated_nonempty_list(COMMA, role_decl) ; { nms }
+
+
+let global_protocol_body ==
+  LCURLY ; nested_protos = nested_protocol_decl*; ints = global_interaction* ; 
+  RCURLY ; { (nested_protos, ints) }
+
 
 let global_protocol_block ==
   LCURLY ; ints = global_interaction* ; RCURLY ; { ints }
+
 
 let global_interaction == located(raw_global_interaction)
 let raw_global_interaction ==
@@ -168,11 +224,16 @@ let raw_global_interaction ==
   | global_continue
   | global_choice
   | global_do
-
+  | global_calls
 let global_do ==
   DO_KW ; nm = name ; nra = non_role_args? ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
   { Do (nm, loalo nra, loalo ra, ann) }
+
+let global_calls ==
+  caller = name ; CALLS_KW ; nm = name ; nra = non_role_args? ;
+  ra = role_args? ; SEMICOLON ; ann = annotation? ;
+  { Calls (caller, nm, loalo nra, loalo ra, ann) }
 
 let role_args ==
   LPAR ; nm = separated_nonempty_list(COMMA, name) ; RPAR ; { nm }
