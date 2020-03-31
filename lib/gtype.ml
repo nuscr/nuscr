@@ -152,7 +152,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             , List.map ~f:(conv_interactions rec_names) interactions_list )
       | Do _ ->
           Violation "The do constructor should not be here. This cannot be!"
-          |> raise )
+          |> raise
+      | Calls _ -> unimpl "Calls interaction not implemented" )
   in
   conv_interactions [] interactions
 
