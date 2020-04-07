@@ -19,6 +19,7 @@ type user_error =
   | InconsistentNestedChoice of RoleName.t * RoleName.t
   | RoleMismatch of RoleName.t * RoleName.t
   | DuplicateLabel of LabelName.t
+  | DuplicateRoleArgs of ProtocolName.t
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -69,6 +70,11 @@ let show_user_error = function
   | DuplicateLabel l ->
       "Duplicate label " ^ LabelName.user l ^ " in choices at "
       ^ show_source_loc (LabelName.where l)
+  | DuplicateRoleArgs called_proto ->
+      "Duplicate role arguments in call to protocol "
+      ^ ProtocolName.user called_proto
+      ^ " at "
+      ^ show_source_loc (ProtocolName.where called_proto)
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
