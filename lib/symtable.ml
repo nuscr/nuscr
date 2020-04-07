@@ -3,8 +3,6 @@ open Syntax
 open Loc
 open Err
 
-(* TODO: Make protocol a string in both the signature and map key *)
-
 type protocol_decl =
   { proto_name: string
   ; all_roles: string list
