@@ -22,8 +22,6 @@ let show_protocol_decl (proto_decl : protocol_decl) =
   String.concat ~sep:""
     [proto_decl.proto_name; "("; show_roles proto_decl.split_decl; ")"]
 
-type x = {y: int}
-
 type symbol_table =
   { protocol: global_protocol option
   ; table: (string, protocol_decl, String.comparator_witness) Map.t
@@ -72,12 +70,12 @@ let build_symbol_table (prefix : string) (protocols : global_protocol list)
   {protocol; table; parent}
 
 let rec lookup_protocol (symbol_table : symbol_table) protocol =
-  Stdio.print_endline ("looking up protocol: " ^ protocol) ;
+  let proto_name = N.user protocol in
+  Stdio.print_endline ("looking up protocol: " ^ proto_name) ;
   Stdio.print_endline (show_symbol_table symbol_table) ;
-  match Map.find symbol_table.table protocol with
+  match Map.find symbol_table.table proto_name with
   | Some decl -> decl
   | None -> (
     match symbol_table.parent with
     | Some parent_table -> lookup_protocol parent_table protocol
-    | None -> uerr (UnboundProtocol (Names.ProtocolName.of_string protocol))
-    )
+    | None -> uerr (UnboundProtocol (Names.ProtocolName.of_name protocol)) )

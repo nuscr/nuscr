@@ -105,7 +105,10 @@ and raw_global_interaction =
 type protocol_mods = Aux | AuxExplicit | Explicit
 [@@deriving show {with_path= false}]
 
-type raw_global_protocol =
+type global_protocol = raw_global_protocol located
+[@@deriving show {with_path= false}]
+
+and raw_global_protocol =
   { name: name
   ; options: protocol_mods option
         (* if parameter is ("foo", None) it's a type *)
@@ -116,12 +119,9 @@ type raw_global_protocol =
         (* parameters for the recursion *)
   ; roles: name list
   ; split_roles: name list * name list
-  ; nested_protocols: raw_global_protocol located list
+  ; nested_protocols: global_protocol list
   ; interactions: global_interaction list
   ; ann: annotation option }
-[@@deriving show {with_path= false}]
-
-type global_protocol = raw_global_protocol located
 [@@deriving show {with_path= false}]
 
 type scr_module =

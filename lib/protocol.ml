@@ -166,7 +166,7 @@ let expand_global_protocol (scr_module : scr_module)
 (* Ensure all calls to global/nested protocols are valid *)
 let validate_calls_in_protocols (scr_module : scr_module) =
   let rec validate_protocol_calls prefix global_table nested_table protocol =
-    let rec validate_interaction protocol_roles i =
+    let rec validate_interaction protocol_roles global_table nested_table i =
       let check_role r =
         if List.mem protocol_roles ~equal:Name.equal r then ()
         else uerr (UnboundRole (Names.RoleName.of_name r))
@@ -174,7 +174,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
       let validate_call caller proto roles symbol_table =
         check_role caller ;
         List.iter ~f:check_role roles ;
-        let decl = lookup_protocol symbol_table (Name.user proto) in
+        let decl = lookup_protocol symbol_table proto in
         (* Ignore dynamic roles when validating protocols, they are not
            included in the Scribble protocol*)
         let proto_roles, _ = decl.split_decl in
@@ -200,25 +200,34 @@ let validate_calls_in_protocols (scr_module : scr_module) =
       | Calls (caller, proto, [], roles, None) ->
           validate_call caller proto roles nested_table
       | Recursion (_, is) ->
-          List.iter ~f:(validate_interaction protocol_roles) is
+          List.iter
+            ~f:
+              (validate_interaction protocol_roles global_table nested_table)
+            is
       | Choice (_, iss) ->
           List.iter
             ~f:(fun is ->
-              List.iter ~f:(validate_interaction protocol_roles) is)
+              List.iter
+                ~f:
+                  (validate_interaction protocol_roles global_table
+                     nested_table)
+                is)
             iss
       | _ -> ()
     in
-    let interactions = protocol.value.interactions in
-    let roles = protocol.value.roles in
-    List.iter ~f:(validate_interaction roles) interactions ;
-    let nested_protocols = protocol.value.nested_protocols in
     let new_prefix =
       name_with_prefix prefix (Name.user protocol.value.name)
     in
+    let nested_protocols = protocol.value.nested_protocols in
     let new_nested_st =
       build_symbol_table new_prefix nested_protocols (Some protocol)
         (Some nested_table)
     in
+    let interactions = protocol.value.interactions in
+    let roles = protocol.value.roles in
+    List.iter
+      ~f:(validate_interaction roles global_table new_nested_st)
+      interactions ;
     List.iter
       ~f:(validate_protocol_calls new_prefix global_table new_nested_st)
       nested_protocols
