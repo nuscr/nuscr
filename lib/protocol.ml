@@ -2,6 +2,7 @@ open! Base
 open Syntax
 open Loc
 open Err
+open Symtable
 module Name = Name.Name
 
 let rec swap_role swap_role_f {value; loc} =
@@ -161,3 +162,83 @@ let expand_global_protocol (scr_module : scr_module)
     maybe_add_recursion ~loc:protocol.loc ~known top_level interactions
   in
   {protocol with value= {protocol.value with interactions}}
+
+(* Ensure all calls to global/nested protocols are valid *)
+let validate_calls_in_protocols (scr_module : scr_module) =
+  let rec validate_protocol_calls prefix global_table nested_table protocol =
+    let rec validate_interaction protocol_roles i =
+      let check_role r =
+        if List.mem protocol_roles ~equal:Name.equal r then ()
+        else uerr (UnboundRole (Names.RoleName.of_name r))
+      in
+      let validate_call caller proto roles symbol_table =
+        check_role caller ;
+        List.iter ~f:check_role roles ;
+        let decl = lookup_protocol symbol_table (Name.user proto) in
+        (* Ignore dynamic roles when validating protocols, they are not
+           included in the Scribble protocol*)
+        let proto_roles, _ = decl.split_decl in
+        let arity = List.length proto_roles in
+        if arity <> List.length roles then
+          uerr
+            (ArityMismatch
+               (Names.ProtocolName.of_name proto, arity, List.length roles)) ;
+        if arity <> Set.length (Set.of_list (module Name) roles) then
+          uerr (DuplicateRoleArgs (Names.ProtocolName.of_name proto))
+      in
+      let interaction = i.value in
+      match interaction with
+      | Do (proto, [], roles, None) ->
+          let fst =
+            match roles with
+            | hd :: _ -> hd
+            | _ -> raise (Err.Violation "Role list should never be empty")
+          in
+          (*Treat Do statements as nested protocol Calls with no dynamic
+            participants. Let the first role be the 'caller'*)
+          validate_call fst proto roles global_table
+      | Calls (caller, proto, [], roles, None) ->
+          validate_call caller proto roles nested_table
+      | Recursion (_, is) ->
+          List.iter ~f:(validate_interaction protocol_roles) is
+      | Choice (_, iss) ->
+          List.iter
+            ~f:(fun is ->
+              List.iter ~f:(validate_interaction protocol_roles) is)
+            iss
+      | _ -> ()
+    in
+    let interactions = protocol.value.interactions in
+    let roles = protocol.value.roles in
+    List.iter ~f:(validate_interaction roles) interactions ;
+    let nested_protocols = protocol.value.nested_protocols in
+    let new_prefix =
+      name_with_prefix prefix (Name.user protocol.value.name)
+    in
+    let new_nested_st =
+      build_symbol_table new_prefix nested_protocols (Some protocol)
+        (Some nested_table)
+    in
+    List.iter
+      ~f:(validate_protocol_calls new_prefix global_table new_nested_st)
+      nested_protocols
+  in
+  let prefix = "" in
+  let nested_symbol_table =
+    build_symbol_table prefix scr_module.nested_protocols None None
+  in
+  Stdio.print_endline (show_symbol_table nested_symbol_table) ;
+  let global_symbol_table =
+    build_symbol_table prefix scr_module.protocols None None
+  in
+  Stdio.print_endline (show_symbol_table global_symbol_table) ;
+  List.iter
+    ~f:
+      (validate_protocol_calls prefix global_symbol_table
+         nested_symbol_table)
+    scr_module.protocols ;
+  List.iter
+    ~f:
+      (validate_protocol_calls prefix global_symbol_table
+         nested_symbol_table)
+    scr_module.nested_protocols
