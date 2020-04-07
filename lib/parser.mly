@@ -71,16 +71,6 @@ let doc :=
   m = scr_module ;
   { m }
 
-(*
-(* modules *)
-let scr_module :=
-  md = module_decl? ;
-  ts = payload_type_decl* ;
-  ps = protocol_decl* ;
-  EOI ;
-    { {decl= md ; types = ts ; nested_protocols = [] ; protocols = ps } }
-*)
-
 
 let scr_module :=
   md = module_decl? ;
