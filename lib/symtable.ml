@@ -1,0 +1,85 @@
+open! Base
+open Syntax
+open Loc
+open Err
+
+(* TODO: Make protocol a string in both the signature and map key *)
+
+type protocol_decl =
+  { proto_name: string
+  ; all_roles: string list
+  ; split_decl: string list * string list
+  ; loc: source_loc }
+
+let show_roles split_decl =
+  let list_to_str l = String.concat ~sep:", " l in
+  let roles, new_roles = split_decl in
+  let roles_str = list_to_str roles in
+  let new_roles_str =
+    match new_roles with [] -> "" | _ -> "; new " ^ list_to_str new_roles
+  in
+  roles_str ^ new_roles_str
+
+let show_protocol_decl (proto_decl : protocol_decl) =
+  String.concat ~sep:""
+    [proto_decl.proto_name; "("; show_roles proto_decl.split_decl; ")"]
+
+type x = {y: int}
+
+type symbol_table =
+  { protocol: global_protocol option
+  ; table: (string, protocol_decl, String.comparator_witness) Map.t
+        [@printer
+          fun fmt tbl ->
+            let nested_protos =
+              String.concat ~sep:", "
+                (List.map ~f:show_protocol_decl (Map.data tbl))
+            in
+            fprintf fmt "{%s}" nested_protos]
+  ; parent: symbol_table option }
+[@@deriving show]
+
+let name_with_prefix prefix proto_name =
+  match prefix with "" -> proto_name | _ -> prefix ^ "_" ^ proto_name
+
+let decl_from_protocol prefix (protocol : global_protocol) =
+  let extract_rolenames roles = List.map ~f:N.user roles in
+  let proto_name = name_with_prefix prefix (N.user protocol.value.name) in
+  let all_roles = extract_rolenames protocol.value.roles in
+  let rs, new_rs = protocol.value.split_roles in
+  let roles = extract_rolenames rs in
+  let dynamic_roles = extract_rolenames new_rs in
+  let split_decl = (roles, dynamic_roles) in
+  let loc = protocol.loc in
+  {proto_name; all_roles; split_decl; loc}
+
+let build_symbol_table (prefix : string) (protocols : global_protocol list)
+    (protocol : global_protocol option) (parent : symbol_table option) =
+  let add_proto_decl acc (protocol : global_protocol) =
+    let decl = decl_from_protocol prefix protocol in
+    let name = N.user protocol.value.name in
+    match Map.add acc ~key:name ~data:decl with
+    | `Ok new_acc -> new_acc
+    | `Duplicate ->
+        let proto_sig = Map.find_exn acc name in
+        uerr
+          (RedefinedProtocol
+             ( Names.ProtocolName.of_name protocol.value.name
+             , protocol.loc
+             , proto_sig.loc ))
+  in
+  let table =
+    List.fold ~init:(Map.empty (module String)) ~f:add_proto_decl protocols
+  in
+  {protocol; table; parent}
+
+let rec lookup_protocol (symbol_table : symbol_table) protocol =
+  Stdio.print_endline ("looking up protocol: " ^ protocol) ;
+  Stdio.print_endline (show_symbol_table symbol_table) ;
+  match Map.find symbol_table.table protocol with
+  | Some decl -> decl
+  | None -> (
+    match symbol_table.parent with
+    | Some parent_table -> lookup_protocol parent_table protocol
+    | None -> uerr (UnboundProtocol (Names.ProtocolName.of_string protocol))
+    )
