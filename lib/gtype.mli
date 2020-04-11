@@ -1,3 +1,4 @@
+open! Base
 open Names
 
 (** Global types *)
@@ -21,6 +22,11 @@ type t =
       (** [ChoiceG (name, ts)] expresses a choice located at participant
           [name] between the [ts] *)
   | EndG  (** Empty global type *)
+  | Nested of ProtocolName.t * RoleName.t list * RoleName.t list * t * t
+  | Call of RoleName.t * ProtocolName.t * RoleName.t list
+
+type global_t =
+  (string, (RoleName.t * RoleName.t) * t, String.comparator_witness) Map.t
 
 val show : t -> string
 (** Provides a textual representation of a global type *)

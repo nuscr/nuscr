@@ -157,3 +157,5 @@ let rec project (projected_role : RoleName.t) = function
         match List.reduce ~f:(merge projected_role) l_types with
         | Some l -> l
         | None -> EndL ) )
+  | Nested _ -> unimpl "TODO: implement nested protocols in local types"
+  | Call _ -> unimpl "TODO: implement calls in local types"

@@ -71,6 +71,11 @@ type t =
   | TVarG of TypeVariableName.t
   | ChoiceG of RoleName.t * t list
   | EndG
+  | Nested of ProtocolName.t * RoleName.t list * RoleName.t list * t * t
+  | Call of RoleName.t * ProtocolName.t * RoleName.t list
+
+type global_t =
+  (string, (RoleName.t * RoleName.t) * t, String.comparator_witness) Map.t
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -100,6 +105,22 @@ let show =
         in
         let gs = String.concat ~sep:intermission choices in
         pre ^ gs ^ post
+    | Call (caller, proto_name, roles) ->
+        sprintf "%s%s calls %s(%s);\n" current_indent (RoleName.user caller)
+          (ProtocolName.user proto_name)
+          (String.concat ~sep:", " (List.map ~f:RoleName.user roles))
+    | Nested (proto_name, roles, new_roles, proto_g, g) ->
+        let str_roles = List.map ~f:RoleName.user roles in
+        let str_new_roles = List.map ~f:RoleName.user new_roles in
+        let nested_proto =
+          sprintf "%snested protocol %s(%s) {\n%s%s}\n" current_indent
+            (ProtocolName.user proto_name)
+            (Symtable.show_roles (str_roles, str_new_roles))
+            (show_global_type_internal (indent + 1) proto_g)
+            current_indent
+        in
+        let cont = show_global_type_internal indent g in
+        nested_proto ^ cont
   in
   show_global_type_internal 0
 
@@ -173,13 +194,15 @@ let rec flatten = function
 let rec substitute g tvar g_sub =
   match g with
   | TVarG tvar_ when TypeVariableName.equal tvar tvar_ -> g_sub
-  | TVarG _ -> g
+  | TVarG _ | Call _ -> g
   | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
   | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
   | EndG -> EndG
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
   | ChoiceG (r, g_) ->
       ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
+  | Nested (name, rs, new_rs, g_proto, g_) ->
+      Nested (name, rs, new_rs, g_proto, substitute g_ tvar g_sub)
 
 let rec unfold = function
   | MuG (tvar, g_) as g -> substitute g_ tvar g
@@ -190,5 +213,7 @@ let rec normalise = function
   | ChoiceG (r, g_) ->
       let g_ = List.map ~f:normalise g_ in
       flatten (ChoiceG (r, g_))
-  | (EndG | TVarG _) as g -> g
+  | (EndG | TVarG _ | Call _) as g -> g
   | MuG (tvar, g_) -> unfold (MuG (tvar, normalise g_))
+  | Nested (name, rs, new_rs, g_proto, g_) ->
+      Nested (name, rs, new_rs, normalise g_proto, normalise g_)
