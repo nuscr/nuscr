@@ -23,7 +23,7 @@ let show_protocol_decl (proto_decl : protocol_decl) =
     [proto_decl.proto_name; "("; show_roles proto_decl.split_decl; ")"]
 
 type symbol_table =
-  { protocol: global_protocol option
+  { protocol: string
   ; table: (string, protocol_decl, String.comparator_witness) Map.t
         [@printer
           fun fmt tbl ->
@@ -50,7 +50,7 @@ let decl_from_protocol prefix (protocol : global_protocol) =
   {proto_name; all_roles; split_decl; loc}
 
 let build_symbol_table (prefix : string) (protocols : global_protocol list)
-    (protocol : global_protocol option) (parent : symbol_table option) =
+    (parent : symbol_table option) =
   let add_proto_decl acc (protocol : global_protocol) =
     let decl = decl_from_protocol prefix protocol in
     let name = N.user protocol.value.name in
@@ -67,7 +67,7 @@ let build_symbol_table (prefix : string) (protocols : global_protocol list)
   let table =
     List.fold ~init:(Map.empty (module String)) ~f:add_proto_decl protocols
   in
-  {protocol; table; parent}
+  {protocol= prefix; table; parent}
 
 let rec lookup_protocol (symbol_table : symbol_table) protocol =
   let proto_name = N.user protocol in

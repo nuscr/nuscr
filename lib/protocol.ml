@@ -23,7 +23,13 @@ let rec swap_role swap_role_f {value; loc} =
           , List.map ~f:(List.map ~f:(swap_role swap_role_f)) gs )
     | Do (proto, msgs, roles, ann) ->
         Do (proto, msgs, List.map ~f:swap_role_f roles, ann)
-    | Calls _ -> unimpl "Calls interaction not implemented"
+    | Calls (caller, proto, msgs, roles, ann) ->
+        Calls
+          ( swap_role_f caller
+          , proto
+          , msgs
+          , List.map ~f:swap_role_f roles
+          , ann )
   in
   {value; loc}
 
@@ -220,8 +226,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
     in
     let nested_protocols = protocol.value.nested_protocols in
     let new_nested_st =
-      build_symbol_table new_prefix nested_protocols (Some protocol)
-        (Some nested_table)
+      build_symbol_table new_prefix nested_protocols (Some nested_table)
     in
     let interactions = protocol.value.interactions in
     let roles = protocol.value.roles in
@@ -234,11 +239,11 @@ let validate_calls_in_protocols (scr_module : scr_module) =
   in
   let prefix = "" in
   let nested_symbol_table =
-    build_symbol_table prefix scr_module.nested_protocols None None
+    build_symbol_table prefix scr_module.nested_protocols None
   in
   Stdio.print_endline (show_symbol_table nested_symbol_table) ;
   let global_symbol_table =
-    build_symbol_table prefix scr_module.protocols None None
+    build_symbol_table prefix scr_module.protocols None
   in
   Stdio.print_endline (show_symbol_table global_symbol_table) ;
   List.iter
