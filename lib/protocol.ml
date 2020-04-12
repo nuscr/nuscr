@@ -203,8 +203,10 @@ let validate_calls_in_protocols (scr_module : scr_module) =
           (*Treat Do statements as nested protocol Calls with no dynamic
             participants. Let the first role be the 'caller'*)
           validate_call fst proto roles global_table
+      | Do _ -> unimpl "Do with other features"
       | Calls (caller, proto, [], roles, None) ->
           validate_call caller proto roles nested_table
+      | Calls _ -> unimpl "Calls with other features"
       | Recursion (_, is) ->
           List.iter
             ~f:
@@ -256,3 +258,101 @@ let validate_calls_in_protocols (scr_module : scr_module) =
       (validate_protocol_calls prefix global_symbol_table
          nested_symbol_table)
     scr_module.nested_protocols
+
+let rename_protocols (scr_module : scr_module) =
+  let rename known name =
+    let name_str = N.user name in
+    N.of_string @@ Map.find_exn known name_str
+  in
+  let update_known_protocols prefix uids known protocols =
+    let update_protocol_info (uids, known)
+        (global_protocol : global_protocol) =
+      let proto = global_protocol.value in
+      let {name; _} = proto in
+      let key = name_with_prefix prefix (N.user name) in
+      let uid = match Map.find uids key with Some n -> n | None -> 0 in
+      let protocol_name =
+        if uid = 0 then key else key ^ Int.to_string (uid + 1)
+      in
+      let new_uids = Map.update uids key ~f:(fun _ -> uid + 1) in
+      let new_known = Map.update known key ~f:(fun _ -> protocol_name) in
+      let new_name = N.of_string protocol_name in
+      ( (new_uids, new_known)
+      , {global_protocol with value= {proto with name= new_name}} )
+    in
+    let (new_uids, new_known), new_protocols =
+      List.fold_map ~init:(uids, known) ~f:update_protocol_info protocols
+    in
+    ((new_uids, new_known), new_protocols)
+  in
+  let rec rename_protocol (uids, known) (protocol : global_protocol) =
+    let rec update_interaction known i =
+      let {Loc.value= i_; _} = i in
+      match i_ with
+      | Do (proto, non_role_args, roles, ann) ->
+          { i with
+            Loc.value= Do (rename known proto, non_role_args, roles, ann) }
+      | Calls (caller, proto, non_role_args, roles, ann) ->
+          { i with
+            Loc.value=
+              Calls (caller, rename known proto, non_role_args, roles, ann)
+          }
+      | Recursion (name, interactions) ->
+          { i with
+            Loc.value=
+              Recursion
+                (name, List.map ~f:(update_interaction known) interactions)
+          }
+      | Choice (role, interactions_list) ->
+          { i with
+            Loc.value=
+              Choice
+                ( role
+                , List.map
+                    ~f:(List.map ~f:(update_interaction known))
+                    interactions_list ) }
+      | MessageTransfer _ | Continue _ -> i
+    in
+    let proto = protocol.value in
+    let prefix = N.user proto.name in
+    let nested_protocols = proto.nested_protocols in
+    (* Update known and uids with nested protocols declarations *)
+    let (new_uids, new_known), new_nested_protocols =
+      update_known_protocols prefix uids known nested_protocols
+    in
+    (* Update references to other protocols in the protocol's interactions *)
+    let new_interactions =
+      List.map ~f:(update_interaction new_known) proto.interactions
+    in
+    (* Recursively rename nested protocols *)
+    let (new_uids, _), renamed_nested_protocols =
+      List.fold_map ~init:(new_uids, new_known) ~f:rename_protocol
+        new_nested_protocols
+    in
+    (* Return updated uids, original value of known (any protocols added in
+       this function will be out of scope) and the updated protocol record *)
+    ( (new_uids, known)
+    , { protocol with
+        value=
+          { proto with
+            nested_protocols= renamed_nested_protocols
+          ; interactions= new_interactions } } )
+  in
+  let (uids, known), global_protocols =
+    update_known_protocols ""
+      (Map.empty (module String))
+      (Map.empty (module String))
+      scr_module.protocols
+  in
+  let (uids, known), nested_protocols =
+    update_known_protocols "" uids known scr_module.nested_protocols
+  in
+  let (uids, _), renamed_global_protocols =
+    List.fold_map ~init:(uids, known) ~f:rename_protocol global_protocols
+  in
+  let _, renamed_nested_protocols =
+    List.fold_map ~init:(uids, known) ~f:rename_protocol nested_protocols
+  in
+  { scr_module with
+    protocols= renamed_global_protocols
+  ; nested_protocols= renamed_nested_protocols }
