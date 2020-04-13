@@ -71,8 +71,8 @@ type t =
   | TVarG of TypeVariableName.t
   | ChoiceG of RoleName.t * t list
   | EndG
-  | Nested of ProtocolName.t * RoleName.t list * RoleName.t list * t * t
-  | Call of RoleName.t * ProtocolName.t * RoleName.t list
+  | NestedG of ProtocolName.t * RoleName.t list * RoleName.t list * t * t
+  | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 
 type global_t =
   (string, (RoleName.t * RoleName.t) * t, String.comparator_witness) Map.t
@@ -105,22 +105,21 @@ let show =
         in
         let gs = String.concat ~sep:intermission choices in
         pre ^ gs ^ post
-    | Call (caller, proto_name, roles) ->
-        sprintf "%s%s calls %s(%s);\n" current_indent (RoleName.user caller)
+    | CallG (caller, proto_name, roles, g) ->
+        sprintf "%s%s calls %s(%s);\n%s" current_indent
+          (RoleName.user caller)
           (ProtocolName.user proto_name)
           (String.concat ~sep:", " (List.map ~f:RoleName.user roles))
-    | Nested (proto_name, roles, new_roles, proto_g, g) ->
+          (show_global_type_internal indent g)
+    | NestedG (proto_name, roles, new_roles, proto_g, g) ->
         let str_roles = List.map ~f:RoleName.user roles in
         let str_new_roles = List.map ~f:RoleName.user new_roles in
-        let nested_proto =
-          sprintf "%snested protocol %s(%s) {\n%s%s}\n" current_indent
-            (ProtocolName.user proto_name)
-            (Symtable.show_roles (str_roles, str_new_roles))
-            (show_global_type_internal (indent + 1) proto_g)
-            current_indent
-        in
         let cont = show_global_type_internal indent g in
-        nested_proto ^ cont
+        sprintf "%snested protocol %s(%s) {\n%s%s}\n%s" current_indent
+          (ProtocolName.user proto_name)
+          (Symtable.show_roles (str_roles, str_new_roles))
+          (show_global_type_internal (indent + 1) proto_g)
+          current_indent cont
   in
   show_global_type_internal 0
 
@@ -171,12 +170,50 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           ChoiceG
             ( role
             , List.map ~f:(conv_interactions rec_names) interactions_list )
-      | Do _ ->
-          Violation "The do constructor should not be here. This cannot be!"
-          |> raise
-      | Calls _ -> unimpl "Calls interaction not implemented" )
+      | Do (protocol, _, roles, _) ->
+          (* Previously this would've been a violation *)
+          let fst_role = RoleName.of_name @@ List.hd_exn roles in
+          let role_names = List.map ~f:RoleName.of_name roles in
+          let cont = conv_interactions rec_names rest in
+          CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
+      | Calls (caller, proto, _, roles, _) ->
+          let caller_role = RoleName.of_name caller in
+          let role_names = List.map ~f:RoleName.of_name roles in
+          let cont = conv_interactions rec_names rest in
+          CallG (caller_role, ProtocolName.of_name proto, role_names, cont) )
   in
   conv_interactions [] interactions
+
+(* let global_t_of_protocol (scr_module : Syntax.scr_module) = let open
+   Syntax in let of_protocol proto_name uids known (global_protocol :
+   global_protocol) = let {Loc.value= {roles; interactions; nested_protocols;
+   _}; _} = global_protocol in let roles = List.map ~f:RoleName.of_name roles
+   in let assert_empty l = if not @@ List.is_empty l then unimpl "Non
+   tail-recursive protocol" in let check_role r = if not @@ List.mem roles r
+   ~equal:RoleName.equal then uerr @@ UnboundRole r in let rec
+   conv_interactions rec_names (interactions : global_interaction list) =
+   match interactions with | [] -> EndG | {value; _} :: rest -> ( match value
+   with | MessageTransfer {message; from_role; to_roles; _} -> let from_role
+   = RoleName.of_name from_role in let to_roles = List.map
+   ~f:RoleName.of_name to_roles in check_role from_role ; let init =
+   conv_interactions rec_names rest in let f to_role acc = check_role to_role
+   ; if RoleName.equal from_role to_role then uerr (ReflexiveMessage
+   from_role) ; MessageG (of_syntax_message message, from_role, to_role, acc)
+   in List.fold_right ~f ~init to_roles | Recursion (rname, interactions) ->
+   let rname = TypeVariableName.of_name rname in if List.mem rec_names rname
+   ~equal:TypeVariableName.equal then unimpl "Alpha convert recursion names"
+   else assert_empty rest ; MuG (rname, conv_interactions (rname ::
+   rec_names) interactions) | Continue name -> let name =
+   TypeVariableName.of_name name in if List.mem rec_names name
+   ~equal:TypeVariableName.equal then ( assert_empty rest ; TVarG name ) else
+   uerr (UnboundRecursionName name) | Choice (role, interactions_list) -> let
+   role = RoleName.of_name role in assert_empty rest ; check_role role ;
+   ChoiceG ( role , List.map ~f:(conv_interactions rec_names)
+   interactions_list ) | Do _ -> Violation "The do constructor should not be
+   here. This cannot be!" |> raise | Calls _ -> unimpl "Calls interaction not
+   implemented" ) in conv_interactions [] interactions
+
+   (* return uids, gtype *) in () *)
 
 let rec flatten = function
   | ChoiceG (role, choices) ->
@@ -194,15 +231,17 @@ let rec flatten = function
 let rec substitute g tvar g_sub =
   match g with
   | TVarG tvar_ when TypeVariableName.equal tvar tvar_ -> g_sub
-  | TVarG _ | Call _ -> g
+  | TVarG _ -> g
   | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
   | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
   | EndG -> EndG
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
   | ChoiceG (r, g_) ->
       ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
-  | Nested (name, rs, new_rs, g_proto, g_) ->
-      Nested (name, rs, new_rs, g_proto, substitute g_ tvar g_sub)
+  | NestedG (name, rs, new_rs, g_proto, g_) ->
+      NestedG (name, rs, new_rs, g_proto, substitute g_ tvar g_sub)
+  | CallG (caller, protocol, roles, g_) ->
+      CallG (caller, protocol, roles, substitute g_ tvar g_sub)
 
 let rec unfold = function
   | MuG (tvar, g_) as g -> substitute g_ tvar g
@@ -213,7 +252,9 @@ let rec normalise = function
   | ChoiceG (r, g_) ->
       let g_ = List.map ~f:normalise g_ in
       flatten (ChoiceG (r, g_))
-  | (EndG | TVarG _ | Call _) as g -> g
+  | (EndG | TVarG _) as g -> g
   | MuG (tvar, g_) -> unfold (MuG (tvar, normalise g_))
-  | Nested (name, rs, new_rs, g_proto, g_) ->
-      Nested (name, rs, new_rs, normalise g_proto, normalise g_)
+  | NestedG (name, rs, new_rs, g_proto, g_) ->
+      NestedG (name, rs, new_rs, normalise g_proto, normalise g_)
+  | CallG (caller, protocol, roles, g_) ->
+      CallG (caller, protocol, roles, normalise g_)
