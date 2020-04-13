@@ -75,7 +75,10 @@ type t =
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 
 type global_t =
-  (string, (RoleName.t * RoleName.t) * t, String.comparator_witness) Map.t
+  ( string
+  , (RoleName.t list * RoleName.t list) * t
+  , String.comparator_witness )
+  Map.t
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -122,6 +125,21 @@ let show =
           current_indent cont
   in
   show_global_type_internal 0
+
+let show_global_t (g : global_t) =
+  let show_aux ~key ~data acc =
+    let (roles, new_roles), g_ = data in
+    let roles_str = List.map ~f:RoleName.user roles in
+    let new_roles_str = List.map ~f:RoleName.user new_roles in
+    let split_decl = (roles_str, new_roles_str) in
+    let proto_str =
+      sprintf "protocol %s(%s):\n%s\n" key
+        (Symtable.show_roles split_decl)
+        (show g_)
+    in
+    proto_str :: acc
+  in
+  String.concat ~sep:"\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
 
 let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
@@ -184,36 +202,35 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
   in
   conv_interactions [] interactions
 
-(* let global_t_of_protocol (scr_module : Syntax.scr_module) = let open
-   Syntax in let of_protocol proto_name uids known (global_protocol :
-   global_protocol) = let {Loc.value= {roles; interactions; nested_protocols;
-   _}; _} = global_protocol in let roles = List.map ~f:RoleName.of_name roles
-   in let assert_empty l = if not @@ List.is_empty l then unimpl "Non
-   tail-recursive protocol" in let check_role r = if not @@ List.mem roles r
-   ~equal:RoleName.equal then uerr @@ UnboundRole r in let rec
-   conv_interactions rec_names (interactions : global_interaction list) =
-   match interactions with | [] -> EndG | {value; _} :: rest -> ( match value
-   with | MessageTransfer {message; from_role; to_roles; _} -> let from_role
-   = RoleName.of_name from_role in let to_roles = List.map
-   ~f:RoleName.of_name to_roles in check_role from_role ; let init =
-   conv_interactions rec_names rest in let f to_role acc = check_role to_role
-   ; if RoleName.equal from_role to_role then uerr (ReflexiveMessage
-   from_role) ; MessageG (of_syntax_message message, from_role, to_role, acc)
-   in List.fold_right ~f ~init to_roles | Recursion (rname, interactions) ->
-   let rname = TypeVariableName.of_name rname in if List.mem rec_names rname
-   ~equal:TypeVariableName.equal then unimpl "Alpha convert recursion names"
-   else assert_empty rest ; MuG (rname, conv_interactions (rname ::
-   rec_names) interactions) | Continue name -> let name =
-   TypeVariableName.of_name name in if List.mem rec_names name
-   ~equal:TypeVariableName.equal then ( assert_empty rest ; TVarG name ) else
-   uerr (UnboundRecursionName name) | Choice (role, interactions_list) -> let
-   role = RoleName.of_name role in assert_empty rest ; check_role role ;
-   ChoiceG ( role , List.map ~f:(conv_interactions rec_names)
-   interactions_list ) | Do _ -> Violation "The do constructor should not be
-   here. This cannot be!" |> raise | Calls _ -> unimpl "Calls interaction not
-   implemented" ) in conv_interactions [] interactions
-
-   (* return uids, gtype *) in () *)
+let global_t_of_module (scr_module : Syntax.scr_module) =
+  let open Syntax in
+  let split_role_names (roles, new_roles) =
+    let role_names = List.map ~f:RoleName.of_name roles in
+    let new_role_names = List.map ~f:RoleName.of_name new_roles in
+    (role_names, new_role_names)
+  in
+  let rec protocol_to_t (protocol : global_protocol) =
+    let g = of_protocol protocol in
+    let nested_protocols = protocol.value.nested_protocols in
+    List.fold_right ~init:g ~f:nested_protocol_to_t nested_protocols
+  and nested_protocol_to_t nested_proto cont =
+    let {Loc.value= {name; split_roles; _}; _} = nested_proto in
+    let proto_name = ProtocolName.of_name name in
+    let roles, new_roles = split_roles in
+    let role_names = List.map ~f:RoleName.of_name roles in
+    let new_role_names = List.map ~f:RoleName.of_name new_roles in
+    let proto_t = protocol_to_t nested_proto in
+    NestedG (proto_name, role_names, new_role_names, proto_t, cont)
+  in
+  let add_protocol acc (protocol : global_protocol) =
+    let proto_name = N.user protocol.value.name in
+    let g = protocol_to_t protocol in
+    let roles = split_role_names protocol.value.split_roles in
+    Map.add_exn acc ~key:proto_name ~data:(roles, g)
+  in
+  let _ = Map.empty (module String) in
+  let all_protocols = scr_module.protocols @ scr_module.nested_protocols in
+  List.fold ~init:(Map.empty (module String)) ~f:add_protocol all_protocols
 
 let rec flatten = function
   | ChoiceG (role, choices) ->
