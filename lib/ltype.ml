@@ -11,7 +11,19 @@ type t =
   | TVarL of TypeVariableName.t
   | MuL of TypeVariableName.t * t
   | EndL
+  | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
+  | AcceptL of
+      RoleName.t
+      * RoleName.t
+      * ProtocolName.t
+      * RoleName.t list
+      * RoleName.t list
+      * t
 [@@deriving sexp_of, eq]
+
+let roles_to_string roles =
+  let str_roles = List.map ~f:RoleName.user roles in
+  String.concat ~sep:", " str_roles
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -45,6 +57,30 @@ let show =
         in
         let ls = String.concat ~sep:intermission choices in
         pre ^ ls ^ post
+    | InviteCreateL (invite_roles, create_roles, protocol, l) ->
+        let name_str = ProtocolName.user protocol in
+        let invite =
+          sprintf "%sinvite(%s) to %s;\n" current_indent
+            (roles_to_string invite_roles)
+            name_str
+        in
+        let create =
+          if List.length create_roles = 0 then ""
+          else
+            sprintf "%screate(%s) to %s;\n" current_indent
+              (roles_to_string create_roles)
+              name_str
+        in
+        let l_str = show_local_type_internal indent l in
+        invite ^ create ^ l_str
+    | AcceptL (role, caller, protocol, roles, new_roles, l) ->
+        let roles_str = List.map ~f:RoleName.user roles in
+        let new_roles_str = List.map ~f:RoleName.user new_roles in
+        sprintf "%saccept %s from %s in %s(%s);\n%s" current_indent
+          (RoleName.user role) (RoleName.user caller)
+          (ProtocolName.user protocol)
+          (Symtable.show_roles (roles_str, new_roles_str))
+          (show_local_type_internal (indent + 1) l)
   in
   show_local_type_internal 0
 
@@ -99,6 +135,7 @@ let rec merge projected_role lty1 lty2 =
 (* Check whether the first message in a g choice is from choice_r to recv_r,
    if recv_r is Some; return receive role *)
 let check_consistent_gchoice choice_r recv_r = function
+  (* TODO: add Invitation *)
   | MessageG (_, send_r, recv_r_, _) -> (
       if not @@ RoleName.equal send_r choice_r then
         uerr (RoleMismatch (choice_r, send_r)) ;
@@ -127,6 +164,7 @@ let rec project (projected_role : RoleName.t) = function
       | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
       | _ -> next )
   | ChoiceG (choice_r, g_types) -> (
+      (* TODO Add label for invitation *)
       let check_distinct_prefix gtys =
         let rec aux acc = function
           | [] -> ()
@@ -159,3 +197,85 @@ let rec project (projected_role : RoleName.t) = function
         | None -> EndL ) )
   | NestedG _ -> unimpl "TODO: implement nested protocols in local types"
   | CallG _ -> unimpl "TODO: implement calls in local types"
+
+module type S = sig
+  type t [@@deriving show {with_path= false}, sexp_of]
+
+  include Comparable.S with type t := t
+end
+
+module LocalProtocolId = struct
+  module T = struct
+    type t = ProtocolName.t * RoleName.t
+    [@@deriving show {with_path= false}, sexp_of]
+
+    let compare (p1, r1) (p2, r2) =
+      let cmp_protocol_name = ProtocolName.compare p1 p2 in
+      if cmp_protocol_name <> 0 then cmp_protocol_name
+      else RoleName.compare r1 r2
+  end
+
+  include T
+  include Comparable.Make (T)
+end
+
+let build_local_proto_lookup_table (global_t : global_t) =
+  let rec unique_name key uids =
+    let uid = match Map.find uids key with Some n -> n | None -> 0 in
+    let protocol_name =
+      if uid = 0 then key else key ^ "_" ^ Int.to_string (uid + 1)
+    in
+    let new_uids = Map.update uids key ~f:(fun _ -> uid + 1) in
+    if uid = 0 then (new_uids, protocol_name)
+    else if Map.mem new_uids protocol_name then unique_name key new_uids
+    else (Map.add_exn new_uids ~key:protocol_name ~data:1, protocol_name)
+  in
+  let local_protocol_unique_names proto_name roles new_roles uids
+      all_local_protocols =
+    let add_local_proto_name (local_proto_names, uids) role =
+      let proto_and_role =
+        ProtocolName.user proto_name ^ "_" ^ RoleName.user role
+      in
+      let new_uids, local_proto_name = unique_name proto_and_role uids in
+      ( Map.add_exn local_proto_names ~key:(proto_name, role)
+          ~data:local_proto_name
+      , new_uids )
+    in
+    let all_local_protocols, uids =
+      List.fold
+        ~init:(all_local_protocols, uids)
+        ~f:add_local_proto_name (roles @ new_roles)
+    in
+    (uids, all_local_protocols)
+  in
+  let rec proto_to_table g uids acc =
+    match g with
+    | NestedG (proto, roles, new_roles, g_, g_') ->
+        let uids, acc =
+          local_protocol_unique_names proto roles new_roles uids acc
+        in
+        let uids, acc = proto_to_table g_ uids acc in
+        proto_to_table g_' uids acc
+    | EndG | TVarG _ | MuG _ | MessageG _ | ChoiceG _ | CallG _ -> (uids, acc)
+  in
+  let _, all_local_protocols =
+    Map.fold global_t
+      ~init:(Map.empty (module String), Map.empty (module LocalProtocolId))
+      ~f:(fun ~key ~data acc ->
+        let uids, all_names = acc in
+        let (roles, new_roles), g = data in
+        let uids, all_names =
+          local_protocol_unique_names key roles new_roles uids all_names
+        in
+        proto_to_table g uids all_names)
+  in
+  all_local_protocols
+
+let show_lookup_table table =
+  let show_key (protocol, role) =
+    sprintf "%s@%s" (ProtocolName.user protocol) (RoleName.user role)
+  in
+  let show_aux ~key ~data acc =
+    sprintf "%s%s: %s\n" acc (show_key key) data
+  in
+  Map.fold table ~init:"" ~f:show_aux
