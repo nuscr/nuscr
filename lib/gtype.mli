@@ -26,9 +26,9 @@ type t =
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 
 type global_t =
-  ( string
+  ( ProtocolName.t
   , (RoleName.t list * RoleName.t list) * t
-  , String.comparator_witness )
+  , ProtocolName.comparator_witness )
   Map.t
 
 val show : t -> string
