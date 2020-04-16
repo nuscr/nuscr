@@ -75,9 +75,9 @@ type t =
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 
 type global_t =
-  ( string
+  ( ProtocolName.t
   , (RoleName.t list * RoleName.t list) * t
-  , String.comparator_witness )
+  , ProtocolName.comparator_witness )
   Map.t
 
 let show =
@@ -131,10 +131,9 @@ let show_global_t (g : global_t) =
     let (roles, new_roles), g_ = data in
     let roles_str = List.map ~f:RoleName.user roles in
     let new_roles_str = List.map ~f:RoleName.user new_roles in
-    let split_decl = (roles_str, new_roles_str) in
     let proto_str =
-      sprintf "protocol %s(%s):\n%s\n" key
-        (Symtable.show_roles split_decl)
+      sprintf "protocol %s(%s):\n%s\n" (ProtocolName.user key)
+        (Symtable.show_roles (roles_str, new_roles_str))
         (show g_)
     in
     proto_str :: acc
@@ -223,14 +222,15 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
     NestedG (proto_name, role_names, new_role_names, proto_t, cont)
   in
   let add_protocol acc (protocol : global_protocol) =
-    let proto_name = N.user protocol.value.name in
+    let proto_name = ProtocolName.of_name protocol.value.name in
     let g = protocol_to_t protocol in
     let roles = split_role_names protocol.value.split_roles in
     Map.add_exn acc ~key:proto_name ~data:(roles, g)
   in
-  let _ = Map.empty (module String) in
   let all_protocols = scr_module.protocols @ scr_module.nested_protocols in
-  List.fold ~init:(Map.empty (module String)) ~f:add_protocol all_protocols
+  List.fold
+    ~init:(Map.empty (module ProtocolName))
+    ~f:add_protocol all_protocols
 
 let rec flatten = function
   | ChoiceG (role, choices) ->
