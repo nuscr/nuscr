@@ -31,11 +31,20 @@ type global_t =
   , ProtocolName.comparator_witness )
   Map.t
 
+(* TODO: remove? *)
+type protocol_decls =
+  ( ProtocolName.t
+  , RoleName.t list * RoleName.t list
+  , ProtocolName.comparator_witness )
+  Map.t
+
 val show : t -> string
 (** Provides a textual representation of a global type *)
 
 val show_global_t : global_t -> string
 (** Provides a textual representation of a global type with nested protocols *)
+
+val call_label : ProtocolName.t -> RoleName.t list -> LabelName.t
 
 val of_protocol : Syntax.global_protocol -> t
 (** Turn a raw protocol (from the parser) into a global type *)
@@ -43,6 +52,11 @@ val of_protocol : Syntax.global_protocol -> t
 val global_t_of_module : Syntax.scr_module -> global_t
 (** Turn scribble module (from the parser) into a global type *)
 
+(* TODO: remove? *)
+val protocol_roles : global_t -> protocol_decls
+
 val normalise : t -> t
 (** Normalise a global type. This mainly collapses nested choice on the same
     participant and unfolds fixpoints *)
+
+val normalise_global_t : global_t -> global_t

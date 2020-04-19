@@ -80,6 +80,13 @@ type global_t =
   , ProtocolName.comparator_witness )
   Map.t
 
+(* TODO: remove? *)
+type protocol_decls =
+  ( ProtocolName.t
+  , RoleName.t list * RoleName.t list
+  , ProtocolName.comparator_witness )
+  Map.t
+
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
   let rec show_global_type_internal indent =
@@ -125,6 +132,12 @@ let show =
           current_indent cont
   in
   show_global_type_internal 0
+
+let call_label protocol roles =
+  let str_roles = List.map ~f:RoleName.user roles in
+  let roles_str = String.concat ~sep:"," str_roles in
+  let label_str = sprintf "%s(%s)" (ProtocolName.user protocol) roles_str in
+  LabelName.of_string label_str
 
 let show_global_t (g : global_t) =
   let show_aux ~key ~data acc =
@@ -232,6 +245,25 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
     ~init:(Map.empty (module ProtocolName))
     ~f:add_protocol all_protocols
 
+let protocol_roles (global_t : global_t) =
+  let rec nested_protocol_sigs g proto_roles =
+    match g with
+    | NestedG (protocol, roles, new_roles, proto_g, g_) ->
+        let proto_roles =
+          Map.add_exn proto_roles ~key:protocol ~data:(roles, new_roles)
+        in
+        let proto_roles = nested_protocol_sigs proto_g proto_roles in
+        nested_protocol_sigs g_ proto_roles
+    | _ -> proto_roles
+  in
+  Map.fold
+    ~init:(Map.empty (module ProtocolName))
+    ~f:(fun ~key ~data acc ->
+      let (roles, new_roles), g = data in
+      let acc = Map.add_exn acc ~key ~data:(roles, new_roles) in
+      nested_protocol_sigs g acc)
+    global_t
+
 let rec flatten = function
   | ChoiceG (role, choices) ->
       let choices = List.map ~f:flatten choices in
@@ -275,3 +307,12 @@ let rec normalise = function
       NestedG (name, rs, new_rs, normalise g_proto, normalise g_)
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
+
+let normalise_global_t (global_t : global_t) =
+  let normalise_protocol ~key ~data acc =
+    let all_roles, g = data in
+    Map.add_exn acc ~key ~data:(all_roles, normalise g)
+  in
+  Map.fold
+    ~init:(Map.empty (module ProtocolName))
+    ~f:normalise_protocol global_t
