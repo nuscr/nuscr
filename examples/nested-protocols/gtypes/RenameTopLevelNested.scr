@@ -1,0 +1,39 @@
+nested protocol Proto1(role A, role B; new role C) {
+  do Proto1(A, B);
+  A calls Proto1(B, C);
+  B calls Proto2(C);
+}
+
+nested protocol Proto2(role X; new role Y) {
+  nested protocol Proto3(role W, role Z) {
+    do Proto1(W, Z);
+  }
+  X calls Proto1(X, Y);
+}
+
+global protocol Proto1(role C, role D) {
+  C calls Proto1(D, C);
+  do Proto1(D, C);
+  C calls Proto2(D);
+}
+
+// **** EXPECTED: ****
+
+// nested protocol Proto1_2(role A, role B; new role C) {
+//   do Proto1(A, B);
+//   A calls Proto1_2(B, C);
+//   B calls Proto2(C);
+// }
+
+// nested protocol Proto2(role X; new role Y) {
+//   nested protocol Proto2_Proto3(role W, role Z) {
+//     do Proto1(W, Z);
+//   }
+//   X calls Proto1_2(X, Y);
+// }
+
+// global protocol Proto1(role C, role D) {
+//   C calls Proto1(D, C);
+//   do Proto1(D, C);
+//   C calls Proto2(D);
+// }

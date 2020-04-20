@@ -1,0 +1,30 @@
+nested protocol Nested(role A, role B) {
+  nested protocol Nested(role A, role B) {
+    nested protocol Nested(role A, role B) {
+      A calls Nested(B, A);
+    }
+    A calls Nested(B, A);
+  }
+  A calls Nested(B, A);
+}
+
+global protocol P(role C, role D) {
+  C calls Nested(C, D);
+}
+
+// **** EXPECTED: ****
+
+// nested protocol Nested(role A, role B) {
+//   nested protocol Nested_Nested(role A, role B) {
+//     nested protocol Nested_Nested_Nested(role A, role B) {
+//       A calls Nested_Nested_Nested(B, A);
+//     }
+//     A calls Nested_Nested_Nested(B, A);
+//   }
+//   A calls Nested_Nested(B, A);
+// }
+
+// global protocol P(role C, role D) {
+//   C calls Nested(C, D);
+// }
+

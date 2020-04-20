@@ -1,0 +1,31 @@
+nested protocol P1(role A, role B) {
+  nested protocol P2(role C; new role D) {
+    C calls P1(C, D);
+  }
+  do P3(A, B);
+  A calls P2(B);
+}
+
+global protocol P3(role E, role D) {
+  nested protocol P4(role F, role G; new role H) {
+    F calls P1(G, H);
+  }
+  E calls P4(E, D);
+}
+
+// **** EXPECTED: ****
+
+// nested protocol P1(role A, role B) {
+//   nested protocol P1_P2(role C; new role D) {
+//     C calls P1(C, D);
+//   }
+//   do P3(A, B);
+//   A calls P1_P2(B);
+// }
+
+// global protocol P3(role E, role D) {
+//   nested protocol P3_P4(role F, role G; new role H) {
+//     F calls P1(G, H);
+//   }
+//   E calls P3_P4(E, D);
+// }
