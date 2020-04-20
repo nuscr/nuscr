@@ -1,0 +1,8 @@
+nested protocol Proto(role C, role D; new role E) {
+  choice at C {
+    m1() from C to D;
+  } or {
+    m2() from C to D;
+  }
+  D calls Proto(D, C);
+}
