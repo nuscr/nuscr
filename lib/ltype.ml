@@ -211,7 +211,6 @@ let rec merge projected_role lty1 lty2 =
                      , new_roles
                      , caller
                      , merge projected_role lty lty_ ))
-            | Some (RecvL _) -> fail ()
             | _ ->
                 raise
                   (Violation
@@ -248,10 +247,12 @@ let rec merge projected_role lty1 lty2 =
         if not @@ RoleName.equal caller1 caller2 then fail () ;
         merge_recv caller1 [lty1; lty2]
     | ChoiceL (r1, ltys1), AcceptL (_, _, _, _, caller, _)
-      when RoleName.equal r1 caller ->
+      when RoleName.equal r1 caller && not (RoleName.equal r1 projected_role)
+      ->
         merge_recv r1 (lty2 :: ltys1)
     | AcceptL (_, _, _, _, caller, _), ChoiceL (r2, ltys2)
-      when RoleName.equal r2 caller ->
+      when RoleName.equal r2 caller && not (RoleName.equal r2 projected_role)
+      ->
         merge_recv r2 (lty1 :: ltys2)
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->

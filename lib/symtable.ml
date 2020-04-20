@@ -71,8 +71,6 @@ let build_symbol_table (prefix : string) (protocols : global_protocol list)
 
 let rec lookup_protocol (symbol_table : symbol_table) protocol =
   let proto_name = N.user protocol in
-  Stdio.print_endline ("looking up protocol: " ^ proto_name) ;
-  Stdio.print_endline (show_symbol_table symbol_table) ;
   match Map.find symbol_table.table proto_name with
   | Some decl -> decl
   | None -> (
