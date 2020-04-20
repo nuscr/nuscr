@@ -1,0 +1,13 @@
+global protocol OutOfScope1(role A, role B) {
+  nested protocol Nested1(role C, role D) {
+    C calls Nested2(D, C);
+  }
+  A calls Nested2(A, B);
+}
+
+global protocol OutOfScope2(role A, role B) {
+  nested protocol Nested2(role C, role D) {
+    C calls Nested1(C, D);
+  }
+  B calls Nested1(B, A);
+}

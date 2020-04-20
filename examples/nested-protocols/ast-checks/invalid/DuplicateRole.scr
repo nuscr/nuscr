@@ -1,0 +1,16 @@
+nested protocol P1(role X, role Y) {
+  choice at Start {
+    m1() from Start to End;
+  } or {
+    do DuplicateRole(X, X);
+  }
+}
+
+global protocol DuplicateRole(role Start, role End) {
+  choice at Start {
+    m1() from Start to End;
+  } or {
+    msg() from Start to End;
+    Start calls P1(End, End);
+  }
+}
