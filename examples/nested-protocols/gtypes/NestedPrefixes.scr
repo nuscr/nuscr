@@ -1,0 +1,29 @@
+global protocol Top(role A, role B) {
+  nested protocol P1(role C, role D) {
+    nested protocol P2(role E, role F) {
+      E calls P3(E, F);
+    }
+    nested protocol P3(role G, role H) {
+      G calls P2(G, H);
+    }
+  }
+  nested protocol P4(role I, role J) {
+    I calls P1(I, J);
+  }
+}
+
+// **** EXPECTED: ****
+
+// global protocol Top(role A, role B) {
+//   nested protocol Top_P1(role C, role D) {
+//     nested protocol Top_P1_P2(role E, role F) {
+//       E calls Top_P1_P3(E, F);
+//     }
+//     nested protocol Top_P1_P3(role G, role H) {
+//       G calls Top_P1_P2(G, H);
+//     }
+//   }
+//   nested protocol Top_P4(role I, role J) {
+//     I calls Top_P1(I, J);
+//   }
+// }

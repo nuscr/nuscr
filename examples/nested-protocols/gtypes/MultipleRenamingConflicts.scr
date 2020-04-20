@@ -1,0 +1,41 @@
+
+nested protocol Proto(role A, role B) {
+  nested protocol Test_Prefix(role A, role B) {
+    A calls Proto(A, B);
+    A calls Test_Prefix(A, B);
+    A calls Test_Prefix_2(A, B);
+  }
+  nested protocol Test_Prefix_2(role A, role B) {
+    A calls Test_Prefix(A, B);
+    A calls Test_Prefix_2(A, B);
+  }
+}
+
+nested protocol Proto_Test(role A, role B) {
+  nested protocol Prefix(role A, role B) {
+    A calls Proto_Test(A, B);
+    A calls Prefix(A, B);
+  }
+}
+
+// **** EXPECTED: ****
+
+// nested protocol Proto(role A, role B) {
+//   nested protocol Proto_Test_Prefix(role A, role B) {
+//     A calls Proto(A, B);
+//     A calls Proto_Test_Prefix(A, B);
+//     A calls Proto_Test_Prefix_2(A, B);
+//   }
+//   nested protocol Proto_Test_Prefix_2(role A, role B) {
+//     A calls Proto_Test_Prefix(A, B);
+//     A calls Proto_Test_Prefix_2(A, B);
+//   }
+// }
+
+
+// nested protocol Proto_Test(role A, role B) {
+//   nested protocol Proto_Test_Prefix_3(role A, role B) {
+//     A calls Proto_Test(A, B);
+//     A calls Proto_Test_Prefix_3(A, B);
+//   }
+// }
