@@ -1,0 +1,6 @@
+global protocol Proto1(role A, role B) {
+  rec X {
+    m1() from A to B;
+  }
+  do Proto1(B, A);
+}

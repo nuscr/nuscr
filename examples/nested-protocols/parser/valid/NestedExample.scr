@@ -1,0 +1,35 @@
+nested protocol P1(role A, role B) {
+  nested protocol P2(role C, role D) {
+    m1() from C to D;
+  }
+
+  nested protocol P3(role C, role D; new role E, role F) {
+    m2() from C to D;
+    rec X {
+      m1() from E to F;
+      continue X;
+    }
+  }
+
+  m1() from A to B;
+}
+
+nested protocol P4(role X, role Y) {
+  choice at Y {
+    m1() from Y to X;
+  } or {
+    do PGlobal(Y, X);
+  }
+}
+
+global protocol PGlobal(role R1, role R2) {
+  nested protocol P5(role C, role D) {
+    C calls P4(C, D);
+  }
+
+  m5() from R1 to R2;
+}
+
+global protocol PGlobal2(role A, role B) {
+  do PGlobal(A, B);
+}
