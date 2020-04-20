@@ -243,11 +243,9 @@ let validate_calls_in_protocols (scr_module : scr_module) =
   let nested_symbol_table =
     build_symbol_table prefix scr_module.nested_protocols None
   in
-  Stdio.print_endline (show_symbol_table nested_symbol_table) ;
   let global_symbol_table =
     build_symbol_table prefix scr_module.protocols None
   in
-  Stdio.print_endline (show_symbol_table global_symbol_table) ;
   List.iter
     ~f:
       (validate_protocol_calls prefix global_symbol_table
