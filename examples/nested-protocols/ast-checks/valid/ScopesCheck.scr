@@ -1,0 +1,66 @@
+nested protocol P1(role A, role B) {
+  nested protocol P2(role C, role D) {
+    nested protocol P3(role E, role F) {
+      E calls P1(E, F);
+      E calls P2(E, F);
+      E calls P3(E, F);
+      E calls P4(E, F);
+      E calls P5(E, F);
+      do P6(E, F);
+      do P7(E, F);
+    }
+
+    C calls P1(C, D);
+    C calls P2(C, D);
+    C calls P3(C, D);
+    C calls P4(C, D);
+    C calls P5(C, D);
+    do P6(C, D);
+    do P7(C, D);
+  }
+
+  nested protocol P4(role G, role H) {
+    G calls P1(G, H);
+    G calls P2(G, H);
+    G calls P4(G, H);
+    G calls P5(G, H);
+    do P6(G, H);
+    do P7(G, H);
+  }
+
+  A calls P1(A, B);
+  A calls P2(A, B);
+  A calls P4(A, B);
+  A calls P5(A, B);
+  do P6(A, B);
+  do P7(A, B);
+}
+
+nested protocol P5(role I, role J) {
+  I calls P1(I, J);
+  I calls P5(I, J);
+  do P6(I, J);
+  do P7(I, J);
+}
+
+global protocol P6(role K, role L) {
+  K calls P1(K, L);
+  K calls P5(K, L);
+  do P6(K, L);
+  do P7(K, L);
+}
+
+global protocol P7(role M, role N) {
+  nested protocol P8(role O, role P) {
+    O calls P1(O, P);
+    O calls P5(O, P);
+    O calls P8(O, P);
+    do P6(O, P);
+    do P7(O, P);
+  }
+  M calls P1(M, N);
+  M calls P5(M, N);
+  M calls P8(M, N);
+  do P6(M, N);
+  do P7(M, N);
+}

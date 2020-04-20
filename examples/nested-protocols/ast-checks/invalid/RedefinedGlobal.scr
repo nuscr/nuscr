@@ -1,0 +1,3 @@
+global protocol Duplicate(role A, role B) {}
+
+global protocol Duplicate(role A, role B) {}

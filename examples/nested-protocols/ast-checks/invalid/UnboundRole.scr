@@ -1,0 +1,6 @@
+global protocol RoleOutOfScope(role A, role B) {
+  nested protocol Nested2(role C, role D) {
+    do RoleOutOfScope(A, D);
+  }
+  m1() from C to A;
+}

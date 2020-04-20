@@ -1,0 +1,4 @@
+global protocol Proto(role Start, role End) {
+  nested protocol Duplicate(role A, role B) {}
+  nested protocol Duplicate(role A, role B) {}
+}

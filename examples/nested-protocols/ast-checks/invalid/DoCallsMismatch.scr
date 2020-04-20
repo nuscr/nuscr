@@ -1,0 +1,7 @@
+nested protocol P1(role A, role B; new role C) {
+  A calls P2(C, B);
+}
+
+global protocol P2(role C, role D) {
+  do P1(C, D);
+}
