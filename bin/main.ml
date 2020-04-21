@@ -10,6 +10,11 @@ let usage () =
   ^ (Sys.get_argv ()).(0)
   ^ " [-enum][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
 
+let nested_usage () =
+  "usage: "
+  ^ (Sys.get_argv ()).(0)
+  ^ " [-verbose][-show_global][-project] file"
+
 let parse_role_protocol_exn rp =
   match String.split rp ~on:'@' with
   | [role; protocol] ->
@@ -27,6 +32,10 @@ let verbose = ref false
 let version = ref false
 
 let help = ref false
+
+let project_protocols = ref false
+
+let show_global = ref true
 
 let fsm : (RoleName.t * ProtocolName.t) option ref = ref None
 
@@ -54,6 +63,22 @@ let argspec =
   ; ( "-gencode"
     , Arg.String (fun s -> gencode := parse_role_protocol_exn s)
     , ": generate OCaml code for the specified role" ) ]
+
+let nested_argspec =
+  let open Caml in
+  [ ( "-version"
+    , Arg.Unit (fun () -> version := true)
+    , ": print the version number" )
+  ; ("-verbose", Arg.Unit (fun () -> verbose := true), ": print out ast")
+  ; ( "-global-type"
+    , Arg.Unit (fun () -> show_global := true)
+    , ": print out global type" )
+  ; ( "-project"
+    , Arg.Unit (fun () -> project_protocols := true)
+    , ": project the local type for the given protocols" )
+  ; ( "-gencode"
+    , Arg.String (fun _ -> Err.unimpl "Code generation not implemented")
+    , ": generate Golang code for the specified protocol" ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
@@ -115,11 +140,44 @@ let run filename verbose enumerate proj fsm gencode =
       "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
       false
 
+let run_nested filename show_ast show_global show_local =
+  let show_result ?(sep = "\n\n") ~f verbose input =
+    (* only show if verbose is on *)
+    if verbose then print_endline (Printf.sprintf "%s%s" (f input) sep)
+    else ()
+  in
+  try
+    let ast = process_file filename Lib.parse in
+    Protocol.validate_calls_in_protocols ast ;
+    show_result ~f:Syntax.show_scr_module show_ast ast ;
+    let ast = Protocol.rename_nested_protocols ast in
+    let open Gtype in
+    let g_type = global_t_of_module ast in
+    let g_type = normalise_global_t g_type in
+    show_result ~sep:"\n\n----------\n" ~f:show_global_t show_global g_type ;
+    let open Ltype in
+    show_result ~f:show_local_t show_local (project_global_t g_type) ;
+    true
+  with
+  | Err.UserError msg ->
+      "User error: " ^ Err.show_user_error msg |> prerr_endline ;
+      false
+  | Err.Violation msg ->
+      "Violation: " ^ msg |> prerr_endline ;
+      false
+  | Err.UnImplemented desc ->
+      "I'm sorry, it is unfortunate " ^ desc ^ " is\n not implemented"
+      |> prerr_endline ;
+      false
+  | e ->
+      "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
+      false
+
 let () =
   let filename = ref "" in
-  Caml.Arg.parse argspec (fun fn -> filename := fn) @@ usage () ;
+  Caml.Arg.parse nested_argspec (fun fn -> filename := fn) @@ nested_usage () ;
   if !version then print_endline @@ version_string ()
-  else if String.length !filename = 0 then usage () |> print_endline
-  else if run !filename !verbose !enum !project !fsm !gencode then
+  else if String.length !filename = 0 then nested_usage () |> print_endline
+  else if run_nested !filename !verbose !show_global !project_protocols then
     Caml.exit 0
   else Caml.exit 1
