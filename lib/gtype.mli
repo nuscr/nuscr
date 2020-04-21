@@ -44,7 +44,8 @@ val show : t -> string
 val show_global_t : global_t -> string
 (** Provides a textual representation of a global type with nested protocols *)
 
-val call_label : ProtocolName.t -> RoleName.t list -> LabelName.t
+val call_label :
+  RoleName.t -> ProtocolName.t -> RoleName.t list -> LabelName.t
 
 val of_protocol : Syntax.global_protocol -> t
 (** Turn a raw protocol (from the parser) into a global type *)
