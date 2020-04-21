@@ -133,11 +133,15 @@ let show =
   in
   show_global_type_internal 0
 
-let call_label protocol roles =
+let call_label caller protocol roles =
   let str_roles = List.map ~f:RoleName.user roles in
   let roles_str = String.concat ~sep:"," str_roles in
-  let label_str = sprintf "%s(%s)" (ProtocolName.user protocol) roles_str in
-  LabelName.of_string label_str
+  let label_str =
+    sprintf "call(%s, %s(%s))" (RoleName.user caller)
+      (ProtocolName.user protocol)
+      roles_str
+  in
+  LabelName.create label_str (ProtocolName.where protocol)
 
 let show_global_t (g : global_t) =
   let show_aux ~key ~data acc =

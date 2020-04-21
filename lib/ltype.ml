@@ -199,7 +199,7 @@ let rec merge projected_role lty1 lty2 =
                   (Violation
                      "Merge receive must be merging receive local types") )
         | AcceptL (role', protocol, roles, new_roles, caller, lty) as l -> (
-            let label = call_label protocol roles in
+            let label = call_label caller protocol roles in
             match List.Assoc.find acc ~equal:LabelName.equal label with
             | None -> (label, l) :: acc
             | Some (AcceptL (_, _, _, _, _, lty_)) ->
@@ -323,8 +323,8 @@ let rec project' protocol_sigs (projected_role : RoleName.t) = function
               if Set.mem acc l (* FIXME: Use 2 labels for location *) then
                 uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
-          | CallG (_, protocol, roles, _) :: rest ->
-              let l = call_label protocol roles in
+          | CallG (caller, protocol, roles, _) :: rest ->
+              let l = call_label caller protocol roles in
               if Set.mem acc l then uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
           | _ ->
