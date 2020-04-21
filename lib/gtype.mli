@@ -22,21 +22,21 @@ type t =
       (** [ChoiceG (name, ts)] expresses a choice located at participant
           [name] between the [ts] *)
   | EndG  (** Empty global type *)
-  | NestedG of ProtocolName.t * RoleName.t list * RoleName.t list * t * t
+  (* | NestedG of ProtocolName.t * RoleName.t list * RoleName.t list * t * t *)
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
+
+(* type global_t = ( ProtocolName.t , (RoleName.t list * RoleName.t list) * t
+   , ProtocolName.comparator_witness ) Map.t *)
 
 type global_t =
   ( ProtocolName.t
-  , (RoleName.t list * RoleName.t list) * t
+  , (RoleName.t list * RoleName.t list) * ProtocolName.t list * t
   , ProtocolName.comparator_witness )
   Map.t
 
 (* TODO: remove? *)
-type protocol_decls =
-  ( ProtocolName.t
-  , RoleName.t list * RoleName.t list
-  , ProtocolName.comparator_witness )
-  Map.t
+(* type protocol_decls = ( ProtocolName.t , RoleName.t list * RoleName.t list
+   , ProtocolName.comparator_witness ) Map.t *)
 
 val show : t -> string
 (** Provides a textual representation of a global type *)
@@ -54,7 +54,7 @@ val global_t_of_module : Syntax.scr_module -> global_t
 (** Turn scribble module (from the parser) into a global type *)
 
 (* TODO: remove? *)
-val protocol_roles : global_t -> protocol_decls
+(* val protocol_roles : global_t -> protocol_decls *)
 
 val normalise : t -> t
 (** Normalise a global type. This mainly collapses nested choice on the same

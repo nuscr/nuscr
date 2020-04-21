@@ -289,15 +289,16 @@ let check_consistent_gchoice choice_r possible_roles = function
         (Violation
            "Normalised global type always has a message in choice branches")
 
-let rec project' protocol_sigs (projected_role : RoleName.t) = function
+let rec project' (global_t : global_t) (projected_role : RoleName.t) =
+  function
   | EndG -> EndL
   | TVarG name -> TVarL name
   | MuG (name, g_type) -> (
-    match project' protocol_sigs projected_role g_type with
+    match project' global_t projected_role g_type with
     | TVarL _ | EndL -> EndL
     | lType -> MuL (name, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-      let next = project' protocol_sigs projected_role g_type in
+      let next = project' global_t projected_role g_type in
       match projected_role with
       | _ when RoleName.equal projected_role send_r -> SendL (m, recv_r, next)
       | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
@@ -332,9 +333,7 @@ let rec project' protocol_sigs (projected_role : RoleName.t) = function
           g_types
       in
       let recv_r = Set.choose_exn possible_roles in
-      let l_types =
-        List.map ~f:(project' protocol_sigs projected_role) g_types
-      in
+      let l_types = List.map ~f:(project' global_t projected_role) g_types in
       let l_types =
         List.filter ~f:(function EndL -> false | _ -> true) l_types
       in
@@ -348,9 +347,9 @@ let rec project' protocol_sigs (projected_role : RoleName.t) = function
         | Some l -> l
         | None -> EndL ) )
   | CallG (caller, protocol, roles, g_type) -> (
-      let next = project' protocol_sigs projected_role g_type in
-      let protocol_roles, new_protocol_roles =
-        Map.find_exn protocol_sigs protocol
+      let next = project' global_t projected_role g_type in
+      let (protocol_roles, new_protocol_roles), _, _ =
+        Map.find_exn global_t protocol
       in
       let gen_acceptl next =
         let role_elem =
@@ -375,42 +374,27 @@ let rec project' protocol_sigs (projected_role : RoleName.t) = function
       | _ when is_caller -> gen_invitecreatel next
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
-  | NestedG _ ->
-      Violation
-        "Nested protocol declarations should be handled\n   separately"
-      |> raise
+
+(* | NestedG _ -> Violation "Nested protocol declarations should be handled\n
+   separately" |> raise *)
 
 let project projected_role g =
   project' (Map.empty (module ProtocolName)) projected_role g
 
 let project_global_t (global_t : global_t) =
-  let rec project_protocol protocol_name roles new_roles gtype protocol_sigs
-      local_protocols =
-    let project_role protocol_sigs gtype local_protocols projected_role =
-      let ltype = project' protocol_sigs projected_role gtype in
-      Map.add_exn local_protocols
-        ~key:(protocol_name, projected_role)
-        ~data:(roles @ new_roles, ltype)
-    in
-    match gtype with
-    | NestedG (protocol, rs, new_rs, g, g') ->
-        let local_protocols =
-          project_protocol protocol rs new_rs g protocol_sigs local_protocols
-        in
-        let local_protocols =
-          project_protocol protocol_name roles new_roles g' protocol_sigs
-            local_protocols
-        in
-        local_protocols
-    | _ ->
-        List.fold ~init:local_protocols
-          ~f:(project_role protocol_sigs gtype)
-          (roles @ new_roles)
+  let project_role protocol_name all_roles gtype local_protocols
+      projected_role =
+    let ltype = project' global_t projected_role gtype in
+    Map.add_exn local_protocols
+      ~key:(protocol_name, projected_role)
+      ~data:(all_roles, ltype)
   in
-  let protocol_sigs = protocol_roles global_t in
   Map.fold
     ~init:(Map.empty (module LocalProtocolId))
     ~f:(fun ~key ~data local_protocols ->
-      let (roles, new_roles), g = data in
-      project_protocol key roles new_roles g protocol_sigs local_protocols)
+      let (roles, new_roles), _, gtype = data in
+      let all_roles = roles @ new_roles in
+      List.fold ~init:local_protocols
+        ~f:(project_role key all_roles gtype)
+        all_roles)
     global_t
