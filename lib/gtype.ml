@@ -71,21 +71,21 @@ type t =
   | TVarG of TypeVariableName.t
   | ChoiceG of RoleName.t * t list
   | EndG
-  | NestedG of ProtocolName.t * RoleName.t list * RoleName.t list * t * t
+  (* | NestedG of ProtocolName.t * RoleName.t list * RoleName.t list * t * t *)
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
+
+(* type global_t = ( ProtocolName.t , (RoleName.t list * RoleName.t list) * t
+   , ProtocolName.comparator_witness ) Map.t *)
 
 type global_t =
   ( ProtocolName.t
-  , (RoleName.t list * RoleName.t list) * t
+  , (RoleName.t list * RoleName.t list) * ProtocolName.t list * t
   , ProtocolName.comparator_witness )
   Map.t
 
 (* TODO: remove? *)
-type protocol_decls =
-  ( ProtocolName.t
-  , RoleName.t list * RoleName.t list
-  , ProtocolName.comparator_witness )
-  Map.t
+(* type protocol_decls = ( ProtocolName.t , RoleName.t list * RoleName.t list
+   , ProtocolName.comparator_witness ) Map.t *)
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -121,15 +121,6 @@ let show =
           (ProtocolName.user proto_name)
           (String.concat ~sep:", " (List.map ~f:RoleName.user roles))
           (show_global_type_internal indent g)
-    | NestedG (proto_name, roles, new_roles, proto_g, g) ->
-        let str_roles = List.map ~f:RoleName.user roles in
-        let str_new_roles = List.map ~f:RoleName.user new_roles in
-        let cont = show_global_type_internal indent g in
-        sprintf "%snested protocol %s(%s) {\n%s%s}\n%s" current_indent
-          (ProtocolName.user proto_name)
-          (Symtable.show_roles (str_roles, str_new_roles))
-          (show_global_type_internal (indent + 1) proto_g)
-          current_indent cont
   in
   show_global_type_internal 0
 
@@ -145,17 +136,21 @@ let call_label caller protocol roles =
 
 let show_global_t (g : global_t) =
   let show_aux ~key ~data acc =
-    let (roles, new_roles), g_ = data in
+    let (roles, new_roles), nested_protocols, g_ = data in
     let roles_str = List.map ~f:RoleName.user roles in
     let new_roles_str = List.map ~f:RoleName.user new_roles in
+    let str_proto_names = List.map ~f:ProtocolName.user nested_protocols in
+    let names_str = String.concat ~sep:", " str_proto_names in
     let proto_str =
-      sprintf "protocol %s(%s):\n%s\n" (ProtocolName.user key)
+      sprintf "protocol %s(%s) {\n\nNested Protocols: %s\n\n%s\n}"
+        (ProtocolName.user key)
         (Symtable.show_roles (roles_str, new_roles_str))
+        (if String.length names_str = 0 then "-" else names_str)
         (show g_)
     in
     proto_str :: acc
   in
-  String.concat ~sep:"\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
+  String.concat ~sep:"\n\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
 
 let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
@@ -218,6 +213,27 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
   in
   conv_interactions [] interactions
 
+(* let global_t_of_module (scr_module : Syntax.scr_module) = let open Syntax
+   in let split_role_names (roles, new_roles) = let role_names = List.map
+   ~f:RoleName.of_name roles in let new_role_names = List.map
+   ~f:RoleName.of_name new_roles in (role_names, new_role_names) in let rec
+   protocol_to_t (protocol : global_protocol) = let g = of_protocol protocol
+   in let nested_protocols = protocol.value.nested_protocols in
+   List.fold_right ~init:g ~f:nested_protocol_to_t nested_protocols and
+   nested_protocol_to_t nested_proto cont = let {Loc.value= {name;
+   split_roles; _}; _} = nested_proto in let proto_name =
+   ProtocolName.of_name name in let roles, new_roles = split_roles in let
+   role_names = List.map ~f:RoleName.of_name roles in let new_role_names =
+   List.map ~f:RoleName.of_name new_roles in let proto_t = protocol_to_t
+   nested_proto in NestedG (proto_name, role_names, new_role_names, proto_t,
+   cont) in let add_protocol acc (protocol : global_protocol) = let
+   proto_name = ProtocolName.of_name protocol.value.name in let g =
+   protocol_to_t protocol in let roles = split_role_names
+   protocol.value.split_roles in Map.add_exn acc ~key:proto_name
+   ~data:(roles, g) in let all_protocols = scr_module.protocols @
+   scr_module.nested_protocols in List.fold ~init:(Map.empty (module
+   ProtocolName)) ~f:add_protocol all_protocols *)
+
 let global_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in
   let split_role_names (roles, new_roles) =
@@ -225,48 +241,26 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
     let new_role_names = List.map ~f:RoleName.of_name new_roles in
     (role_names, new_role_names)
   in
-  let rec protocol_to_t (protocol : global_protocol) =
-    let g = of_protocol protocol in
+  let rec add_protocol protocols (protocol : global_protocol) =
     let nested_protocols = protocol.value.nested_protocols in
-    List.fold_right ~init:g ~f:nested_protocol_to_t nested_protocols
-  and nested_protocol_to_t nested_proto cont =
-    let {Loc.value= {name; split_roles; _}; _} = nested_proto in
-    let proto_name = ProtocolName.of_name name in
-    let roles, new_roles = split_roles in
-    let role_names = List.map ~f:RoleName.of_name roles in
-    let new_role_names = List.map ~f:RoleName.of_name new_roles in
-    let proto_t = protocol_to_t nested_proto in
-    NestedG (proto_name, role_names, new_role_names, proto_t, cont)
-  in
-  let add_protocol acc (protocol : global_protocol) =
+    let protocols =
+      List.fold ~init:protocols ~f:add_protocol nested_protocols
+    in
     let proto_name = ProtocolName.of_name protocol.value.name in
-    let g = protocol_to_t protocol in
+    let g = of_protocol protocol in
     let roles = split_role_names protocol.value.split_roles in
-    Map.add_exn acc ~key:proto_name ~data:(roles, g)
+    let nested_protocol_names =
+      List.map
+        ~f:(fun {Loc.value= {name; _}; _} -> ProtocolName.of_name name)
+        nested_protocols
+    in
+    Map.add_exn protocols ~key:proto_name
+      ~data:(roles, nested_protocol_names, g)
   in
   let all_protocols = scr_module.protocols @ scr_module.nested_protocols in
   List.fold
     ~init:(Map.empty (module ProtocolName))
     ~f:add_protocol all_protocols
-
-let protocol_roles (global_t : global_t) =
-  let rec nested_protocol_sigs g proto_roles =
-    match g with
-    | NestedG (protocol, roles, new_roles, proto_g, g_) ->
-        let proto_roles =
-          Map.add_exn proto_roles ~key:protocol ~data:(roles, new_roles)
-        in
-        let proto_roles = nested_protocol_sigs proto_g proto_roles in
-        nested_protocol_sigs g_ proto_roles
-    | _ -> proto_roles
-  in
-  Map.fold
-    ~init:(Map.empty (module ProtocolName))
-    ~f:(fun ~key ~data acc ->
-      let (roles, new_roles), g = data in
-      let acc = Map.add_exn acc ~key ~data:(roles, new_roles) in
-      nested_protocol_sigs g acc)
-    global_t
 
 let rec flatten = function
   | ChoiceG (role, choices) ->
@@ -291,8 +285,6 @@ let rec substitute g tvar g_sub =
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
   | ChoiceG (r, g_) ->
       ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
-  | NestedG (name, rs, new_rs, g_proto, g_) ->
-      NestedG (name, rs, new_rs, g_proto, substitute g_ tvar g_sub)
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, substitute g_ tvar g_sub)
 
@@ -307,15 +299,13 @@ let rec normalise = function
       flatten (ChoiceG (r, g_))
   | (EndG | TVarG _) as g -> g
   | MuG (tvar, g_) -> unfold (MuG (tvar, normalise g_))
-  | NestedG (name, rs, new_rs, g_proto, g_) ->
-      NestedG (name, rs, new_rs, normalise g_proto, normalise g_)
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
 
 let normalise_global_t (global_t : global_t) =
   let normalise_protocol ~key ~data acc =
-    let all_roles, g = data in
-    Map.add_exn acc ~key ~data:(all_roles, normalise g)
+    let all_roles, nested_protocols, g = data in
+    Map.add_exn acc ~key ~data:(all_roles, nested_protocols, normalise g)
   in
   Map.fold
     ~init:(Map.empty (module ProtocolName))
