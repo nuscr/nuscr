@@ -263,8 +263,8 @@ let rec merge projected_role lty1 lty2 =
    if recv_r is Some; return receive role *)
 (* In nested protocols, calls will send invitation messages all participants,
    so need to check if any of the roles in a call is the receiver *)
-let check_consistent_gchoice choice_r (recv_r, possible_roles) = function
-  | MessageG (_, send_r, recv_r_, _) -> (
+let check_consistent_gchoice choice_r possible_roles = function
+  | MessageG (_, send_r, recv_r_, _) ->
       (* TODO: If recv_r not in the set of possible roles and the possible
          role is choice_r then ignore *)
       if not @@ RoleName.equal send_r choice_r then
@@ -273,28 +273,17 @@ let check_consistent_gchoice choice_r (recv_r, possible_roles) = function
         (not @@ Set.is_empty possible_roles)
         && (not @@ Set.mem possible_roles recv_r_)
       then uerr (RoleMismatch (Set.choose_exn possible_roles, recv_r_)) ;
-      match recv_r with
-      | None -> (Some recv_r_, Set.singleton (module RoleName) recv_r_)
-      | Some recv_r ->
-          if not @@ RoleName.equal recv_r recv_r_ then
-            uerr (RoleMismatch (recv_r, recv_r_)) ;
-          (* Set should already only contain recv_r *)
-          (Some recv_r, possible_roles) )
-  | CallG (caller_r, protocol, roles, _) -> (
+      Set.singleton (module RoleName) recv_r_
+  | CallG (caller_r, protocol, roles, _) ->
       if not @@ RoleName.equal caller_r choice_r then
         uerr (RoleMismatch (choice_r, caller_r)) ;
-      match recv_r with
-      | None ->
-          let roles_set = Set.of_list (module RoleName) roles in
-          if Set.is_empty possible_roles then (None, roles_set)
-          else
-            let intersection = Set.inter possible_roles roles_set in
-            if Set.is_empty intersection then
-              uerr (ChoiceCallRoleMismatch protocol) ;
-            (None, intersection)
-      | Some recv_r when List.mem roles recv_r ~equal:RoleName.equal ->
-          (Some recv_r, possible_roles)
-      | Some recv_r -> uerr (RoleMismatch (recv_r, List.hd_exn roles)) )
+      let roles_set = Set.of_list (module RoleName) roles in
+      if Set.is_empty possible_roles then roles_set
+      else
+        let intersection = Set.inter possible_roles roles_set in
+        if Set.is_empty intersection then
+          uerr (ChoiceCallRoleMismatch protocol) ;
+        intersection
   | _ ->
       raise
         (Violation
@@ -336,17 +325,13 @@ let rec project' protocol_sigs (projected_role : RoleName.t) = function
         aux (Set.empty (module LabelName)) gtys
       in
       check_distinct_prefix g_types ;
-      let recv_r, possible_roles =
+      let possible_roles =
         List.fold
           ~f:(check_consistent_gchoice choice_r)
-          ~init:(None, Set.empty (module RoleName))
+          ~init:(Set.empty (module RoleName))
           g_types
       in
-      let recv_r =
-        match recv_r with
-        | None -> Set.choose_exn possible_roles
-        | Some recv_r -> recv_r
-      in
+      let recv_r = Set.choose_exn possible_roles in
       let l_types =
         List.map ~f:(project' protocol_sigs projected_role) g_types
       in
