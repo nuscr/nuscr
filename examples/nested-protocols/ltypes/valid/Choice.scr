@@ -1,0 +1,40 @@
+nested protocol Nested3(role T, role U; new role V) {
+  choice at V {
+    do Proto(V, U, T);
+  } or {
+    V calls Nested3(T, V);
+    m1() from V to U;
+  } or {
+    V calls Nested3(V, U);
+    m2() from V to T;
+  }
+}
+
+global protocol Proto(role A, role B, role C) {
+  nested protocol Nested1(role D, role E, role F) {
+    choice at E {
+      do Proto(E, D, F);
+    } or {
+      do Proto(E, F, D);
+    } or {
+      E calls Nested2(F); 
+      m1() from E to D;
+    }
+  }
+  nested protocol Nested2(role X; new role Z) {
+    choice at Z {
+      Z calls Nested2(X);
+    } or {
+      m1() from Z to X;
+    }
+  }
+
+  A calls Nested3(B, C);
+  choice at A {
+    A calls Nested1(A, B, C);
+  } or {
+    A calls Nested1(B, A, C);
+  } or {
+    A calls Nested1(C, B, A);
+  }
+}

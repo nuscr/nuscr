@@ -1,0 +1,38 @@
+// This may become invalid after checks for unreachable interactions
+global protocol Proto1(role A, role B, role C) {
+  nested protocol Proto2(role D, role E; new role F) {
+    choice at E {
+      m0() from E to D;
+      F calls Proto2(E, D);
+      m1() from D to F;
+    } or {
+      E calls Proto2(D, E);
+      F calls Proto2(E, D);
+      m2() from E to D;
+      m1() from D to F;
+    }
+  } 
+
+  choice at A {
+    A calls Proto2(A, B);
+    m1() from A to C;
+    do Proto3(A, C, B);
+  } or {
+    A calls Proto2(B, A);
+    A calls Proto2(C, B);
+    m2() from A to B;
+    m3() from B to C;
+    do Proto3(B, C, A);
+  } or {
+    m1() from A to B;
+    m1() from A to C;
+    B calls Proto2(A, B);
+    do Proto3(A, C, B);
+  }
+}
+
+global protocol Proto3(role A, role B, role C) {
+  m4() from A to B;
+  m5() from B to C;
+  m6() from C to A;
+}
