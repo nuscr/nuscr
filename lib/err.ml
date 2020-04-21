@@ -82,8 +82,8 @@ let show_user_error = function
       ^ "' in choice at "
       ^ show_source_loc (ProtocolName.where called_proto)
       ^ "\n\
-         Some role involved in call (different from caller role) must \
-         receive first message in all branches"
+         Some role participating in call must receive first message in all \
+         branches"
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
