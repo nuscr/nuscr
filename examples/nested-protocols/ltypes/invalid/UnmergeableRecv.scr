@@ -1,0 +1,13 @@
+global protocol Proto1(role A, role B, role C) {
+  nested protocol Proto2(role D, role E) {
+    m2() from D to E;
+    m3() from E to D;
+  }
+  
+  choice at A {
+    A calls Proto2(B, C);
+  } or {
+    m1() from A to B;
+    m1() from B to C;
+  }
+}

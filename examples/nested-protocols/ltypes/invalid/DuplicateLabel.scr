@@ -1,0 +1,9 @@
+global protocol Proto1(role A, role B) {
+  choice at A {
+    do Proto1(A, B);
+  } or {
+    m1() from A to B;
+  } or {
+    do Proto1(A, B);
+  }
+}
