@@ -20,16 +20,15 @@ type t =
   | MuL of TypeVariableName.t * t  (** Fixpoint *)
   | EndL  (** Empty type *)
   | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
-      (** Sending invitations to existing roles and setting up dynamic
+      (** Send invitations to existing roles and set up/create dynamic
           pariticipants *)
   | AcceptL of
-      (* accept role'@Proto(roles...; new roles'...) from X *)
       RoleName.t
       * ProtocolName.t
       * RoleName.t list
       * RoleName.t list
       * RoleName.t
-      * t
+      * t  (** accept role'\@Proto(roles...; new roles'...) from X; t *)
 
 module type S = sig
   type t [@@deriving show {with_path= false}, sexp_of]
@@ -38,12 +37,14 @@ module type S = sig
 end
 
 module LocalProtocolId : S
+(** Unique id identifying a local protocol *)
 
 type local_t =
   ( LocalProtocolId.t
   , RoleName.t list * t
   , LocalProtocolId.comparator_witness )
   Map.t
+(** Mapping of local protocol id to the protocol's roles and local type *)
 
 val show : t -> string
 (** Converts a local type to a string. *)
@@ -64,5 +65,8 @@ type local_proto_name_lookup =
 (** Mapping from pair of (protocol name, role) to unique local protocol name *)
 
 val build_local_proto_name_lookup : local_t -> local_proto_name_lookup
+(** Builds a map containing the unique string representations for the unique
+    local protocol ids *)
 
 val show_lookup_table : local_proto_name_lookup -> string
+(** Converts a local protocol name lookup table to a string *)
