@@ -304,7 +304,6 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
       | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
       | _ -> next )
   | ChoiceG (choice_r, g_types) -> (
-      (* TODO Add label for invitation *)
       let check_distinct_prefix gtys =
         let rec aux acc = function
           | [] -> ()
@@ -374,9 +373,6 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
       | _ when is_caller -> gen_invitecreatel next
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
-
-(* | NestedG _ -> Violation "Nested protocol declarations should be handled\n
-   separately" |> raise *)
 
 let project projected_role g =
   project' (Map.empty (module ProtocolName)) projected_role g

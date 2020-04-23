@@ -71,21 +71,13 @@ type t =
   | TVarG of TypeVariableName.t
   | ChoiceG of RoleName.t * t list
   | EndG
-  (* | NestedG of ProtocolName.t * RoleName.t list * RoleName.t list * t * t *)
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
-
-(* type global_t = ( ProtocolName.t , (RoleName.t list * RoleName.t list) * t
-   , ProtocolName.comparator_witness ) Map.t *)
 
 type global_t =
   ( ProtocolName.t
   , (RoleName.t list * RoleName.t list) * ProtocolName.t list * t
   , ProtocolName.comparator_witness )
   Map.t
-
-(* TODO: remove? *)
-(* type protocol_decls = ( ProtocolName.t , RoleName.t list * RoleName.t list
-   , ProtocolName.comparator_witness ) Map.t *)
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -127,6 +119,7 @@ let show =
 let call_label caller protocol roles =
   let str_roles = List.map ~f:RoleName.user roles in
   let roles_str = String.concat ~sep:"," str_roles in
+  (* Current label is a bit arbitrary - find better one? *)
   let label_str =
     sprintf "call(%s, %s(%s))" (RoleName.user caller)
       (ProtocolName.user protocol)
@@ -212,27 +205,6 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           CallG (caller_role, ProtocolName.of_name proto, role_names, cont) )
   in
   conv_interactions [] interactions
-
-(* let global_t_of_module (scr_module : Syntax.scr_module) = let open Syntax
-   in let split_role_names (roles, new_roles) = let role_names = List.map
-   ~f:RoleName.of_name roles in let new_role_names = List.map
-   ~f:RoleName.of_name new_roles in (role_names, new_role_names) in let rec
-   protocol_to_t (protocol : global_protocol) = let g = of_protocol protocol
-   in let nested_protocols = protocol.value.nested_protocols in
-   List.fold_right ~init:g ~f:nested_protocol_to_t nested_protocols and
-   nested_protocol_to_t nested_proto cont = let {Loc.value= {name;
-   split_roles; _}; _} = nested_proto in let proto_name =
-   ProtocolName.of_name name in let roles, new_roles = split_roles in let
-   role_names = List.map ~f:RoleName.of_name roles in let new_role_names =
-   List.map ~f:RoleName.of_name new_roles in let proto_t = protocol_to_t
-   nested_proto in NestedG (proto_name, role_names, new_role_names, proto_t,
-   cont) in let add_protocol acc (protocol : global_protocol) = let
-   proto_name = ProtocolName.of_name protocol.value.name in let g =
-   protocol_to_t protocol in let roles = split_role_names
-   protocol.value.split_roles in Map.add_exn acc ~key:proto_name
-   ~data:(roles, g) in let all_protocols = scr_module.protocols @
-   scr_module.nested_protocols in List.fold ~init:(Map.empty (module
-   ProtocolName)) ~f:add_protocol all_protocols *)
 
 let global_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in
