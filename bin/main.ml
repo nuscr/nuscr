@@ -35,7 +35,7 @@ let help = ref false
 
 let project_protocols = ref false
 
-let show_global = ref true
+let show_global = ref false
 
 let fsm : (RoleName.t * ProtocolName.t) option ref = ref None
 
@@ -69,7 +69,7 @@ let nested_argspec =
   [ ( "-version"
     , Arg.Unit (fun () -> version := true)
     , ": print the version number" )
-  ; ("-verbose", Arg.Unit (fun () -> verbose := true), ": print out ast")
+  ; ("-ast", Arg.Unit (fun () -> verbose := true), ": print out ast")
   ; ( "-global-type"
     , Arg.Unit (fun () -> show_global := true)
     , ": print out global type" )
