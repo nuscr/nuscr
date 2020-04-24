@@ -265,8 +265,6 @@ let rec merge projected_role lty1 lty2 =
    so need to check if any of the roles in a call is the receiver *)
 let check_consistent_gchoice choice_r possible_roles = function
   | MessageG (_, send_r, recv_r_, _) ->
-      (* TODO: If recv_r not in the set of possible roles and the possible
-         role is choice_r then ignore *)
       if not @@ RoleName.equal send_r choice_r then
         uerr (RoleMismatch (choice_r, send_r)) ;
       if
