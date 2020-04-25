@@ -21,6 +21,7 @@ type user_error =
   | DuplicateLabel of LabelName.t
   | DuplicateRoleArgs of ProtocolName.t
   | ChoiceCallRoleMismatch of ProtocolName.t
+  | DuplicatePayloadField of LabelName.t * VariableName.t
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -84,6 +85,10 @@ let show_user_error = function
       ^ "\n\
          Some role participating in call must receive first message in all \
          branches"
+  | DuplicatePayloadField (label, field) ->
+      "Duplicate field name '" ^ VariableName.user field ^ "' in message '"
+      ^ LabelName.user label ^ "' at " ^ show_source_loc
+      @@ LabelName.where label
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
