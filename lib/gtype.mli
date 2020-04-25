@@ -11,6 +11,8 @@ type payload =
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, show, ord]
 
+val equal_pvalue_payload : payload -> payload -> bool
+
 (** The type of global types *)
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t

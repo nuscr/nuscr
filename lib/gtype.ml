@@ -17,6 +17,13 @@ let equal_payload p1 p2 =
       ProtocolName.equal pn1 pn2 && RoleName.equal rn1 rn2
   | _, _ -> false
 
+let equal_pvalue_payload p1 p2 =
+  let var_name_equal = Option.equal VariableName.equal in
+  match (p1, p2) with
+  | PValue (v1, n1), PValue (v2, n2) ->
+      var_name_equal v1 v2 && PayloadTypeName.equal n1 n2
+  | _ -> equal_payload p1 p2
+
 let compare_payload p1 p2 =
   match (p1, p2) with
   | PValue (_, ptn1), PValue (_, ptn2) -> PayloadTypeName.compare ptn1 ptn2
