@@ -24,6 +24,8 @@ type t =
 module type S = sig
   type t [@@deriving show {with_path= false}, sexp_of]
 
+  val create : ProtocolName.t -> RoleName.t -> t
+
   include Comparable.S with type t := t
 end
 
@@ -36,6 +38,8 @@ module LocalProtocolId = struct
       let cmp_protocol_name = ProtocolName.compare p1 p2 in
       if cmp_protocol_name <> 0 then cmp_protocol_name
       else RoleName.compare r1 r2
+
+    let create protocol role = (protocol, role)
   end
 
   include T
