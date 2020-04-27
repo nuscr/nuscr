@@ -20,6 +20,7 @@ type user_error =
   | RoleMismatch of RoleName.t * RoleName.t
   | DuplicateLabel of LabelName.t
   | DuplicateRoleArgs of ProtocolName.t
+  | DuplicateRoleParams of ProtocolName.t
   | ChoiceCallRoleMismatch of ProtocolName.t
   | DuplicatePayloadField of LabelName.t * VariableName.t
 [@@deriving sexp_of]
@@ -77,6 +78,11 @@ let show_user_error = function
       ^ ProtocolName.user called_proto
       ^ " at "
       ^ show_source_loc (ProtocolName.where called_proto)
+  | DuplicateRoleParams protocol ->
+      "Duplicate role parameter in declaration of protocol "
+      ^ ProtocolName.user protocol
+      ^ " at "
+      ^ show_source_loc (ProtocolName.where protocol)
   | ChoiceCallRoleMismatch called_proto ->
       "Invalid call to protocol '"
       ^ ProtocolName.user called_proto
