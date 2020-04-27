@@ -39,7 +39,14 @@ let name_with_prefix prefix proto_name =
   match prefix with "" -> proto_name | _ -> prefix ^ "_" ^ proto_name
 
 let decl_from_protocol prefix (protocol : global_protocol) =
-  let extract_rolenames roles = List.map ~f:N.user roles in
+  let extract_rolenames roles =
+    let num_roles = List.length roles in
+    let str_roles = List.map ~f:N.user roles in
+    if Set.length (Set.of_list (module String) str_roles) <> num_roles then
+      uerr
+        (DuplicateRoleParams (Names.ProtocolName.of_name protocol.value.name)) ;
+    str_roles
+  in
   let proto_name = name_with_prefix prefix (N.user protocol.value.name) in
   let all_roles = extract_rolenames protocol.value.roles in
   let rs, new_rs = protocol.value.split_roles in
