@@ -33,6 +33,8 @@ type t =
 module type S = sig
   type t [@@deriving show {with_path= false}, sexp_of]
 
+  val create : ProtocolName.t -> RoleName.t -> t
+
   include Comparable.S with type t := t
 end
 
