@@ -23,7 +23,7 @@ end
 module ChannelEnv : sig
   type t
 
-  val new_channel : t -> RoleName.t -> LabelName.t -> t * string
+  val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
 
   val gen_channel_struct : t -> RoleName.t -> string
 
