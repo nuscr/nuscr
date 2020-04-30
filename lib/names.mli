@@ -15,3 +15,22 @@ module RoleName : TaggedName
 module VariableName : TaggedName
 
 module TypeVariableName : TaggedName
+
+module LocalProtocolName : TaggedName
+
+module ChannelStructName : TaggedName
+
+module ChannelName : TaggedName
+
+module InviteChannelStructName : TaggedName
+
+module InviteChannelName : TaggedName
+
+module CallbackName : TaggedName
+
+module MessageStructName : TaggedName
+
+(* TODO: Is it needed? *)
+module ResultName : TaggedName
+
+module PackageName : TaggedName
