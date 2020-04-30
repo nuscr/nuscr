@@ -87,8 +87,8 @@ let chan_struct_name role_name =
 (* let recv_invite_chan_name role_name local_protocol = sprintf
    "%s_Invite_To_%s" (capitalize_role_name role_name) local_protocol *)
 
-(* let protocol_pkg_name protocol = String.lowercase @@ ProtocolName.user
-   protocol *)
+let protocol_pkg_name protocol =
+  String.lowercase @@ ProtocolName.user protocol
 
 let struct_decl struct_name field_decls =
   let field_decls = List.sort field_decls ~compare:String.compare in
@@ -146,36 +146,41 @@ end
 module ChannelEnv : sig
   type t
 
-  val new_channel : t -> RoleName.t -> LabelName.t -> t * string
+  val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
 
   val gen_channel_struct : t -> RoleName.t -> string
 
   val create : ProtocolName.t -> t
 end = struct
-  type channel_fields = (string * LabelName.t) list
+  type channel_fields = (ChannelName.t * MessageStructName.t) list
 
-  type t = UniqueNameGen.t * ProtocolName.t * channel_fields
+  type t = UniqueNameGen.t * PackageName.t * channel_fields
 
-  let new_channel (name_gen, protocol, channel_fields) role msg_label =
-    let channel_name = chan_struct_field_name role msg_label in
-    let name_gen, channel_name =
-      UniqueNameGen.unique_name name_gen channel_name
+  let new_channel (name_gen, pkg, channel_fields) role msg_label =
+    let chan_name = chan_struct_field_name role msg_label in
+    let name_gen, chan_name = UniqueNameGen.unique_name name_gen chan_name in
+    let channel_name = ChannelName.of_string chan_name in
+    let msg_struct_name =
+      MessageStructName.of_string (msg_type_name msg_label)
     in
     let env =
-      (name_gen, protocol, (channel_name, msg_label) :: channel_fields)
+      (name_gen, pkg, (channel_name, msg_struct_name) :: channel_fields)
     in
     (env, channel_name)
 
-  let gen_channel_struct ((_, protocol, channel_fields) : t) role =
-    let gen_chan_field_decl (chan_name, msg_label) =
-      sprintf "\t%s chan %s.%s" chan_name
-        (ProtocolName.user protocol)
-        (msg_type_name msg_label)
+  let gen_channel_struct ((_, pkg, channel_fields) : t) role =
+    let gen_chan_field_decl (chan_name, msg_struct) =
+      sprintf "\t%s chan %s.%s"
+        (ChannelName.user chan_name)
+        (PackageName.user pkg)
+        (MessageStructName.user msg_struct)
     in
     let chan_decls = List.map ~f:gen_chan_field_decl channel_fields in
     struct_decl (chan_struct_name role) chan_decls
 
-  let create protocol = (UniqueNameGen.create (), protocol, [])
+  let create protocol =
+    let pkg_name = PackageName.of_string (protocol_pkg_name protocol) in
+    (UniqueNameGen.create (), pkg_name, [])
 end
 
 (* module InviteEnv : sig type t
@@ -300,7 +305,7 @@ module LTypeCodeGenEnv : sig
 
   val create : ProtocolName.t -> RoleName.t -> t
 
-  val new_channel : t -> RoleName.t -> LabelName.t -> t * string
+  val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
 
   val gen_channel_struct : t -> RoleName.t -> string
 end = struct
@@ -352,7 +357,10 @@ let gen_role_implementation protocol role local_proto_name ltype =
         (* TODO: split cases *)
         let env, channel_name = LTypeCodeGenEnv.new_channel env r label in
         let env, impl = gen_implementation indent env ltype' in
-        (env, sprintf "%s\n%s" (indent_line channel_name indent) impl)
+        ( env
+        , sprintf "%s\n%s"
+            (indent_line (ChannelName.user channel_name) indent)
+            impl )
   in
   let env = LTypeCodeGenEnv.create protocol role in
   let env, impl = gen_implementation (incr_indent "") env ltype in
