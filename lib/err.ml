@@ -21,9 +21,9 @@ type user_error =
   | DuplicateLabel of LabelName.t
 [@@deriving sexp_of]
 
+(** UserError is a user error and should be reported back so it can be fixed *)
 exception UserError of user_error
 [@@deriving sexp_of]
-(** UserError is a user error and should be reported back so it can be fixed *)
 
 let show_user_error = function
   | UnknownPragma prg -> "Unknown pragma: " ^ prg
@@ -70,11 +70,11 @@ let show_user_error = function
       "Duplicate label " ^ LabelName.user l ^ " in choices at "
       ^ show_source_loc (LabelName.where l)
 
-exception Violation of string
-[@@deriving sexp_of]
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
     user error *)
+exception Violation of string
+[@@deriving sexp_of]
 
 exception UnImplemented of string [@@deriving sexp_of]
 

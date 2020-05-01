@@ -9,8 +9,8 @@ type action =
       (** Receiving a [message] from [name] *)
   | Epsilon  (** Not used *)
 
-type state = int
 (** Type of states in EFSM *)
+type state = int
 
 (** EFSM graph representation *)
 module G :
@@ -19,8 +19,8 @@ module G :
      and type E.label = action
      and type E.t = state * action * state
 
-type t = G.t
 (** Type of the EFSM *)
+type t = G.t
 
 val of_local_type : Ltype.t -> state * t
 (** Construct an EFSM from a local type *)

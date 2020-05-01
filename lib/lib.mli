@@ -1,5 +1,5 @@
-open Names
 (** Main entry point of the library *)
+open Names
 
 (** {1 Parsing} *)
 
