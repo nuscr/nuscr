@@ -61,9 +61,10 @@ val project_global_t : Gtype.global_t -> local_t
 
 type local_proto_name_lookup =
   ( LocalProtocolId.t
-  , ProtocolName.t
+  , LocalProtocolName.t
   , LocalProtocolId.comparator_witness )
   Map.t
+
 (** Mapping from pair of (protocol name, role) to unique local protocol name *)
 
 val build_local_proto_name_lookup : local_t -> local_proto_name_lookup
@@ -72,3 +73,9 @@ val build_local_proto_name_lookup : local_t -> local_proto_name_lookup
 
 val show_lookup_table : local_proto_name_lookup -> string
 (** Converts a local protocol name lookup table to a string *)
+
+val lookup_local_protocol :
+     local_proto_name_lookup
+  -> ProtocolName.t
+  -> RoleName.t
+  -> LocalProtocolName.t

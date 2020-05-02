@@ -136,7 +136,7 @@ let show_local_t (local_t : local_t) =
 
 type local_proto_name_lookup =
   ( LocalProtocolId.t
-  , ProtocolName.t
+  , LocalProtocolName.t
   , LocalProtocolId.comparator_witness )
   Map.t
 
@@ -155,7 +155,7 @@ let build_local_proto_name_lookup (local_t : local_t) :
         if uid = 0 then name else name ^ "_" ^ Int.to_string (uid + 1)
       in
       let new_name_uids = Map.update name_uids name ~f:(fun _ -> uid + 1) in
-      let proto_name = ProtocolName.rename protocol protocol_name in
+      let proto_name = LocalProtocolName.of_string protocol_name in
       if uid = 0 then (proto_name, new_name_uids)
       else if Map.mem new_name_uids protocol_name then
         unique_name protocol role new_name_uids
@@ -172,12 +172,17 @@ let build_local_proto_name_lookup (local_t : local_t) :
   in
   local_protocol_names
 
+let lookup_local_protocol (lookup_table : local_proto_name_lookup) role
+    protocol =
+  let local_protocol_id = LocalProtocolId.create role protocol in
+  Map.find_exn lookup_table local_protocol_id
+
 let show_lookup_table table =
   let show_key (protocol, role) =
     sprintf "%s@%s" (RoleName.user role) (ProtocolName.user protocol)
   in
   let show_aux ~key ~data acc =
-    sprintf "%s%s: %s\n" acc (show_key key) (ProtocolName.user data)
+    sprintf "%s%s: %s\n" acc (show_key key) (LocalProtocolName.user data)
   in
   Map.fold table ~init:"" ~f:show_aux
 
