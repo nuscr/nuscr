@@ -436,6 +436,40 @@ end = struct
     InviteEnv.gen_invite_channel_struct invite_env local_protocol
 end
 
+let gen_send_invite_chan_names protocol_lookup protocol env
+    (participant, new_role) =
+  let local_protocol =
+    lookup_local_protocol protocol_lookup protocol new_role
+  in
+  let env, role_chan =
+    LTypeCodeGenEnv.new_send_role_channel env participant local_protocol
+      new_role protocol
+  in
+  let env, invite_chan =
+    LTypeCodeGenEnv.new_send_invite_channel env participant local_protocol
+  in
+  (env, (role_chan, invite_chan))
+
+let gen_accept_invite_chan_names env curr_role caller new_role protocol
+    local_protocol =
+  if RoleName.equal caller curr_role then
+    let role_chan =
+      LTypeCodeGenEnv.send_self_role_channel env curr_role local_protocol
+    in
+    let invite_chan =
+      LTypeCodeGenEnv.send_self_invite_channel env curr_role local_protocol
+    in
+    (env, role_chan, invite_chan)
+  else
+    let env, role_chan =
+      LTypeCodeGenEnv.new_recv_role_channel env caller local_protocol
+        new_role protocol
+    in
+    let env, invite_chan =
+      LTypeCodeGenEnv.new_recv_invite_channel env caller local_protocol
+    in
+    (env, role_chan, invite_chan)
+
 (* gen_role_implementation protocol role local_protocol ltype -> env * string*)
 (* gen_impl env ltype indent -> env string *)
 (* TODO: Are recursion labels unique? *)
@@ -457,41 +491,18 @@ let gen_role_implementation global_t protocol_lookup protocol role
         let env, impl = gen_implementation (incr_indent indent) env ltype' in
         (env, impl)
     | InviteCreateL (invite_roles, _, protocol', ltype') ->
-        (* TODO: Create function which encapsulates all this logic*)
-        let gen_invite_chan_names env (participant, new_role) =
-          let local_protocol =
-            lookup_local_protocol protocol_lookup protocol' new_role
-          in
-          let env, role_chan =
-            LTypeCodeGenEnv.new_send_role_channel env participant
-              local_protocol new_role protocol'
-          in
-          let env, invite_chan =
-            LTypeCodeGenEnv.new_send_invite_channel env participant
-              local_protocol
-          in
-          (env, (role_chan, invite_chan))
-        in
         (* TODO: Delete this*)
         let print_invite_channels (role_chan, invite_chan) =
           sprintf "%s, %s"
             (InviteChannelName.user role_chan)
             (InviteChannelName.user invite_chan)
         in
-        let (proto_roles, _), _, _ = Map.find_exn global_t protocol' in
-        let acting_roles = List.zip_exn invite_roles proto_roles in
-        (* DEBUG *)
-        let str_acting_roles =
-          List.map
-            ~f:(fun (r1, r2) ->
-              sprintf "%s, %s" (RoleName.user r1) (RoleName.user r2))
-            acting_roles
-        in
-        let acting_roles_str = String.concat ~sep:"\n" str_acting_roles in
-        Stdio.print_endline acting_roles_str ;
-        (* DEBUG *)
+        let (new_proto_roles, _), _, _ = Map.find_exn global_t protocol' in
+        let acting_roles = List.zip_exn invite_roles new_proto_roles in
         let env, invite_channels =
-          List.fold_map ~init:env ~f:gen_invite_chan_names acting_roles
+          List.fold_map ~init:env
+            ~f:(gen_send_invite_chan_names protocol_lookup protocol')
+            acting_roles
         in
         let env, impl = gen_implementation indent env ltype' in
         let invite_chan_strs =
@@ -503,33 +514,9 @@ let gen_role_implementation global_t protocol_lookup protocol role
         let local_protocol =
           lookup_local_protocol protocol_lookup protocol' new_role
         in
-        (* DEBUG *)
-        Stdio.print_endline "Debug:" ;
-        let invite_chan_struct =
-          LTypeCodeGenEnv.gen_invite_channel_struct env local_proto_name
-        in
-        Stdio.print_endline (invite_chan_struct ^ "\n\n") ;
-        (* DEBUG *)
         let env, role_channel, invite_channel =
-          if RoleName.equal caller role then
-            let role_chan =
-              LTypeCodeGenEnv.send_self_role_channel env role local_protocol
-            in
-            let invite_chan =
-              LTypeCodeGenEnv.send_self_invite_channel env role
-                local_protocol
-            in
-            (env, role_chan, invite_chan)
-          else
-            let env, role_chan =
-              LTypeCodeGenEnv.new_recv_role_channel env caller local_protocol
-                new_role protocol'
-            in
-            let env, invite_chan =
-              LTypeCodeGenEnv.new_recv_invite_channel env caller
-                local_protocol
-            in
-            (env, role_chan, invite_chan)
+          gen_accept_invite_chan_names env role caller new_role protocol'
+            local_protocol
         in
         let invite_channel_strs =
           sprintf "%s, %s"
