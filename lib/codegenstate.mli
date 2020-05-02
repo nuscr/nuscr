@@ -69,17 +69,21 @@ module CallbacksEnv : sig
   val new_recv_callback :
     t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
 
-  (* Global protocol name *)
+  val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 
-  val new_protocol_setup_callback : t -> ProtocolName.t -> t * string
+  val new_convert_env_callback :
+    t -> LocalProtocolName.t -> t * CallbackName.t
 
-  (* Local protocol name *)
-
+  (* TODO: This is not a callback method. A separate new function is needed *)
   val new_create_protocol_env_callback :
-    t -> string -> LocalProtocolName.t -> t * string
+    t -> LocalProtocolName.t -> LocalProtocolName.t -> t * CallbackName.t
 
   val new_protocol_result_callback :
-    t -> string -> ProtocolName.t -> RoleName.t -> t * string
+       t
+    -> LocalProtocolName.t
+    -> ProtocolName.t
+    -> RoleName.t
+    -> t * CallbackName.t
 end
 
 type codegen_result =
