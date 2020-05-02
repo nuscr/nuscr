@@ -30,17 +30,35 @@ module ChannelEnv : sig
   val create : ProtocolName.t -> t
 end
 
-(* module InviteEnv : sig type t
+module InviteEnv : sig
+  type t
 
-   val new_send_invite_channel : t -> RoleName.t -> string -> RoleName.t ->
-   ProtocolName.t -> t * string
+  val new_send_role_channel :
+       t
+    -> RoleName.t
+    -> LocalProtocolName.t
+    -> RoleName.t
+    -> ProtocolName.t
+    -> t * InviteChannelName.t
 
-   val new_recv_invite_channel : t -> RoleName.t -> string -> RoleName.t ->
-   ProtocolName.t -> t * string
+  val new_send_invite_channel :
+    t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
 
-   val gen_channel_struct : t -> string
+  val new_recv_role_channel :
+       t
+    -> RoleName.t
+    -> LocalProtocolName.t
+    -> RoleName.t
+    -> ProtocolName.t
+    -> t * InviteChannelName.t
 
-   val create : string -> t end *)
+  val new_recv_invite_channel :
+    t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
+
+  val gen_invite_channel_struct : t -> LocalProtocolName.t -> string
+
+  val create : unit -> t
+end
 
 module CallbacksEnv : sig
   type t
@@ -62,7 +80,15 @@ module CallbacksEnv : sig
     t -> string -> ProtocolName.t -> RoleName.t -> t * string
 end
 
+type codegen_result =
+  { channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  ; invite_channels:
+      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  ; impl:
+      ( LocalProtocolName.t
+      , string
+      , LocalProtocolName.comparator_witness )
+      Map.t }
+
 val gen_code :
-     Gtype.global_t
-  -> Ltype.local_t
-  -> (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  ProtocolName.t -> Gtype.global_t -> Ltype.local_t -> codegen_result
