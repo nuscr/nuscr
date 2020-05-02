@@ -78,6 +78,12 @@ module CallbackName : TaggedName = struct
   let of_name (name : Name.t) = name
 end
 
+module CallbacksEnvName : TaggedName = struct
+  include Name
+
+  let of_name (name : Name.t) = name
+end
+
 module MessageStructName : TaggedName = struct
   include Name
 
@@ -92,6 +98,12 @@ module ResultName : TaggedName = struct
 end
 
 module PackageName : TaggedName = struct
+  include Name
+
+  let of_name (name : Name.t) = name
+end
+
+module ParameterName : TaggedName = struct
   include Name
 
   let of_name (name : Name.t) = name

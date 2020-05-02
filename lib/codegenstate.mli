@@ -4,18 +4,18 @@ open! Base
 module ImportsEnv : sig
   type t
 
-  val import_messages : t -> ProtocolName.t -> t * string
+  val import_messages : t -> ProtocolName.t -> t * PackageName.t
 
-  val import_channels : t -> ProtocolName.t -> t * string
+  val import_channels : t -> ProtocolName.t -> t * PackageName.t
 
-  val import_result : t -> ProtocolName.t -> t * string
+  val import_result : t -> ProtocolName.t -> t * PackageName.t
 
   (* These last 3 might be overkill *)
-  val import_invitations : t -> t * string
+  val import_invitations : t -> t * PackageName.t
 
-  val import_callbacks : t -> t * string
+  val import_callbacks : t -> t * PackageName.t
 
-  val import_roles : t -> t * string
+  val import_roles : t -> t * PackageName.t
 
   val generate_imports : t -> string
 end
@@ -63,9 +63,11 @@ end
 module CallbacksEnv : sig
   type t
 
-  val new_send_callback : t -> LabelName.t -> RoleName.t -> t * string
+  val new_send_callback :
+    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
 
-  val new_recv_callback : t -> LabelName.t -> RoleName.t -> t * string
+  val new_recv_callback :
+    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
 
   (* Global protocol name *)
 
@@ -74,7 +76,7 @@ module CallbacksEnv : sig
   (* Local protocol name *)
 
   val new_create_protocol_env_callback :
-    t -> string -> ProtocolName.t -> t * string
+    t -> string -> LocalProtocolName.t -> t * string
 
   val new_protocol_result_callback :
     t -> string -> ProtocolName.t -> RoleName.t -> t * string
