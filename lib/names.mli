@@ -28,9 +28,13 @@ module InviteChannelName : TaggedName
 
 module CallbackName : TaggedName
 
+module CallbacksEnvName : TaggedName
+
 module MessageStructName : TaggedName
 
 (* TODO: Is it needed? *)
 module ResultName : TaggedName
 
 module PackageName : TaggedName
+
+module ParameterName : TaggedName
