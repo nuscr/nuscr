@@ -2,6 +2,8 @@ open Base
 open Stdio
 open Nuscrlib
 open Names
+open Gocodegen
+open Codegenstate
 
 let version_string () = "%%VERSION%%"
 
@@ -140,6 +142,12 @@ let run filename verbose enumerate proj fsm gencode =
       "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
       false
 
+let print_protocol_files file_map =
+  Map.iteri file_map ~f:(fun ~key ~data ->
+      let open Printf in
+      print_endline (sprintf "Protocol %s:" (ProtocolName.user key)) ;
+      print_endline data)
+
 let run_nested filename show_ast show_global show_local =
   let show_result ?(sep = "\n\n") ~f verbose input =
     (* only show if verbose is on *)
@@ -156,7 +164,18 @@ let run_nested filename show_ast show_global show_local =
     let g_type = normalise_global_t g_type in
     show_result ~sep:"\n\n----------\n" ~f:show_global_t show_global g_type ;
     let open Ltype in
-    show_result ~f:show_local_t show_local (project_global_t g_type) ;
+    let ltype = project_global_t g_type in
+    show_result ~f:show_local_t show_local ltype ;
+    ensure_unique_identifiers g_type ;
+    let protocol_msgs = gen_protocol_msgs g_type in
+    print_protocol_files protocol_msgs ;
+    (* let protocol_channels = gen_protocol_channels g_type ltype in
+       print_protocol_files protocol_channels ; *)
+    let {channels; invite_channels; _} =
+      gen_code (ProtocolName.of_string "Test") g_type ltype
+    in
+    print_protocol_files channels ;
+    print_protocol_files invite_channels ;
     true
   with
   | Err.UserError msg ->
@@ -169,9 +188,8 @@ let run_nested filename show_ast show_global show_local =
       "I'm sorry, it is unfortunate " ^ desc ^ " is\n not implemented"
       |> prerr_endline ;
       false
-  | e ->
-      "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
-      false
+
+(* | e -> "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ; false *)
 
 let () =
   let filename = ref "" in
