@@ -39,12 +39,13 @@ end
 
 let msg_type_name msg = String.capitalize (LabelName.user msg)
 
-(* let lowercase_role_name role = String.lowercase @@ RoleName.user role *)
-
 let capitalize_role_name role = String.capitalize @@ RoleName.user role
 
-let capitalize_local_protocol protocol =
-  String.capitalize @@ LocalProtocolName.user protocol
+let capitalize_local_protocol local_protocol =
+  String.capitalize @@ LocalProtocolName.user local_protocol
+
+let capitalize_protocol protocol =
+  String.capitalize @@ ProtocolName.user protocol
 
 let chan_struct_field_name role msg_type =
   sprintf "%s_%s" (capitalize_role_name role) (msg_type_name msg_type)
@@ -78,6 +79,20 @@ let send_callback_name msg_label recv_role =
 let recv_callback_name msg_label recv_role =
   sprintf "%s_From_%s()" (msg_type_name msg_label)
     (capitalize_role_name recv_role)
+
+let protocol_setup_callback_name protocol =
+  sprintf "%s_Setup" (capitalize_protocol protocol)
+
+let convert_env_callback_name local_protocol =
+  sprintf "To_%s_Env" (capitalize_local_protocol local_protocol)
+
+let callbacks_env_name local_protocol =
+  sprintf "%s_Env" (capitalize_local_protocol local_protocol)
+
+let result_callback_name local_protocol =
+  sprintf "ResultFrom_%s" (capitalize_local_protocol local_protocol)
+
+let result_struct_name role = sprintf "%s_Result" (capitalize_role_name role)
 
 let msg_var_name msg_label = String.lowercase @@ LabelName.user msg_label
 
@@ -325,28 +340,31 @@ module CallbacksEnv : sig
   val new_recv_callback :
     t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
 
-  (* Global protocol name *)
+  val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 
-  val new_protocol_setup_callback : t -> ProtocolName.t -> t * string
+  val new_convert_env_callback :
+    t -> LocalProtocolName.t -> t * CallbackName.t
 
-  (* Local protocol name *)
-
+  (* TODO: This is not a callback method. A separate new function is needed *)
   val new_create_protocol_env_callback :
-    t -> string -> LocalProtocolName.t -> t * string
+    t -> LocalProtocolName.t -> LocalProtocolName.t -> t * CallbackName.t
 
   val new_protocol_result_callback :
-    t -> string -> ProtocolName.t -> RoleName.t -> t * string
+       t
+    -> LocalProtocolName.t
+    -> ProtocolName.t
+    -> RoleName.t
+    -> t * CallbackName.t
 end = struct
   type param =
     ParameterName.t
-    * PackageName.t
-    * [`Result of ResultName.t | `Msg of MessageStructName.t]
+    * [ `Result of PackageName.t * ResultName.t
+      | `Msg of PackageName.t * MessageStructName.t ]
 
   type return_val =
-    PackageName.t
-    * [ `Env of CallbacksEnvName.t
-      | `Result of ResultName.t
-      | `Msg of MessageStructName.t ]
+    [ `Env of CallbacksEnvName.t
+    | `Result of PackageName.t * ResultName.t
+    | `Msg of PackageName.t * MessageStructName.t ]
 
   type callbacks = (CallbackName.t * param option * return_val option) list
 
@@ -354,7 +372,6 @@ end = struct
 
   let new_send_callback (name_gen, callbacks, imports) msg_label recv_role
       protocol =
-    (* UboundToWorker() primesieve.UBound *)
     (* <msg_struct>_To_<role>[_<uid>]() <pkg>.<msg_struct> *)
     let callback_name = send_callback_name msg_label recv_role in
     let name_gen, callback_name =
@@ -365,14 +382,14 @@ end = struct
       MessageStructName.of_string (msg_type_name msg_label)
     in
     let imports, pkg = ImportsEnv.import_messages imports protocol in
-    let return_val = Some (pkg, `Msg msg_struct_name) in
+    let return_val = Some (`Msg (pkg, msg_struct_name)) in
     let callbacks = (callback, None, return_val) :: callbacks in
     let env = (name_gen, callbacks, imports) in
     (env, callback)
 
   let new_recv_callback (name_gen, callbacks, imports) msg_label sender_role
       protocol =
-    (* TODO: remove *)
+    (* <msg_struct>_From_<role>[_uid](<msg_struct> <pkg>.<msg_struct>) *)
     let callback_name = recv_callback_name msg_label sender_role in
     let name_gen, callback_name =
       UniqueNameGen.unique_name name_gen callback_name
@@ -383,16 +400,60 @@ end = struct
     in
     let imports, pkg = ImportsEnv.import_messages imports protocol in
     let param_name = ParameterName.of_string @@ msg_var_name msg_label in
-    let param_decl = Some (param_name, pkg, `Msg msg_struct_name) in
+    let param_decl = Some (param_name, `Msg (pkg, msg_struct_name)) in
     let callbacks = (callback, param_decl, None) :: callbacks in
     let env = (name_gen, callbacks, imports) in
     (env, callback)
 
-  let new_protocol_setup_callback env _ = (env, "")
+  let new_protocol_setup_callback (name_gen, callbacks, imports) protocol =
+    (* <protocol>_Setup[_uid]() *)
+    let callback_name = protocol_setup_callback_name protocol in
+    let name_gen, callback_name =
+      UniqueNameGen.unique_name name_gen callback_name
+    in
+    let callback = CallbackName.of_string callback_name in
+    let callbacks = (callback, None, None) :: callbacks in
+    let env = (name_gen, callbacks, imports) in
+    (env, callback)
 
-  let new_create_protocol_env_callback env _ _ = (env, "")
+  let new_convert_env_callback (name_gen, callbacks, imports) local_protocol
+      =
+    (* To_<local_protocol>_Env[_uid]() <local_protocol>_Env *)
+    let callback_name = convert_env_callback_name local_protocol in
+    let name_gen, callback_name =
+      UniqueNameGen.unique_name name_gen callback_name
+    in
+    let callback = CallbackName.of_string callback_name in
+    let new_env_type =
+      CallbacksEnvName.of_string @@ callbacks_env_name local_protocol
+    in
+    let callbacks =
+      (callback, None, Some (`Env new_env_type)) :: callbacks
+    in
+    let env = (name_gen, callbacks, imports) in
+    (env, callback)
 
-  let new_protocol_result_callback env _ _ _ = (env, "")
+  let new_create_protocol_env_callback env _ _ =
+    (* TODO *)
+    (env, CallbackName.of_string "")
+
+  let new_protocol_result_callback (name_gen, callbacks, imports)
+      local_protocol protocol role =
+    (* ResultFrom_<local_protocol>[_<uid>](result <protocol>.<role>_Result) *)
+    let callback_name = result_callback_name local_protocol in
+    let name_gen, callback_name =
+      UniqueNameGen.unique_name name_gen callback_name
+    in
+    let callback = CallbackName.of_string callback_name in
+    let imports, pkg = ImportsEnv.import_result imports protocol in
+    let result_name = ResultName.of_string @@ result_struct_name role in
+    let result_param = ParameterName.of_string "result" in
+    let callbacks =
+      (callback, Some (result_param, `Result (pkg, result_name)), None)
+      :: callbacks
+    in
+    let env = (name_gen, callbacks, imports) in
+    (env, callback)
 end
 
 (* LTYPE CODEGEN *)
