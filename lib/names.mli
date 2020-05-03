@@ -38,3 +38,5 @@ module ResultName : TaggedName
 module PackageName : TaggedName
 
 module ParameterName : TaggedName
+
+module RootDirName : TaggedName
