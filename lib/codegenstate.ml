@@ -105,6 +105,12 @@ let package_stmt pkg_name = sprintf "package %s" (PackageName.user pkg_name)
 (* GOLANG PACKAGE NAMES *)
 let pkg_channels = PackageName.of_string "channels"
 
+let pkg_invitations = PackageName.of_string "invitations"
+
+let pkg_callbacks = PackageName.of_string "callbacks"
+
+let pkg_roles = PackageName.of_string "roles"
+
 let protocol_pkg_name protocol =
   String.lowercase @@ ProtocolName.user protocol
 
@@ -130,33 +136,88 @@ module ImportsEnv : sig
   val import_roles : t -> t * PackageName.t
 
   val generate_imports : t -> string
+
+  val create : unit -> t
 end = struct
   type aliases =
-    (PackageName.t, PackageName.t, String.comparator_witness) Map.t
+    (PackageName.t, PackageName.t, PackageName.comparator_witness) Map.t
 
   type import_aliases =
     { messages: aliases
     ; channels: aliases
-    ; result: aliases
+    ; results: aliases
     ; invitations: aliases
     ; callbacks: aliases
     ; roles: aliases }
 
-  type t = UniqueNameGen.t * ProtocolName.t * import_aliases
+  type t = UniqueNameGen.t * import_aliases
 
-  let import_messages env _ = (env, PackageName.of_string "")
+  let get_or_add_import_alias name_gen aliases pkg_name =
+    let pkg_key = PackageName.of_string pkg_name in
+    match Map.find aliases pkg_key with
+    | Some alias -> (name_gen, aliases, alias)
+    | None ->
+        let name_gen, alias = UniqueNameGen.unique_name name_gen pkg_name in
+        let pkg_alias = PackageName.of_string alias in
+        let aliases = Map.add_exn aliases ~key:pkg_key ~data:pkg_alias in
+        (name_gen, aliases, pkg_alias)
 
-  let import_channels env _ = (env, PackageName.of_string "")
+  let import_messages (name_gen, imports) protocol =
+    let pkg = protocol_pkg_name protocol in
+    let name_gen, messages, pkg_alias =
+      get_or_add_import_alias name_gen imports.messages pkg
+    in
+    ((name_gen, {imports with messages}), pkg_alias)
 
-  let import_invitations env = (env, PackageName.of_string "")
+  let import_channels (name_gen, imports) protocol =
+    let pkg = protocol_pkg_name protocol in
+    let name_gen, channels, pkg_alias =
+      get_or_add_import_alias name_gen imports.channels pkg
+    in
+    ((name_gen, {imports with channels}), pkg_alias)
 
-  let import_callbacks env = (env, PackageName.of_string "")
+  let import_invitations (name_gen, imports) =
+    let pkg = PackageName.user pkg_invitations in
+    let name_gen, invitations, pkg_alias =
+      get_or_add_import_alias name_gen imports.invitations pkg
+    in
+    ((name_gen, {imports with invitations}), pkg_alias)
 
-  let import_result env _ = (env, PackageName.of_string "")
+  let import_callbacks (name_gen, imports) =
+    let pkg = PackageName.user pkg_callbacks in
+    let name_gen, callbacks, pkg_alias =
+      get_or_add_import_alias name_gen imports.callbacks pkg
+    in
+    ((name_gen, {imports with callbacks}), pkg_alias)
 
-  let import_roles env = (env, PackageName.of_string "")
+  let import_result (name_gen, imports) protocol =
+    let pkg = protocol_pkg_name protocol in
+    let name_gen, results, pkg_alias =
+      get_or_add_import_alias name_gen imports.results pkg
+    in
+    ((name_gen, {imports with results}), pkg_alias)
+
+  let import_roles (name_gen, imports) =
+    let pkg = PackageName.user pkg_roles in
+    let name_gen, roles, pkg_alias =
+      get_or_add_import_alias name_gen imports.roles pkg
+    in
+    ((name_gen, {imports with roles}), pkg_alias)
 
   let generate_imports (_ : t) = ""
+
+  let create () =
+    let empty_aliases () = Map.empty (module PackageName) in
+    let name_gen = UniqueNameGen.create () in
+    let imports =
+      { messages= empty_aliases ()
+      ; channels= empty_aliases ()
+      ; results= empty_aliases ()
+      ; invitations= empty_aliases ()
+      ; callbacks= empty_aliases ()
+      ; roles= empty_aliases () }
+    in
+    (name_gen, imports)
 end
 
 module ChannelEnv : sig

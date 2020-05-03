@@ -10,7 +10,6 @@ module ImportsEnv : sig
 
   val import_result : t -> ProtocolName.t -> t * PackageName.t
 
-  (* These last 3 might be overkill *)
   val import_invitations : t -> t * PackageName.t
 
   val import_callbacks : t -> t * PackageName.t
@@ -18,6 +17,8 @@ module ImportsEnv : sig
   val import_roles : t -> t * PackageName.t
 
   val generate_imports : t -> string
+
+  val create : unit -> t
 end
 
 module ChannelEnv : sig
