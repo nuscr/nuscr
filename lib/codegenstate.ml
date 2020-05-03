@@ -37,7 +37,20 @@ end = struct
     make_unique_name name uid
 end
 
-let msg_type_name msg = String.capitalize (LabelName.user msg)
+(* GOLANG PACKAGE NAMES *)
+let pkg_messages = PackageName.of_string "messages"
+
+let pkg_channels = PackageName.of_string "channels"
+
+let pkg_invitations = PackageName.of_string "invitations"
+
+let pkg_callbacks = PackageName.of_string "callbacks"
+
+let pkg_roles = PackageName.of_string "roles"
+
+let pkg_results = PackageName.of_string "results"
+
+(* CODEGEN FUNCTIONS *)
 
 let capitalize_role_name role = String.capitalize @@ RoleName.user role
 
@@ -47,12 +60,16 @@ let capitalize_local_protocol local_protocol =
 let capitalize_protocol protocol =
   String.capitalize @@ ProtocolName.user protocol
 
+(* MSGS *)
+let msg_type_name msg = String.capitalize (LabelName.user msg)
+
 let chan_struct_field_name role msg_type =
   sprintf "%s_%s" (capitalize_role_name role) (msg_type_name msg_type)
 
 let chan_struct_name role_name =
   sprintf "%s_Chan" (capitalize_role_name role_name)
 
+(* INVITATIONS *)
 let send_role_chan_name role_name local_protocol =
   sprintf "Invite_%s_To_%s"
     (capitalize_role_name role_name)
@@ -72,6 +89,12 @@ let recv_role_invite_chan_name role_name local_protocol =
 let invite_struct_name local_protocol =
   sprintf "%s_InviteChan" (capitalize_local_protocol local_protocol)
 
+let struct_decl struct_name field_decls =
+  let field_decls = List.sort field_decls ~compare:String.compare in
+  let field_decls_str = String.concat ~sep:"\n" field_decls in
+  sprintf "type %s struct {\n%s\n}" struct_name field_decls_str
+
+(* CALLBACKS *)
 let send_callback_name msg_label recv_role =
   sprintf "%s_To_%s()" (msg_type_name msg_label)
     (capitalize_role_name recv_role)
@@ -96,28 +119,41 @@ let result_struct_name role = sprintf "%s_Result" (capitalize_role_name role)
 
 let msg_var_name msg_label = String.lowercase @@ LabelName.user msg_label
 
-let messages_import root pkg =
-  sprintf "import \"%s/messages/%s\"" (ProtocolName.user root)
+(* IMPORTS *)
+let messages_import_path root pkg =
+  sprintf "\"%s/%s/%s\"" (RootDirName.user root)
+    (PackageName.user pkg_messages)
     (PackageName.user pkg)
 
-let package_stmt pkg_name = sprintf "package %s" (PackageName.user pkg_name)
+let channels_import_path root pkg =
+  sprintf "\"%s/%s/%s\"" (RootDirName.user root)
+    (PackageName.user pkg_channels)
+    (PackageName.user pkg)
 
-(* GOLANG PACKAGE NAMES *)
-let pkg_channels = PackageName.of_string "channels"
+let roles_import_path root pkg =
+  sprintf "\"%s/%s\"" (RootDirName.user root) (PackageName.user pkg)
 
-let pkg_invitations = PackageName.of_string "invitations"
+let invitations_import_path root pkg =
+  sprintf "\"%s/%s\"" (RootDirName.user root) (PackageName.user pkg)
 
-let pkg_callbacks = PackageName.of_string "callbacks"
+let callbacks_import_path root pkg =
+  sprintf "\"%s/%s\"" (RootDirName.user root) (PackageName.user pkg)
 
-let pkg_roles = PackageName.of_string "roles"
+let results_import_path root pkg =
+  sprintf "\"%s/%s/%s\"" (RootDirName.user root)
+    (PackageName.user pkg_results)
+    (PackageName.user pkg)
 
+let gen_import import_path = sprintf "import \"%s\"" import_path
+
+let gen_aliased_import import_path alias =
+  sprintf "import %s \"%s\"" alias import_path
+
+(* PKGS *)
 let protocol_pkg_name protocol =
   String.lowercase @@ ProtocolName.user protocol
 
-let struct_decl struct_name field_decls =
-  let field_decls = List.sort field_decls ~compare:String.compare in
-  let field_decls_str = String.concat ~sep:"\n" field_decls in
-  sprintf "type %s struct {\n%s\n}" struct_name field_decls_str
+let package_stmt pkg_name = sprintf "package %s" (PackageName.user pkg_name)
 
 module ImportsEnv : sig
   type t
@@ -126,9 +162,9 @@ module ImportsEnv : sig
 
   val import_channels : t -> ProtocolName.t -> t * PackageName.t
 
-  val import_result : t -> ProtocolName.t -> t * PackageName.t
+  val import_results : t -> ProtocolName.t -> t * PackageName.t
 
-  (* These last 3 might be overkill *)
+  (* These next 3 might be overkill *)
   val import_invitations : t -> t * PackageName.t
 
   val import_callbacks : t -> t * PackageName.t
@@ -137,7 +173,7 @@ module ImportsEnv : sig
 
   val generate_imports : t -> string
 
-  val create : unit -> t
+  val create : RootDirName.t -> t
 end = struct
   type aliases =
     (PackageName.t, PackageName.t, PackageName.comparator_witness) Map.t
@@ -150,7 +186,7 @@ end = struct
     ; callbacks: aliases
     ; roles: aliases }
 
-  type t = UniqueNameGen.t * import_aliases
+  type t = UniqueNameGen.t * RootDirName.t * import_aliases
 
   let get_or_add_import_alias name_gen aliases pkg_name =
     let pkg_key = PackageName.of_string pkg_name in
@@ -162,51 +198,95 @@ end = struct
         let aliases = Map.add_exn aliases ~key:pkg_key ~data:pkg_alias in
         (name_gen, aliases, pkg_alias)
 
-  let import_messages (name_gen, imports) protocol =
+  let import_messages (name_gen, root_dir, imports) protocol =
     let pkg = protocol_pkg_name protocol in
     let name_gen, messages, pkg_alias =
       get_or_add_import_alias name_gen imports.messages pkg
     in
-    ((name_gen, {imports with messages}), pkg_alias)
+    ((name_gen, root_dir, {imports with messages}), pkg_alias)
 
-  let import_channels (name_gen, imports) protocol =
+  let import_channels (name_gen, root_dir, imports) protocol =
     let pkg = protocol_pkg_name protocol in
     let name_gen, channels, pkg_alias =
       get_or_add_import_alias name_gen imports.channels pkg
     in
-    ((name_gen, {imports with channels}), pkg_alias)
+    ((name_gen, root_dir, {imports with channels}), pkg_alias)
 
-  let import_invitations (name_gen, imports) =
+  let import_invitations (name_gen, root_dir, imports) =
     let pkg = PackageName.user pkg_invitations in
     let name_gen, invitations, pkg_alias =
       get_or_add_import_alias name_gen imports.invitations pkg
     in
-    ((name_gen, {imports with invitations}), pkg_alias)
+    ((name_gen, root_dir, {imports with invitations}), pkg_alias)
 
-  let import_callbacks (name_gen, imports) =
+  let import_callbacks (name_gen, root_dir, imports) =
     let pkg = PackageName.user pkg_callbacks in
     let name_gen, callbacks, pkg_alias =
       get_or_add_import_alias name_gen imports.callbacks pkg
     in
-    ((name_gen, {imports with callbacks}), pkg_alias)
+    ((name_gen, root_dir, {imports with callbacks}), pkg_alias)
 
-  let import_result (name_gen, imports) protocol =
+  let import_results (name_gen, root_dir, imports) protocol =
     let pkg = protocol_pkg_name protocol in
     let name_gen, results, pkg_alias =
       get_or_add_import_alias name_gen imports.results pkg
     in
-    ((name_gen, {imports with results}), pkg_alias)
+    ((name_gen, root_dir, {imports with results}), pkg_alias)
 
-  let import_roles (name_gen, imports) =
+  let import_roles (name_gen, root_dir, imports) =
     let pkg = PackageName.user pkg_roles in
     let name_gen, roles, pkg_alias =
       get_or_add_import_alias name_gen imports.roles pkg
     in
-    ((name_gen, {imports with roles}), pkg_alias)
+    ((name_gen, root_dir, {imports with roles}), pkg_alias)
 
-  let generate_imports (_ : t) = ""
+  let generate_imports (_, root_dir, imports) =
+    let acc_alias_import gen_import_path root_dir ~key ~data imports =
+      let pkg_name, alias = (key, data) in
+      let import_path = gen_import_path root_dir pkg_name in
+      let import =
+        if PackageName.equal pkg_name alias then gen_import import_path
+        else gen_aliased_import import_path (PackageName.user alias)
+      in
+      import :: imports
+    in
+    let join_imports imports = String.concat ~sep:"\n" imports in
+    let messages_imports =
+      Map.fold imports.messages ~init:[]
+        ~f:(acc_alias_import messages_import_path root_dir)
+    in
+    let channels_imports =
+      Map.fold imports.channels ~init:[]
+        ~f:(acc_alias_import channels_import_path root_dir)
+    in
+    let invitations_imports =
+      Map.fold imports.invitations ~init:[]
+        ~f:(acc_alias_import invitations_import_path root_dir)
+    in
+    let callbacks_imports =
+      Map.fold imports.callbacks ~init:[]
+        ~f:(acc_alias_import callbacks_import_path root_dir)
+    in
+    let results_imports =
+      Map.fold imports.results ~init:[]
+        ~f:(acc_alias_import results_import_path root_dir)
+    in
+    let roles_imports =
+      Map.fold imports.roles ~init:[]
+        ~f:(acc_alias_import roles_import_path root_dir)
+    in
+    let joined_imports_list =
+      List.map ~f:join_imports
+        [ messages_imports
+        ; channels_imports
+        ; invitations_imports
+        ; callbacks_imports
+        ; results_imports
+        ; roles_imports ]
+    in
+    join_imports joined_imports_list
 
-  let create () =
+  let create root_dir =
     let empty_aliases () = Map.empty (module PackageName) in
     let name_gen = UniqueNameGen.create () in
     let imports =
@@ -217,7 +297,7 @@ end = struct
       ; callbacks= empty_aliases ()
       ; roles= empty_aliases () }
     in
-    (name_gen, imports)
+    (name_gen, root_dir, imports)
 end
 
 module ChannelEnv : sig
@@ -506,7 +586,7 @@ end = struct
       UniqueNameGen.unique_name name_gen callback_name
     in
     let callback = CallbackName.of_string callback_name in
-    let imports, pkg = ImportsEnv.import_result imports protocol in
+    let imports, pkg = ImportsEnv.import_results imports protocol in
     let result_name = ResultName.of_string @@ result_struct_name role in
     let result_param = ParameterName.of_string "result" in
     let callbacks =
@@ -745,12 +825,13 @@ let empty_result () : codegen_result =
   ; invite_channels= Map.empty (module ProtocolName)
   ; impl= Map.empty (module LocalProtocolName) }
 
-let gen_code root (global_t : global_t) (local_t : local_t) =
+let gen_code _ (global_t : global_t) (local_t : local_t) =
   (* TODO: Move build_local_proto_name_lookup to codegen *)
   let protocol_lookup = build_local_proto_name_lookup local_t in
   let gen_protocol_role_implementation ~key ~data result =
+    (* TODO: Imports *)
     let gen_channels_file roles envs =
-      let gen_channel_imports protocol = messages_import root protocol in
+      (* let gen_channel_imports protocol = messages_import root protocol in *)
       let roles_and_envs = List.zip_exn roles envs in
       let channel_structs =
         List.map
@@ -758,10 +839,10 @@ let gen_code root (global_t : global_t) (local_t : local_t) =
           roles_and_envs
       in
       let chan_structs_str = String.concat ~sep:"\n\n" channel_structs in
-      let protocol_pkg = PackageName.of_string @@ protocol_pkg_name key in
-      let channel_imports = gen_channel_imports protocol_pkg in
+      (* let protocol_pkg = PackageName.of_string @@ protocol_pkg_name key in *)
+      (* let channel_imports = gen_channel_imports protocol_pkg in *)
       let pkg = package_stmt pkg_channels in
-      sprintf "%s\n\n%s\n\n%s" pkg channel_imports chan_structs_str
+      sprintf "%s\n\n%s" pkg chan_structs_str
     in
     let gen_invite_structs roles envs =
       let roles_and_envs = List.zip_exn roles envs in

@@ -8,7 +8,7 @@ module ImportsEnv : sig
 
   val import_channels : t -> ProtocolName.t -> t * PackageName.t
 
-  val import_result : t -> ProtocolName.t -> t * PackageName.t
+  val import_results : t -> ProtocolName.t -> t * PackageName.t
 
   val import_invitations : t -> t * PackageName.t
 
@@ -18,7 +18,7 @@ module ImportsEnv : sig
 
   val generate_imports : t -> string
 
-  val create : unit -> t
+  val create : RootDirName.t -> t
 end
 
 module ChannelEnv : sig
