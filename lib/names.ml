@@ -114,3 +114,15 @@ module RootDirName : TaggedName = struct
 
   let of_name (name : Name.t) = name
 end
+
+module EnumName : TaggedName = struct
+  include Name
+
+  let of_name (name : Name.t) = name
+end
+
+module EnumTypeName : TaggedName = struct
+  include Name
+
+  let of_name (name : Name.t) = name
+end

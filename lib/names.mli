@@ -40,3 +40,7 @@ module PackageName : TaggedName
 module ParameterName : TaggedName
 
 module RootDirName : TaggedName
+
+module EnumName : TaggedName
+
+module EnumTypeName : TaggedName
