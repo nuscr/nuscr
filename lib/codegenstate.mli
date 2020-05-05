@@ -75,9 +75,12 @@ module CallbacksEnv : sig
   val new_convert_env_callback :
     t -> LocalProtocolName.t -> t * CallbackName.t
 
-  (* TODO: This is not a callback method. A separate new function is needed *)
-  val new_create_protocol_env_callback :
-    t -> LocalProtocolName.t -> LocalProtocolName.t -> t * CallbackName.t
+  val new_choice_callback :
+       t
+    -> RoleName.t
+    -> LabelName.t list
+    -> LocalProtocolName.t
+    -> t * CallbackName.t * EnumName.t list
 
   val new_protocol_result_callback :
        t
@@ -85,6 +88,8 @@ module CallbacksEnv : sig
     -> ProtocolName.t
     -> RoleName.t
     -> t * CallbackName.t
+
+  val gen_callbacks_file : t -> LocalProtocolName.t -> string
 end
 
 type codegen_result =
@@ -95,7 +100,15 @@ type codegen_result =
       ( LocalProtocolName.t
       , string
       , LocalProtocolName.comparator_witness )
+      Map.t
+  ; callbacks:
+      ( LocalProtocolName.t
+      , string
+      , LocalProtocolName.comparator_witness )
       Map.t }
 
 val gen_code :
-  ProtocolName.t -> Gtype.global_t -> Ltype.local_t -> codegen_result
+     RootDirName.t (* -> ProtocolName.t *)
+  -> Gtype.global_t
+  -> Ltype.local_t
+  -> codegen_result
