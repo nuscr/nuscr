@@ -148,6 +148,13 @@ let print_protocol_files file_map =
       print_endline (sprintf "Protocol %s:" (ProtocolName.user key)) ;
       print_endline data)
 
+let print_local_protocol_files file_map =
+  Map.iteri file_map ~f:(fun ~key ~data ->
+      let open Printf in
+      print_endline
+        (sprintf "Local Protocol %s:" (LocalProtocolName.user key)) ;
+      print_endline data)
+
 let run_nested filename show_ast show_global show_local =
   let show_result ?(sep = "\n\n") ~f verbose input =
     (* only show if verbose is on *)
@@ -171,11 +178,12 @@ let run_nested filename show_ast show_global show_local =
     print_protocol_files protocol_msgs ;
     (* let protocol_channels = gen_protocol_channels g_type ltype in
        print_protocol_files protocol_channels ; *)
-    let {channels; invite_channels; _} =
-      gen_code (ProtocolName.of_string "Test") g_type ltype
+    let {channels; invite_channels; callbacks; _} =
+      gen_code (RootDirName.of_string "Root") g_type ltype
     in
     print_protocol_files channels ;
     print_protocol_files invite_channels ;
+    print_local_protocol_files callbacks ;
     true
   with
   | Err.UserError msg ->
