@@ -1076,8 +1076,16 @@ let gen_accept_invite_chan_names env curr_role caller new_role protocol
     in
     (env, role_chan, invite_chan)
 
-(* let extract_choice_labels ltypes = let extract_label = function | AcceptL
-   (protocol) *)
+let extract_choice_labels ltypes =
+  let extract_label = function
+    | InviteCreateL (_, _, protocol, _) ->
+        LabelName.of_string @@ ProtocolName.user protocol
+    | SendL ({label; _}, _, _) -> label
+    | _ ->
+        failwith
+          "First choice interaction should always be a Send or InviteCreate"
+  in
+  List.map ~f:extract_label ltypes
 
 (* gen_role_implementation protocol role local_protocol ltype -> env * string*)
 (* gen_impl env ltype indent -> env string *)
@@ -1151,17 +1159,22 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
         in
         let env, impl = gen_implementation indent env ltype' in
         (env, sprintf "%s\n\n%s" invite_channel_strs impl)
-    | ChoiceL (_, ltys) ->
-        (* TODO callback *)
+    | ChoiceL (r, ltys) ->
+        (* TODO implementation *)
+        let env =
+          if RoleName.equal role r then
+            let choice_labels = extract_choice_labels ltys in
+            let env, _, _ =
+              LTypeCodeGenEnv.new_choice_callback env role choice_labels
+                local_proto_name
+            in
+            env
+          else env
+        in
         let env, impls =
           List.fold_map ~init:env
             ~f:(gen_implementation (incr_indent indent))
             ltys
-        in
-        let _ =
-          LTypeCodeGenEnv.new_choice_callback env role
-            [LabelName.of_string "fake"]
-            local_proto_name
         in
         (env, String.concat ~sep:"\n\n" impls)
     | RecvL ({label; _}, r, ltype') ->
