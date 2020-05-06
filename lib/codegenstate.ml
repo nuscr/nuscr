@@ -1207,6 +1207,23 @@ let gen_channels_file protocol roles envs imports =
   let pkg = package_stmt pkg_name in
   sprintf "%s\n\n%s\n\n%s" pkg channel_imports chan_structs_str
 
+let gen_invitations_file protocol_lookup protocol roles envs imports =
+  let gen_invite_structs roles envs =
+    let roles_and_envs = List.zip_exn roles envs in
+    List.map
+      ~f:(fun (role, env) ->
+        let local_protocol =
+          lookup_local_protocol protocol_lookup protocol role
+        in
+        LTypeCodeGenEnv.gen_invite_channel_struct env local_protocol)
+      roles_and_envs
+  in
+  let pkg_stmt = package_stmt pkg_invitations in
+  let imports_str = ImportsEnv.generate_imports imports in
+  let channel_structs = gen_invite_structs roles envs in
+  let channel_structs_str = String.concat ~sep:"\n\n" channel_structs in
+  sprintf "%s\n\n%s\n\n%s" pkg_stmt imports_str channel_structs_str
+
 type codegen_result =
   { channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; invite_channels:
@@ -1233,19 +1250,6 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
   let protocol_lookup = build_local_proto_name_lookup local_t in
   let gen_protocol_role_implementation ~key ~data result =
     (* TODO: Imports *)
-    let gen_invite_structs roles envs =
-      let roles_and_envs = List.zip_exn roles envs in
-      let channel_structs =
-        List.map
-          ~f:(fun (role, env) ->
-            let local_protocol =
-              lookup_local_protocol protocol_lookup key role
-            in
-            LTypeCodeGenEnv.gen_invite_channel_struct env local_protocol)
-          roles_and_envs
-      in
-      channel_structs
-    in
     let (roles, new_roles), _, _ = data in
     let protocol = key in
     let protocol_env =
@@ -1288,10 +1292,12 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
     let channels =
       Map.add_exn result.channels ~key:protocol ~data:chan_file
     in
-    let invite_chans = gen_invite_structs roles envs in
-    let invite_chans_str = String.concat ~sep:"\n\n" invite_chans in
+    let invitations_file =
+      gen_invitations_file protocol_lookup protocol roles envs
+        protocol_env.invite_imports
+    in
     let invite_channels =
-      Map.add_exn result.invite_channels ~key:protocol ~data:invite_chans_str
+      Map.add_exn result.invite_channels ~key:protocol ~data:invitations_file
     in
     {result with channels; invite_channels}
   in
