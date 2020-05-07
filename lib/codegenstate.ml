@@ -17,7 +17,8 @@ end = struct
 
   let create () = Map.empty (module String)
 
-  let make_unique_name name uid = sprintf "%s_%d" name uid
+  let make_unique_name name uid =
+    if uid < 2 then name else sprintf "%s_%d" name uid
 
   let rec unique_name uids name =
     match Map.find uids name with
@@ -55,6 +56,14 @@ let init_callback = CallbackName.of_string "Init"
 
 let done_callback = CallbackName.of_string "Done"
 
+let env_var = VariableName.of_string "env"
+
+let invite_chan = VariableName.of_string "inviteChannels"
+
+(* let role_chan = VariableName.of_string "roleChannels" *)
+
+let wait_group = VariableName.of_string "wg"
+
 (* CODEGEN FUNCTIONS *)
 
 let capitalize_role_name role = String.capitalize @@ RoleName.user role
@@ -66,6 +75,9 @@ let capitalize_protocol protocol =
   String.capitalize @@ ProtocolName.user protocol
 
 let capitalize_label label = String.capitalize @@ LabelName.user label
+
+let lowercase_local_protocol local_protocol =
+  String.lowercase @@ LocalProtocolName.user local_protocol
 
 (* MSGS *)
 let msg_type_name msg = capitalize_label msg
@@ -252,6 +264,84 @@ let callbacks_env_interface env_name callbacks =
   sprintf "type %s interface {\n\t%s\n}"
     (CallbacksEnvName.user env_name)
     callbacks_str
+
+let join_non_empty_lines ?(sep = "\n") lines =
+  let lines = List.filter ~f:(fun line -> String.length line > 0) lines in
+  String.concat ~sep lines
+
+let return_stmt return_val = sprintf "return %s" return_val
+
+let call_callback env_var callback param =
+  let param_name =
+    match param with None -> "" | Some name -> ParameterName.user name
+  in
+  sprintf "%s.%s(%s)"
+    (VariableName.user env_var)
+    (CallbackName.user callback)
+    param_name
+
+let continue_stmt label = sprintf "continue %s" (TypeVariableName.user label)
+
+let recursion_label rec_var = sprintf "%s:" (TypeVariableName.user rec_var)
+
+let recursion_loop loop_body indent =
+  sprintf "%sfor {\n%s\n%s}" indent loop_body indent
+
+let recursion_impl label loop = sprintf "%s\n%s" label loop
+
+(* let channel_struct_field_access chan_var chan_name = sprintf "%s.%s"
+   (VariableName.user chan_var) (ChannelName.user chan_name) *)
+
+let new_role_chan_var local_protocol =
+  let role_chan =
+    sprintf "%s_chan" (lowercase_local_protocol local_protocol)
+  in
+  VariableName.of_string role_chan
+
+let new_role_invite_chan_var local_protocol =
+  let invite_chan =
+    sprintf "%s_inviteChan" (lowercase_local_protocol local_protocol)
+  in
+  VariableName.of_string invite_chan
+
+let new_env_var local_protocol =
+  let env_var = sprintf "%s_env" (lowercase_local_protocol local_protocol) in
+  VariableName.of_string env_var
+
+let new_result_var local_protocol =
+  let result_var =
+    sprintf "%s_result" (lowercase_local_protocol local_protocol)
+  in
+  VariableName.of_string result_var
+
+let invite_channel_struct_field_access chan_var chan_name =
+  sprintf "%s.%s"
+    (VariableName.user chan_var)
+    (InviteChannelName.user chan_name)
+
+let msg_from_channel chan_str = sprintf "<-%s" chan_str
+
+let new_var_assignment var_name rhs =
+  sprintf "%s := %s" (VariableName.user var_name) rhs
+
+let recv_from_invite_chan var_name invite_chan_struct chan_field =
+  let chan =
+    invite_channel_struct_field_access invite_chan_struct chan_field
+  in
+  let recv_from_chan = msg_from_channel chan in
+  new_var_assignment var_name recv_from_chan
+
+let join_params params = String.concat ~sep:", " params
+
+let call_local_protocol local_protocol wait_group_var role_chan_var
+    invite_chan_var new_env_var =
+  let params =
+    [wait_group_var; role_chan_var; invite_chan_var; new_env_var]
+  in
+  let param_names = List.map ~f:VariableName.user params in
+  sprintf "%s(%s)"
+    (capitalize_local_protocol local_protocol)
+    (join_params param_names)
 
 module ImportsEnv : sig
   type t
@@ -1087,6 +1177,44 @@ let extract_choice_labels ltypes =
   in
   List.map ~f:extract_label ltypes
 
+let gen_accept_impl local_protocol role_chan role_invite_chan accept_cb
+    result_cb =
+  (* <local_proto>_chan := <-inviteChan.<role_chan> *)
+  let role_chan_var = new_role_chan_var local_protocol in
+  let role_chan_assign =
+    recv_from_invite_chan role_chan_var invite_chan role_chan
+  in
+  (* <local_proto>_invite_chan := <-inviteChan.<role_invite_chan> *)
+  let role_invite_chan_var = new_role_invite_chan_var local_protocol in
+  let invite_chan_assign =
+    recv_from_invite_chan role_invite_chan_var invite_chan role_invite_chan
+  in
+  (* <local_protocol>_env := env.<accept_cb>() *)
+  let new_env_var = new_env_var local_protocol in
+  let new_env_assign =
+    new_var_assignment new_env_var (call_callback env_var accept_cb None)
+  in
+  (* <local_protocol>_result := <local_protocol>(wg, <local_protocol>_chan,
+     <local_protocol>_inviteChan, <local_protocol>_env) *)
+  let result_var = new_result_var local_protocol in
+  let protocol_call =
+    call_local_protocol local_protocol wait_group role_chan_var
+      role_invite_chan_var new_env_var
+  in
+  let result_assign = new_var_assignment result_var protocol_call in
+  (* env.ResultFrom_<local_protocol>(<local_protocol>_result) *)
+  let callback_param =
+    ParameterName.of_string @@ VariableName.user result_var
+  in
+  let result_callback_call =
+    call_callback env_var result_cb (Some callback_param)
+  in
+  [ role_chan_assign
+  ; invite_chan_assign
+  ; new_env_assign
+  ; result_assign
+  ; result_callback_call ]
+
 (* gen_role_implementation protocol role local_protocol ltype -> env * string*)
 (* gen_impl env ltype indent -> env string *)
 (* TODO: Are recursion labels unique? *)
@@ -1095,24 +1223,26 @@ let extract_choice_labels ltypes =
 let gen_role_implementation ltype_env global_t protocol_lookup protocol role
     (local_proto_name : LocalProtocolName.t) ltype =
   let incr_indent curr_indent = sprintf "\t%s" curr_indent in
-  let indent_line line indent = sprintf "%s%s" indent line in
+  let indent_line indent line = sprintf "%s%s" indent line in
   let rec gen_implementation indent env ltype =
     match ltype with
     | EndL ->
         let env, done_callback =
           LTypeCodeGenEnv.add_done_callback env protocol role
         in
-        ( env
-        , indent_line
-            (sprintf "return env.%s()" (CallbackName.user done_callback))
-            indent )
+        let call = call_callback env_var done_callback None in
+        let impl = return_stmt call in
+        (env, indent_line indent impl)
     | TVarL var ->
-        ( env
-        , indent_line
-            (sprintf "continue %s" (TypeVariableName.user var))
-            indent )
-    | MuL (_, ltype') ->
-        let env, impl = gen_implementation (incr_indent indent) env ltype' in
+        let impl = continue_stmt var in
+        (env, indent_line indent impl)
+    | MuL (var, ltype') ->
+        let loop_label = recursion_label var in
+        let env, recursion_body =
+          gen_implementation (incr_indent indent) env ltype'
+        in
+        let loop = recursion_loop recursion_body indent in
+        let impl = recursion_impl loop_label loop in
         (env, impl)
     | InviteCreateL (invite_roles, _, protocol', ltype') ->
         (* TODO: Delete this*)
@@ -1145,20 +1275,21 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
           gen_accept_invite_chan_names env role caller new_role protocol'
             local_protocol
         in
-        let invite_channel_strs =
-          sprintf "%s, %s"
-            (InviteChannelName.user role_channel)
-            (InviteChannelName.user invite_channel)
-        in
-        let env, _ =
+        let env, accept_cb =
           LTypeCodeGenEnv.new_convert_env_callback env local_protocol
         in
-        let env, _ =
+        let env, result_cb =
           LTypeCodeGenEnv.new_protocol_result_callback env local_protocol
             protocol' new_role
         in
+        let accept_impl =
+          gen_accept_impl local_protocol role_channel invite_channel
+            accept_cb result_cb
+        in
+        let accept_impl = List.map ~f:(indent_line indent) accept_impl in
+        let accept_impl_str = join_non_empty_lines accept_impl in
         let env, impl = gen_implementation indent env ltype' in
-        (env, sprintf "%s\n\n%s" invite_channel_strs impl)
+        (env, join_non_empty_lines [accept_impl_str; impl])
     | ChoiceL (r, ltys) ->
         (* TODO implementation *)
         let env =
@@ -1185,7 +1316,7 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
         let env, impl = gen_implementation indent env ltype' in
         ( env
         , sprintf "%s\n%s"
-            (indent_line (ChannelName.user channel_name) indent)
+            (indent_line indent (ChannelName.user channel_name))
             impl )
     | SendL ({label; _}, r, ltype') ->
         let env, channel_name = LTypeCodeGenEnv.new_channel env r label in
@@ -1195,7 +1326,7 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
         let env, impl = gen_implementation indent env ltype' in
         ( env
         , sprintf "%s\n%s"
-            (indent_line (ChannelName.user channel_name) indent)
+            (indent_line indent (ChannelName.user channel_name))
             impl )
   in
   (* TODO: pass in as parameter *)
