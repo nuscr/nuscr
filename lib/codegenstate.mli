@@ -2,9 +2,11 @@ open Names
 open! Base
 
 type codegen_result =
-  { channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  ; channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; invite_channels:
       (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  ; results: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; impl:
       ( LocalProtocolName.t
       , string
