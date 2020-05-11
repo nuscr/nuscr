@@ -172,9 +172,13 @@ let build_local_proto_name_lookup (local_t : local_t) :
   in
   local_protocol_names
 
-let lookup_local_protocol (lookup_table : local_proto_name_lookup) role
-    protocol =
-  let local_protocol_id = LocalProtocolId.create role protocol in
+let lookup_protocol_id (lookup_table : local_proto_name_lookup)
+    local_protocol_id =
+  Map.find_exn lookup_table local_protocol_id
+
+let lookup_local_protocol (lookup_table : local_proto_name_lookup) protocol
+    role =
+  let local_protocol_id = LocalProtocolId.create protocol role in
   Map.find_exn lookup_table local_protocol_id
 
 let show_lookup_table table =

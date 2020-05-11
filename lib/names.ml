@@ -126,3 +126,9 @@ module EnumTypeName : TaggedName = struct
 
   let of_name (name : Name.t) = name
 end
+
+module FunctionName : TaggedName = struct
+  include Name
+
+  let of_name (name : Name.t) = name
+end
