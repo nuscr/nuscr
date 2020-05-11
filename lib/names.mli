@@ -44,3 +44,5 @@ module RootDirName : TaggedName
 module EnumName : TaggedName
 
 module EnumTypeName : TaggedName
+
+module FunctionName : TaggedName

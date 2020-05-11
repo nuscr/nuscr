@@ -79,3 +79,6 @@ val lookup_local_protocol :
   -> ProtocolName.t
   -> RoleName.t
   -> LocalProtocolName.t
+
+val lookup_protocol_id :
+  local_proto_name_lookup -> LocalProtocolId.t -> LocalProtocolName.t
