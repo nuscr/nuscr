@@ -78,6 +78,9 @@ let capitalize_local_protocol local_protocol =
 let capitalize_protocol protocol =
   String.capitalize @@ ProtocolName.user protocol
 
+let lowercase_protocol protocol =
+  String.lowercase @@ ProtocolName.user protocol
+
 let capitalize_label label = String.capitalize @@ LabelName.user label
 
 let lowercase_label label = String.lowercase @@ LabelName.user label
@@ -222,6 +225,23 @@ let struct_decl struct_name field_decls =
   let field_decls_str = join_non_empty_lines field_decls in
   sprintf "type %s struct {\n%s\n}" struct_name field_decls_str
 
+let struct_literal_field_decl (field_name, field_value) =
+  sprintf "%s: %s," field_name field_value
+
+let struct_literal struct_name struct_fields field_values indent =
+  let struct_literal_fields = List.zip_exn struct_fields field_values in
+  let field_decls =
+    List.map ~f:struct_literal_field_decl struct_literal_fields
+  in
+  let field_indent = incr_indent indent in
+  let field_decls =
+    List.map
+      ~f:(fun field_decl -> indent_line field_indent field_decl)
+      field_decls
+  in
+  let field_decls_str = join_non_empty_lines field_decls in
+  sprintf "%s{\n%s\n%s}" struct_name field_decls_str indent
+
 let enum_type_decl enum_type =
   sprintf "type %s %s" (EnumTypeName.user enum_type) int_type
 
@@ -242,6 +262,11 @@ let enum_decl enum_type enum_values =
     | _ -> failwith "Enum decl should have at least one value"
   in
   sprintf "const (\n\t%s\n)" enum_value_decls
+
+let invitation_pkg_access struct_name =
+  sprintf "%s.%s"
+    (PackageName.user pkg_invitations)
+    (InviteChannelStructName.user struct_name)
 
 let protocol_result_access pkg result =
   sprintf "%s.%s" (PackageName.user pkg) (ResultName.user result)
@@ -327,6 +352,11 @@ let call_callback env_var callback param =
     (CallbackName.user callback)
     param_name
 
+let call_function function_name params =
+  let str_params = List.map ~f:VariableName.user params in
+  let params_str = join_non_empty_lines ~sep:", " str_params in
+  sprintf "%s(%s)" function_name params_str
+
 let continue_stmt label = sprintf "continue %s" (TypeVariableName.user label)
 
 let recursion_label rec_var = sprintf "%s:" (TypeVariableName.user rec_var)
@@ -368,6 +398,14 @@ let new_msg_var msg_label =
 let new_choice_enum_var role =
   let enum_var = sprintf "%s_choice" (lowercase_role_name role) in
   VariableName.of_string enum_var
+
+let new_role_setup_var protocol =
+  let setup_var = sprintf "%s_rolechan" (lowercase_protocol protocol) in
+  VariableName.of_string setup_var
+
+let new_invite_setup_var protocol =
+  let setup_var = sprintf "%s_invitechan" (lowercase_protocol protocol) in
+  VariableName.of_string setup_var
 
 let invite_channel_struct_field_access chan_var chan_name =
   sprintf "%s.%s"
@@ -711,18 +749,26 @@ module ChannelEnv : sig
 
   val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
 
-  val gen_channel_struct : t -> RoleName.t -> string
+  val gen_channel_struct : t -> string
 
   val get_channel_imports : t -> ImportsEnv.t
 
-  val create : ProtocolName.t -> ImportsEnv.t -> t
+  val get_channel_fields :
+    t -> ChannelStructName.t * (ChannelName.t * MessageStructName.t) list
+
+  val create : RoleName.t -> ProtocolName.t -> ImportsEnv.t -> t
 end = struct
   type channel_fields = (ChannelName.t * MessageStructName.t) list
 
-  type t = UniqueNameGen.t * ProtocolName.t * channel_fields * ImportsEnv.t
+  type t =
+    UniqueNameGen.t
+    * ChannelStructName.t
+    * ProtocolName.t
+    * channel_fields
+    * ImportsEnv.t
 
-  let new_channel (name_gen, protocol, channel_fields, imports) role
-      msg_label =
+  let new_channel (name_gen, struct_name, protocol, channel_fields, imports)
+      role msg_label =
     let chan_name = chan_struct_field_name role msg_label in
     let name_gen, chan_name = UniqueNameGen.unique_name name_gen chan_name in
     let channel_name = ChannelName.of_string chan_name in
@@ -732,10 +778,11 @@ end = struct
     let channel_fields = (channel_name, msg_struct_name) :: channel_fields in
     (* Add messages/protocol import if the role receives any message *)
     let imports, _ = ImportsEnv.import_messages imports protocol in
-    let env = (name_gen, protocol, channel_fields, imports) in
+    let env = (name_gen, struct_name, protocol, channel_fields, imports) in
     (env, channel_name)
 
-  let gen_channel_struct ((_, protocol, channel_fields, imports) : t) role =
+  let gen_channel_struct
+      ((_, struct_name, protocol, channel_fields, imports) : t) =
     let gen_chan_field_decl (chan_name, msg_struct) =
       (* Get pkg name *)
       let _, pkg = ImportsEnv.import_messages imports protocol in
@@ -744,12 +791,16 @@ end = struct
       struct_field_decl (ChannelName.user chan_name) chan_type
     in
     let chan_decls = List.map ~f:gen_chan_field_decl channel_fields in
-    struct_decl (chan_struct_name role) chan_decls
+    struct_decl (ChannelStructName.user struct_name) chan_decls
 
-  let get_channel_imports (_, _, _, imports) = imports
+  let get_channel_imports (_, _, _, _, imports) = imports
 
-  let create protocol imports =
-    (UniqueNameGen.create (), protocol, [], imports)
+  let get_channel_fields (_, struct_name, _, channel_fields, _) =
+    (struct_name, channel_fields)
+
+  let create role protocol imports =
+    let struct_name = ChannelStructName.of_string @@ chan_struct_name role in
+    (UniqueNameGen.create (), struct_name, protocol, [], imports)
 end
 
 module InviteEnv : sig
@@ -783,11 +834,11 @@ module InviteEnv : sig
   val new_recv_invite_channel :
     t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
 
-  val gen_invite_channel_struct : t -> LocalProtocolName.t -> string
+  val gen_invite_channel_struct : t -> string
 
   val get_invite_imports : t -> ImportsEnv.t
 
-  val create : ImportsEnv.t -> t
+  val create : LocalProtocolName.t -> ImportsEnv.t -> t
 end = struct
   type role_channel_fields =
     (InviteChannelName.t * (PackageName.t * ChannelStructName.t)) list
@@ -797,13 +848,14 @@ end = struct
 
   type t =
     UniqueNameGen.t
+    * InviteChannelStructName.t
     * role_channel_fields
     * role_invite_channel_fields
     * ImportsEnv.t
 
   let new_role_channel_field
-      (name_gen, channel_fields, invite_channel_fields, imports) channel_name
-      new_role protocol =
+      (name_gen, struct_name, channel_fields, invite_channel_fields, imports)
+      channel_name new_role protocol =
     let name_gen, channel_name =
       UniqueNameGen.unique_name name_gen channel_name
     in
@@ -814,6 +866,7 @@ end = struct
     in
     let env =
       ( name_gen
+      , struct_name
       , (invite_chan, (pkg, role_chan_name)) :: channel_fields
       , invite_channel_fields
       , imports )
@@ -821,8 +874,8 @@ end = struct
     (env, invite_chan)
 
   let new_invite_channel
-      (name_gen, channel_fields, invite_channel_fields, imports) channel_name
-      local_protocol =
+      (name_gen, struct_name, channel_fields, invite_channel_fields, imports)
+      channel_name local_protocol =
     let name_gen, channel_name =
       UniqueNameGen.unique_name name_gen channel_name
     in
@@ -832,7 +885,9 @@ end = struct
     let invite_channel_fields =
       (invite_chan, chan_type) :: invite_channel_fields
     in
-    let env = (name_gen, channel_fields, invite_channel_fields, imports) in
+    let env =
+      (name_gen, struct_name, channel_fields, invite_channel_fields, imports)
+    in
     (env, invite_chan)
 
   let new_send_role_channel env participant local_protocol new_role protocol
@@ -846,14 +901,14 @@ end = struct
     in
     new_invite_channel env channel_name local_protocol
 
-  let send_self_role_channel (name_gen, _, _, _) role local_protocol =
+  let send_self_role_channel (name_gen, _, _, _, _) role local_protocol =
     let channel_name = send_role_chan_name role local_protocol in
     let channel_name =
       UniqueNameGen.curr_unique_name name_gen channel_name
     in
     InviteChannelName.of_string (Option.value_exn channel_name)
 
-  let send_self_invite_channel (name_gen, _, _, _) role local_protocol =
+  let send_self_invite_channel (name_gen, _, _, _, _) role local_protocol =
     let channel_name = send_role_invite_chan_name role local_protocol in
     let channel_name =
       UniqueNameGen.curr_unique_name name_gen channel_name
@@ -868,18 +923,23 @@ end = struct
     let channel_name = recv_role_invite_chan_name caller local_protocol in
     new_invite_channel env channel_name local_protocol
 
-  let gen_invite_channel_struct (_, channel_fields, invite_channel_fields, _)
-      local_protocol =
+  let gen_invite_channel_struct
+      (_, struct_name, channel_fields, invite_channel_fields, _) =
     let role_chan_decls = List.map ~f:role_chan_field_decl channel_fields in
     let invite_chan_decls =
       List.map ~f:invite_chan_field_decl invite_channel_fields
     in
-    let struct_name = invite_struct_name local_protocol in
-    struct_decl struct_name (role_chan_decls @ invite_chan_decls)
+    struct_decl
+      (InviteChannelStructName.user struct_name)
+      (role_chan_decls @ invite_chan_decls)
 
-  let get_invite_imports (_, _, _, imports) = imports
+  let get_invite_imports (_, _, _, _, imports) = imports
 
-  let create imports = (UniqueNameGen.create (), [], [], imports)
+  let create local_protocol imports =
+    let struct_name =
+      InviteChannelStructName.of_string @@ invite_struct_name local_protocol
+    in
+    (UniqueNameGen.create (), struct_name, [], [], imports)
 end
 
 module ProtocolSetupEnv : sig
@@ -895,8 +955,7 @@ module ProtocolSetupEnv : sig
     -> ProtocolName.t
     -> InviteChannelStructName.t * InviteChannelName.t list
 
-  val get_protocol_setup_function_name :
-    t -> ProtocolName.t -> FunctionName.t
+  val get_setup_function_name : t -> ProtocolName.t -> FunctionName.t
 
   val gen_setup_channel_struct : t -> ProtocolName.t -> string
 
@@ -1005,7 +1064,7 @@ end = struct
     let setup_functions = (func_name_gen, setup_function_names) in
     {env with setup_functions}
 
-  let get_protocol_setup_function_name env protocol =
+  let get_setup_function_name env protocol =
     let _, setup_function_names = env.setup_functions in
     Map.find_exn setup_function_names protocol
 
@@ -1265,11 +1324,16 @@ module LTypeCodeGenEnv : sig
   type t
 
   val create :
-    ProtocolName.t -> RoleName.t -> RootDirName.t -> protocol_env -> t
+       ProtocolName.t
+    -> RoleName.t
+    -> LocalProtocolName.t
+    -> RootDirName.t
+    -> protocol_env
+    -> t
 
   val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
 
-  val gen_channel_struct : t -> RoleName.t -> string
+  val gen_channel_struct : t -> string
 
   val new_send_role_channel :
        t
@@ -1299,7 +1363,7 @@ module LTypeCodeGenEnv : sig
   val new_recv_invite_channel :
     t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
 
-  val gen_invite_channel_struct : t -> LocalProtocolName.t -> string
+  val gen_invite_channel_struct : t -> string
 
   val new_send_callback :
     t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
@@ -1342,10 +1406,10 @@ end = struct
     ; invite_env: InviteEnv.t
     ; callbacks_env: CallbacksEnv.t }
 
-  let create protocol role root_dir
+  let create protocol role local_protocol root_dir
       {callback_enum_names; channel_imports; invite_imports} =
-    let channel_env = ChannelEnv.create protocol channel_imports in
-    let invite_env = InviteEnv.create invite_imports in
+    let channel_env = ChannelEnv.create role protocol channel_imports in
+    let invite_env = InviteEnv.create local_protocol invite_imports in
     let callbacks_env = CallbacksEnv.create root_dir callback_enum_names in
     {protocol; role; channel_env; invite_env; callbacks_env}
 
@@ -1355,8 +1419,8 @@ end = struct
     in
     ({t with channel_env}, channel_name)
 
-  let gen_channel_struct {channel_env; _} role =
-    ChannelEnv.gen_channel_struct channel_env role
+  let gen_channel_struct {channel_env; _} =
+    ChannelEnv.gen_channel_struct channel_env
 
   let new_send_role_channel ({invite_env; _} as t) participant local_protocol
       new_role protocol =
@@ -1393,8 +1457,8 @@ end = struct
     in
     ({t with invite_env}, channel_name)
 
-  let gen_invite_channel_struct {invite_env; _} local_protocol =
-    InviteEnv.gen_invite_channel_struct invite_env local_protocol
+  let gen_invite_channel_struct {invite_env; _} =
+    InviteEnv.gen_invite_channel_struct invite_env
 
   let new_send_callback ({callbacks_env; _} as env) msg_label recv_role
       protocol =
@@ -1559,7 +1623,61 @@ let gen_send_impl msg_label msg_chan send_cb =
   let send_msg_stmt = send_msg_over_channel role_chan msg_chan msg_var in
   [msg_assign; send_msg_stmt]
 
-(* let gen_invite_impl () = (* *) () *)
+let gen_invite_impl protocol setup_env invite_channels setup_cb indent =
+  (* env.<protocol>_Setup() *)
+  let setup_callback_call = call_callback env_var setup_cb None in
+  let role_channels, invite_channels = List.unzip invite_channels in
+  (* <protocol>_rolechan := <protocol>_RoleSetupChan{<role1>_Chan:
+     <role_channel>, ...} *)
+  let role_struct, role_struct_fields =
+    ProtocolSetupEnv.get_setup_channel_struct setup_env protocol
+  in
+  let str_role_channels = List.map ~f:InviteChannelName.user role_channels in
+  let str_role_struct_fields =
+    List.map ~f:InviteChannelName.user role_struct_fields
+  in
+  let role_struct_var = new_role_setup_var protocol in
+  let role_struct_literal =
+    struct_literal
+      (invitation_pkg_access role_struct)
+      str_role_struct_fields str_role_channels indent
+  in
+  let role_struct_assign =
+    new_var_assignment role_struct_var role_struct_literal
+  in
+  (* <protocol>_invitechan := <protocol>_InviteSetupChan{<role1>_InviteChan:
+     <role_invitechannel>, ...} *)
+  let invite_struct, invite_struct_fields =
+    ProtocolSetupEnv.get_setup_invite_struct setup_env protocol
+  in
+  let str_invite_channels =
+    List.map ~f:InviteChannelName.user invite_channels
+  in
+  let str_invite_struct_fields =
+    List.map ~f:InviteChannelName.user invite_struct_fields
+  in
+  let invite_struct_var = new_invite_setup_var protocol in
+  let invite_struct_literal =
+    struct_literal
+      (invitation_pkg_access invite_struct)
+      str_invite_struct_fields str_invite_channels indent
+  in
+  let invite_struct_assign =
+    new_var_assignment invite_struct_var invite_struct_literal
+  in
+  (* <protocol>_SendCommChannels(wg, <protocol>_rolechan,
+     <protocol>_invitechan) *)
+  let protocol_setup_function =
+    ProtocolSetupEnv.get_setup_function_name setup_env protocol
+  in
+  let setup_params = [wait_group; role_struct_var; invite_struct_var] in
+  let protocol_setup_call =
+    call_function (FunctionName.user protocol_setup_function) setup_params
+  in
+  [ setup_callback_call
+  ; role_struct_assign
+  ; invite_struct_assign
+  ; protocol_setup_call ]
 
 let gen_make_choice_impl role choice_cb choice_enums choice_impls indent =
   (* choice := env.<role>_Choice() *)
@@ -1581,8 +1699,9 @@ let gen_recv_choice_impl choice_impls indent =
 (* gen_impl env ltype indent -> env string *)
 (* TODO: Are recursion labels unique? *)
 (* TODO code gen of ltype *)
-let gen_role_implementation ltype_env global_t protocol_lookup protocol role
-    (local_proto_name : LocalProtocolName.t) ltype =
+let gen_role_implementation protocol_setup_env ltype_env global_t
+    protocol_lookup protocol role (local_proto_name : LocalProtocolName.t)
+    ltype =
   let rec gen_implementation indent is_recv_choice_msg env ltype =
     match ltype with
     | EndL ->
@@ -1604,12 +1723,6 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
         let impl = recursion_impl loop_label loop in
         (env, impl)
     | InviteCreateL (invite_roles, _, protocol', ltype') ->
-        (* TODO: Delete this*)
-        let print_invite_channels (role_chan, invite_chan) =
-          sprintf "%s, %s"
-            (InviteChannelName.user role_chan)
-            (InviteChannelName.user invite_chan)
-        in
         let (new_proto_roles, _), _, _ = Map.find_exn global_t protocol' in
         let acting_roles = List.zip_exn invite_roles new_proto_roles in
         let env, invite_channels =
@@ -1617,15 +1730,17 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
             ~f:(gen_send_invite_chan_names protocol_lookup protocol')
             acting_roles
         in
-        let env, _ =
+        let env, setup_cb =
           LTypeCodeGenEnv.new_protocol_setup_callback env protocol'
         in
-        let env, impl = gen_implementation indent false env ltype' in
-        let invite_chan_strs =
-          List.map ~f:print_invite_channels invite_channels
+        let invite_impl =
+          gen_invite_impl protocol protocol_setup_env invite_channels
+            setup_cb indent
         in
-        let str_invite_chans = String.concat ~sep:"\n" invite_chan_strs in
-        (env, sprintf "%s\n\n%s" str_invite_chans impl)
+        let invite_impl = List.map ~f:(indent_line indent) invite_impl in
+        let invite_impl_str = join_non_empty_lines invite_impl in
+        let env, impl = gen_implementation indent false env ltype' in
+        (env, join_non_empty_lines ~sep:"\n\n" [invite_impl_str; impl])
     | AcceptL (new_role, protocol', _, _, caller, ltype') ->
         let local_protocol =
           lookup_local_protocol protocol_lookup protocol' new_role
@@ -1712,29 +1827,23 @@ let gen_role_implementation ltype_env global_t protocol_lookup protocol role
   in
   (env, impl)
 
-let gen_channels_file pkg_name roles_and_envs imports setup_role_chan
-    setup_invite_chan =
+let gen_channels_file pkg_name envs imports setup_role_chan setup_invite_chan
+    =
   let pkg = package_stmt pkg_name in
   let channel_imports = ImportsEnv.generate_imports imports in
   let channel_structs =
-    List.map
-      ~f:(fun (role, env) -> LTypeCodeGenEnv.gen_channel_struct env role)
-      roles_and_envs
+    List.map ~f:LTypeCodeGenEnv.gen_channel_struct envs
   in
   join_non_empty_lines ~sep:"\n\n"
     ( pkg :: channel_imports :: setup_role_chan :: setup_invite_chan
     :: channel_structs )
 
-let gen_invitations_file protocol_lookup protocol roles_and_envs imports =
-  let gen_invite_struct (role, env) =
-    let local_protocol =
-      lookup_local_protocol protocol_lookup protocol role
-    in
-    LTypeCodeGenEnv.gen_invite_channel_struct env local_protocol
-  in
+let gen_invitations_file envs imports =
   let pkg_stmt = package_stmt pkg_invitations in
   let imports_str = ImportsEnv.generate_imports imports in
-  let channel_structs = List.map ~f:gen_invite_struct roles_and_envs in
+  let channel_structs =
+    List.map ~f:LTypeCodeGenEnv.gen_invite_channel_struct envs
+  in
   join_non_empty_lines ~sep:"\n\n"
     (pkg_stmt :: imports_str :: channel_structs)
 
@@ -1742,13 +1851,6 @@ let gen_results_file pkg_name roles =
   let pkg = package_stmt pkg_name in
   let result_structs = List.map ~f:LTypeCodeGenEnv.gen_result_struct roles in
   join_non_empty_lines ~sep:"\n\n" (pkg :: result_structs)
-
-let gen_setup_file () =
-  let _ = ProtocolSetupEnv.get_setup_channel_struct in
-  let _ = ProtocolSetupEnv.get_setup_invite_struct in
-  (* TODO: rename - remove "protocol" *)
-  let _ = ProtocolSetupEnv.get_protocol_setup_function_name in
-  ()
 
 type codegen_result =
   { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
@@ -1792,7 +1894,6 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
   let protocol_setup_env =
     ProtocolSetupEnv.create protocol_lookup local_t global_t
   in
-  gen_setup_file () ;
   let gen_protocol_role_implementation ~key:protocol ~data result =
     (* TODO: Imports *)
     let (roles, new_roles), _, gtype = data in
@@ -1812,11 +1913,12 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
             lookup_local_protocol protocol_lookup protocol role
           in
           let env =
-            LTypeCodeGenEnv.create protocol role root_dir protocol_env
+            LTypeCodeGenEnv.create protocol role local_protocol root_dir
+              protocol_env
           in
           let env, protocol_impl =
-            gen_role_implementation env global_t protocol_lookup protocol
-              role local_protocol ltype
+            gen_role_implementation protocol_setup_env env global_t
+              protocol_lookup protocol role local_protocol ltype
           in
           let callbacks_file =
             LTypeCodeGenEnv.gen_callbacks_file env local_protocol
@@ -1833,7 +1935,6 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
         (roles @ new_roles)
     in
     let pkg = PackageName.of_string @@ protocol_pkg_name protocol in
-    let roles_and_envs = List.zip_exn roles envs in
     let messages_file =
       MessagesEnv.generate_messages_file messages_env pkg
     in
@@ -1847,15 +1948,14 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
       ProtocolSetupEnv.gen_setup_invite_struct protocol_setup_env protocol
     in
     let chan_file =
-      gen_channels_file pkg roles_and_envs protocol_env.channel_imports
+      gen_channels_file pkg envs protocol_env.channel_imports
         protocol_setup_chan protocol_setup_invite_chan
     in
     let channels =
       Map.add_exn result.channels ~key:protocol ~data:chan_file
     in
     let invitations_file =
-      gen_invitations_file protocol_lookup protocol roles_and_envs
-        protocol_env.invite_imports
+      gen_invitations_file envs protocol_env.invite_imports
     in
     let invite_channels =
       Map.add_exn result.invite_channels ~key:protocol ~data:invitations_file
@@ -1875,4 +1975,5 @@ let _ =
   let _ = ImportsEnv.import_roles imports in
   let _ = ImportsEnv.import_callbacks imports in
   let _ = ImportsEnv.import_invitations imports in
+  let _ = ChannelEnv.get_channel_fields in
   ()
