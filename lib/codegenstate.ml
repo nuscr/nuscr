@@ -68,6 +68,8 @@ let wait_group = VariableName.of_string "wg"
 
 let wait_group_type = VariableName.of_string "WaitGroup"
 
+let wait_group_add = FunctionName.of_string "Add"
+
 let int_type = "int"
 
 let panic_msg = "TODO: implement me"
@@ -224,6 +226,8 @@ let indent_line indent line = sprintf "%s%s" indent line
 
 let package_stmt pkg_name = sprintf "package %s" (PackageName.user pkg_name)
 
+let pointer_type type_str = sprintf "*%s" type_str
+
 let join_non_empty_lines ?(sep = "\n") lines =
   let lines = List.filter ~f:(fun line -> String.length line > 0) lines in
   String.concat ~sep lines
@@ -283,6 +287,9 @@ let callbacks_pkg_env callbacks_pkg env_name =
   sprintf "%s.%s"
     (PackageName.user callbacks_pkg)
     (CallbacksEnvName.user env_name)
+
+let pkg_function pkg function_name =
+  sprintf "%s.%s" (PackageName.user pkg) (FunctionName.user function_name)
 
 let protocol_result_access pkg result =
   sprintf "%s.%s" (PackageName.user pkg) (ResultName.user result)
@@ -455,6 +462,8 @@ let new_setup_invite_chan_var caller participant =
     (lowercase_role_name caller)
     (lowercase_role_name participant)
 
+let new_role_env_var role = sprintf "%s_env" (lowercase_role_name role)
+
 let invite_channel_struct_field_access chan_var chan_name =
   sprintf "%s.%s"
     (VariableName.user chan_var)
@@ -551,6 +560,15 @@ let new_chan_var_assignment (chan_var, chan_type) =
   new_var_assignment chan_var (make_async_chan chan_type)
 
 let panic_with_msg msg = sprintf "panic(\"%s\")" msg
+
+let call_method obj_var method_name params =
+  let params_str = join_non_empty_lines ~sep:", " params in
+  sprintf "%s.%s(%s)"
+    (VariableName.user obj_var)
+    (FunctionName.user method_name)
+    params_str
+
+let goroutine_call function_call = sprintf "go %s" function_call
 
 module ImportsEnv : sig
   type t
@@ -2493,7 +2511,7 @@ let gen_role_impl_function env protocol role local_protocol impl =
   let env, invitations_pkg = LTypeCodeGenEnv.import_invitations env in
   (* params *)
   let wait_group_type = pkg_var_access sync_pkg wait_group_type in
-  let wait_group_param = (wait_group, wait_group_type) in
+  let wait_group_param = (wait_group, pointer_type wait_group_type) in
   let role_chan_name =
     ChannelStructName.of_string @@ chan_struct_name role
   in
@@ -2534,8 +2552,49 @@ let gen_role_impl_file env impl role protocol local_type =
   let imports = LTypeCodeGenEnv.generate_role_imports env in
   (env, join_non_empty_lines ~sep:"\n\n" [pkg_stmt; imports; function_impl])
 
+let gen_dynamic_participants_init imports indent new_roles role_chan_vars
+    invite_chan_vars protocol protocol_lookup =
+  let gen_dynamic_participant_init callbacks_pkg role =
+    let local_protocol =
+      lookup_local_protocol protocol_lookup protocol role
+    in
+    let role_env_var = VariableName.of_string @@ new_role_env_var role in
+    let create_env_func =
+      FunctionName.of_string @@ new_create_env_function_name local_protocol
+    in
+    let pkg_create_env_func = pkg_function callbacks_pkg create_env_func in
+    let call_create_env_func = call_function pkg_create_env_func [] in
+    let role_env_assign =
+      new_var_assignment role_env_var call_create_env_func
+    in
+    let role_function = local_protocol_function_name local_protocol in
+    let role_channel = Map.find_exn role_chan_vars role in
+    let invite_channel = Map.find_exn invite_chan_vars role in
+    let params = [wait_group; role_channel; invite_channel; role_env_var] in
+    let role_function_call =
+      goroutine_call @@ call_function role_function params
+    in
+    let init_stmts =
+      List.map [role_env_assign; role_function_call] ~f:(indent_line indent)
+    in
+    join_non_empty_lines init_stmts
+  in
+  let imports, callbacks_pkg = ImportsEnv.import_callbacks imports in
+  let wait_group_add_stmt =
+    call_method wait_group wait_group_add
+      [Int.to_string (List.length new_roles)]
+  in
+  let wait_group_add_stmt = indent_line indent wait_group_add_stmt in
+  let new_role_initialisations =
+    List.map new_roles ~f:(gen_dynamic_participant_init callbacks_pkg)
+  in
+  ( imports
+  , join_non_empty_lines ~sep:"\n\n"
+      (wait_group_add_stmt :: new_role_initialisations) )
+
 let gen_setup_file protocol_setup_env imports indent impl role_chan_vars
-    invite_chan_vars protocol (roles, _) =
+    invite_chan_vars protocol protocol_lookup (roles, new_roles) =
+  (* TODO: import sync when generating function signature. handle imports*)
   let _, role_struct_fields =
     ProtocolSetupEnv.get_setup_channel_struct protocol_setup_env protocol
   in
@@ -2566,11 +2625,18 @@ let gen_setup_file protocol_setup_env imports indent impl role_chan_vars
     List.map send_invite_channels ~f:(indent_line indent)
   in
   let send_invite_channels_str = join_non_empty_lines send_invite_channels in
+  let imports, init_new_roles_impl =
+    if List.length new_roles > 0 then
+      gen_dynamic_participants_init imports indent new_roles role_chan_vars
+        invite_chan_vars protocol protocol_lookup
+    else (imports, "")
+  in
   join_non_empty_lines ~sep:"\n\n"
     [ ImportsEnv.generate_imports imports
     ; impl
     ; send_role_channels_str
-    ; send_invite_channels_str ]
+    ; send_invite_channels_str
+    ; init_new_roles_impl ]
 
 type codegen_result =
   { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
@@ -2698,14 +2764,16 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
       ProtocolSetupGen.create_env root_dir (roles @ new_roles) protocol
         protocol_lookup
     in
-    let imports, role_chan_vars, invite_chan_vars, setup_channels_impl =
+    let setup_imports, role_chan_vars, invite_chan_vars, setup_channels_impl
+        =
       ProtocolSetupGen.generate_setup_channels global_t protocol_lookup
         protocol_setup_gen
     in
     let indent = incr_indent "" in
     let setup_file =
-      gen_setup_file protocol_setup_env imports indent setup_channels_impl
-        role_chan_vars invite_chan_vars protocol (roles, new_roles)
+      gen_setup_file protocol_setup_env setup_imports indent
+        setup_channels_impl role_chan_vars invite_chan_vars protocol
+        protocol_lookup (roles, new_roles)
     in
     let protocol_setup =
       Map.add_exn result.protocol_setup ~key:protocol ~data:setup_file
