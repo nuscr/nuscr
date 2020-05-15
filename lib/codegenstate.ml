@@ -461,6 +461,12 @@ let send_msg_over_channel chan_struct chan_field msg_var =
   let chan = channel_struct_field_access chan_struct chan_field in
   sprintf "%s <- %s" chan (VariableName.user msg_var)
 
+let send_invite_over_channel invite_chan_struct (chan_field, chan_var) =
+  let chan =
+    invite_channel_struct_field_access invite_chan_struct chan_field
+  in
+  sprintf "%s <- %s" chan (VariableName.user chan_var)
+
 let new_var_assignment var_name rhs =
   sprintf "%s := %s" (VariableName.user var_name) rhs
 
@@ -533,7 +539,7 @@ let function_decl function_name params return_type impl =
 
 let make_async_chan chan_type =
   (* chan_type = "chan <type>" *)
-  sprintf "make(%s)" chan_type
+  sprintf "make(%s, 1)" chan_type
 
 let new_chan_var_assignment (chan_var, chan_type) =
   (* assume chan_type is of the form "chan <type>" *)
@@ -833,9 +839,6 @@ module ChannelEnv : sig
 
   val get_channel_imports : t -> ImportsEnv.t
 
-  val get_channel_fields :
-    t -> ChannelStructName.t * (ChannelName.t * MessageStructName.t) list
-
   val struct_name : t -> ChannelStructName.t
 
   val create : RoleName.t -> ProtocolName.t -> ImportsEnv.t -> t
@@ -878,9 +881,6 @@ end = struct
   let struct_name (_, struct_name, _, _, _) = struct_name
 
   let get_channel_imports (_, _, _, _, imports) = imports
-
-  let get_channel_fields (_, struct_name, _, channel_fields, _) =
-    (struct_name, channel_fields)
 
   let create role protocol imports =
     let struct_name = ChannelStructName.of_string @@ chan_struct_name role in
@@ -2514,8 +2514,43 @@ let gen_role_impl_file env impl role protocol local_type =
   let imports = LTypeCodeGenEnv.generate_role_imports env in
   (env, join_non_empty_lines ~sep:"\n\n" [pkg_stmt; imports; function_impl])
 
-let gen_setup_file imports impl =
-  join_non_empty_lines ~sep:"\n\n" [ImportsEnv.generate_imports imports; impl]
+let gen_setup_file protocol_setup_env imports indent impl role_chan_vars
+    invite_chan_vars protocol (roles, _) =
+  let _, role_struct_fields =
+    ProtocolSetupEnv.get_setup_channel_struct protocol_setup_env protocol
+  in
+  let role_channel_vars = List.map roles ~f:(Map.find_exn role_chan_vars) in
+  let role_chans_and_vars =
+    List.zip_exn role_struct_fields role_channel_vars
+  in
+  let send_role_channels =
+    List.map role_chans_and_vars ~f:(send_invite_over_channel role_chan)
+  in
+  let send_role_channels =
+    List.map send_role_channels ~f:(indent_line indent)
+  in
+  let send_role_channels_str = join_non_empty_lines send_role_channels in
+  let _, invite_struct_fields =
+    ProtocolSetupEnv.get_setup_invite_struct protocol_setup_env protocol
+  in
+  let invite_channel_vars =
+    List.map roles ~f:(Map.find_exn invite_chan_vars)
+  in
+  let invite_chans_and_vars =
+    List.zip_exn invite_struct_fields invite_channel_vars
+  in
+  let send_invite_channels =
+    List.map invite_chans_and_vars ~f:(send_invite_over_channel invite_chan)
+  in
+  let send_invite_channels =
+    List.map send_invite_channels ~f:(indent_line indent)
+  in
+  let send_invite_channels_str = join_non_empty_lines send_invite_channels in
+  join_non_empty_lines ~sep:"\n\n"
+    [ ImportsEnv.generate_imports imports
+    ; impl
+    ; send_role_channels_str
+    ; send_invite_channels_str ]
 
 type codegen_result =
   { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
@@ -2639,11 +2674,15 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
       ProtocolSetupGen.create_env root_dir (roles @ new_roles) protocol
         protocol_lookup
     in
-    let imports, _, _, setup_channels_impl =
+    let imports, role_chan_vars, invite_chan_vars, setup_channels_impl =
       ProtocolSetupGen.generate_setup_channels global_t protocol_lookup
         protocol_setup_gen
     in
-    let setup_file = gen_setup_file imports setup_channels_impl in
+    let indent = incr_indent "" in
+    let setup_file =
+      gen_setup_file protocol_setup_env imports indent setup_channels_impl
+        role_chan_vars invite_chan_vars protocol (roles, new_roles)
+    in
     let protocol_setup =
       Map.add_exn result.protocol_setup ~key:protocol ~data:setup_file
     in
@@ -2656,7 +2695,4 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
 let _ =
   let imports = ImportsEnv.create (RootDirName.of_string "Test") in
   let _ = ImportsEnv.import_roles imports in
-  let _ = ImportsEnv.import_callbacks imports in
-  let _ = ImportsEnv.import_invitations imports in
-  let _ = ChannelEnv.get_channel_fields in
   ()
