@@ -70,6 +70,8 @@ let wait_group_type = VariableName.of_string "WaitGroup"
 
 let int_type = "int"
 
+let panic_msg = "TODO: implement me"
+
 (* CODEGEN FUNCTIONS *)
 
 let capitalize_role_name role = String.capitalize @@ RoleName.user role
@@ -362,6 +364,9 @@ let local_protocol_function_name local_protocol =
 let protocol_setup_function_name protocol =
   sprintf "%s_SendCommChannels" (capitalize_protocol protocol)
 
+let new_create_env_function_name local_protocol =
+  sprintf "New_%s_State" (capitalize_local_protocol local_protocol)
+
 let return_stmt return_val = sprintf "return %s" return_val
 
 let call_callback env_var callback param =
@@ -544,6 +549,8 @@ let make_async_chan chan_type =
 let new_chan_var_assignment (chan_var, chan_type) =
   (* assume chan_type is of the form "chan <type>" *)
   new_var_assignment chan_var (make_async_chan chan_type)
+
+let panic_with_msg msg = sprintf "panic(\"%s\")" msg
 
 module ImportsEnv : sig
   type t
@@ -1695,7 +1702,7 @@ module CallbacksEnv : sig
 
   val get_enum_names_env : t -> EnumNamesEnv.t
 
-  val gen_callbacks_file : t -> LocalProtocolName.t -> string
+  val gen_callbacks_file : t -> LocalProtocolName.t -> bool -> string
 
   val create : RootDirName.t -> EnumNamesEnv.t -> t
 end = struct
@@ -1842,9 +1849,17 @@ end = struct
 
   let get_enum_names_env (_, (enum_names_env, _), _, _) = enum_names_env
 
-  let gen_callbacks_file (_, (_, enums), callbacks, imports) local_protocol =
-    (*TODO: Init() and Done() *)
-    (* let gen_enum_type enum_type enum_values = *)
+  let gen_create_env_function local_protocol callbacks_env_name =
+    let indent = incr_indent "" in
+    let function_body = indent_line indent (panic_with_msg panic_msg) in
+    let create_func_name =
+      FunctionName.of_string @@ new_create_env_function_name local_protocol
+    in
+    let return_type = Some (CallbacksEnvName.user callbacks_env_name) in
+    function_decl create_func_name [] return_type function_body
+
+  let gen_callbacks_file (_, (_, enums), callbacks, imports) local_protocol
+      is_dynamic_role =
     let gen_enum (enum_type, enum_values) =
       let type_decl = enum_type_decl enum_type in
       let value_decls = enum_decl enum_type enum_values in
@@ -1859,8 +1874,12 @@ end = struct
       CallbacksEnvName.of_string @@ callbacks_env_name local_protocol
     in
     let callbacks_interface = callbacks_env_interface env_name callbacks in
+    let create_env_func =
+      if is_dynamic_role then gen_create_env_function local_protocol env_name
+      else ""
+    in
     join_non_empty_lines ~sep:"\n\n"
-      [pkg; imports_str; enum_decls_str; callbacks_interface]
+      [pkg; imports_str; enum_decls_str; callbacks_interface; create_env_func]
 
   let create root_dir enum_names_env =
     let name_gen = UniqueNameGen.create () in
@@ -1966,7 +1985,7 @@ module LTypeCodeGenEnv : sig
 
   val get_protocol_env : t -> protocol_env
 
-  val gen_callbacks_file : t -> LocalProtocolName.t -> string
+  val gen_callbacks_file : t -> LocalProtocolName.t -> bool -> string
 end = struct
   type t =
     { protocol: ProtocolName.t
@@ -2120,8 +2139,9 @@ end = struct
   let generate_role_imports {role_imports; _} =
     ImportsEnv.generate_imports role_imports
 
-  let gen_callbacks_file {callbacks_env; _} local_protocol =
+  let gen_callbacks_file {callbacks_env; _} local_protocol is_dynamic_role =
     CallbacksEnv.gen_callbacks_file callbacks_env local_protocol
+      is_dynamic_role
 
   let get_protocol_env {callbacks_env; channel_env; invite_env; _} =
     { channel_imports= ChannelEnv.get_channel_imports channel_env
@@ -2626,8 +2646,12 @@ let gen_code root_dir (global_t : global_t) (local_t : local_t) =
           let env, impl_file =
             gen_role_impl_file env protocol_impl role protocol local_protocol
           in
+          let is_dynamic_role =
+            List.mem new_roles role ~equal:RoleName.equal
+          in
           let callbacks_file =
             LTypeCodeGenEnv.gen_callbacks_file env local_protocol
+              is_dynamic_role
           in
           let result =
             { result with
