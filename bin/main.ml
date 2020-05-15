@@ -176,13 +176,21 @@ let run_nested filename show_ast show_global show_local =
     ensure_unique_identifiers g_type ;
     (* let protocol_channels = gen_protocol_channels g_type ltype in
        print_protocol_files protocol_channels ; *)
-    let {channels; invite_channels; callbacks; impl; messages; results; _} =
+    let { channels
+        ; invite_channels
+        ; callbacks
+        ; impl
+        ; messages
+        ; results
+        ; protocol_setup
+        ; _ } =
       gen_code (RootDirName.of_string "Root") g_type ltype
     in
     print_protocol_files messages ;
     print_protocol_files channels ;
     print_protocol_files invite_channels ;
     print_protocol_files results ;
+    print_protocol_files protocol_setup ;
     print_local_protocol_files callbacks ;
     print_local_protocol_files impl ;
     true
