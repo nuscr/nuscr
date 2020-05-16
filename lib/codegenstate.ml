@@ -2388,7 +2388,7 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
         in
         let env, invite_pkg = LTypeCodeGenEnv.import_invitations env in
         let invite_impl =
-          gen_invite_impl protocol invite_pkg protocol_setup_env
+          gen_invite_impl protocol' invite_pkg protocol_setup_env
             invite_channels setup_cb indent
         in
         let invite_impl = List.map ~f:(indent_line indent) invite_impl in
@@ -2592,8 +2592,9 @@ let gen_dynamic_participants_init imports indent new_roles role_chan_vars
   , join_non_empty_lines ~sep:"\n\n"
       (wait_group_add_stmt :: new_role_initialisations) )
 
-let gen_setup_file protocol_setup_env imports indent impl role_chan_vars
-    invite_chan_vars protocol protocol_lookup (roles, new_roles) =
+let gen_setup_function_impl protocol_setup_env imports indent
+    setup_channels_impl role_chan_vars invite_chan_vars protocol
+    protocol_lookup (roles, new_roles) =
   (* TODO: import sync when generating function signature. handle imports*)
   let _, role_struct_fields =
     ProtocolSetupEnv.get_setup_channel_struct protocol_setup_env protocol
@@ -2631,12 +2632,52 @@ let gen_setup_file protocol_setup_env imports indent impl role_chan_vars
         invite_chan_vars protocol protocol_lookup
     else (imports, "")
   in
+  ( imports
+  , join_non_empty_lines ~sep:"\n\n"
+      [ setup_channels_impl
+      ; send_role_channels_str
+      ; send_invite_channels_str
+      ; init_new_roles_impl ] )
+
+let gen_setup_function imports protocol_setup_env protocol impl =
+  let imports, sync_pkg = ImportsEnv.import_sync imports in
+  let imports, invitations_pkg = ImportsEnv.import_invitations imports in
+  let func_name =
+    ProtocolSetupEnv.get_setup_function_name protocol_setup_env protocol
+  in
+  let wait_group_type = pkg_var_access sync_pkg wait_group_type in
+  let wait_group_param = (wait_group, pointer_type wait_group_type) in
+  let role_chan_struct, _ =
+    ProtocolSetupEnv.get_setup_channel_struct protocol_setup_env protocol
+  in
+  let role_chan_type =
+    protocol_invite_channel_access invitations_pkg role_chan_struct
+  in
+  let role_chan_param = (role_chan, role_chan_type) in
+  let invite_chan_struct, _ =
+    ProtocolSetupEnv.get_setup_invite_struct protocol_setup_env protocol
+  in
+  let invite_chan_type =
+    protocol_invite_channel_access invitations_pkg invite_chan_struct
+  in
+  let invite_chan_param = (invite_chan, invite_chan_type) in
+  let params = [wait_group_param; role_chan_param; invite_chan_param] in
+  (imports, function_decl func_name params None impl)
+
+let gen_setup_file protocol_setup_env imports indent setup_channels_impl
+    role_chan_vars invite_chan_vars protocol protocol_lookup
+    (roles, new_roles) =
+  let pkg_stmt = package_stmt pkg_roles in
+  let imports, setup_func_body =
+    gen_setup_function_impl protocol_setup_env imports indent
+      setup_channels_impl role_chan_vars invite_chan_vars protocol
+      protocol_lookup (roles, new_roles)
+  in
+  let imports, setup_function =
+    gen_setup_function imports protocol_setup_env protocol setup_func_body
+  in
   join_non_empty_lines ~sep:"\n\n"
-    [ ImportsEnv.generate_imports imports
-    ; impl
-    ; send_role_channels_str
-    ; send_invite_channels_str
-    ; init_new_roles_impl ]
+    [pkg_stmt; ImportsEnv.generate_imports imports; setup_function]
 
 type codegen_result =
   { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
