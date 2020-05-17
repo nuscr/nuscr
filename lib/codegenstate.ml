@@ -76,6 +76,8 @@ let wait_group_type = VariableName.of_string "WaitGroup"
 
 let wait_group_add = FunctionName.of_string "Add"
 
+let wait_group_done = FunctionName.of_string "Done"
+
 let wait_group_wait = FunctionName.of_string "Wait"
 
 let int_type = "int"
@@ -245,6 +247,8 @@ let join_non_empty_lines ?(sep = "\n") lines =
   let lines = List.filter ~f:(fun line -> String.length line > 0) lines in
   String.concat ~sep lines
 
+let join_params params = String.concat ~sep:", " params
+
 let struct_decl struct_name field_decls =
   let field_decls = List.sort field_decls ~compare:String.compare in
   let field_decls_str = join_non_empty_lines field_decls in
@@ -329,7 +333,7 @@ let struct_field_decl field_name field_type =
   sprintf "\t%s" (var_type_decl field_name field_type)
 
 let interface_method_decl indent (function_name, params, return_type_str) =
-  let params_str = join_non_empty_lines ~sep:", " params in
+  let params_str = join_params params in
   let method_decl =
     sprintf "%s(%s) %s"
       (FunctionName.user function_name)
@@ -426,7 +430,7 @@ let return_stmt return_val = sprintf "return %s" return_val
 
 let call_function function_name params =
   let str_params = List.map ~f:VariableName.user params in
-  let params_str = join_non_empty_lines ~sep:", " str_params in
+  let params_str = join_params str_params in
   sprintf "%s(%s)" function_name params_str
 
 let continue_stmt label = sprintf "continue %s" (TypeVariableName.user label)
@@ -536,18 +540,6 @@ let recv_from_msg_chan var_name chan_struct chan_field =
   let recv_from_chan = msg_from_channel chan in
   new_var_assignment var_name recv_from_chan
 
-let join_params params = String.concat ~sep:", " params
-
-let call_local_protocol local_protocol wait_group_var role_chan_var
-    invite_chan_var new_env_var =
-  let params =
-    [wait_group_var; role_chan_var; invite_chan_var; new_env_var]
-  in
-  let param_names = List.map ~f:VariableName.user params in
-  sprintf "%s(%s)"
-    (capitalize_local_protocol local_protocol)
-    (join_params param_names)
-
 let gen_case_stmt case_str = sprintf "case %s:" case_str
 
 let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent =
@@ -586,7 +578,7 @@ let function_decl function_name params return_type impl =
     match return_type with None -> "" | Some ret_type -> ret_type
   in
   let param_decls = List.map ~f:gen_param_decl params in
-  let param_decls_str = join_non_empty_lines ~sep:", " param_decls in
+  let param_decls_str = join_params param_decls in
   sprintf "fun %s(%s) %s {\n%s\n} "
     (FunctionName.user function_name)
     param_decls_str return_type_str impl
@@ -602,13 +594,15 @@ let new_chan_var_assignment (chan_var, chan_type) =
 let panic_with_msg msg = sprintf "panic(\"%s\")" msg
 
 let call_method obj_var method_name params =
-  let params_str = join_non_empty_lines ~sep:", " params in
+  let params_str = join_params params in
   sprintf "%s.%s(%s)"
     (VariableName.user obj_var)
     (FunctionName.user method_name)
     params_str
 
 let goroutine_call function_call = sprintf "go %s" function_call
+
+let defer_call function_call = sprintf "defer %s" function_call
 
 module ImportsEnv : sig
   type t
@@ -2277,10 +2271,11 @@ let gen_accept_impl local_protocol role_chan role_invite_chan accept_cb
   (* <local_protocol>_result := <local_protocol>(wg, <local_protocol>_chan,
      <local_protocol>_inviteChan, <local_protocol>_env) *)
   let result_var = new_result_var local_protocol in
-  let protocol_call =
-    call_local_protocol local_protocol wait_group role_chan_var
-      role_invite_chan_var new_env_var
+  let role_function = local_protocol_function_name local_protocol in
+  let params =
+    [wait_group; role_chan_var; role_invite_chan_var; new_env_var]
   in
+  let protocol_call = call_function role_function params in
   let result_assign = new_var_assignment result_var protocol_call in
   (* env.ResultFrom_<local_protocol>(<local_protocol>_result) *)
   let result_function =
@@ -2562,14 +2557,8 @@ let gen_results_file pkg_name roles =
   let result_structs = List.map ~f:LTypeCodeGenEnv.gen_result_struct roles in
   join_non_empty_lines ~sep:"\n\n" (pkg :: result_structs)
 
-let gen_role_impl_function env protocol role local_protocol impl =
-  (* pkgs *)
-  let env, channels_pkg = LTypeCodeGenEnv.import_channels env protocol in
-  let env, results_pkg = LTypeCodeGenEnv.import_results env protocol in
-  let env, callbacks_pkg = LTypeCodeGenEnv.import_callbacks env in
-  let env, sync_pkg = LTypeCodeGenEnv.import_sync env in
-  let env, invitations_pkg = LTypeCodeGenEnv.import_invitations env in
-  (* params *)
+let role_function_params sync_pkg channels_pkg invitations_pkg callbacks_pkg
+    local_protocol role =
   let wait_group_type = pkg_var_access sync_pkg wait_group_type in
   let wait_group_param = (wait_group, pointer_type wait_group_type) in
   let role_chan_name =
@@ -2589,15 +2578,26 @@ let gen_role_impl_function env protocol role local_protocol impl =
   in
   let env_type = callbacks_pkg_env callbacks_pkg env_type_name in
   let env_param = (env_var, env_type) in
+  [wait_group_param; role_chan_param; invite_chan_param; env_param]
+
+let gen_role_impl_function env protocol role local_protocol impl =
+  (* pkgs *)
+  let env, channels_pkg = LTypeCodeGenEnv.import_channels env protocol in
+  let env, results_pkg = LTypeCodeGenEnv.import_results env protocol in
+  let env, callbacks_pkg = LTypeCodeGenEnv.import_callbacks env in
+  let env, sync_pkg = LTypeCodeGenEnv.import_sync env in
+  let env, invitations_pkg = LTypeCodeGenEnv.import_invitations env in
+  (* params *)
+  let params =
+    role_function_params sync_pkg channels_pkg invitations_pkg callbacks_pkg
+      local_protocol role
+  in
   (* return type *)
   let result_struct = ResultName.of_string @@ result_struct_name role in
   let return_type = protocol_result_access results_pkg result_struct in
   (* function *)
   let impl_function =
     FunctionName.of_string @@ local_protocol_function_name local_protocol
-  in
-  let params =
-    [wait_group_param; role_chan_param; invite_chan_param; env_param]
   in
   let function_impl =
     function_decl impl_function params (Some return_type) impl
@@ -2705,15 +2705,14 @@ let gen_entry_point_setup_function_impl imports indent protocol_lookup
       ; role_start_function_calls_str
       ; indent_line indent wait_group_wait_stmt ] )
 
-let gen_entry_point_setup_function imports protocol_lookup protocol roles
-    role_chan_vars invite_chan_vars protocol_env_interface create_chans_impl
-    =
+let gen_entry_point_setup_function imports indent protocol_lookup protocol
+    roles role_chan_vars invite_chan_vars protocol_env_interface
+    create_chans_impl =
   let func_name = entry_point_function_name protocol in
   let protocol_env_type = InterfaceName.user protocol_env_interface in
   let protocol_env_param = (protocol_env_var, protocol_env_type) in
   let params = [protocol_env_param] in
   let return_type = None in
-  let indent = incr_indent "" in
   let imports, setup_function_impl =
     gen_entry_point_setup_function_impl imports indent protocol_lookup
       protocol roles role_chan_vars invite_chan_vars create_chans_impl
@@ -2723,6 +2722,66 @@ let gen_entry_point_setup_function imports protocol_lookup protocol roles
   in
   (imports, entry_point_function_decl)
 
+let gen_start_role_functions imports indent init_protocol_interface
+    protocol_lookup protocol roles =
+  let gen_start_function_impl roles_pkg role =
+    let local_protocol =
+      lookup_local_protocol protocol_lookup protocol role
+    in
+    let call_wg_done = call_method wait_group wait_group_done [] in
+    let defer_wg_done = defer_call call_wg_done in
+    let role_function_name =
+      FunctionName.of_string @@ local_protocol_function_name local_protocol
+    in
+    let role_impl_params = [wait_group; role_chan; invite_chan; env_var] in
+    let role_function = pkg_function roles_pkg role_function_name in
+    let call_role_impl_function =
+      call_function role_function role_impl_params
+    in
+    let result_assign =
+      new_var_assignment result_var call_role_impl_function
+    in
+    let result_callback = new_init_role_result_function_name role in
+    let result_cb_params = [VariableName.user result_var] in
+    let call_result_cb =
+      call_method protocol_env_var result_callback result_cb_params
+    in
+    let impl_stmts = [defer_wg_done; result_assign; call_result_cb] in
+    let impl_stmts = List.map impl_stmts ~f:(indent_line indent) in
+    join_non_empty_lines impl_stmts
+  in
+  let gen_start_role_function sync_pkg channels_pkg invitations_pkg
+      callbacks_pkg roles_pkg role =
+    let local_protocol =
+      lookup_local_protocol protocol_lookup protocol role
+    in
+    let start_function =
+      FunctionName.of_string @@ role_start_function_name local_protocol
+    in
+    let protocol_env_type = InterfaceName.user init_protocol_interface in
+    let protocol_env_param = (protocol_env_var, protocol_env_type) in
+    let role_func_params =
+      role_function_params sync_pkg channels_pkg invitations_pkg
+        callbacks_pkg local_protocol role
+    in
+    let params = protocol_env_param :: role_func_params in
+    let return_type = None in
+    let func_impl = gen_start_function_impl roles_pkg role in
+    function_decl start_function params return_type func_impl
+  in
+  let imports, sync_pkg = ImportsEnv.import_sync imports in
+  let imports, channels_pkg = ImportsEnv.import_channels imports protocol in
+  let imports, invitations_pkg = ImportsEnv.import_invitations imports in
+  let imports, callbacks_pkg = ImportsEnv.import_callbacks imports in
+  let imports, roles_pkg = ImportsEnv.import_roles imports in
+  let start_functions =
+    List.map roles
+      ~f:
+        (gen_start_role_function sync_pkg channels_pkg invitations_pkg
+           callbacks_pkg roles_pkg)
+  in
+  (imports, join_non_empty_lines ~sep:"\n\n" start_functions)
+
 let gen_entry_point_file root_dir protocol_lookup protocol roles
     role_chan_vars invite_chan_vars chan_setup_impl =
   let pkg_stmt = package_stmt pkg_protocol in
@@ -2731,14 +2790,20 @@ let gen_entry_point_file root_dir protocol_lookup protocol roles
     generate_init_protocol_env_interface imports protocol roles
       protocol_lookup
   in
+  let indent = incr_indent "" in
+  let imports, start_functions_impl =
+    gen_start_role_functions imports indent interface_name protocol_lookup
+      protocol roles
+  in
   let imports, entry_point_function =
-    gen_entry_point_setup_function imports protocol_lookup protocol roles
-      role_chan_vars invite_chan_vars interface_name chan_setup_impl
+    gen_entry_point_setup_function imports indent protocol_lookup protocol
+      roles role_chan_vars invite_chan_vars interface_name chan_setup_impl
   in
   join_non_empty_lines ~sep:"\n\n"
     [ pkg_stmt
     ; ImportsEnv.generate_imports imports
     ; interface_impl
+    ; start_functions_impl
     ; entry_point_function ]
 
 let gen_role_impl_file env impl role protocol local_type =
