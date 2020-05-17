@@ -132,3 +132,9 @@ module FunctionName : TaggedName = struct
 
   let of_name (name : Name.t) = name
 end
+
+module InterfaceName : TaggedName = struct
+  include Name
+
+  let of_name (name : Name.t) = name
+end
