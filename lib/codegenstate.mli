@@ -18,10 +18,12 @@ type codegen_result =
       , LocalProtocolName.comparator_witness )
       Map.t
   ; protocol_setup:
-      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t }
+      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  ; entry_point: string }
 
 val gen_code :
-     RootDirName.t (* -> ProtocolName.t *)
+     RootDirName.t
+  -> ProtocolName.t
   -> Gtype.global_t
   -> Ltype.local_t
   -> codegen_result
