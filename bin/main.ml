@@ -176,6 +176,7 @@ let run_nested filename show_ast show_global show_local =
     ensure_unique_identifiers g_type ;
     (* let protocol_channels = gen_protocol_channels g_type ltype in
        print_protocol_files protocol_channels ; *)
+    let gen_protocol = ProtocolName.of_string "Adder" in
     let { channels
         ; invite_channels
         ; callbacks
@@ -183,8 +184,9 @@ let run_nested filename show_ast show_global show_local =
         ; messages
         ; results
         ; protocol_setup
+        ; entry_point
         ; _ } =
-      gen_code (RootDirName.of_string "Root") g_type ltype
+      gen_code (RootDirName.of_string "Root") gen_protocol g_type ltype
     in
     print_protocol_files messages ;
     print_protocol_files channels ;
@@ -193,6 +195,8 @@ let run_nested filename show_ast show_global show_local =
     print_protocol_files protocol_setup ;
     print_local_protocol_files callbacks ;
     print_local_protocol_files impl ;
+    Stdio.print_endline "" ;
+    Stdio.print_endline entry_point ;
     true
   with
   | Err.UserError msg ->
