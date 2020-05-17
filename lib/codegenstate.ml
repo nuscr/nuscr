@@ -56,8 +56,6 @@ let pkg_sync = PackageName.of_string "sync"
 
 let pkg_results = PackageName.of_string "results"
 
-let init_callback = CallbackName.of_string "Init"
-
 let done_callback = CallbackName.of_string "Done"
 
 let env_var = VariableName.of_string "env"
@@ -1899,8 +1897,6 @@ end = struct
         (env, callback)
     | Some callback_name -> (env, CallbackName.of_string callback_name)
 
-  let new_init_callback callbacks = (init_callback, None, None) :: callbacks
-
   let get_enum_names_env (_, (enum_names_env, _), _, _) = enum_names_env
 
   let gen_create_env_function local_protocol callbacks_env_name =
@@ -1923,7 +1919,6 @@ end = struct
     let enum_decls = List.map ~f:gen_enum enums in
     let enum_decls_str = String.concat ~sep:"\n\n" enum_decls in
     let imports_str = ImportsEnv.generate_imports imports in
-    let callbacks = new_init_callback callbacks in
     let env_name =
       CallbacksEnvName.of_string @@ callbacks_env_name local_protocol
     in
@@ -2405,8 +2400,8 @@ let gen_recv_choice_impl choice_impls indent =
 (* TODO: Are recursion labels unique? *)
 (* TODO code gen of ltype *)
 let gen_role_implementation protocol_setup_env ltype_env global_t
-    protocol_lookup protocol role (local_proto_name : LocalProtocolName.t)
-    ltype =
+    protocol_lookup is_dynamic_role protocol role
+    (local_proto_name : LocalProtocolName.t) ltype =
   let rec gen_implementation indent is_recv_choice_msg env ltype =
     match ltype with
     | EndL ->
@@ -2527,8 +2522,14 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
         (env, join_non_empty_lines ~sep:"\n\n" [send_impl_str; impl])
   in
   (* TODO: pass in as parameter *)
-  let env, impl =
-    gen_implementation (incr_indent "") false ltype_env ltype
+  let indent = incr_indent "" in
+  let env, impl = gen_implementation indent false ltype_env ltype in
+  let impl =
+    if is_dynamic_role then
+      let call_wg_done = call_method wait_group wait_group_done [] in
+      let defer_wg_done = defer_call call_wg_done in
+      join_non_empty_lines [indent_line indent defer_wg_done; impl]
+    else impl
   in
   (env, impl)
 
@@ -3011,9 +3012,13 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
             LTypeCodeGenEnv.create protocol role local_protocol root_dir
               protocol_env
           in
+          let is_dynamic_role =
+            List.mem new_roles role ~equal:RoleName.equal
+          in
           let env, protocol_impl =
             gen_role_implementation protocol_setup_env env global_t
-              protocol_lookup protocol role local_protocol ltype
+              protocol_lookup is_dynamic_role protocol role local_protocol
+              ltype
           in
           let env, impl_file =
             gen_role_impl_file env protocol_impl role protocol local_protocol
