@@ -3106,8 +3106,84 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
   Map.fold ~init:(empty_result ()) ~f:gen_protocol_role_implementation
     global_t
 
-(* TODO: Remove *)
-let _ =
-  let imports = ImportsEnv.create (RootDirName.of_string "Test") in
-  let _ = ImportsEnv.import_roles imports in
+(** For current code generation scheme:
+
+    - protocol names must be unique when lowercased
+    - role names must be unique when lowercased
+    - msg labels must be unique when capitalised (can't have m1() and M1())
+      and have the same payload whenever they are used within the same
+      protocol
+    - payload field names must be unique when capitalised *)
+let ensure_unique_identifiers (global_t : global_t) =
+  let add_unique_protocol_name protocols protocol_name =
+    let name_str = protocol_pkg_name protocol_name in
+    if Set.mem protocols name_str then
+      raise (Err.Violation "Protocol names must be unique when lowercased") ;
+    Set.add protocols name_str
+  in
+  let add_unique_role_name roles role =
+    let role_str = lowercase_role_name role in
+    if Set.mem roles role_str then
+      raise (Err.Violation "Role names must be unique when lowercased") ;
+    Set.add roles role_str
+  in
+  (* Ensure message labels are unique when lowercased *)
+  let add_consistent_msg msgs {Gtype.label; payload} =
+    let add_unique_payload_field fields payload =
+      match payload with
+      | PValue (None, _) -> fields
+      | PValue (Some field_name, _) ->
+          let field_str = msg_field_name field_name in
+          if Set.mem fields field_str then
+            Err.uerr
+              (Err.DuplicatePayloadField
+                 (label, VariableName.of_string field_str)) ;
+          Set.add fields field_str
+      | PDelegate _ -> raise (Err.Violation "Delegation not supported")
+    in
+    let label_str = msg_type_name label in
+    match Map.find msgs label_str with
+    | None ->
+        let _ =
+          List.fold
+            ~init:(Set.empty (module String))
+            ~f:add_unique_payload_field payload
+        in
+        Map.add_exn msgs ~key:label_str ~data:(label, payload)
+    | Some (label', payload') ->
+        if not (LabelName.equal label label') then
+          raise
+            (Err.Violation
+               "Message labels must be unique when capitalized cased") ;
+        if not (List.equal equal_pvalue_payload payload payload') then
+          raise
+            (Err.Violation
+               "Within a protocol, messages with the same label should  \
+                have the same payloads") ;
+        msgs
+  in
+  let validate_protocol ~key ~data protocol_names =
+    let rec validate_protocol_msgs messages gtype =
+      match gtype with
+      | EndG | TVarG _ -> messages
+      | MuG (_, g) | CallG (_, _, _, g) -> validate_protocol_msgs messages g
+      | ChoiceG (_, gtypes) ->
+          List.fold ~init:messages ~f:validate_protocol_msgs gtypes
+      | MessageG (msg, _, _, g) ->
+          let messages = add_consistent_msg messages msg in
+          validate_protocol_msgs messages g
+    in
+    let protocol_names = add_unique_protocol_name protocol_names key in
+    let (roles, new_roles), _, gtype = data in
+    let _ =
+      List.fold
+        ~init:(Set.empty (module String))
+        ~f:add_unique_role_name (roles @ new_roles)
+    in
+    let _ = validate_protocol_msgs (Map.empty (module String)) gtype in
+    protocol_names
+  in
+  let _ =
+    Map.fold ~init:(Set.empty (module String)) ~f:validate_protocol global_t
+  in
   ()

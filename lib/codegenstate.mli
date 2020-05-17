@@ -27,3 +27,5 @@ val gen_code :
   -> Gtype.global_t
   -> Ltype.local_t
   -> codegen_result
+
+val ensure_unique_identifiers: Gtype.global_t -> ()
