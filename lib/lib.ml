@@ -4,6 +4,8 @@ open Loc
 open Syntax
 open Err
 open Names
+open Codegenstate
+open Printf
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
@@ -112,3 +114,123 @@ let generate_code ~monad ast ~protocol ~role =
 let generate_ast ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
   Codegen.gen_ast ~monad (protocol, role) fsm
+
+let write_file file_name content =
+  Out_channel.with_file file_name ~f:(fun file ->
+      Out_channel.output_string file content)
+
+let create_dir dir_path =
+  let _ = Unix.umask 0o000 in
+  try Unix.mkdir dir_path 0o755
+  with Unix.Unix_error _ ->
+    sprintf "Unable to create directory: %s" dir_path |> prerr_endline
+
+let create_pkg pkg_name = create_dir (PackageName.user pkg_name)
+
+let pkg_path pkgs =
+  let str_pkgs = List.map ~f:PackageName.user pkgs in
+  String.concat ~sep:"/" str_pkgs
+
+let gen_file_path path file_name = sprintf "%s/%s" path file_name
+
+let change_dir dir_path =
+  try Unix.chdir dir_path
+  with Unix.Unix_error _ ->
+    sprintf "Unable to change directory to: %s" dir_path |> prerr_endline
+
+let generate_go_impl
+    { messages
+    ; channels
+    ; invite_channels
+    ; results
+    ; impl
+    ; callbacks
+    ; protocol_setup
+    ; entry_point } project_root root_pkg first_protocol =
+  let write_protocol_pkgs protocol_impls pkg_name file_name =
+    create_pkg pkg_name ;
+    Map.iteri protocol_impls ~f:(fun ~key:protocol ~data:impl ->
+        let protocol_pkg =
+          PackageName.of_string @@ protocol_pkg_name protocol
+        in
+        let protocol_pkg_path = pkg_path [pkg_name; protocol_pkg] in
+        create_dir protocol_pkg_path ;
+        let file_path = gen_file_path protocol_pkg_path file_name in
+        write_file file_path impl)
+  in
+  let write_messages () =
+    write_protocol_pkgs messages pkg_messages messages_file_name
+  in
+  let write_results () =
+    write_protocol_pkgs results pkg_results results_file_name
+  in
+  let write_channels () =
+    write_protocol_pkgs channels pkg_channels channels_file_name
+  in
+  let write_invite_channels () =
+    create_pkg pkg_invitations ;
+    Map.iteri invite_channels ~f:(fun ~key:protocol ~data:impl ->
+        let file_name = invitations_file_name protocol in
+        let file_path =
+          gen_file_path (PackageName.user pkg_invitations) file_name
+        in
+        write_file file_path impl)
+  in
+  let write_entry_point () =
+    create_pkg pkg_protocol ;
+    let file_path =
+      gen_file_path
+        (PackageName.user pkg_protocol)
+        (protocol_file_name first_protocol)
+    in
+    write_file file_path entry_point
+  in
+  let write_callbacks () =
+    create_pkg pkg_callbacks ;
+    Map.iteri callbacks ~f:(fun ~key:local_protocol ~data:impl ->
+        let file_name = callbacks_file_name local_protocol in
+        let file_path =
+          gen_file_path (PackageName.user pkg_callbacks) file_name
+        in
+        write_file file_path impl)
+  in
+  let write_roles () =
+    create_pkg pkg_roles ;
+    let file_name_gen = UniqueNameGen.create () in
+    let file_name_gen =
+      Map.fold impl ~init:file_name_gen
+        ~f:(fun ~key:local_protocol ~data:impl file_name_gen ->
+          let file_name = role_impl_file_name local_protocol in
+          let file_name_gen, file_name =
+            UniqueNameGen.unique_name file_name_gen file_name
+          in
+          let file_path =
+            gen_file_path (PackageName.user pkg_roles) file_name
+          in
+          write_file file_path impl ; file_name_gen)
+    in
+    let _ =
+      Map.fold protocol_setup ~init:file_name_gen
+        ~f:(fun ~key:protocol ~data:impl file_name_gen ->
+          let file_name = protocol_setup_file_name protocol in
+          let file_name_gen, file_name =
+            UniqueNameGen.unique_name file_name_gen file_name
+          in
+          let file_path =
+            gen_file_path (PackageName.user pkg_roles) file_name
+          in
+          write_file file_path impl ; file_name_gen)
+    in
+    ()
+  in
+  change_dir project_root ;
+  create_pkg root_pkg ;
+  Stdio.print_endline (Unix.getcwd ()) ;
+  change_dir (PackageName.user root_pkg) ;
+  write_messages () ;
+  write_results () ;
+  write_channels () ;
+  write_invite_channels () ;
+  write_entry_point () ;
+  write_callbacks () ;
+  write_roles ()
