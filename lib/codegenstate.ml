@@ -80,7 +80,11 @@ let wait_group_wait = FunctionName.of_string "Wait"
 
 let int_type = "int"
 
-let panic_msg = "TODO: implement me"
+let todo_panic_msg = "TODO: implement me"
+
+let invalid_choice_panic_msg = "Invalid choice was made"
+
+let default_case = "default:"
 
 (* CODEGEN FUNCTIONS *)
 
@@ -551,7 +555,8 @@ let recv_from_msg_chan var_name chan_struct chan_field =
 
 let gen_case_stmt case_str = sprintf "case %s:" case_str
 
-let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent =
+let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent
+    default_impl =
   let gen_switch_case (case_stmt, impl) =
     sprintf "%s%s\n%s" indent case_stmt impl
   in
@@ -559,6 +564,15 @@ let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent =
   let case_stmts = List.map ~f:gen_case_stmt enums in
   let cases_and_impl = List.zip_exn case_stmts cases_impl in
   let switch_cases = List.map ~f:gen_switch_case cases_and_impl in
+  let switch_cases =
+    match default_impl with
+    | None -> switch_cases
+    | Some default_impl ->
+        let default_case_impl =
+          gen_switch_case (default_case, default_impl)
+        in
+        switch_cases @ [default_case_impl]
+  in
   let switch_cases_str = join_non_empty_lines switch_cases in
   sprintf "%sswitch %s {\n%s\n%s}" indent
     (VariableName.user switch_var)
@@ -1924,7 +1938,7 @@ end = struct
 
   let gen_create_env_function local_protocol callbacks_env_name =
     let indent = incr_indent "" in
-    let function_body = indent_line indent (panic_with_msg panic_msg) in
+    let function_body = indent_line indent (panic_with_msg todo_panic_msg) in
     let create_func_name =
       FunctionName.of_string @@ new_create_env_function_name local_protocol
     in
@@ -2443,14 +2457,32 @@ let gen_make_choice_impl var_name_gen role callbacks_pkg choice_cb
       (call_method env_var choice_function [])
   in
   let choice_enum_assign = indent_line indent choice_enum_assign in
+  let invalid_choice_panic = panic_with_msg invalid_choice_panic_msg in
+  let invalid_choice_panic =
+    indent_line (incr_indent indent) invalid_choice_panic
+  in
+  let default_impl = Some invalid_choice_panic in
   let choice_switch =
     gen_switch_stmt choice_enum_var_name callbacks_pkg choice_enums
-      choice_impls indent
+      choice_impls indent default_impl
   in
   (join_non_empty_lines [choice_enum_assign; choice_switch], var_name_gen)
 
 let gen_recv_choice_impl choice_impls indent =
   gen_select_stmt choice_impls indent
+
+let gen_end_of_protocol indent is_dynamic_role done_cb =
+  let done_function = FunctionName.of_string @@ CallbackName.user done_cb in
+  let call = call_method env_var done_function [] in
+  let impl =
+    if is_dynamic_role then
+      let impl_stmts =
+        List.map [call; return_stmt ""] ~f:(indent_line indent)
+      in
+      join_non_empty_lines impl_stmts
+    else indent_line indent (return_stmt call)
+  in
+  impl
 
 (* gen_role_implementation protocol role local_protocol ltype -> env * string*)
 (* gen_impl env ltype indent -> env string *)
@@ -2466,17 +2498,8 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
         let env, done_callback =
           LTypeCodeGenEnv.add_done_callback env protocol role is_dynamic_role
         in
-        let done_function =
-          FunctionName.of_string @@ CallbackName.user done_callback
-        in
-        let call = call_method env_var done_function [] in
         let impl =
-          if is_dynamic_role then
-            let impl_stmts =
-              List.map [call; return_stmt ""] ~f:(indent_line indent)
-            in
-            join_non_empty_lines impl_stmts
-          else indent_line indent (return_stmt call)
+          gen_end_of_protocol indent is_dynamic_role done_callback
         in
         ((env, var_name_gen), impl)
     | TVarL var ->
