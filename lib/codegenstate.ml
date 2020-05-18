@@ -104,6 +104,33 @@ let lowercase_label label = String.lowercase @@ LabelName.user label
 let lowercase_local_protocol local_protocol =
   String.lowercase @@ LocalProtocolName.user local_protocol
 
+(* FILE NAMES *)
+
+let gen_protocol_file_name protocol =
+  sprintf "%s.go" (lowercase_protocol protocol)
+
+let gen_local_protocol_file_name local_protocol =
+  sprintf "%s.go" (lowercase_local_protocol local_protocol)
+
+let messages_file_name = "messages.go"
+
+let channels_file_name = "channels.go"
+
+let results_file_name = "results.go"
+
+let protocol_file_name protocol = gen_protocol_file_name protocol
+
+let invitations_file_name protocol = gen_protocol_file_name protocol
+
+let callbacks_file_name local_protocol =
+  gen_local_protocol_file_name local_protocol
+
+let role_impl_file_name local_protocol =
+  gen_local_protocol_file_name local_protocol
+
+let protocol_setup_file_name protocol =
+  sprintf "%s_setup.go" (lowercase_protocol protocol)
+
 (* MSGS *)
 let msg_type_name msg = capitalize_label msg
 
@@ -217,7 +244,7 @@ let results_import_path root pkg =
     (PackageName.user pkg_results)
     (PackageName.user pkg)
 
-let sync_import_path _ pkg = sprintf "%s" (PackageName.user pkg)
+let sync_import_path _ pkg = sprintf "\"%s\"" (PackageName.user pkg)
 
 let gen_import import_path = sprintf "import %s" import_path
 
@@ -577,7 +604,7 @@ let function_decl function_name params return_type impl =
   in
   let param_decls = List.map ~f:gen_param_decl params in
   let param_decls_str = join_params param_decls in
-  sprintf "fun %s(%s) %s {\n%s\n} "
+  sprintf "func %s(%s) %s {\n%s\n} "
     (FunctionName.user function_name)
     param_decls_str return_type_str impl
 
@@ -2533,25 +2560,23 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
   in
   (env, impl)
 
-let gen_channels_file pkg_name envs imports setup_role_chan setup_invite_chan
-    =
+let gen_channels_file pkg_name envs imports =
   let pkg = package_stmt pkg_name in
   let channel_imports = ImportsEnv.generate_imports imports in
   let channel_structs =
     List.map ~f:LTypeCodeGenEnv.gen_channel_struct envs
   in
-  join_non_empty_lines ~sep:"\n\n"
-    ( pkg :: channel_imports :: setup_role_chan :: setup_invite_chan
-    :: channel_structs )
+  join_non_empty_lines ~sep:"\n\n" (pkg :: channel_imports :: channel_structs)
 
-let gen_invitations_file envs imports =
+let gen_invitations_file envs imports setup_role_chan setup_invite_chan =
   let pkg_stmt = package_stmt pkg_invitations in
   let imports_str = ImportsEnv.generate_imports imports in
   let channel_structs =
     List.map ~f:LTypeCodeGenEnv.gen_invite_channel_struct envs
   in
   join_non_empty_lines ~sep:"\n\n"
-    (pkg_stmt :: imports_str :: channel_structs)
+    ( pkg_stmt :: imports_str :: setup_role_chan :: setup_invite_chan
+    :: channel_structs )
 
 let gen_results_file pkg_name roles =
   let pkg = package_stmt pkg_name in
@@ -3056,13 +3081,13 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
     in
     let chan_file =
       gen_channels_file pkg envs protocol_env.channel_imports
-        protocol_setup_chan protocol_setup_invite_chan
     in
     let channels =
       Map.add_exn result.channels ~key:protocol ~data:chan_file
     in
     let invitations_file =
       gen_invitations_file envs protocol_env.invite_imports
+        protocol_setup_chan protocol_setup_invite_chan
     in
     let invite_channels =
       Map.add_exn result.invite_channels ~key:protocol ~data:invitations_file
