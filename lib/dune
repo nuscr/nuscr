@@ -3,7 +3,7 @@
   (:standard -w +A-39-4-42))
  (name nuscrlib)
  (public_name nuscr.lib)
- (libraries base stdio ocamlgraph ppxlib)
+ (libraries base stdio ocamlgraph ppxlib unix)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_sexp_conv
     ppxlib.metaquot)))

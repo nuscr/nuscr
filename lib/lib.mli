@@ -67,3 +67,10 @@ val generate_ast :
   -> Ppxlib_ast.Parsetree.structure
 (** [generate_ast ~monad module protocol role] is similar to [generate_code],
     except it returns an AST instead of a string *)
+
+val generate_go_impl :
+     Codegenstate.codegen_result
+  -> string
+  -> PackageName.t
+  -> ProtocolName.t
+  -> unit

@@ -38,6 +38,12 @@ let project_protocols = ref false
 
 let show_global = ref false
 
+let go_path = ref ""
+
+let out_dir = ref ""
+
+let protocol = ref ""
+
 let fsm : (RoleName.t * ProtocolName.t) option ref = ref None
 
 let project : (RoleName.t * ProtocolName.t) option ref = ref None
@@ -78,8 +84,15 @@ let nested_argspec =
     , Arg.Unit (fun () -> project_protocols := true)
     , ": project the local type for the given protocols" )
   ; ( "-gencode"
-    , Arg.String (fun _ -> Err.unimpl "Code generation not implemented")
-    , ": generate Golang code for the specified protocol" ) ]
+    , Arg.String (fun proto -> protocol := proto)
+    , ": generate Golang code for the specified protocol" )
+  ; ( "-go-path"
+    , Arg.String (fun s -> go_path := s)
+    , ": path to the go source directory" )
+  ; ( "-out-dir"
+    , Arg.String (fun s -> out_dir := s)
+    , ": path to the project directory (relative to go src) where the code \
+       is to be generated" ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
@@ -154,6 +167,13 @@ let print_local_protocol_files file_map =
         (sprintf "Local Protocol %s:" (LocalProtocolName.user key)) ;
       print_endline data)
 
+let write_code_to_file result gen_protocol =
+  let project_root = Printf.sprintf "%s/%s" !go_path !out_dir in
+  let protocol_root_pkg =
+    PackageName.of_string @@ protocol_pkg_name gen_protocol
+  in
+  Lib.generate_go_impl result project_root protocol_root_pkg gen_protocol
+
 let run_nested filename show_ast show_global show_local =
   let show_result ?(sep = "\n\n") ~f verbose input =
     (* only show if verbose is on *)
@@ -173,19 +193,19 @@ let run_nested filename show_ast show_global show_local =
     let ltype = project_global_t g_type in
     show_result ~f:show_local_t show_local ltype ;
     ensure_unique_identifiers g_type ;
-    (* let protocol_channels = gen_protocol_channels g_type ltype in
-       print_protocol_files protocol_channels ; *)
-    let gen_protocol = ProtocolName.of_string "Adder" in
-    let { channels
-        ; invite_channels
-        ; callbacks
-        ; impl
-        ; messages
-        ; results
-        ; protocol_setup
-        ; entry_point
-        ; _ } =
-      gen_code (RootDirName.of_string "Root") gen_protocol g_type ltype
+    let gen_protocol = ProtocolName.of_string !protocol in
+    let protocol_pkg = protocol_pkg_name gen_protocol in
+    let root_dir = Printf.sprintf "%s/%s" !out_dir protocol_pkg in
+    let ( { channels
+          ; invite_channels
+          ; callbacks
+          ; impl
+          ; messages
+          ; results
+          ; protocol_setup
+          ; entry_point
+          ; _ } as gen_result ) =
+      gen_code (RootDirName.of_string root_dir) gen_protocol g_type ltype
     in
     print_protocol_files messages ;
     print_protocol_files channels ;
@@ -196,6 +216,7 @@ let run_nested filename show_ast show_global show_local =
     print_local_protocol_files impl ;
     Stdio.print_endline "" ;
     Stdio.print_endline entry_point ;
+    write_code_to_file gen_result gen_protocol ;
     true
   with
   | Err.UserError msg ->
