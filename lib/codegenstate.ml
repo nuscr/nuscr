@@ -1775,7 +1775,7 @@ module CallbacksEnv : sig
     -> t * CallbackName.t
 
   val add_done_callback :
-    t -> ProtocolName.t -> RoleName.t -> t * CallbackName.t
+    t -> ProtocolName.t -> RoleName.t -> bool -> t * CallbackName.t
 
   val get_enum_names_env : t -> EnumNamesEnv.t
 
@@ -1907,7 +1907,7 @@ end = struct
 
   let add_done_callback
       ((name_gen, (enum_name_gen, enums), callbacks, imports) as env)
-      protocol role =
+      protocol role is_dynamic_role =
     let callback_name = CallbackName.user done_callback in
     match UniqueNameGen.curr_unique_name name_gen callback_name with
     | None ->
@@ -1915,11 +1915,16 @@ end = struct
           UniqueNameGen.unique_name name_gen callback_name
         in
         let callback = CallbackName.of_string callback_name in
-        let result_type = ResultName.of_string @@ result_struct_name role in
-        let imports, pkg = ImportsEnv.import_results imports protocol in
-        let callbacks =
-          (callback, None, Some (`Result (pkg, result_type))) :: callbacks
+        let imports, return_type =
+          if is_dynamic_role then (imports, None)
+          else
+            let result_type =
+              ResultName.of_string @@ result_struct_name role
+            in
+            let imports, pkg = ImportsEnv.import_results imports protocol in
+            (imports, Some (`Result (pkg, result_type)))
         in
+        let callbacks = (callback, None, return_type) :: callbacks in
         let env = (name_gen, (enum_name_gen, enums), callbacks, imports) in
         (env, callback)
     | Some callback_name -> (env, CallbackName.of_string callback_name)
@@ -2043,7 +2048,7 @@ module LTypeCodeGenEnv : sig
     -> t * CallbackName.t
 
   val add_done_callback :
-    t -> ProtocolName.t -> RoleName.t -> t * CallbackName.t
+    t -> ProtocolName.t -> RoleName.t -> bool -> t * CallbackName.t
 
   val gen_result_struct : RoleName.t -> string
 
@@ -2168,9 +2173,11 @@ end = struct
     in
     ({env with callbacks_env}, callback)
 
-  let add_done_callback ({callbacks_env; _} as env) protocol role =
+  let add_done_callback ({callbacks_env; _} as env) protocol role
+      is_dynamic_role =
     let callbacks_env, callback =
       CallbacksEnv.add_done_callback callbacks_env protocol role
+        is_dynamic_role
     in
     ({env with callbacks_env}, callback)
 
@@ -2433,14 +2440,21 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
     match ltype with
     | EndL ->
         let env, done_callback =
-          LTypeCodeGenEnv.add_done_callback env protocol role
+          LTypeCodeGenEnv.add_done_callback env protocol role is_dynamic_role
         in
         let done_function =
           FunctionName.of_string @@ CallbackName.user done_callback
         in
         let call = call_method env_var done_function [] in
-        let impl = return_stmt call in
-        (env, indent_line indent impl)
+        let impl =
+          if is_dynamic_role then
+            let impl_stmts =
+              List.map [call; return_stmt ""] ~f:(indent_line indent)
+            in
+            join_non_empty_lines impl_stmts
+          else indent_line indent (return_stmt call)
+        in
+        (env, impl)
     | TVarL var ->
         let impl = continue_stmt var in
         (env, indent_line indent impl)
@@ -2606,7 +2620,8 @@ let role_function_params sync_pkg channels_pkg invitations_pkg callbacks_pkg
   let env_param = (env_var, env_type) in
   [wait_group_param; role_chan_param; invite_chan_param; env_param]
 
-let gen_role_impl_function env protocol role local_protocol impl =
+let gen_role_impl_function env protocol role local_protocol impl
+    is_dynamic_role =
   (* pkgs *)
   let env, channels_pkg = LTypeCodeGenEnv.import_channels env protocol in
   let env, results_pkg = LTypeCodeGenEnv.import_results env protocol in
@@ -2619,15 +2634,18 @@ let gen_role_impl_function env protocol role local_protocol impl =
       local_protocol role
   in
   (* return type *)
-  let result_struct = ResultName.of_string @@ result_struct_name role in
-  let return_type = protocol_result_access results_pkg result_struct in
+  (* Dynamic roles don't return a result *)
+  let return_type =
+    if is_dynamic_role then None
+    else
+      let result_struct = ResultName.of_string @@ result_struct_name role in
+      Some (protocol_result_access results_pkg result_struct)
+  in
   (* function *)
   let impl_function =
     FunctionName.of_string @@ local_protocol_function_name local_protocol
   in
-  let function_impl =
-    function_decl impl_function params (Some return_type) impl
-  in
+  let function_impl = function_decl impl_function params return_type impl in
   (env, function_impl)
 
 (* Generate interface used for initialising the environments for the roles of
@@ -2831,10 +2849,10 @@ let gen_entry_point_file protocol_lookup protocol roles imports
     ; start_functions_impl
     ; entry_point_function ]
 
-let gen_role_impl_file env impl role protocol local_type =
+let gen_role_impl_file env impl is_dynamic_role role protocol local_type =
   let pkg_stmt = package_stmt pkg_roles in
   let env, function_impl =
-    gen_role_impl_function env protocol role local_type impl
+    gen_role_impl_function env protocol role local_type impl is_dynamic_role
   in
   let imports = LTypeCodeGenEnv.generate_role_imports env in
   (env, join_non_empty_lines ~sep:"\n\n" [pkg_stmt; imports; function_impl])
@@ -3045,7 +3063,8 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
               ltype
           in
           let env, impl_file =
-            gen_role_impl_file env protocol_impl role protocol local_protocol
+            gen_role_impl_file env protocol_impl is_dynamic_role role
+              protocol local_protocol
           in
           let is_dynamic_role =
             List.mem new_roles role ~equal:RoleName.equal
