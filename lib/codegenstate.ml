@@ -2808,10 +2808,9 @@ let gen_start_role_functions imports indent init_protocol_interface
   in
   (imports, join_non_empty_lines ~sep:"\n\n" start_functions)
 
-let gen_entry_point_file root_dir protocol_lookup protocol roles
+let gen_entry_point_file protocol_lookup protocol roles imports
     role_chan_vars invite_chan_vars chan_setup_impl =
   let pkg_stmt = package_stmt pkg_protocol in
-  let imports = ImportsEnv.create root_dir in
   let imports, interface_name, interface_impl =
     generate_init_protocol_env_interface imports protocol roles
       protocol_lookup
@@ -3116,7 +3115,7 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
     in
     let entry_point =
       if ProtocolName.equal gen_protocol protocol then
-        gen_entry_point_file root_dir protocol_lookup protocol roles
+        gen_entry_point_file protocol_lookup protocol roles setup_imports
           role_chan_vars invite_chan_vars setup_channels_impl
       else result.entry_point
     in
