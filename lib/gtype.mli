@@ -59,3 +59,6 @@ val normalise : t -> t
 
 val normalise_global_t : global_t -> global_t
 (** Apply normalisation to all protocols in global_t *)
+
+val replace_recursion_with_nested_protocols : global_t -> global_t
+(** Replace the MuG type with explicit calls to nested protocols*)

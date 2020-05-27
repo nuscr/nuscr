@@ -4,6 +4,36 @@ open Loc
 open Err
 open Names
 
+(* TODO: remove after moving UniqueNameGen from codegenstate.ml to somewhere
+   else *)
+module UniqueNameGen : sig
+  type t
+
+  val create : unit -> t
+
+  val unique_name : t -> string -> t * string
+end = struct
+  type t = (string, int, String.comparator_witness) Map.t
+
+  let create () = Map.empty (module String)
+
+  let make_unique_name name uid =
+    if uid < 2 then name else sprintf "%s_%d" name uid
+
+  let rec unique_name uids name =
+    match Map.find uids name with
+    | None -> (Map.add_exn uids ~key:name ~data:1, name)
+    | Some curr_id -> (
+        let uid = curr_id + 1 in
+        let new_name = make_unique_name name uid in
+        match Map.find uids new_name with
+        | None ->
+            let uids = Map.add_exn uids ~key:new_name ~data:1 in
+            (Map.update uids name ~f:(fun _ -> uid), new_name)
+        | Some _ -> unique_name (Map.update uids name ~f:(fun _ -> uid)) name
+        )
+end
+
 type payload =
   | PValue of VariableName.t option * PayloadTypeName.t
   | PDelegate of ProtocolName.t * RoleName.t
@@ -253,6 +283,122 @@ let rec flatten = function
       in
       ChoiceG (role, List.concat_map ~f:lift choices)
   | g -> g
+
+let recursion_protocol_name protocol rec_var =
+  sprintf "%s_%s"
+    (ProtocolName.user protocol)
+    (TypeVariableName.user rec_var)
+
+let rec get_participants rec_protocols participants = function
+  | MuG (_, gtype) -> get_participants rec_protocols participants gtype
+  | MessageG (_, sender, recv, gtype) ->
+      let participants = Set.add participants sender in
+      let participants = Set.add participants recv in
+      get_participants rec_protocols participants gtype
+  | ChoiceG (_, gtypes) ->
+      List.fold ~init:participants ~f:(get_participants rec_protocols) gtypes
+  | CallG (caller, _, roles, gtype) ->
+      let participants = Set.add participants caller in
+      let participants = List.fold ~init:participants ~f:Set.add roles in
+      get_participants rec_protocols participants gtype
+  | EndG -> participants
+  | TVarG rec_var -> (
+    match Map.find rec_protocols rec_var with
+    | None ->
+        (* If the participants this variable's protocol have not been
+           computed it means that either it is currently being computed or a
+           recursion variable above it is being computed. In both cases all
+           its participants will be included in the current computation *)
+        participants
+    | Some (_, roles) ->
+        let roles_set = Set.of_list (module RoleName) roles in
+        let all_participants = Set.union participants roles_set in
+        all_participants )
+
+let rec convert_recursion_to_protocols protocol rec_protocols
+    (global_t, name_gen) = function
+  (* Return name gen *)
+  | MuG (rec_var, gtype') -> (
+      let roles_set =
+        get_participants rec_protocols (Set.empty (module RoleName)) gtype'
+      in
+      let roles = Set.to_list roles_set in
+      match roles with
+      | [] -> ((global_t, name_gen), EndG)
+      | fst_role :: _ ->
+          let protocol_name = recursion_protocol_name protocol rec_var in
+          let name_gen, protocol_name =
+            UniqueNameGen.unique_name name_gen protocol_name
+          in
+          let rec_protocol_name = ProtocolName.of_string protocol_name in
+          let rec_protocols =
+            Map.add_exn rec_protocols ~key:rec_var
+              ~data:(rec_protocol_name, roles)
+          in
+          let (global_t, name_gen), new_gtype =
+            convert_recursion_to_protocols protocol rec_protocols
+              (global_t, name_gen) gtype'
+          in
+          let global_t =
+            Map.add_exn global_t ~key:rec_protocol_name
+              ~data:((roles, []), [], new_gtype)
+          in
+          ( (global_t, name_gen)
+          , CallG (fst_role, rec_protocol_name, roles, EndG) ) )
+  | TVarG rec_var ->
+      let rec_protocol, roles = Map.find_exn rec_protocols rec_var in
+      let caller = List.hd_exn roles in
+      ((global_t, name_gen), CallG (caller, rec_protocol, roles, EndG))
+  | MessageG (msg, sender, recv, gtype') ->
+      let (global_t, name_gen), new_gtype =
+        convert_recursion_to_protocols protocol rec_protocols
+          (global_t, name_gen) gtype'
+      in
+      ((global_t, name_gen), MessageG (msg, sender, recv, new_gtype))
+  | ChoiceG (choice_role, gtypes) ->
+      let (global_t, name_gen), new_gtypes =
+        List.fold_map gtypes ~init:(global_t, name_gen)
+          ~f:(convert_recursion_to_protocols protocol rec_protocols)
+      in
+      ((global_t, name_gen), ChoiceG (choice_role, new_gtypes))
+  | EndG -> ((global_t, name_gen), EndG)
+  | CallG (caller, protocol, participants, gtype') ->
+      let (global_t, name_gen), new_gtype =
+        convert_recursion_to_protocols protocol rec_protocols
+          (global_t, name_gen) gtype'
+      in
+      ( (global_t, name_gen)
+      , CallG (caller, protocol, participants, new_gtype) )
+
+let replace_recursion_with_nested_protocols global_t =
+  let replace_recursion_in_protocol ~key:protocol
+      ~data:(roles, nested_protocols, gtype) (global_t, name_gen) =
+    let (global_t, name_gen), gtype =
+      convert_recursion_to_protocols protocol
+        (Map.empty (module TypeVariableName))
+        (global_t, name_gen) gtype
+    in
+    let global_t =
+      Map.add_exn global_t ~key:protocol
+        ~data:(roles, nested_protocols, gtype)
+    in
+    (global_t, name_gen)
+  in
+  let name_gen = UniqueNameGen.create () in
+  let name_gen =
+    Map.fold global_t ~init:name_gen
+      ~f:(fun ~key:protocol ~data:_ name_gen ->
+        let name_gen, _ =
+          UniqueNameGen.unique_name name_gen (ProtocolName.user protocol)
+        in
+        name_gen)
+  in
+  let global_t, _ =
+    Map.fold global_t
+      ~init:(Map.empty (module ProtocolName), name_gen)
+      ~f:replace_recursion_in_protocol
+  in
+  global_t
 
 let rec substitute g tvar g_sub =
   match g with
