@@ -2691,7 +2691,7 @@ let gen_role_impl_function env protocol role local_protocol impl
     is_dynamic_role =
   (* pkgs *)
   let env, channels_pkg = LTypeCodeGenEnv.import_channels env protocol in
-  let env, results_pkg = LTypeCodeGenEnv.import_results env protocol in
+  (* let env, results_pkg = LTypeCodeGenEnv.import_results env protocol in *)
   let env, callbacks_pkg = LTypeCodeGenEnv.import_callbacks env in
   let env, sync_pkg = LTypeCodeGenEnv.import_sync env in
   let env, invitations_pkg = LTypeCodeGenEnv.import_invitations env in
@@ -2702,11 +2702,12 @@ let gen_role_impl_function env protocol role local_protocol impl
   in
   (* return type *)
   (* Dynamic roles don't return a result *)
-  let return_type =
-    if is_dynamic_role then None
+  let env, return_type =
+    if is_dynamic_role then (env, None)
     else
+      let env, results_pkg = LTypeCodeGenEnv.import_results env protocol in
       let result_struct = ResultName.of_string @@ result_struct_name role in
-      Some (protocol_result_access results_pkg result_struct)
+      (env, Some (protocol_result_access results_pkg result_struct))
   in
   (* function *)
   let impl_function =
