@@ -51,3 +51,19 @@ for formatting the code.
 
 Please also remember to update the `CHANGES.md` file in order to keep track of
 the changes in each version.
+
+## Goals and Non-goals
+
+Our vision of nuScr is to provide a simple and lightweight implementation based 
+on multiparty session types (MPST).
+We aim to make it easy for researchers to extend the original MPST, and to
+prototype implementations.
+A future goal is to provide a certified implementation (extracted from Coq).
+
+With that said, nuScr is not ready for production (better use the old
+Scribble), and will not be compatible with the old Scribble.
+The old Scribble had been extended beyond the original MPST to model checking
+with automata, whereas we wish to stick to the top-down approach of original
+MPST.
+NuScr is likely to be not so user-friendly in the current form, and may remain
+so in the future.
