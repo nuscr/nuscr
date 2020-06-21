@@ -1,0 +1,14 @@
+Currently implementation relies on message labels being unique when titlecased within a single protocol, and they must be used consistently with the same payload types and payload field names.
+Protocol names must be unique when lowercased, roles within a protocol must be unique when lowercased.
+These naming restrictions assume that the names start with an alphabetical character. I think that code generation might break if the names start with underscores, because of Golang's visibility rules.
+
+Code gen is currently not implemented using ast, but rather using only functions and sprintf directly.
+
+Currently assumes payload types are valid Go types.
+Payload types are also used to name unnamed fields, which means that only types which are valid identifiers can be left unnamed. 
+
+Some of the checks currently made before code generation should always be made
+
+Merging doesn't take into account recursion - shouldn't it try to merge recursions?
+
+Exceptions - if a role crashes it can cause deadlocks.
