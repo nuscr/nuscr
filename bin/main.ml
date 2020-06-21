@@ -190,6 +190,8 @@ let run_nested filename show_ast show_global show_local =
     let g_type = normalise_global_t g_type in
     show_result ~sep:"\n\n----------\n" ~f:show_global_t show_global g_type ;
     let open Ltype in
+    let g_type = replace_recursion_with_nested_protocols g_type in
+    show_result ~sep:"\n\n----------\n" ~f:show_global_t show_global g_type ;
     let ltype = project_global_t g_type in
     show_result ~f:show_local_t show_local ltype ;
     ensure_unique_identifiers g_type ;
