@@ -4,36 +4,6 @@ open Loc
 open Err
 open Names
 
-(* TODO: remove after moving UniqueNameGen from codegenstate.ml to somewhere
-   else *)
-module UniqueNameGen : sig
-  type t
-
-  val create : unit -> t
-
-  val unique_name : t -> string -> t * string
-end = struct
-  type t = (string, int, String.comparator_witness) Map.t
-
-  let create () = Map.empty (module String)
-
-  let make_unique_name name uid =
-    if uid < 2 then name else sprintf "%s_%d" name uid
-
-  let rec unique_name uids name =
-    match Map.find uids name with
-    | None -> (Map.add_exn uids ~key:name ~data:1, name)
-    | Some curr_id -> (
-        let uid = curr_id + 1 in
-        let new_name = make_unique_name name uid in
-        match Map.find uids new_name with
-        | None ->
-            let uids = Map.add_exn uids ~key:new_name ~data:1 in
-            (Map.update uids name ~f:(fun _ -> uid), new_name)
-        | Some _ -> unique_name (Map.update uids name ~f:(fun _ -> uid)) name
-        )
-end
-
 type payload =
   | PValue of VariableName.t option * PayloadTypeName.t
   | PDelegate of ProtocolName.t * RoleName.t
@@ -328,7 +298,7 @@ let rec convert_recursion_to_protocols protocol rec_protocols
       | fst_role :: _ ->
           let protocol_name = recursion_protocol_name protocol rec_var in
           let name_gen, protocol_name =
-            UniqueNameGen.unique_name name_gen protocol_name
+            Namegen.unique_name name_gen protocol_name
           in
           let rec_protocol_name = ProtocolName.of_string protocol_name in
           let rec_protocols =
@@ -384,12 +354,12 @@ let replace_recursion_with_nested_protocols global_t =
     in
     (global_t, name_gen)
   in
-  let name_gen = UniqueNameGen.create () in
+  let name_gen = Namegen.create () in
   let name_gen =
     Map.fold global_t ~init:name_gen
       ~f:(fun ~key:protocol ~data:_ name_gen ->
         let name_gen, _ =
-          UniqueNameGen.unique_name name_gen (ProtocolName.user protocol)
+          Namegen.unique_name name_gen (ProtocolName.user protocol)
         in
         name_gen)
   in

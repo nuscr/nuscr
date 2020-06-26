@@ -200,7 +200,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
             | hd :: _ -> hd
             | _ -> raise (Err.Violation "Role list should never be empty")
           in
-          (*Treat Do statements as nested protocol Calls with no dynamic
+          (*Treat Do statements as nested protocol calls with no dynamic
             participants. Let the first role be the 'caller'*)
           validate_call fst proto roles global_table
       | Do _ -> unimpl "Do with other features"
@@ -267,22 +267,11 @@ let rename_nested_protocols (scr_module : scr_module) =
   let update_known_protocols prefix uids known protocols =
     let update_protocol_info (uids, known)
         (global_protocol : global_protocol) =
-      let rec unique_protocol_name key uids =
-        let uid = match Map.find uids key with Some n -> n | None -> 0 in
-        let protocol_name =
-          if uid = 0 then key else key ^ "_" ^ Int.to_string (uid + 1)
-        in
-        let new_uids = Map.update uids key ~f:(fun _ -> uid + 1) in
-        if uid = 0 then (new_uids, protocol_name)
-        else if Map.mem new_uids protocol_name then
-          unique_protocol_name key new_uids
-        else (Map.add_exn new_uids ~key:protocol_name ~data:1, protocol_name)
-      in
       let proto = global_protocol.value in
       let {name; _} = proto in
       let name_str = N.user name in
-      let key = name_with_prefix prefix name_str in
-      let new_uids, protocol_name = unique_protocol_name key uids in
+      let protocol_name = name_with_prefix prefix name_str in
+      let new_uids, protocol_name = Namegen.unique_name uids protocol_name in
       let new_known =
         Map.update known name_str ~f:(fun _ -> protocol_name)
       in
@@ -347,8 +336,7 @@ let rename_nested_protocols (scr_module : scr_module) =
           ; interactions= new_interactions } } )
   in
   let (uids, known), global_protocols =
-    update_known_protocols ""
-      (Map.empty (module String))
+    update_known_protocols "" (Namegen.create ())
       (Map.empty (module String))
       scr_module.protocols
   in

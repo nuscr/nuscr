@@ -143,31 +143,21 @@ type local_proto_name_lookup =
 let build_local_proto_name_lookup (local_t : local_t) :
     local_proto_name_lookup =
   let gen_unique_name ~key:(protocol, role) ~data:_
-      (local_protocol_names, name_uids) =
-    let rec unique_name protocol role name_uids =
-      let name =
-        sprintf "%s_%s" (ProtocolName.user protocol) (RoleName.user role)
-      in
-      let uid =
-        match Map.find name_uids name with Some n -> n | None -> 0
-      in
-      let protocol_name =
-        if uid = 0 then name else name ^ "_" ^ Int.to_string (uid + 1)
-      in
-      let new_name_uids = Map.update name_uids name ~f:(fun _ -> uid + 1) in
-      let proto_name = LocalProtocolName.of_string protocol_name in
-      if uid = 0 then (proto_name, new_name_uids)
-      else if Map.mem new_name_uids protocol_name then
-        unique_name protocol role new_name_uids
-      else (proto_name, Map.add_exn new_name_uids ~key:protocol_name ~data:1)
+      (local_protocol_names, name_gen) =
+    let protocol_name =
+      sprintf "%s_%s" (ProtocolName.user protocol) (RoleName.user role)
     in
-    let name, name_uids = unique_name protocol role name_uids in
-    ( Map.add_exn local_protocol_names ~key:(protocol, role) ~data:name
-    , name_uids )
+    let name_gen, protocol_name =
+      Namegen.unique_name name_gen protocol_name
+    in
+    let local_protocol_name = LocalProtocolName.of_string protocol_name in
+    ( Map.add_exn local_protocol_names ~key:(protocol, role)
+        ~data:local_protocol_name
+    , name_gen )
   in
   let local_protocol_names, _ =
     Map.fold
-      ~init:(Map.empty (module LocalProtocolId), Map.empty (module String))
+      ~init:(Map.empty (module LocalProtocolId), Namegen.create ())
       ~f:gen_unique_name local_t
   in
   local_protocol_names
