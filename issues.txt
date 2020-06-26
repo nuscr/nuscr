@@ -12,3 +12,5 @@ Some of the checks currently made before code generation should always be made
 Merging doesn't take into account recursion - shouldn't it try to merge recursions?
 
 Exceptions - if a role crashes it can cause deadlocks.
+
+Recursion labels are not guaranteed to be unique after unfolding of recursion

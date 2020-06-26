@@ -197,30 +197,37 @@ let run_nested filename show_ast show_global show_local =
     show_result ~f:show_local_t show_local ltype ;
     ensure_unique_identifiers g_type ;
     let gen_protocol = ProtocolName.of_string !protocol in
-    let protocol_pkg = protocol_pkg_name gen_protocol in
-    let root_dir = Printf.sprintf "%s/%s" !out_dir protocol_pkg in
-    let ( { channels
-          ; invite_channels
-          ; callbacks
-          ; impl
-          ; messages
-          ; results
-          ; protocol_setup
-          ; entry_point
-          ; _ } as gen_result ) =
-      gen_code (RootDirName.of_string root_dir) gen_protocol g_type ltype
-    in
-    print_protocol_files messages ;
-    print_protocol_files channels ;
-    print_protocol_files invite_channels ;
-    print_protocol_files results ;
-    print_protocol_files protocol_setup ;
-    print_local_protocol_files callbacks ;
-    print_local_protocol_files impl ;
-    Stdio.print_endline "" ;
-    Stdio.print_endline entry_point ;
-    write_code_to_file gen_result gen_protocol ;
-    true
+    (* TODO: Add a better check for checking if protocol code should be
+       generated *)
+    if Map.mem g_type gen_protocol then
+      let protocol_pkg = protocol_pkg_name gen_protocol in
+      let root_dir = Printf.sprintf "%s/%s" !out_dir protocol_pkg in
+      let ( { channels
+            ; invite_channels
+            ; callbacks
+            ; impl
+            ; messages
+            ; results
+            ; protocol_setup
+            ; entry_point
+            ; _ } as gen_result ) =
+        gen_code (RootDirName.of_string root_dir) gen_protocol g_type ltype
+      in
+      if String.equal !out_dir "" then (
+        print_protocol_files messages ;
+        print_protocol_files channels ;
+        print_protocol_files invite_channels ;
+        print_protocol_files results ;
+        print_protocol_files protocol_setup ;
+        print_local_protocol_files callbacks ;
+        print_local_protocol_files impl ;
+        Stdio.print_endline "" ;
+        Stdio.print_endline entry_point ;
+        true )
+      else (
+        write_code_to_file gen_result gen_protocol ;
+        true )
+    else true
   with
   | Err.UserError msg ->
       "User error: " ^ Err.show_user_error msg |> prerr_endline ;
