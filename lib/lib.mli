@@ -69,7 +69,7 @@ val generate_ast :
     except it returns an AST instead of a string *)
 
 val generate_go_impl :
-     Codegenstate.codegen_result
+     Gocodegen.codegen_result
   -> string
   -> PackageName.t
   -> ProtocolName.t

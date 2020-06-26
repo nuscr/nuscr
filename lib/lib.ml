@@ -4,7 +4,8 @@ open Loc
 open Syntax
 open Err
 open Names
-open Codegenstate
+open Gocodegen
+open Gonames
 open Printf
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
@@ -196,13 +197,13 @@ let generate_go_impl
   in
   let write_roles () =
     create_pkg pkg_roles ;
-    let file_name_gen = UniqueNameGen.create () in
+    let file_name_gen = Namegen.create () in
     let file_name_gen =
       Map.fold impl ~init:file_name_gen
         ~f:(fun ~key:local_protocol ~data:impl file_name_gen ->
           let file_name = role_impl_file_name local_protocol in
           let file_name_gen, file_name =
-            UniqueNameGen.unique_name file_name_gen file_name
+            Namegen.unique_name file_name_gen file_name
           in
           let file_path =
             gen_file_path (PackageName.user pkg_roles) file_name
@@ -214,7 +215,7 @@ let generate_go_impl
         ~f:(fun ~key:protocol ~data:impl file_name_gen ->
           let file_name = protocol_setup_file_name protocol in
           let file_name_gen, file_name =
-            UniqueNameGen.unique_name file_name_gen file_name
+            Namegen.unique_name file_name_gen file_name
           in
           let file_path =
             gen_file_path (PackageName.user pkg_roles) file_name

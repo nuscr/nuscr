@@ -2,7 +2,8 @@ open Base
 open Stdio
 open Nuscrlib
 open Names
-open Codegenstate
+open Gocodegen
+open Gonames
 
 let version_string () = "%%VERSION%%"
 
