@@ -64,8 +64,7 @@ type local_proto_name_lookup =
   , LocalProtocolName.t
   , LocalProtocolId.comparator_witness )
   Map.t
-
-(** Mapping from pair of (protocol name, role) to unique local protocol name *)
+(** Mapping from local protocol ids to their unique local protocol names *)
 
 val build_local_proto_name_lookup : local_t -> local_proto_name_lookup
 (** Builds a map containing the unique string representations for the unique
@@ -79,6 +78,8 @@ val lookup_local_protocol :
   -> ProtocolName.t
   -> RoleName.t
   -> LocalProtocolName.t
+(** Return the unique local protocol name for a (role, protocol) pair *)
 
 val lookup_protocol_id :
   local_proto_name_lookup -> LocalProtocolId.t -> LocalProtocolName.t
+(** Look up the unique name for a local protocol id *)

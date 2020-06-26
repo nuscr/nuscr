@@ -73,6 +73,7 @@ The implementation of my code generation scheme for Go is quite large. Initially
 
 > gocodegen.ml:
   - Defines the functions which define the code generation generation scheme for translating the local types into a Go implementation. 
+  - The description of the different components in the implementation and how they are generated are in the project report as well.
 
 
 SCRIBBLE TOOL:

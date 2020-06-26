@@ -8,6 +8,7 @@ type protocol_decl =
   ; all_roles: string list
   ; split_decl: string list * string list
   ; loc: source_loc }
+(** Record containing a protocol's signature *)
 
 let show_roles split_decl =
   let list_to_str l = String.concat ~sep:", " l in
@@ -34,10 +35,13 @@ type symbol_table =
             fprintf fmt "{%s}" nested_protos]
   ; parent: symbol_table option }
 [@@deriving show]
+(** Symbol table type *)
 
+(** Generate nested protocol names based on the name of the parent protocol*)
 let name_with_prefix prefix proto_name =
   match prefix with "" -> proto_name | _ -> prefix ^ "_" ^ proto_name
 
+(** Generate a protocol's declaration *)
 let decl_from_protocol prefix (protocol : global_protocol) =
   let extract_rolenames roles =
     let num_roles = List.length roles in
@@ -56,6 +60,7 @@ let decl_from_protocol prefix (protocol : global_protocol) =
   let loc = protocol.loc in
   {proto_name; all_roles; split_decl; loc}
 
+(** Build symbol table for a given protocol *)
 let build_symbol_table (prefix : string) (protocols : global_protocol list)
     (parent : symbol_table option) =
   let add_proto_decl acc (protocol : global_protocol) =
@@ -76,6 +81,7 @@ let build_symbol_table (prefix : string) (protocols : global_protocol list)
   in
   {protocol= prefix; table; parent}
 
+(** Recursively look up a protocol in the symbol table hierarchy *)
 let rec lookup_protocol (symbol_table : symbol_table) protocol =
   let proto_name = N.user protocol in
   match Map.find symbol_table.table proto_name with
