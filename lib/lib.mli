@@ -74,3 +74,5 @@ val generate_go_impl :
   -> PackageName.t
   -> ProtocolName.t
   -> unit
+(** Generate the directory structure for the Go implementation of the
+    protocol *)

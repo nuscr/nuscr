@@ -1,5 +1,5 @@
 Currently implementation relies on message labels being unique when titlecased within a single protocol, and they must be used consistently with the same payload types and payload field names.
-Protocol names must be unique when lowercased, roles within a protocol must be unique when lowercased.
+Protocol names must be unique when lowercased, and roles within a protocol must be unique when lowercased.
 These naming restrictions assume that the names start with an alphabetical character. I think that code generation might break if the names start with underscores, because of Golang's visibility rules.
 
 Code gen is currently not implemented using ast, but rather using only functions and sprintf directly.
@@ -7,10 +7,13 @@ Code gen is currently not implemented using ast, but rather using only functions
 Currently assumes payload types are valid Go types.
 Payload types are also used to name unnamed fields, which means that only types which are valid identifiers can be left unnamed. 
 
-Some of the checks currently made before code generation should always be made
+The check to ensure that all the payload field names for a message are unique is missing when validating a protocol
 
 Merging doesn't take into account recursion - shouldn't it try to merge recursions?
 
 Exceptions - if a role crashes it can cause deadlocks.
 
 Recursion labels are not guaranteed to be unique after unfolding of recursion
+
+The current implementation in main.ml for nested protocols does not handle well incorrect user inputs, and it there is a completely separate workflow for nested protocols compared to the previous implementation
+I wasn't 100% sure of how to implement the cli, so it might not be implemented very well.

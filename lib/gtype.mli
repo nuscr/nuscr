@@ -46,6 +46,8 @@ val show_global_t : global_t -> string
 
 val call_label :
   RoleName.t -> ProtocolName.t -> RoleName.t list -> LabelName.t
+(** Generates a unique label for a protocol call based on the caller, the
+    protocol called and the participants involved *)
 
 val of_protocol : Syntax.global_protocol -> t
 (** Turn a raw protocol (from the parser) into a global type *)
