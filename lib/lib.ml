@@ -226,7 +226,6 @@ let generate_go_impl
   in
   change_dir project_root ;
   create_pkg root_pkg ;
-  Stdio.print_endline (Unix.getcwd ()) ;
   change_dir (PackageName.user root_pkg) ;
   write_messages () ;
   write_results () ;

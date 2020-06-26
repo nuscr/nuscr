@@ -1,0 +1,105 @@
+> Lexer and Parser:
+  - I have introduced some new keywords for the syntax of nested protocols such as: 'nested', 'calls' and 'new'
+  - Scribble modules can have nested protocols zero or more before the definitions of global protocols at the top level, and zero or more nested protocols can be defined within any protocol before that protocol's interactions.
+    -> Nested protocols currently don't allow the protocol options which global protocols can have due to a shift-reduce conflict, which may be something to consider changing.
+    -> Global protocols cannot have dynamic participants, while nested protocols can.
+
+
+> protocol.ml:
+  - I added a separate function to validate that all protocol calls are valid, because the existing function also performed the expanding of protocol calls (the 'do' construct)
+    -> Nested protocols can only be called using the 'calls' construct, and the 'do' construct is reserved for calling global protocols. This means that global protocols and nested protocols can have the same name, because the construct used to call the protocol will determine which protocol is called.
+    
+    -> Protocol declarations introduce new scopes which means nested protocols defined within a protocol cannot be called from outside that protocol.
+    
+    -> Defining a nested protocol with the same name as a nested protocol in a parent scope overrides the previous definition in that scope and all its subscopes. Global protocol declarations cannot be shadowed, because they can only be defined in the top-level.
+
+  - I also defined a function for renaming all the protocols to ensure that protocol names are globally unique. This makes it possible to generate a flattened representation of the global type once all naming conflicts between protocols in different scopes have been resolved.
+
+> symtable.ml
+  - I implemented a symbol table to verify that all protocol calls were valid by keeping track of all the protocols defined in each scope. I don't think it is really necessary now, as I have implemented similar logic in other parts of the codebase, but currently it is still used for protocol validation.
+
+> gtype.ml:
+  - I introduced a new 'calls' construct for making protocol calls in the global type. 
+  
+  - I also created a new type: 'global_t', which stores a flattened representation of all the global protocols in the Scribble module.
+  
+  - I modified the function for generating a global type from the parsed Scribble module to include the new construct, and I also changed the rule for the 'do' construct:
+    -> Previously the 'do' construct would have been expanded during the validation stage, but now that is not the case. Instead, it is treated in the same way as a call to a nested protocol, where the first participant in the call is treated as the caller.
+  
+  - I defined a function for converting a parsed scribble module into a 'global_t'
+  
+  - I also defined here a transformation on the 'global_t' type, which extracts the recursion Scribble construct into a nested protocol and replaces the recursive variables with protocol calls.
+    -> The process was not as trivial as I initially thought, as it involves making sure that only the participants involved in the recursion call participate in it, and in order to do this the algorithm also needs to deal with nested recursion constructs and continuations to recursive constructs outside of the current one. I believe that it should work, but I am not 100% sure I have implemented it correctly.
+  
+  - While working with the recursive constructs I realized that the current implementation of the normalisation does not deal with duplicate recursive variables introduced during the unfolding of a protocol. 
+
+  - I have implemented a separate workflow for nested protocols, which normalizes the protocol, and I have extended the definition of normalization with the new construct I introduced.
+    -> While working on this I realised that the workflow for non-nested protocols which is currently implemented does not normalize the protocols, which I believe is the cause of issue #91 on github, and may also be related to issue #86. I mentioned this in issue #100.
+  
+
+ltype.ml:
+  - I introduced new constructs for making protocol calls in the definition of global types.
+
+  - I created a new type: 'local_t', which stores all the possible projections of the protocols in a 'global_t'.
+    ->  To do create a 'local_t', I defined the projection of a 'global_t' type, which generates the projections of all protocols onto all of the roles. 
+    
+    -> Although it is necessary for the Go implementation to generate all of the projections, this approach could be refined by only projecting the protocols which are called starting from an entry-point protocol which is specified by the user.
+
+  - I defined a LocalProtocolId type used to identify the different projections generated based on the role and the protocol.
+    -> I also defined functions for generating a lookup for the different LocalProtocolIds to a unique local protocol name and for looking up a protocol id.
+
+  - I extended the definition of the projection with protocol calls, and also extended the definition of the projection of 'choice' to allow protocol calls to be the first interaction in a branch of the 'choice'. 
+    -> I therefore also had to extend the definition of the merge operator to include receiving invitations as well as labelled messages. I hope that my implementation is correct.
+
+> names.ml:
+  - Added different kinds of names for the Go code generation process. At the end of the development I realised some of the names are a bit redundant, such as having 'ParameterName' and 'VariableName' separately, or 'CallbackName' and 'FunctionName', but I haven't changed it.
+
+CODE GENERATION:
+
+The implementation of my code generation scheme for Go is quite large. Initially it was only stored in a single file, but I have split it across different files to make it a bit more manageable.
+
+> gonames.ml:
+  - Defines functions for generating names for the different functions, variables, types, etc. in the implementation.
+  - Also defines constants for some common names used in the implementation.
+
+> goenvs.ml:
+  - Defines several environments which are used to generate different parts of the implementation: e.g. callbacks interfaces, channel structs, invitation structs, etc.
+
+  - Also defines a single environment which is a wrapper around several of these environments, which is used during the code generation.
+
+> goimpl.ml:
+  - Defines functions for generating the subset of the elements ih the Go syntax which we use in our implementation.
+    -> All the code generation is currently implemented manually using sprintf, but it should really be implemented using an AST.
+
+> gocodegen.ml:
+  - Defines the functions which define the code generation generation scheme for translating the local types into a Go implementation. 
+
+
+SCRIBBLE TOOL:
+
+> lib.ml
+  - I have added several utility functions for creating the directory structure and the source files of the Go implementation.
+
+> main.ml
+  - I have defined a completely different workflow for running Scribble with nested protocols because I wasn't sure how to extend the existing ones with the new steps I introduced.
+
+  - The current implementation may not be the most intuitive/easy to use.
+    -> The whole ast will be displayed if the user specifies the ast flag
+
+    -> When displaying global types, it will display all the global types in the Scribble module before and after they have been normalised. 
+    
+    -> Similarly, all the possible local types will be displayed if the projection flag is set.
+
+    -> When generating the implementation, some additional constraints on the names used in the protocol declarations are made. I believe some of these checks could be relevant for the main protocol validation, but currently they are only made if the protocol implementation is being generated.
+
+    -> When generating the implementation, you must specify the global protocol which will serve as the entry point for the computation (not a nested protocol, as it could have dynamic participants). However, there are two small issues with the current implementation:
+      * If a protocol is specified, but it is not a protocol defined in the scribble module, it will simply not generate anything exiting silently.
+
+      * Currently the implementation does not ensure that the protocol specified is a global protocol (or even a top-level protocol).
+
+    -> The nested workflow allows you to automatically generate the implementation's directory structure. However, currently we assume that the implementation is going to be generated inside a different project. I believe changing this assumption should not be hard, and it should only involve modifying how the imports are generated. In order to generate the implementation directory structure, you must specify:
+      * The path to the directory where the main project is defined (e.g. GOPATH).
+
+      * The relative path from the root of the project to the directory inside which the protocol will be defined. The implementation of the protocol will be generated as a subpackage in that directory.
+
+      
