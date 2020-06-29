@@ -63,6 +63,16 @@ let new_variable name_gen var_name =
   let variable = VariableName.of_string var_name in
   (name_gen, variable)
 
+let var_type_decl var type_name = sprintf "%s %s" var type_name
+
+let new_var_decl var_name var_type =
+  sprintf "var %s" (var_type_decl (VariableName.user var_name) var_type)
+
+let new_var_assignment var_name rhs =
+  sprintf "%s := %s" (VariableName.user var_name) rhs
+
+let panic_with_msg msg = sprintf "panic(\"%s\")" msg
+
 (* STRUCT DECLARATION *)
 let struct_decl struct_name field_decls =
   let field_decls = List.sort field_decls ~compare:String.compare in
@@ -85,6 +95,9 @@ let struct_literal struct_name struct_fields field_values indent =
   in
   let field_decls_str = join_non_empty_lines field_decls in
   sprintf "%s{\n%s\n%s}" struct_name field_decls_str indent
+
+let struct_field_decl field_name field_type =
+  sprintf "\t%s" (var_type_decl field_name field_type)
 
 (* PKG/FIELD ACCESSES *)
 let invitation_pkg_access invite_pkg struct_name =
@@ -126,14 +139,6 @@ let invite_channel_struct_field_access chan_var chan_name =
   sprintf "%s.%s"
     (VariableName.user chan_var)
     (InviteChannelName.user chan_name)
-
-let var_type_decl var type_name = sprintf "%s %s" var type_name
-
-let new_var_decl var_name var_type =
-  sprintf "var %s" (var_type_decl (VariableName.user var_name) var_type)
-
-let struct_field_decl field_name field_type =
-  sprintf "\t%s" (var_type_decl field_name field_type)
 
 (* INTERFACE DECLARATION *)
 let interface_method_decl indent (function_name, params, return_type_str) =
@@ -233,6 +238,7 @@ let invite_chan_field_decl (chan_name, invite_chan_struct) =
   in
   struct_field_decl (InviteChannelName.user chan_name) channel_type
 
+(* CHANNEL OPERATIONS *)
 let msg_from_channel chan_str = sprintf "<-%s" chan_str
 
 let send_msg_over_channel chan_struct chan_field msg_var =
@@ -244,9 +250,6 @@ let send_invite_over_channel invite_chan_struct (chan_field, chan_var) =
     invite_channel_struct_field_access invite_chan_struct chan_field
   in
   sprintf "%s <- %s" chan (VariableName.user chan_var)
-
-let new_var_assignment var_name rhs =
-  sprintf "%s := %s" (VariableName.user var_name) rhs
 
 let recv_from_invite_chan var_name invite_chan_struct chan_field =
   let chan =
@@ -260,8 +263,17 @@ let recv_from_msg_chan var_name chan_struct chan_field =
   let recv_from_chan = msg_from_channel chan in
   new_var_assignment var_name recv_from_chan
 
+let make_async_chan chan_type =
+  (* chan_type = "chan <type>" *)
+  sprintf "make(%s, 1)" chan_type
+
+let new_chan_var_assignment (chan_var, chan_type) =
+  (* assume chan_type is of the form "chan <type>" *)
+  new_var_assignment chan_var (make_async_chan chan_type)
+
 let gen_case_stmt case_str = sprintf "case %s:" case_str
 
+(* SWITCH STATEMENT *)
 let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent
     default_impl =
   let gen_switch_case (case_stmt, impl) =
@@ -285,6 +297,7 @@ let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent
     (VariableName.user switch_var)
     switch_cases_str indent
 
+(* SELECT STATEMENT *)
 let gen_select_case impl case_indent =
   match impl with
   | recv_stmt :: impl' ->
@@ -300,6 +313,7 @@ let gen_select_stmt select_cases indent =
   let select_cases_str = join_non_empty_lines select_cases in
   sprintf "%sselect {\n%s\n%s}" indent select_cases_str indent
 
+(* FUNCTION DECLARATIONS *)
 let function_decl function_name params return_type impl =
   let gen_param_decl (param_name, param_type) =
     sprintf "%s %s" (VariableName.user param_name) param_type
@@ -312,16 +326,6 @@ let function_decl function_name params return_type impl =
   sprintf "func %s(%s) %s {\n%s\n} "
     (FunctionName.user function_name)
     param_decls_str return_type_str impl
-
-let make_async_chan chan_type =
-  (* chan_type = "chan <type>" *)
-  sprintf "make(%s, 1)" chan_type
-
-let new_chan_var_assignment (chan_var, chan_type) =
-  (* assume chan_type is of the form "chan <type>" *)
-  new_var_assignment chan_var (make_async_chan chan_type)
-
-let panic_with_msg msg = sprintf "panic(\"%s\")" msg
 
 (* CONTROL FLOW *)
 let return_stmt return_val = sprintf "return %s" return_val

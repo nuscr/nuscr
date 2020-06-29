@@ -4,6 +4,8 @@
     -> Nested protocols currently don't allow the protocol options which global protocols can have due to a shift-reduce conflict, which may be something to consider changing.
     -> Global protocols cannot have dynamic participants, while nested protocols can.
 
+> syntax.ml
+  - I added nested protocol declarations into the scribble module and added protocol calls with a new 'Calls' construct as a possible interaction. I also modified the records for global protocols to add a split roles field which contains the tuple of non-dynamic and dynamic participants and a field with all the nested protocol declarations defined inside the protocol.
 
 > protocol.ml:
   - I added a separate function to validate that all protocol calls are valid, because the existing function also performed the expanding of protocol calls (the 'do' construct)

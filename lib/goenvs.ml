@@ -1191,7 +1191,7 @@ end = struct
       MessageStructName.of_string (msg_type_name msg_label)
     in
     let imports, pkg = ImportsEnv.import_messages imports protocol in
-    let param_name = ParameterName.of_string @@ msg_var_name msg_label in
+    let param_name = ParameterName.of_string @@ new_msg_var msg_label in
     let param_decl = Some (param_name, `Msg (pkg, msg_struct_name)) in
     let callbacks = (callback, param_decl, None) :: callbacks in
     let env = (name_gen, choice_enums, callbacks, imports) in
