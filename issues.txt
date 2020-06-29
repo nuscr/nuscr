@@ -1,6 +1,7 @@
 Currently implementation relies on message labels being unique when titlecased within a single protocol, and they must be used consistently with the same payload types and payload field names.
 Protocol names must be unique when lowercased, and roles within a protocol must be unique when lowercased.
 These naming restrictions assume that the names start with an alphabetical character. I think that code generation might break if the names start with underscores, because of Golang's visibility rules.
+It may be better to handle these clashes by generating new unique names, but the current implementation seemed easier to start with.
 
 Code gen is currently not implemented using ast, but rather using only functions and sprintf directly.
 
