@@ -49,7 +49,9 @@ ltype.ml:
     -> I also defined functions for generating a lookup for the different LocalProtocolIds to a unique local protocol name and for looking up a protocol id.
 
   - I extended the definition of the projection with protocol calls, and also extended the definition of the projection of 'choice' to allow protocol calls to be the first interaction in a branch of the 'choice'. 
-    -> I therefore also had to extend the definition of the merge operator to include receiving invitations as well as labelled messages. I hope that my implementation is correct.
+    -> I therefore also had to extend the definition of the merge operator to include receiving invitations as well as labelled messages.
+    -> Because when making protocol calls the caller sends out invitations to all the participants in parallel, allowing protocol calls to be the first interactions of a choice means that you can potentially have more than one 'first' receiver, so I modified the implementation of 'check_consistent_gchoice' to find the intersection of the first receivers in each of the choice branches.
+    -> I also modified the definition of 'check_distinct_prefix' to take into account protocol calls when ensuring that the fist message in each branch was unique. Two protocol calls are only equal if the caller, protocol and participants in the call are the same. I generate a label for protocol calls to verify this, but currently it's not a great label
 
 > names.ml:
   - Added different kinds of names for the Go code generation process. At the end of the development I realised some of the names are a bit redundant, such as having 'ParameterName' and 'VariableName' separately, or 'CallbackName' and 'FunctionName', but I haven't changed it.
@@ -84,7 +86,7 @@ SCRIBBLE TOOL:
 > main.ml
   - I have defined a completely different workflow for running Scribble with nested protocols because I wasn't sure how to extend the existing ones with the new steps I introduced.
 
-  - The current implementation may not be the most intuitive/easy to use.
+  - The current implementation for main is not structured very well. I apologize if you find it hard/unintuitive to use.
     -> The whole ast will be displayed if the user specifies the ast flag
 
     -> When displaying global types, it will display all the global types in the Scribble module before and after they have been normalised. 
@@ -93,13 +95,15 @@ SCRIBBLE TOOL:
 
     -> When generating the implementation, some additional constraints on the names used in the protocol declarations are made. I believe some of these checks could be relevant for the main protocol validation, but currently they are only made if the protocol implementation is being generated.
 
-    -> When generating the implementation, you must specify the global protocol which will serve as the entry point for the computation (not a nested protocol, as it could have dynamic participants). However, there are two small issues with the current implementation:
-      * If a protocol is specified, but it is not a protocol defined in the scribble module, it will simply not generate anything exiting silently.
+    -> When generating the implementation, you must specify the global protocol which will serve as the entry point for the computation (not a nested protocol, as it could have dynamic participants). However, I assume that the inputs provided are correct, which means that it can produce undesirable behaviours for incorrect input:
+      * If a protocol is specified, but it is not a protocol defined in the scribble module, it will simply not generate anything, exiting silently.
 
-      * Currently the implementation does not ensure that the protocol specified is a global protocol (or even a top-level protocol).
+      * Currently the implementation does not ensure that the protocol specified is a global protocol (or even a top-level protocol), which means that the implemenation generated could be for a nested protocol, possibly with dynamic participants, which may not defined at the top-level scope. Apart from violating the scope restriction, this can lead to implementations which are incorrect, because the dynamic participants in the entry-point protocol will not be initialised in the current implementation.
+
+      * Currently the output path for the implementation is not validated, which can lead to errors when trying to generate the project directory structure.
 
     -> The nested workflow allows you to automatically generate the implementation's directory structure. However, currently we assume that the implementation is going to be generated inside a different project. I believe changing this assumption should not be hard, and it should only involve modifying how the imports are generated. In order to generate the implementation directory structure, you must specify:
-      * The path to the directory where the main project is defined (e.g. GOPATH).
+      * The path to the directory where the main project is defined (e.g. GOPATH). It may be safe to take this from the environment variable instead, but I wasn't sure.
 
       * The relative path from the root of the project to the directory inside which the protocol will be defined. The implementation of the protocol will be generated as a subpackage in that directory.
 
