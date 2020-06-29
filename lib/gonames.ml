@@ -19,8 +19,7 @@ let pkg_sync = PackageName.of_string "sync"
 
 let pkg_results = PackageName.of_string "results"
 
-let done_callback = CallbackName.of_string "Done"
-
+(* VARIABLE NAMES *)
 let env_var = VariableName.of_string "env"
 
 let invite_chan = VariableName.of_string "inviteChannels"
@@ -33,20 +32,24 @@ let wait_group = VariableName.of_string "wg"
 
 let result_var = VariableName.of_string "result"
 
+(* TYPES *)
+let int_type = "int"
+
 let wait_group_type = VariableName.of_string "WaitGroup"
 
+(* WAIT GROUP METHODS *)
 let wait_group_add = FunctionName.of_string "Add"
 
 let wait_group_done = FunctionName.of_string "Done"
 
 let wait_group_wait = FunctionName.of_string "Wait"
 
-let int_type = "int"
-
+(* PANIC MESSAGES *)
 let todo_panic_msg = "TODO: implement me"
 
 let invalid_choice_panic_msg = "Invalid choice was made"
 
+(* DEFAULT CASE *)
 let default_case = "default:"
 
 (* CODEGEN FUNCTIONS *)
@@ -173,6 +176,9 @@ let entry_point_protocol_env_interface_name protocol =
 let result_callback_name local_protocol =
   sprintf "ResultFrom_%s" (capitalize_local_protocol local_protocol)
 
+let done_callback = CallbackName.of_string "Done"
+
+(* CHOICE ENUMS *)
 let choice_enum_value local_protocol label =
   sprintf "%s_%s"
     (capitalize_local_protocol local_protocol)
@@ -180,8 +186,6 @@ let choice_enum_value local_protocol label =
 
 let choice_enum_type local_protocol =
   sprintf "%s_Choice" (capitalize_local_protocol local_protocol)
-
-let msg_var_name msg_label = String.lowercase @@ LabelName.user msg_label
 
 (* RESULTS *)
 let result_struct_name role = sprintf "%s_Result" (capitalize_role_name role)
