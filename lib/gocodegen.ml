@@ -708,7 +708,6 @@ let gen_dynamic_participants_init imports indent new_roles role_chan_vars
 let gen_setup_function_impl protocol_setup_env imports indent
     setup_channels_impl role_chan_vars invite_chan_vars protocol
     protocol_lookup (roles, new_roles) =
-  (* TODO: import sync when generating function signature. handle imports*)
   let _, role_struct_fields =
     ProtocolSetupEnv.get_setup_channel_struct protocol_setup_env protocol
   in
@@ -990,13 +989,11 @@ let empty_result () : codegen_result =
     the entry point protocol *)
 let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
     =
-  (* TODO: Move build_local_proto_name_lookup to codegen *)
   let protocol_lookup = build_local_proto_name_lookup local_t in
   let protocol_setup_env =
     ProtocolSetupEnv.create protocol_lookup local_t global_t
   in
   let gen_protocol_role_implementation ~key:protocol ~data result =
-    (* TODO: Imports *)
     let (roles, new_roles), _, gtype = data in
     let protocol_env =
       { channel_imports= ImportsEnv.create root_dir

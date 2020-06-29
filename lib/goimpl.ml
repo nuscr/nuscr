@@ -3,7 +3,7 @@ open Printf
 open Names
 open Gonames
 
-(* FIXME: Use an AST *)
+(* TODO: Use an AST *)
 
 (* IMPORTS *)
 let messages_import_path root pkg =
