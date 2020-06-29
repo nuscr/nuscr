@@ -20,6 +20,9 @@
 > symtable.ml
   - I implemented a symbol table to verify that all protocol calls were valid by keeping track of all the protocols defined in each scope. I don't think it is really necessary now, as I have implemented similar logic in other parts of the codebase, but currently it is still used for protocol validation.
 
+> err.ml
+  - I added some new kinds of errors which may be raised when validating nested protocols.
+
 > gtype.ml:
   - I introduced a new 'calls' construct for making protocol calls in the global type. 
   
@@ -76,7 +79,15 @@ The implementation of my code generation scheme for Go is quite large. Initially
     -> All the code generation is currently implemented manually using sprintf, but it should really be implemented using an AST.
 
 > gocodegen.ml:
-  - Defines the functions which define the code generation generation scheme for translating the local types into a Go implementation. 
+  - Defines the functions which define the code generation generation scheme for translating the local types into a Go implementation.
+
+  - Also contains a function which is used to validate the protocols to ensure that an implementation can be generated with the current code generation scheme.
+    -> My implementation uses the names provided by the user to generate the names of the different componenets in the implementation, but due to the package visibility rules and syntax restrictions in Go, I need to deal with name clashes in some way.
+
+    -> I need to capitalize fields, types and functions which should visible outside the package where they are defined, which means that capitalising two names which only differ in the capitalisation can introduce new clashes which would not appear when validating the Scribble module. 
+
+    -> For this reason I have introduced different naming restrictions for roles, protocols, messages and message payloads (the payload names which the user provides are not ignored in my implementation) which I check before generating the implementation in order to ensure that all the names can be used safely.
+
   - The description of the different components in the implementation and how they are generated are in the project report as well.
 
 
