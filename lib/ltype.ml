@@ -31,7 +31,7 @@ let show =
           (TypeVariableName.user n)
           (show_local_type_internal (indent + 1) l)
           current_indent
-    | TVarL n -> sprintf "%s%s\n" current_indent (TypeVariableName.user n)
+    | TVarL n -> sprintf "%scontinue %s;\n" current_indent (TypeVariableName.user n)
     | EndL -> sprintf "%send\n" current_indent
     | ChoiceL (r, ls) ->
         let pre =
