@@ -43,10 +43,10 @@
   
 
 ltype.ml:
-  - I introduced new constructs for making protocol calls in the definition of global types.
+  - I introduced new constructs for making protocol calls in the definition of local types.
 
   - I created a new type: 'local_t', which stores all the possible projections of the protocols in a 'global_t'.
-    ->  To do create a 'local_t', I defined the projection of a 'global_t' type, which generates the projections of all protocols onto all of the roles. 
+    ->  To create a 'local_t', I defined the projection of a 'global_t' type, which generates the projections of all protocols onto all of the roles. 
     
     -> Although it is necessary for the Go implementation to generate all of the projections, this approach could be refined by only projecting the protocols which are called starting from an entry-point protocol which is specified by the user.
 
@@ -55,7 +55,7 @@ ltype.ml:
 
   - I extended the definition of the projection with protocol calls, and also extended the definition of the projection of 'choice' to allow protocol calls to be the first interaction in a branch of the 'choice'. 
     -> I therefore also had to extend the definition of the merge operator to include receiving invitations as well as labelled messages.
-    -> Because when making protocol calls the caller sends out invitations to all the participants in parallel, allowing protocol calls to be the first interactions of a choice means that you can potentially have more than one 'first' receiver, so I modified the implementation of 'check_consistent_gchoice' to find the intersection of the first receivers in each of the choice branches.
+    -> When carrying out a protocol call, the caller sends out invitations to all the participants in parallel. As a result, protocol calls can be the first interactions of a choice, these these messages can be used to determine which branch was chosen. However, this also means that you can potentially have more than one 'first' receiver, so I modified the implementation of 'check_consistent_gchoice' to find the intersection of the first receivers in each of the choice branches.
     -> I also modified the definition of 'check_distinct_prefix' to take into account protocol calls when ensuring that the fist message in each branch was unique. Two protocol calls are only equal if the caller, protocol and participants in the call are the same. I generate a label for protocol calls to verify this, but currently it's not a great label
 
 > names.ml:
