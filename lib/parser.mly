@@ -42,9 +42,14 @@
 %token CALLS_KW
 %token NEW_KW
 
+(* pragmas *)
+%token <string>PRAGMA_STR
+// %token PRAGMA_START
+// %token PRAGMA_END
+
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
-%start <Syntax.pragmas> pragmas
+// %start <Syntax.pragmas> pragmas
 %{ open Syntax
    open Loc
    module Name = Name.Name
@@ -54,16 +59,14 @@
 %}
 %%
 
-(* pragmas -- should use pragma_lexer lexer *)
-
-let pragma_value :=
-  | COLON ; v = IDENT ; { v }
-
-let pragma_decl :=
-  | k = IDENT ; v = pragma_value? ; { k , v }
-
+(* pragmas *)
 let pragmas :=
-  | ps = separated_list(COMMA, pragma_decl) ; EOI ; { ps }
+  | ps = PRAGMA_STR* ; {
+      List.map (fun pragma -> 
+        Pragma.parse_pragmas_string pragma 
+      ) ps
+      |> List.concat
+  }
 
 (* document -- should use toke lexer *)
 
@@ -74,11 +77,12 @@ let doc :=
 
 let scr_module :=
   md = module_decl? ;
+  pgs = pragmas ;
   ts = payload_type_decl* ;
   nps = nested_protocol_decl*;
   ps = protocol_decl* ;
   EOI ;
-    { {decl= md ; types = ts ; nested_protocols = nps ; protocols = ps } }
+    { {decl = md ; pragmas = pgs; types = ts ; nested_protocols = nps ; protocols = ps } }
 
 
 let module_decl == located (raw_module_decl)
