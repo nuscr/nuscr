@@ -47,7 +47,9 @@
   (ocamlgraph
    (>= 1.8.8))
   (ppxlib
-   (>= 0.9.0))))
+   (and
+   (>= 0.9.0)
+   (< 0.14.0)))))
 
 (package
  (name nuscr-web)
