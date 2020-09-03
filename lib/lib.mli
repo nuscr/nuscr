@@ -1,16 +1,7 @@
-(** Main entry point of the library *)
 open Names
+(** Main entry point of the library *)
 
 (** {1 Parsing} *)
-
-(** This section deals with parsing pragmas *)
-
-val parse_pragmas_string : string -> Syntax.pragmas
-(** Parse a string into {!Syntax.pragmas}. *)
-
-val parse_pragmas : string -> Stdio.In_channel.t -> Syntax.pragmas
-(** Parse from an input channel. The first parameter is the filename, for use
-    in error messages. *)
 
 (** This section deals with parsing protocols. *)
 
@@ -49,7 +40,21 @@ val generate_fsm :
     [(v, g)] where [g] is the graph describing the fsm, and [v] is the root
     index. *)
 
-val generate_code :
+val generate_go_code :
+     Syntax.scr_module
+  -> protocol:ProtocolName.t
+  -> out_dir:string
+  -> go_path:string option
+  -> string
+(** [generate_code module protocol out_dir go_path] generates Golang
+    implementation for [protocol]. The protocol implementation designed to be
+    a subpackage within a project. [out_dir] is the path from the root of the
+    project until the package inside which the protocol implementation
+    (subpackage) should be generated - it is needed to generate imports.
+    [go_path] is the path to the project root, which can optionally be
+    provided in order to write the implementation to the file system. *)
+
+val generate_ocaml_code :
      monad:bool
   -> Syntax.scr_module
   -> protocol:ProtocolName.t
@@ -67,12 +72,3 @@ val generate_ast :
   -> Ppxlib_ast.Parsetree.structure
 (** [generate_ast ~monad module protocol role] is similar to [generate_code],
     except it returns an AST instead of a string *)
-
-val generate_go_impl :
-     Gocodegen.codegen_result
-  -> string
-  -> PackageName.t
-  -> ProtocolName.t
-  -> unit
-(** Generate the directory structure for the Go implementation of the
-    protocol *)
