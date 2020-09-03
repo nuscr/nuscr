@@ -169,6 +169,30 @@ let expand_global_protocol (scr_module : scr_module)
   in
   {protocol with value= {protocol.value with interactions}}
 
+let ensure_no_nested_protocols (ast : scr_module) =
+  let pragma_err =
+    PragmaNotSet
+      ( show_pragma `NestedProtocols
+      , "Nested protocols cannot be used without setting this pragma" )
+  in
+  let rec no_nested_protocols {loc= _; value= protocol} =
+    let rec match_nested {loc= _; value= interaction} =
+      match interaction with
+      | Calls _ -> uerr pragma_err
+      | Choice (_, branches) ->
+          List.iter
+            ~f:(fun interactions -> List.iter interactions ~f:match_nested)
+            branches
+      | Recursion (_, interactions) -> List.iter interactions ~f:match_nested
+      | _ -> ()
+    in
+    let {nested_protocols; interactions; _} = protocol in
+    if not (List.is_empty nested_protocols) then uerr pragma_err ;
+    List.iter ~f:match_nested interactions
+  in
+  if not (List.is_empty ast.nested_protocols) then uerr pragma_err ;
+  List.iter ast.protocols ~f:no_nested_protocols
+
 (* Ensure all calls to global/nested protocols are valid *)
 let validate_calls_in_protocols (scr_module : scr_module) =
   let rec validate_protocol_calls prefix global_table nested_table protocol =
