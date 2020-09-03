@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol P(role A, role B) {
   B calls P(A, B);
   do P(A, B);

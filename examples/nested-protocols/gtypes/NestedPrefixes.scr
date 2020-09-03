@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 global protocol Top(role A, role B) {
   nested protocol P1(role C, role D) {
     nested protocol P2(role E, role F) {

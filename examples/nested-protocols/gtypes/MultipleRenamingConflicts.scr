@@ -1,4 +1,6 @@
 
+(*# NestedProtocols #*)
+
 nested protocol Proto(role A, role B) {
   nested protocol Test_Prefix(role A, role B) {
     A calls Proto(A, B);

@@ -62,11 +62,11 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
 exception ExpectFail
 
 let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
-  let process_global_pragma (k, v) =
+  let process_global_pragma ((k : Nuscrlib.Syntax.pragma), v) =
     match (k, v) with
-    | "PrintUsage", _ -> ()
-    | "ShowPragmas", _ -> ()
-    | prg, _ -> Nuscrlib.Err.UnknownPragma prg |> Nuscrlib.Err.uerr
+    | `PrintUsage, _ -> ()
+    | `ShowPragmas, _ -> ()
+    | `NestedProtocols, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas
 
@@ -81,10 +81,9 @@ let process_files fns =
             Caml.Filename.check_suffix (Caml.Filename.dirname fn) "errors"
           in
           try
-            let pragmas = Nuscrlib.Lib.parse_pragmas fn in_channel in
-            process_pragmas pragmas ;
             In_channel.seek in_channel 0L ;
             let ast = Nuscrlib.Lib.parse fn in_channel in
+            process_pragmas ast.pragmas ;
             Nuscrlib.Lib.validate_exn ast ~verbose:false ;
             if is_negative_test then raise ExpectFail
           with
