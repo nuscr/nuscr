@@ -2,20 +2,15 @@ open Base
 open Stdio
 open Nuscrlib
 open Names
-open Gocodegen
-open Gonames
 
 let version_string () = "%%VERSION%%"
 
 let usage () =
   "usage: "
   ^ (Sys.get_argv ()).(0)
-  ^ " [-enum][-verbose][-fsm Role@Protocol][-project Role@Protocol] file"
-
-let nested_usage () =
-  "usage: "
-  ^ (Sys.get_argv ()).(0)
-  ^ " [-verbose][-show_global][-project] file"
+  ^ " [-enum][-verbose][-fsm Role@Protocol][-project \
+     Role@Protocol][-gencode Role@Protocol][-out-dir /file/path][-go-path \
+     /file/path] file"
 
 let parse_role_protocol_exn rp =
   match String.split rp ~on:'@' with
@@ -35,21 +30,15 @@ let version = ref false
 
 let help = ref false
 
-let project_protocols = ref false
-
-let show_global = ref false
-
-let go_path = ref ""
-
-let out_dir = ref ""
-
-let protocol = ref ""
-
 let fsm : (RoleName.t * ProtocolName.t) option ref = ref None
 
 let project : (RoleName.t * ProtocolName.t) option ref = ref None
 
 let gencode : (RoleName.t * ProtocolName.t) option ref = ref None
+
+let out_dir : string option ref = ref None
+
+let go_path : string option ref = ref None
 
 let argspec =
   let open Caml in
@@ -70,30 +59,15 @@ let argspec =
     , ": project the local type for the specified role" )
   ; ( "-gencode"
     , Arg.String (fun s -> gencode := parse_role_protocol_exn s)
-    , ": generate OCaml code for the specified role" ) ]
-
-let nested_argspec =
-  let open Caml in
-  [ ( "-version"
-    , Arg.Unit (fun () -> version := true)
-    , ": print the version number" )
-  ; ("-ast", Arg.Unit (fun () -> verbose := true), ": print out ast")
-  ; ( "-global-type"
-    , Arg.Unit (fun () -> show_global := true)
-    , ": print out global type" )
-  ; ( "-project"
-    , Arg.Unit (fun () -> project_protocols := true)
-    , ": project the local type for the given protocols" )
-  ; ( "-gencode"
-    , Arg.String (fun proto -> protocol := proto)
-    , ": generate Golang code for the specified protocol" )
+    , ": generate code for the specified role" )
   ; ( "-go-path"
-    , Arg.String (fun s -> go_path := s)
-    , ": path to the go source directory" )
+    , Arg.String (fun s -> go_path := Some s)
+    , ": path to the go source directory (the parent directory of the \
+       project root)" )
   ; ( "-out-dir"
-    , Arg.String (fun s -> out_dir := s)
-    , ": path to the project directory (relative to go src) where the code \
-       is to be generated" ) ]
+    , Arg.String (fun s -> out_dir := Some s)
+    , ": path to the project directory inside which the code is to be \
+       generated, relative to go source directory " ) ]
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
@@ -109,17 +83,47 @@ let gen_output ast f = function
 let process_pragmas (pragmas : Syntax.pragmas) : unit =
   let process_global_pragma (k, v) =
     match (k, v) with
-    | "PrintUsage", _ -> usage () |> print_endline
-    | "ShowPragmas", _ -> Syntax.show_pragmas pragmas |> print_endline
-    | prg, _ -> Err.UnknownPragma prg |> Err.uerr
+    | `PrintUsage, _ -> usage () |> print_endline
+    | `ShowPragmas, _ -> Syntax.show_pragmas pragmas |> print_endline
+    | `NestedProtocols, _ ->
+        if Option.is_some !fsm then
+          Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
   in
   List.iter ~f:process_global_pragma pragmas
 
+let generate_code (ast : Syntax.scr_module) gencode =
+  let gen_ocaml role protocol =
+    Lib.generate_ocaml_code ~monad:false ast ~protocol ~role
+  in
+  let gen_go protocol =
+    match !out_dir with
+    | Some out_dir ->
+        Lib.generate_go_code ast ~protocol ~out_dir ~go_path:!go_path
+    | None ->
+        Err.UserError
+          (Err.MissingFlag
+             ( "out-dir"
+             , "This flag must be set in order to generate go implementation"
+             ))
+        |> raise
+  in
+  match gencode with
+  | Some (role, protocol) ->
+      let impl =
+        match
+          List.find ast.pragmas ~f:(fun (pragma, _) ->
+              match pragma with `NestedProtocols -> true | _ -> false)
+        with
+        | None -> gen_ocaml role protocol
+        | Some _ -> gen_go protocol
+      in
+      print_endline impl
+  | None -> ()
+
 let run filename verbose enumerate proj fsm gencode =
   try
-    let pragmas = process_file filename Lib.parse_pragmas in
-    process_pragmas pragmas ;
     let ast = process_file filename Lib.parse in
+    process_pragmas ast.pragmas ;
     Lib.validate_exn ast ~verbose ;
     if enumerate then
       Lib.enumerate ast
@@ -135,10 +139,7 @@ let run filename verbose enumerate proj fsm gencode =
       (fun ast protocol role ->
         Lib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show)
       fsm ;
-    gen_output ast
-      (fun ast protocol role ->
-        Lib.generate_code ~monad:false ast ~protocol ~role)
-      gencode ;
+    generate_code ast gencode ;
     true
   with
   | Err.UserError msg ->
@@ -155,98 +156,11 @@ let run filename verbose enumerate proj fsm gencode =
       "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ;
       false
 
-let print_protocol_files file_map =
-  Map.iteri file_map ~f:(fun ~key ~data ->
-      let open Printf in
-      print_endline (sprintf "Protocol %s:" (ProtocolName.user key)) ;
-      print_endline data)
-
-let print_local_protocol_files file_map =
-  Map.iteri file_map ~f:(fun ~key ~data ->
-      let open Printf in
-      print_endline
-        (sprintf "Local Protocol %s:" (LocalProtocolName.user key)) ;
-      print_endline data)
-
-let write_code_to_file result gen_protocol =
-  let project_root = Printf.sprintf "%s/%s" !go_path !out_dir in
-  let protocol_root_pkg =
-    PackageName.of_string @@ protocol_pkg_name gen_protocol
-  in
-  Lib.generate_go_impl result project_root protocol_root_pkg gen_protocol
-
-let run_nested filename show_ast show_global show_local =
-  let show_result ?(sep = "\n\n") ~f verbose input =
-    (* only show if verbose is on *)
-    if verbose then print_endline (Printf.sprintf "%s%s" (f input) sep)
-    else ()
-  in
-  try
-    let ast = process_file filename Lib.parse in
-    Protocol.validate_calls_in_protocols ast ;
-    show_result ~f:Syntax.show_scr_module show_ast ast ;
-    let ast = Protocol.rename_nested_protocols ast in
-    let open Gtype in
-    let g_type = global_t_of_module ast in
-    let g_type = normalise_global_t g_type in
-    show_result ~sep:"\n\n----------\n" ~f:show_global_t show_global g_type ;
-    let open Ltype in
-    let g_type = replace_recursion_with_nested_protocols g_type in
-    show_result ~sep:"\n\n----------\n" ~f:show_global_t show_global g_type ;
-    let ltype = project_global_t g_type in
-    show_result ~f:show_local_t show_local ltype ;
-    ensure_unique_identifiers g_type ;
-    let gen_protocol = ProtocolName.of_string !protocol in
-    (* TODO: Add a better check for checking if protocol code should be
-       generated *)
-    if Map.mem g_type gen_protocol then
-      let protocol_pkg = protocol_pkg_name gen_protocol in
-      let root_dir = Printf.sprintf "%s/%s" !out_dir protocol_pkg in
-      let ( { channels
-            ; invite_channels
-            ; callbacks
-            ; impl
-            ; messages
-            ; results
-            ; protocol_setup
-            ; entry_point
-            ; _ } as gen_result ) =
-        gen_code (RootDirName.of_string root_dir) gen_protocol g_type ltype
-      in
-      if String.equal !out_dir "" then (
-        print_protocol_files messages ;
-        print_protocol_files channels ;
-        print_protocol_files invite_channels ;
-        print_protocol_files results ;
-        print_protocol_files protocol_setup ;
-        print_local_protocol_files callbacks ;
-        print_local_protocol_files impl ;
-        Stdio.print_endline "" ;
-        Stdio.print_endline entry_point ;
-        true )
-      else (
-        write_code_to_file gen_result gen_protocol ;
-        true )
-    else true
-  with
-  | Err.UserError msg ->
-      "User error: " ^ Err.show_user_error msg |> prerr_endline ;
-      false
-  | Err.Violation msg ->
-      "Violation: " ^ msg |> prerr_endline ;
-      false
-  | Err.UnImplemented desc ->
-      "I'm sorry, it is unfortunate " ^ desc ^ " is\n not implemented"
-      |> prerr_endline ;
-      false
-
-(* | e -> "Reported problem:\n " ^ Exn.to_string e |> prerr_endline ; false *)
-
 let () =
   let filename = ref "" in
-  Caml.Arg.parse nested_argspec (fun fn -> filename := fn) @@ nested_usage () ;
+  Caml.Arg.parse argspec (fun fn -> filename := fn) @@ usage () ;
   if !version then print_endline @@ version_string ()
-  else if String.length !filename = 0 then nested_usage () |> print_endline
-  else if run_nested !filename !verbose !show_global !project_protocols then
+  else if String.length !filename = 0 then usage () |> print_endline
+  else if run !filename !verbose !enum !project !fsm !gencode then
     Caml.exit 0
   else Caml.exit 1
