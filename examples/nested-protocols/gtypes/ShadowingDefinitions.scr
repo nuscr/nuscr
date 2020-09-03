@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol Nested(role A, role B) {
   nested protocol Nested(role A, role B) {
     nested protocol Nested(role A, role B) {

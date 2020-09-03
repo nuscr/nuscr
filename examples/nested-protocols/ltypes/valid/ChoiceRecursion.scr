@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol Proto2(role D, role E) {
   m3() from D to E;
   m4() from E to D;
