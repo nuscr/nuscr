@@ -44,8 +44,6 @@
 
 (* pragmas *)
 %token <string>PRAGMA_STR
-// %token PRAGMA_START
-// %token PRAGMA_END
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
