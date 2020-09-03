@@ -985,6 +985,89 @@ let empty_result () : codegen_result =
   ; protocol_setup= Map.empty (module ProtocolName)
   ; entry_point= "" }
 
+let show_codegen_result
+    { messages
+    ; channels
+    ; results
+    ; invite_channels
+    ; impl
+    ; callbacks
+    ; protocol_setup
+    ; entry_point } fst_protocol root_dir =
+  let protocol_pkg_file_path pkg file_name protocol =
+    let protocol_pkg = protocol_pkg_name protocol in
+    Printf.sprintf "%s/%s/%s/%s"
+      (RootDirName.user root_dir)
+      (PackageName.user pkg) protocol_pkg file_name
+  in
+  let invitations_file_path protocol =
+    Printf.sprintf "%s/%s/%s"
+      (RootDirName.user root_dir)
+      (PackageName.user pkg_invitations)
+      (invitations_file_name protocol)
+  in
+  let local_protocol_file_path local_protocol =
+    Printf.sprintf "%s/%s/%s"
+      (RootDirName.user root_dir)
+      (PackageName.user pkg_roles)
+      (role_impl_file_name local_protocol)
+  in
+  let protocol_setup_file_path protocol =
+    Printf.sprintf "%s/%s/%s"
+      (RootDirName.user root_dir)
+      (PackageName.user pkg_roles)
+      (protocol_setup_file_name protocol)
+  in
+  let entry_point_file_path protocol =
+    Printf.sprintf "%s/%s/%s"
+      (RootDirName.user root_dir)
+      (PackageName.user pkg_protocol)
+      (protocol_file_name protocol)
+  in
+  let show_file file_path impl = Printf.sprintf "%s:\n\n%s" file_path impl in
+  let show_files files ~gen_file_path =
+    let files =
+      Map.mapi files ~f:(fun ~key ~data:impl ->
+          let file_path = gen_file_path key in
+          show_file file_path impl)
+    in
+    String.concat ~sep:"\n\n" (Map.data files)
+  in
+  let message_files =
+    show_files messages
+      ~gen_file_path:(protocol_pkg_file_path pkg_messages messages_file_name)
+  in
+  let channel_files =
+    show_files channels
+      ~gen_file_path:(protocol_pkg_file_path pkg_channels channels_file_name)
+  in
+  let result_files =
+    show_files results
+      ~gen_file_path:(protocol_pkg_file_path pkg_results results_file_name)
+  in
+  let invitation_files =
+    show_files invite_channels ~gen_file_path:invitations_file_path
+  in
+  let impl_files = show_files impl ~gen_file_path:local_protocol_file_path in
+  let callback_files =
+    show_files callbacks ~gen_file_path:local_protocol_file_path
+  in
+  let protocol_setup_files =
+    show_files protocol_setup ~gen_file_path:protocol_setup_file_path
+  in
+  let entry_point_file =
+    show_file (entry_point_file_path fst_protocol) entry_point
+  in
+  String.concat ~sep:"\n\n"
+    [ message_files
+    ; channel_files
+    ; result_files
+    ; invitation_files
+    ; callback_files
+    ; protocol_setup_files
+    ; impl_files
+    ; entry_point_file ]
+
 (** Generate all the elements of the implementation of a Scribble module and
     the entry point protocol *)
 let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)

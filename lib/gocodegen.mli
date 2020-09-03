@@ -23,6 +23,11 @@ type codegen_result =
 (** Record containing the implementation of all the components of the Go
     protocol implementation *)
 
+val show_codegen_result :
+  codegen_result -> ProtocolName.t -> RootDirName.t -> string
+(** Convert the code generation result to a string, showing the contents of
+    each generated implementation file *)
+
 val gen_code :
      RootDirName.t
   -> ProtocolName.t
