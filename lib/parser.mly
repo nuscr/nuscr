@@ -49,7 +49,6 @@
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
-// %start <Syntax.pragmas> pragmas
 %{ open Syntax
    open Loc
    module Name = Name.Name
@@ -82,7 +81,13 @@ let scr_module :=
   nps = nested_protocol_decl*;
   ps = protocol_decl* ;
   EOI ;
-    { {decl = md ; pragmas = pgs; types = ts ; nested_protocols = nps ; protocols = ps } }
+    { 
+      { decl = md 
+      ; pragmas = pgs
+      ; types = ts
+      ; nested_protocols = nps
+      ; protocols = ps } 
+    }
 
 
 let module_decl == located (raw_module_decl)
