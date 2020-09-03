@@ -10,7 +10,17 @@ open Loc
 
 (* association list of pragmas *)
 
-type pragmas = (string * string option) list [@@deriving show]
+type pragma = [`NestedProtocols | `ShowPragmas | `PrintUsage]
+[@@deriving show]
+
+let pragma_of_string str : pragma =
+  match str with
+  | "ShowPragmas" -> `ShowPragmas
+  | "PrintUsage" -> `PrintUsage
+  | "NestedProtocols" -> `NestedProtocols
+  | prg -> Err.UnknownPragma prg |> Err.uerr
+
+type pragmas = (pragma * string option) list [@@deriving show]
 
 (* a simple name *)
 module N = Name.Name
@@ -126,6 +136,7 @@ and raw_global_protocol =
 
 type scr_module =
   { decl: mod_decl
+  ; pragmas: pragmas
   ; types: type_decl list
   ; nested_protocols: global_protocol list
   ; protocols: global_protocol list }

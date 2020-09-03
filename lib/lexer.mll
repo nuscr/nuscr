@@ -28,6 +28,8 @@ let digit = ['0'-'9']
    come first in identifiers *)
 let identifier = (letter|underscore|digit)(letter|digit|underscore|prime)*
 
+let pragmas = "(*#"[^'#']*"#*)"
+
 (* let ext_identifier = '\"' (letter|digit|symbol)* '\"' *)
 
 let ext_identifier = '\"' [^'\"' '\n']* '\"'
@@ -69,7 +71,7 @@ and token = parse
 | "//" { line_comment lexbuf }
 | "(*)" { line_comment lexbuf }  (* nuScr extension: ml-style line comments *)
 | "/*" { c_style_block lexbuf }
-| "(*#" { ignore_pragma lexbuf }
+| pragmas as str { PRAGMA_STR str }
 | "(*" { ml_style_block 1 lexbuf }
 
 (* symbols *)
@@ -125,21 +127,3 @@ and token = parse
   let offset = Lexing.lexeme_start lexbuf in
   let str = Printf.sprintf "At offset %d: unexpected character('%c').\n" offset unrecog in
   LexError str |> raise }
-
-and pragma_lexer = parse
-(* whitespace *)
-| ('\t'|' ')+ { pragma_lexer lexbuf}
-| ('\n'|'\r') { new_line lexbuf ; pragma_lexer lexbuf}
-(* pragam structures *)
-| identifier as str
-  { if !in_pragma then IDENT str else pragma_lexer lexbuf }
-| ","
-  { if !in_pragma then COMMA else pragma_lexer lexbuf }
-| ":"
-  { if !in_pragma then COLON else pragma_lexer lexbuf }
-| "#*)" {  in_pragma := false ; pragma_lexer lexbuf }
-
-
-| "(*#" { in_pragma := true ; pragma_lexer lexbuf }
-| eof { EOI }
-| _ { pragma_lexer lexbuf }

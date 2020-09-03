@@ -13,27 +13,6 @@ let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
     {lexbuf.Lexing.lex_curr_p with Lexing.pos_fname= fname} ;
   lexbuf
 
-(* pragmas *)
-let parse_pragmas_from_lexbuf lexbuf : Syntax.pragmas =
-  try Parser.pragmas Lexer.pragma_lexer lexbuf with
-  | Lexer.LexError msg -> uerr (LexerError msg)
-  | Parser.Error ->
-      let err_interval =
-        (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
-      in
-      uerr (ParserError (build err_interval))
-  | e ->
-      Err.Violation
-        ("Found a problem while parsing pragmas:" ^ Exn.to_string e)
-      |> raise
-
-let parse_pragmas fname (ch : In_channel.t) : Syntax.pragmas =
-  let lexbuf = set_filename fname (Lexing.from_channel ch) in
-  parse_pragmas_from_lexbuf lexbuf
-
-let parse_pragmas_string string =
-  parse_pragmas_from_lexbuf @@ Lexing.from_string string
-
 let parse_from_lexbuf lexbuf : scr_module =
   try Parser.doc Lexer.token lexbuf with
   | Lexer.LexError msg -> uerr (LexerError msg)
@@ -50,7 +29,7 @@ let parse fname (ch : In_channel.t) : scr_module =
 
 let parse_string string = parse_from_lexbuf @@ Lexing.from_string string
 
-let validate_exn (ast : scr_module) ~verbose : unit =
+let validate_protocols_exn (ast : scr_module) ~verbose : unit =
   let show ~f ~sep xs =
     (* only show if verbose is on *)
     if verbose then String.concat ~sep (List.map ~f xs) |> print_endline
@@ -83,7 +62,41 @@ let validate_exn (ast : scr_module) ~verbose : unit =
       String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
     efsmss
 
-let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
+let validate_nested_protocols (ast : scr_module) ~verbose =
+  let show ~f ~sep input =
+    if verbose then print_endline (Printf.sprintf "%s%s" (f input) sep)
+    else ()
+  in
+  Protocol.validate_calls_in_protocols ast ;
+  let ast = Protocol.rename_nested_protocols ast in
+  show ~f:show_scr_module ~sep:"\n---------\n\n" ast ;
+  let global_t = Gtype.global_t_of_module ast in
+  let global_t = Gtype.normalise_global_t global_t in
+  show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
+  let global_t = Gtype.replace_recursion_with_nested_protocols global_t in
+  show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
+  let local_t = Ltype.project_global_t global_t in
+  show ~f:Ltype.show_local_t ~sep:"\n" local_t ;
+  ()
+
+let validate_exn (ast : scr_module) ~verbose : unit =
+  match
+    List.find ast.pragmas ~f:(fun (pragma, _) ->
+        match pragma with `NestedProtocols -> true | _ -> false)
+  with
+  | None ->
+      Protocol.ensure_no_nested_protocols ast ;
+      validate_protocols_exn ast ~verbose
+  | Some (_, _) -> validate_nested_protocols ast ~verbose
+
+let global_t_of_ast (ast : scr_module) : Gtype.global_t =
+  let ast = Protocol.rename_nested_protocols ast in
+  let global_t = Gtype.global_t_of_module ast in
+  let global_t = Gtype.normalise_global_t global_t in
+  Gtype.replace_recursion_with_nested_protocols global_t
+
+let enumerate_protocols (ast : scr_module) :
+    (ProtocolName.t * RoleName.t) list =
   let protocols = ast.protocols in
   let roles p =
     let {value= {name; roles; _}; _} = p in
@@ -93,7 +106,24 @@ let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
   in
   List.concat_map ~f:(fun p -> roles p) protocols
 
-let project_role ast ~protocol ~role : Ltype.t =
+let enumerate_nested_protocols (ast : scr_module) :
+    (ProtocolName.t * RoleName.t) list =
+  let global_t = global_t_of_ast ast in
+  let enumerated =
+    Map.mapi global_t ~f:(fun ~key:protocol ~data:((roles, roles'), _, _) ->
+        List.map (roles @ roles') ~f:(fun role -> (protocol, role)))
+  in
+  List.concat @@ Map.data enumerated
+
+let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
+  match
+    List.find ast.pragmas ~f:(fun (pragma, _) ->
+        match pragma with `NestedProtocols -> true | _ -> false)
+  with
+  | None -> enumerate_protocols ast
+  | Some (_, _) -> enumerate_nested_protocols ast
+
+let project_protocol_role ast ~protocol ~role : Ltype.t =
   let gp =
     List.find_exn
       ~f:(fun gt ->
@@ -104,17 +134,25 @@ let project_role ast ~protocol ~role : Ltype.t =
   let gt = Gtype.of_protocol gp in
   Ltype.project role gt
 
+let project_nested_protocol ast ~protocol ~role : Ltype.t =
+  let global_t = global_t_of_ast ast in
+  let open Ltype in
+  let local_t = project_global_t global_t in
+  let local_protocol_id = LocalProtocolId.create protocol role in
+  let _, l_type = Map.find_exn local_t local_protocol_id in
+  l_type
+
+let project_role ast ~protocol ~role : Ltype.t =
+  match
+    List.find ast.pragmas ~f:(fun (pragma, _) ->
+        match pragma with `NestedProtocols -> true | _ -> false)
+  with
+  | None -> project_protocol_role ast ~protocol ~role
+  | Some (_, _) -> project_nested_protocol ast ~protocol ~role
+
 let generate_fsm ast ~protocol ~role =
   let lt = project_role ast ~protocol ~role in
   Efsm.of_local_type lt
-
-let generate_code ~monad ast ~protocol ~role =
-  let fsm = generate_fsm ast ~protocol ~role in
-  Codegen.gen_code ~monad (protocol, role) fsm
-
-let generate_ast ~monad ast ~protocol ~role =
-  let fsm = generate_fsm ast ~protocol ~role in
-  Codegen.gen_ast ~monad (protocol, role) fsm
 
 let write_file file_name content =
   Out_channel.with_file file_name ~f:(fun file ->
@@ -124,7 +162,10 @@ let create_dir dir_path =
   let _ = Unix.umask 0o000 in
   try Unix.mkdir dir_path 0o755
   with Unix.Unix_error _ ->
-    sprintf "Unable to create directory: %s" dir_path |> prerr_endline
+    uerr
+      (FileSysErr
+         (sprintf "Unable to create new directory: %s in path: %s" dir_path
+            (Unix.getcwd ())))
 
 let create_pkg pkg_name = create_dir (PackageName.user pkg_name)
 
@@ -137,7 +178,7 @@ let gen_file_path path file_name = sprintf "%s/%s" path file_name
 let change_dir dir_path =
   try Unix.chdir dir_path
   with Unix.Unix_error _ ->
-    sprintf "Unable to change directory to: %s" dir_path |> prerr_endline
+    uerr (FileSysErr (sprintf "Unable to change directory to: %s" dir_path))
 
 let generate_go_impl
     { messages
@@ -224,7 +265,7 @@ let generate_go_impl
     in
     ()
   in
-  change_dir project_root ;
+  change_dir (RootDirName.user project_root) ;
   create_pkg root_pkg ;
   change_dir (PackageName.user root_pkg) ;
   write_messages () ;
@@ -234,3 +275,47 @@ let generate_go_impl
   write_entry_point () ;
   write_callbacks () ;
   write_roles ()
+
+let generate_go_code ast ~protocol ~out_dir ~go_path =
+  let protocol_pkg = protocol_pkg_name protocol in
+  let is_global_protocol () =
+    List.exists ast.protocols ~f:(fun {loc= _; value= proto} ->
+        String.equal (Name.Name.user proto.name) (ProtocolName.user protocol))
+  in
+  let root_dir =
+    RootDirName.of_string @@ Printf.sprintf "%s/%s" out_dir protocol_pkg
+  in
+  let gen_code () =
+    let global_t = global_t_of_ast ast in
+    ensure_unique_identifiers global_t ;
+    let local_t = Ltype.project_global_t global_t in
+    Gocodegen.gen_code root_dir protocol global_t local_t
+  in
+  let write_code_to_files result =
+    let project_root =
+      RootDirName.of_string
+      @@ Printf.sprintf "%s/%s" (Option.value_exn go_path) out_dir
+    in
+    let protocol_root_pkg =
+      PackageName.of_string @@ protocol_pkg_name protocol
+    in
+    generate_go_impl result project_root protocol_root_pkg protocol
+  in
+  if not (is_global_protocol ()) then
+    uerr
+      (InvalidCommandLineParam
+         (Printf.sprintf
+            "Global protocol '%s' is not defined. Implementation entrypoint \
+             must be a global protocol"
+            (ProtocolName.user protocol))) ;
+  let result = gen_code () in
+  if Option.is_some go_path then write_code_to_files result ;
+  Gocodegen.show_codegen_result result protocol root_dir
+
+let generate_ocaml_code ~monad ast ~protocol ~role =
+  let fsm = generate_fsm ast ~protocol ~role in
+  Codegen.gen_code ~monad (protocol, role) fsm
+
+let generate_ast ~monad ast ~protocol ~role =
+  let fsm = generate_fsm ast ~protocol ~role in
+  Codegen.gen_ast ~monad (protocol, role) fsm

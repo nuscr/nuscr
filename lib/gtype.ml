@@ -101,7 +101,7 @@ let show =
           (show_global_type_internal (indent + 1) g)
           current_indent
     | TVarG n ->
-        sprintf "%scontunue %s;\n" current_indent (TypeVariableName.user n)
+        sprintf "%scontinue %s;\n" current_indent (TypeVariableName.user n)
     | EndG -> sprintf "%send\n" current_indent
     | ChoiceG (r, gs) ->
         let pre =

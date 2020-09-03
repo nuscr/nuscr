@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 // This may become invalid after checks for unreachable interactions
 global protocol Proto1(role A, role B, role C) {
   nested protocol Proto2(role D, role E; new role F) {

@@ -4,6 +4,9 @@ open Names
 
 type user_error =
   | UnknownPragma of string
+  | IncompatibleFlag of string * string
+  | MissingFlag of string * string
+  | PragmaNotSet of string * string
   | LexerError of string
   | ParserError of source_loc
   | UnboundRecursionName of TypeVariableName.t
@@ -23,14 +26,19 @@ type user_error =
   | DuplicateRoleParams of ProtocolName.t
   | ChoiceCallRoleMismatch of ProtocolName.t
   | DuplicatePayloadField of LabelName.t * VariableName.t
+  | FileSysErr of string
 [@@deriving sexp_of]
 
-(** UserError is a user error and should be reported back so it can be fixed *)
 exception UserError of user_error
 [@@deriving sexp_of]
+(** UserError is a user error and should be reported back so it can be fixed *)
 
 let show_user_error = function
   | UnknownPragma prg -> "Unknown pragma: " ^ prg
+  | IncompatibleFlag (flag, pragma) ->
+      "Incompatible flag: " ^ flag ^ " set with pragma: " ^ pragma
+  | MissingFlag (flag, msg) -> "Flag: " ^ flag ^ " is not set. " ^ msg
+  | PragmaNotSet (prg, msg) -> "Pramga: " ^ prg ^ " is not set. " ^ msg
   | LexerError msg -> "Lexer error: " ^ msg
   | ParserError interval ->
       "Parser error: An error occurred at " ^ show_source_loc interval
@@ -95,12 +103,13 @@ let show_user_error = function
       "Duplicate field name '" ^ VariableName.user field ^ "' in message '"
       ^ LabelName.user label ^ "' at " ^ show_source_loc
       @@ LabelName.where label
+  | FileSysErr msg -> "File System Error: " ^ msg
 
+exception Violation of string
+[@@deriving sexp_of]
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
     user error *)
-exception Violation of string
-[@@deriving sexp_of]
 
 exception UnImplemented of string [@@deriving sexp_of]
 

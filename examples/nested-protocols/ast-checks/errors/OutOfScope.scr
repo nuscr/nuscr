@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 global protocol OutOfScope1(role A, role B) {
   nested protocol Nested1(role C, role D) {
     C calls Nested2(D, C);

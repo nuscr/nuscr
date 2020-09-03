@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol Nested3(role T, role U; new role V) {
   choice at V {
     do Proto(V, U, T);

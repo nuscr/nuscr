@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol Proto(role C, role D; new role E) {
   choice at C {
     m1() from C to D;

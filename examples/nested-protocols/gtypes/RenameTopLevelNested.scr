@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol Proto1(role A, role B; new role C) {
   do Proto1(A, B);
   A calls Proto1(B, C);

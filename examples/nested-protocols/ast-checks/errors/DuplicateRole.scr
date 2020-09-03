@@ -1,3 +1,5 @@
+(*# NestedProtocols #*)
+
 nested protocol P1(role X, role Y) {
   choice at Start {
     m1() from Start to End;
