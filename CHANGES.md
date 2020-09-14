@@ -2,7 +2,7 @@
 
 ## Added
 - Added support for pragmas in code
-- Added for nested protocols
+- Added support for nested protocols
 
 
 ## Changed
