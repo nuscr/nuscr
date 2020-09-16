@@ -3,12 +3,12 @@ open Syntax
 open Loc
 open Err
 
+(** Record containing a protocol's signature *)
 type protocol_decl =
   { proto_name: string
   ; all_roles: string list
   ; split_decl: string list * string list
   ; loc: source_loc }
-(** Record containing a protocol's signature *)
 
 let show_roles split_decl =
   let list_to_str l = String.concat ~sep:", " l in
@@ -23,6 +23,7 @@ let show_protocol_decl (proto_decl : protocol_decl) =
   String.concat ~sep:""
     [proto_decl.proto_name; "("; show_roles proto_decl.split_decl; ")"]
 
+(** Symbol table type *)
 type symbol_table =
   { protocol: string
   ; table: (string, protocol_decl, String.comparator_witness) Map.t
@@ -35,7 +36,6 @@ type symbol_table =
             fprintf fmt "{%s}" nested_protos]
   ; parent: symbol_table option }
 [@@deriving show]
-(** Symbol table type *)
 
 (** Generate nested protocol names based on the name of the parent protocol*)
 let name_with_prefix prefix proto_name =

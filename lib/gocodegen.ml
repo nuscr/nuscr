@@ -953,6 +953,7 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
   in
   (env, impl)
 
+(** Result of code generation process *)
 type codegen_result =
   { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
@@ -972,7 +973,6 @@ type codegen_result =
   ; protocol_setup:
       (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; entry_point: string }
-(** Result of code generation process *)
 
 (** Generate empty code gen result *)
 let empty_result () : codegen_result =

@@ -1,6 +1,8 @@
 open! Base
 open Names
 
+(** Record containing the implementation of all the components of the Go
+    protocol implementation *)
 type codegen_result =
   { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
@@ -20,8 +22,6 @@ type codegen_result =
   ; protocol_setup:
       (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
   ; entry_point: string }
-(** Record containing the implementation of all the components of the Go
-    protocol implementation *)
 
 val show_codegen_result :
   codegen_result -> ProtocolName.t -> RootDirName.t -> string
