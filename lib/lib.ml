@@ -80,14 +80,11 @@ let validate_nested_protocols (ast : scr_module) ~verbose =
   ()
 
 let validate_exn (ast : scr_module) ~verbose : unit =
-  match
-    List.find ast.pragmas ~f:(fun (pragma, _) ->
-        match pragma with NestedProtocols -> true | _ -> false)
-  with
-  | None ->
-      Protocol.ensure_no_nested_protocols ast ;
-      validate_protocols_exn ast ~verbose
-  | Some (_, _) -> validate_nested_protocols ast ~verbose
+  if Pragma.nested_protocol_enabled ast then
+    validate_nested_protocols ast ~verbose
+  else (
+    Protocol.ensure_no_nested_protocols ast ;
+    validate_protocols_exn ast ~verbose )
 
 let global_t_of_ast (ast : scr_module) : Gtype.global_t =
   let ast = Protocol.rename_nested_protocols ast in
@@ -116,12 +113,8 @@ let enumerate_nested_protocols (ast : scr_module) :
   List.concat @@ Map.data enumerated
 
 let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
-  match
-    List.find ast.pragmas ~f:(fun (pragma, _) ->
-        match pragma with NestedProtocols -> true | _ -> false)
-  with
-  | None -> enumerate_protocols ast
-  | Some (_, _) -> enumerate_nested_protocols ast
+  if Pragma.nested_protocol_enabled ast then enumerate_nested_protocols ast
+  else enumerate_protocols ast
 
 let project_protocol_role ast ~protocol ~role : Ltype.t =
   let gp =
@@ -143,12 +136,9 @@ let project_nested_protocol ast ~protocol ~role : Ltype.t =
   l_type
 
 let project_role ast ~protocol ~role : Ltype.t =
-  match
-    List.find ast.pragmas ~f:(fun (pragma, _) ->
-        match pragma with NestedProtocols -> true | _ -> false)
-  with
-  | None -> project_protocol_role ast ~protocol ~role
-  | Some (_, _) -> project_nested_protocol ast ~protocol ~role
+  if Pragma.nested_protocol_enabled ast then
+    project_nested_protocol ast ~protocol ~role
+  else project_protocol_role ast ~protocol ~role
 
 let generate_fsm ast ~protocol ~role =
   let lt = project_role ast ~protocol ~role in

@@ -110,12 +110,8 @@ let generate_code (ast : Syntax.scr_module) gencode =
   match gencode with
   | Some (role, protocol) ->
       let impl =
-        match
-          List.find ast.pragmas ~f:(fun (pragma, _) ->
-              match pragma with NestedProtocols -> true | _ -> false)
-        with
-        | None -> gen_ocaml role protocol
-        | Some _ -> gen_go protocol
+        if Pragma.nested_protocol_enabled ast then gen_go protocol
+        else gen_ocaml role protocol
       in
       print_endline impl
   | None -> ()
