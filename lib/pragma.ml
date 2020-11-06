@@ -18,3 +18,8 @@ let parse_pragmas_from_lexbuf lexbuf : Syntax.pragmas =
 
 let parse_pragmas_string string =
   parse_pragmas_from_lexbuf @@ Lexing.from_string string
+
+let nested_protocol_enabled ast =
+  List.exists
+    ~f:(fun (p, _) -> Poly.( = ) p Syntax.NestedProtocols)
+    ast.Syntax.pragmas
