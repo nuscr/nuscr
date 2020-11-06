@@ -1,0 +1,8 @@
+global protocol P(role A, role B) {
+  rec X {
+    Hello() from A to B;
+    rec Y {
+      continue Z;
+    }
+  }
+}

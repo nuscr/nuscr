@@ -163,55 +163,72 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
     if not @@ List.mem roles r ~equal:RoleName.equal then
       uerr @@ UnboundRole r
   in
-  let rec conv_interactions rec_names
+  let rec conv_interactions free_names
       (interactions : global_interaction list) =
     match interactions with
-    | [] -> EndG
+    | [] -> (EndG, free_names)
     | {value; _} :: rest -> (
       match value with
       | MessageTransfer {message; from_role; to_roles; _} ->
           let from_role = RoleName.of_name from_role in
           let to_roles = List.map ~f:RoleName.of_name to_roles in
           check_role from_role ;
-          let init = conv_interactions rec_names rest in
+          let init, free_names = conv_interactions free_names rest in
           let f to_role acc =
             check_role to_role ;
             if RoleName.equal from_role to_role then
               uerr (ReflexiveMessage from_role) ;
             MessageG (of_syntax_message message, from_role, to_role, acc)
           in
-          List.fold_right ~f ~init to_roles
+          (List.fold_right ~f ~init to_roles, free_names)
       | Recursion (rname, interactions) ->
           let rname = TypeVariableName.of_name rname in
-          if List.mem rec_names rname ~equal:TypeVariableName.equal then
+          if Set.mem free_names rname then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
-          MuG (rname, conv_interactions (rname :: rec_names) interactions)
+          let cont, free_names_ =
+            conv_interactions free_names interactions
+          in
+          (* Remove degenerate recursion here *)
+          if Set.mem free_names_ rname then
+            (MuG (rname, cont), Set.remove free_names_ rname)
+          else (cont, free_names_)
       | Continue name ->
           let name = TypeVariableName.of_name name in
-          if List.mem rec_names name ~equal:TypeVariableName.equal then (
-            assert_empty rest ; TVarG name )
-          else uerr (UnboundRecursionName name)
+          assert_empty rest ;
+          (TVarG name, Set.add free_names name)
       | Choice (role, interactions_list) ->
           let role = RoleName.of_name role in
           assert_empty rest ;
           check_role role ;
-          ChoiceG
-            ( role
-            , List.map ~f:(conv_interactions rec_names) interactions_list )
+          let conts =
+            List.map ~f:(conv_interactions free_names) interactions_list
+          in
+          ( ChoiceG (role, List.map ~f:fst conts)
+          , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
+          )
       | Do (protocol, _, roles, _) ->
           (* Previously this would've been a violation *)
           let fst_role = RoleName.of_name @@ List.hd_exn roles in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont = conv_interactions rec_names rest in
-          CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
+          let cont, free_names = conv_interactions free_names rest in
+          ( CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
+          , free_names )
       | Calls (caller, proto, _, roles, _) ->
           let caller_role = RoleName.of_name caller in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont = conv_interactions rec_names rest in
-          CallG (caller_role, ProtocolName.of_name proto, role_names, cont) )
+          let cont, free_names = conv_interactions free_names rest in
+          ( CallG (caller_role, ProtocolName.of_name proto, role_names, cont)
+          , free_names ) )
   in
-  conv_interactions [] interactions
+  let gtype, free_names =
+    conv_interactions
+      (Set.empty (module Names.TypeVariableName))
+      interactions
+  in
+  match Set.choose free_names with
+  | Some free_name -> uerr (UnboundRecursionName free_name)
+  | None -> gtype
 
 let global_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in
