@@ -27,6 +27,7 @@ type user_error =
   | ChoiceCallRoleMismatch of ProtocolName.t
   | DuplicatePayloadField of LabelName.t * VariableName.t
   | FileSysErr of string
+  | ProtocolNotFound of ProtocolName.t
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -104,6 +105,7 @@ let show_user_error = function
       ^ LabelName.user label ^ "' at " ^ show_source_loc
       @@ LabelName.where label
   | FileSysErr msg -> "File System Error: " ^ msg
+  | ProtocolNotFound p -> "Cannot find protocol: " ^ ProtocolName.user p
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
