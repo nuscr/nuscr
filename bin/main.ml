@@ -83,9 +83,9 @@ let gen_output ast f = function
 let process_pragmas (pragmas : Syntax.pragmas) : unit =
   let process_global_pragma (k, v) =
     match (k, v) with
-    | `PrintUsage, _ -> usage () |> print_endline
-    | `ShowPragmas, _ -> Syntax.show_pragmas pragmas |> print_endline
-    | `NestedProtocols, _ ->
+    | Syntax.PrintUsage, _ -> usage () |> print_endline
+    | Syntax.ShowPragmas, _ -> Syntax.show_pragmas pragmas |> print_endline
+    | Syntax.NestedProtocols, _ ->
         if Option.is_some !fsm then
           Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
   in
@@ -112,7 +112,7 @@ let generate_code (ast : Syntax.scr_module) gencode =
       let impl =
         match
           List.find ast.pragmas ~f:(fun (pragma, _) ->
-              match pragma with `NestedProtocols -> true | _ -> false)
+              match pragma with NestedProtocols -> true | _ -> false)
         with
         | None -> gen_ocaml role protocol
         | Some _ -> gen_go protocol
