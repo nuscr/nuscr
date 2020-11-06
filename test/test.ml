@@ -64,9 +64,9 @@ exception ExpectFail
 let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
   let process_global_pragma ((k : Nuscrlib.Syntax.pragma), v) =
     match (k, v) with
-    | `PrintUsage, _ -> ()
-    | `ShowPragmas, _ -> ()
-    | `NestedProtocols, _ -> ()
+    | PrintUsage, _ -> ()
+    | ShowPragmas, _ -> ()
+    | NestedProtocols, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas
 

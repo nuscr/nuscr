@@ -82,7 +82,7 @@ let validate_nested_protocols (ast : scr_module) ~verbose =
 let validate_exn (ast : scr_module) ~verbose : unit =
   match
     List.find ast.pragmas ~f:(fun (pragma, _) ->
-        match pragma with `NestedProtocols -> true | _ -> false)
+        match pragma with NestedProtocols -> true | _ -> false)
   with
   | None ->
       Protocol.ensure_no_nested_protocols ast ;
@@ -118,7 +118,7 @@ let enumerate_nested_protocols (ast : scr_module) :
 let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
   match
     List.find ast.pragmas ~f:(fun (pragma, _) ->
-        match pragma with `NestedProtocols -> true | _ -> false)
+        match pragma with NestedProtocols -> true | _ -> false)
   with
   | None -> enumerate_protocols ast
   | Some (_, _) -> enumerate_nested_protocols ast
@@ -145,7 +145,7 @@ let project_nested_protocol ast ~protocol ~role : Ltype.t =
 let project_role ast ~protocol ~role : Ltype.t =
   match
     List.find ast.pragmas ~f:(fun (pragma, _) ->
-        match pragma with `NestedProtocols -> true | _ -> false)
+        match pragma with NestedProtocols -> true | _ -> false)
   with
   | None -> project_protocol_role ast ~protocol ~role
   | Some (_, _) -> project_nested_protocol ast ~protocol ~role
