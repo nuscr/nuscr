@@ -118,10 +118,14 @@ let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
 
 let project_protocol_role ast ~protocol ~role : Ltype.t =
   let gp =
-    List.find_exn
-      ~f:(fun gt ->
-        ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol)
-      ast.protocols
+    match
+      List.find
+        ~f:(fun gt ->
+          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol)
+        ast.protocols
+    with
+    | Some gp -> gp
+    | None -> uerr (ProtocolNotFound protocol)
   in
   let gp = Protocol.expand_global_protocol ast gp in
   let gt = Gtype.of_protocol gp in

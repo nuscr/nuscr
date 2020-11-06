@@ -14,6 +14,7 @@
 - Non-distinct choice prefixes now raise an error
 - Regression introduced with the addition of pragmas
 - Degenerate recursions in protocols will be removed
+- Catch an uncaught exception when user enters a non-existent protocol from CLI
 
 ## Removed
 
