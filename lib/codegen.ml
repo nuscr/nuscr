@@ -32,7 +32,7 @@ let state_action_type (g : Efsm.t) (st : int) =
   in
   G.fold_succ_e f g st `Terminal
 
-let mk_lid id = Location.mknoloc (parse id)
+let mk_lid id = Location.mknoloc (Option.value_exn (unflatten [id]))
 
 let mk_constr id = Typ.constr (mk_lid id) []
 
