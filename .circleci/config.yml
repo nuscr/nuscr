@@ -64,6 +64,11 @@ jobs:
             eval $(opam config env)
             dune build @fmt
 
+      - run:
+          name: Build Docker image
+          command: |
+            docker build .
+
       - persist_to_workspace:
           root: .
           paths:
