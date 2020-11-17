@@ -10,7 +10,7 @@ WORKDIR $HOME/nuscr
 
 RUN opam pin add --no-action -y nuscr.dev -k path . \
   && opam pin add --no-action -y nuscr-web.dev -k path . \
-  && opam install -dt . --deps-only
+  && opam install -dt ./nuscr.opam --deps-only
 
 RUN eval $(opam config env) \
   && dune build \
