@@ -64,14 +64,6 @@ jobs:
             eval $(opam config env)
             dune build @fmt
 
-      - setup_remote_docker:
-          version: 19.03.13
-
-      - run:
-          name: Build Docker image
-          command: |
-            docker build .
-
       - persist_to_workspace:
           root: .
           paths:
@@ -102,12 +94,37 @@ jobs:
           name: Deploy docs to gh-pages branch
           command: gh-pages --dist docs --dotfiles --message "[skip ci] change" --dist docs
 
+  build-docker-image:
+    docker:
+      - image: circleci/buildpack-deps
+        auth:
+          username: nuscrbot
+          password: $DOCKERHUB_PASSWORD
+
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          version: 19.03.13
+
+      - run:
+          name: Build Docker image
+          command: |
+            docker build . -t nuscr/nuscr:latest
+
+      - run:
+          name: Push Docker image
+          command: |
+            docker push nuscr/nuscr:latest
 
 workflows:
   version: 2
   build:
     jobs:
       - build:
+          context:
+            - docker-hub-creds
+      - build-docker-image:
           context:
             - docker-hub-creds
       - docs-deploy:
