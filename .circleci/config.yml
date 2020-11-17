@@ -3,6 +3,9 @@ jobs:
   build:
     docker:
       - image: ocaml/opam2
+        auth:
+          username: nuscrbot
+          password: $DOCKERHUB_PASSWORD
 
     steps:
       - checkout
@@ -97,6 +100,8 @@ workflows:
   build:
     jobs:
       - build
+          context:
+            - docker-hub-creds
       - docs-deploy:
           requires:
             - build
