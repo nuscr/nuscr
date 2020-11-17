@@ -4,7 +4,7 @@ RUN sudo apt-get update \
   && sudo apt-get install m4 -y \
   && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
-COPY --chown=opam/opam ./ $HOME/nuscr
+COPY --chown=opam:opam ./ $HOME/nuscr
 
 WORKDIR $HOME/nuscr
 
