@@ -115,6 +115,7 @@ jobs:
       - run:
           name: Push Docker image
           command: |
+            docker login -u nuscrbot -p $DOCKERHUB_PASSWORD
             docker push nuscr/nuscr:latest
 
 workflows:
