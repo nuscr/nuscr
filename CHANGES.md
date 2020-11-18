@@ -7,6 +7,8 @@
 
 ## Changed
 
+- New, improved command line interface with cmdliner
+
 ## Deprecated
 
 ## Fixed
