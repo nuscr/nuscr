@@ -111,7 +111,7 @@ jobs:
           name: Build Docker image
           command: |
             docker build . -t nuscr/nuscr:latest
-            docker run nuscr/nuscr:latest -- --version
+            docker run nuscr/nuscr:latest nuscr --version
 
       - run:
           name: Push Docker image
