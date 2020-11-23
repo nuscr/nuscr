@@ -62,40 +62,36 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
         fsm
     in
     let () =
-      match gencode_ocaml with
-      | Some (role, protocol) ->
-          let impl =
-            Lib.generate_ocaml_code ~monad:false ast ~protocol ~role
-          in
-          print_endline impl
-      | None -> ()
+      Option.iter
+        ~f:(fun (role, protocol) ->
+          Lib.generate_ocaml_code ~monad:false ast ~protocol ~role
+          |> print_endline)
+        gencode_ocaml
     in
     let () =
-      match gencode_monadic_ocaml with
-      | Some (role, protocol) ->
-          let impl =
-            Lib.generate_ocaml_code ~monad:true ast ~protocol ~role
-          in
-          print_endline impl
-      | None -> ()
+      Option.iter
+        ~f:(fun (role, protocol) ->
+          Lib.generate_ocaml_code ~monad:true ast ~protocol ~role
+          |> print_endline)
+        gencode_monadic_ocaml
     in
     let () =
-      match gencode_go with
-      | Some (_role, protocol) -> (
-        match out_dir with
-        | Some out_dir ->
-            let impl =
-              Lib.generate_go_code ast ~protocol ~out_dir ~go_path
-            in
-            print_endline impl
-        | None ->
-            Err.UserError
-              (Err.MissingFlag
-                 ( "out-dir"
-                 , "This flag must be set in order to generate go \
-                    implementation" ))
-            |> raise )
-      | None -> ()
+      Option.iter
+        ~f:(fun (_role, protocol) ->
+          match out_dir with
+          | Some out_dir ->
+              let impl =
+                Lib.generate_go_code ast ~protocol ~out_dir ~go_path
+              in
+              print_endline impl
+          | None ->
+              Err.UserError
+                (Err.MissingFlag
+                   ( "out-dir"
+                   , "This flag must be set in order to generate go \
+                      implementation" ))
+              |> raise)
+        gencode_go
     in
     `Ok ()
   with
