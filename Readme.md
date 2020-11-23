@@ -20,10 +20,10 @@ The easiest way to install is to use [opam](https://opam.ocaml.org) via
 then you can check your installation via
 
 ```
-  nuscr -version
+  nuscr --help
 ```
 
-which prints the version installed.
+which prints help and usage information.
 
 ## Development
 
@@ -54,7 +54,7 @@ the changes in each version.
 
 ## Goals and Non-goals
 
-Our vision of nuScr is to provide a simple and lightweight implementation based 
+Our vision of nuScr is to provide a simple and lightweight implementation based
 on multiparty session types (MPST).
 We aim to make it easy for researchers to extend the original MPST, and to
 prototype implementations.
