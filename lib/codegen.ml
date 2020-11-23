@@ -308,17 +308,19 @@ let gen_impl_module ~monad (proto : ProtocolName.t) (role : RoleName.t) start
   let inner_structure = Mod.structure [comms_typedef; run] in
   let inner_structure =
     if monad then
-      Mod.functor_ (Location.mknoloc "M")
-        (Some (Mty.ident (mk_lid "Monad")))
-        inner_structure
+      let param =
+        Named (Location.mknoloc (Some "M"), Mty.ident (mk_lid "Monad"))
+      in
+      Mod.functor_ param inner_structure
     else inner_structure
   in
   let module_ =
-    Mod.functor_ (Location.mknoloc "CB")
-      (Some (Mty.ident (mk_lid "Callbacks")))
-      inner_structure
+    let param =
+      Named (Location.mknoloc (Some "CB"), Mty.ident (mk_lid "Callbacks"))
+    in
+    Mod.functor_ param inner_structure
   in
-  Str.module_ (Mb.mk (Location.mknoloc module_name) module_)
+  Str.module_ (Mb.mk (Location.mknoloc (Some module_name)) module_)
 
 let monad_signature =
   let monad_type =
