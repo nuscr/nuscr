@@ -17,3 +17,4 @@ RUN eval $(opam config env) \
   && dune build \
   && dune install
 
+CMD ["nuscr"]
