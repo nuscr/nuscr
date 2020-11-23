@@ -26,7 +26,7 @@ let gen_output ast f = function
   | _ -> ()
 
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
-    gencode_monadic_ocaml gencode_go =
+    gencode_monadic_ocaml gencode_go sexp_global_type =
   let process_pragmas (pragmas : Syntax.pragmas) : unit =
     let process_global_pragma (k, v) =
       match (k, v) with
@@ -92,6 +92,13 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
                       implementation" ))
               |> raise)
         gencode_go
+    in
+    let () =
+      Option.iter
+        ~f:(fun protocol ->
+          let protocol = ProtocolName.of_string protocol in
+          Lib.generate_sexp ast ~protocol |> print_endline)
+        sexp_global_type
     in
     `Ok ()
   with
@@ -183,6 +190,15 @@ let gencode_go =
     & opt (some role_proto) None
     & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO")
 
+let sexp_global_type =
+  let doc =
+    "Generate the S-expression for the specified protocol. <protocol_name>"
+  in
+  Arg.(
+    value
+    & opt (some string) None
+    & info ["generate-sexp"] ~doc ~docv:"PROTO")
+
 let out_dir =
   let doc =
     "Path to the project directory inside which the code is to be \
@@ -212,7 +228,7 @@ let cmd =
       ret
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
-        ))
+        $ sexp_global_type ))
   , Term.info "nuscr" ~version:"%%VERSION%%" ~doc ~exits:Term.default_exits
       ~man )
 

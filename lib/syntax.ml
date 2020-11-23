@@ -30,7 +30,7 @@ let equal_name = N.equal
 
 let compare_name = N.compare
 
-type annotation = string [@@deriving show {with_path= false}]
+type annotation = string [@@deriving show {with_path= false}, sexp_of]
 
 type raw_mod_decl = {module_name: name} [@@deriving show {with_path= false}]
 
@@ -92,7 +92,7 @@ let message_payload_ty =
   | _ -> []
 
 type global_interaction = raw_global_interaction located
-[@@deriving show {with_path= false}]
+[@@deriving show {with_path= false}, sexp_of]
 
 and raw_global_interaction =
   | MessageTransfer of
@@ -112,10 +112,10 @@ and raw_global_interaction =
 [@@deriving show {with_path= false}]
 
 type protocol_mods = Aux | AuxExplicit | Explicit
-[@@deriving show {with_path= false}]
+[@@deriving show {with_path= false}, sexp_of]
 
 type global_protocol = raw_global_protocol located
-[@@deriving show {with_path= false}]
+[@@deriving show {with_path= false}, sexp_of]
 
 and raw_global_protocol =
   { name: name
@@ -131,7 +131,7 @@ and raw_global_protocol =
   ; nested_protocols: global_protocol list
   ; interactions: global_interaction list
   ; ann: annotation option }
-[@@deriving show {with_path= false}]
+[@@deriving show {with_path= false}, sexp_of]
 
 type scr_module =
   { decl: mod_decl

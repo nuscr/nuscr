@@ -64,6 +64,11 @@ val generate_ocaml_code :
     code for the [role] in [protocol], inside a [module] [monad] indicates
     whether the generated code uses a monad for transport (e.g. Lwt, Async) *)
 
+val generate_sexp : Syntax.scr_module -> protocol:ProtocolName.t -> string
+(** [generate_code ~monad module protocol role] generates event-style OCaml
+    code for the [role] in [protocol], inside a [module] [monad] indicates
+    whether the generated code uses a monad for transport (e.g. Lwt, Async) *)
+
 val generate_ast :
      monad:bool
   -> Syntax.scr_module

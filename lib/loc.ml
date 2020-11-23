@@ -26,4 +26,6 @@ type 'a located =
         [@printer
           fun fmt interval -> fprintf fmt "%s" (show_source_loc interval)]
   ; value: 'a }
-[@@deriving show, sexp_of, eq, ord]
+[@@deriving show, eq, ord]
+
+let sexp_of_located f v = f v.value

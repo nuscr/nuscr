@@ -310,6 +310,20 @@ let generate_ocaml_code ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
   Codegen.gen_code ~monad (protocol, role) fsm
 
+let generate_sexp ast ~protocol =
+  let gp =
+    match
+      List.find
+        ~f:(fun gt ->
+          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol)
+        ast.protocols
+    with
+    | Some gp -> gp
+    | None -> uerr (ProtocolNotFound protocol)
+  in
+  let gp = Protocol.expand_global_protocol ast gp in
+  Syntax.sexp_of_global_protocol gp |> Sexp.to_string
+
 let generate_ast ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
   Codegen.gen_ast ~monad (protocol, role) fsm
