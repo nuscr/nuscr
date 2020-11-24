@@ -1,10 +1,10 @@
-(lang dune 1.11)
+(lang dune 2.7)
 
 (name nuscr)
 
-(using menhir 1.0)
+(cram enable)
 
-(using fmt 1.2)
+(using menhir 1.0)
 
 (generate_opam_files true)
 
@@ -34,8 +34,7 @@
     (>= 20190924)))
   (ppx_deriving
    (>= 4.4))
-  (dune
-   (>= 1.11.4))
+  dune
   (base
    (>= v0.12.0))
   (stdio
@@ -62,8 +61,7 @@
  (depends
   (nuscr
    (= :version))
-  (dune
-   (>= 1.11.4))
+  dune
   (js_of_ocaml
    (>= 3.5.0))
   (js_of_ocaml-ppx
