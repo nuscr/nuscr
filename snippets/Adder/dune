@@ -1,7 +1,8 @@
 (executable
  (name Adder)
  (modules Adder C S)
- (libraries threads))
+ (libraries threads)
+ (optional))
 
 (env
  (dev

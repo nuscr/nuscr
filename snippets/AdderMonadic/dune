@@ -1,7 +1,8 @@
 (executable
  (name AdderMonadic)
  (modules AdderMonadic C S)
- (libraries threads lwt lwt.unix))
+ (libraries threads lwt lwt.unix)
+ (optional))
 
 (env
  (dev
