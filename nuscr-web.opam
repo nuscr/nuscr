@@ -12,13 +12,14 @@ doc: "https://nuscr.github.io/nuscr/docs/"
 bug-reports: "https://github.com/nuscr/nuscr/issues"
 depends: [
   "nuscr" {= version}
-  "dune" {>= "1.11.4"}
+  "dune" {>= "2.7"}
   "js_of_ocaml" {>= "3.5.0"}
   "js_of_ocaml-ppx" {>= "3.5.0"}
   "js_of_ocaml-tyxml" {>= "3.5.0"}
+  "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
