@@ -42,6 +42,20 @@ and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
 and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
 
+let show_binop = function
+  | Add -> "+"
+  | Minus -> "-"
+  | Eq -> "="
+  | Neq -> "<>"
+  | Lt -> "<"
+  | Gt -> ">"
+  | Leq -> "<="
+  | Geq -> ">="
+  | And -> "&&"
+  | Or -> "||"
+
+let show_unop = function Neg -> "-" | Not -> "not "
+
 type ty = Simple of name | Refined of name * name * expr
 [@@deriving eq, ord, show]
 

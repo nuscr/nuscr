@@ -11,7 +11,19 @@ type expr =
   | String of string
   | Binop of Syntax.binop * expr * expr
   | Unop of Syntax.unop * expr
-[@@deriving sexp_of, eq, ord, show]
+[@@deriving sexp_of, eq, ord]
+
+let rec show_expr = function
+  | Var v -> VariableName.user v
+  | Int i -> Int.to_string i
+  | Bool b -> Bool.to_string b
+  | String s -> "\"" ^ s ^ "\""
+  | Binop (b, e1, e2) ->
+      sprintf "(%s)%s(%s)" (show_expr e1) (Syntax.show_binop b)
+        (show_expr e2)
+  | Unop (u, e) -> sprintf "%s(%s)" (Syntax.show_unop u) (show_expr e)
+
+let pp_expr fmt e = Caml.Format.fprintf fmt "%s" (show_expr e)
 
 let rec expr_of_syntax_expr = function
   | Syntax.Var n -> Var (VariableName.of_name n)
