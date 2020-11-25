@@ -110,8 +110,6 @@ let of_syntax_payload (payload : Syntax.payloadt) =
             , PayloadTypeName.of_name t
             , expr_of_syntax_expr e ) )
 
-(* FIXME *)
-
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, ord]
 
