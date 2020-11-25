@@ -47,9 +47,12 @@ let mk_receive_callback st label = sprintf "state%dReceive%s" st label
 
 let mk_send_callback st = sprintf "state%dSend" st
 
+let payload_typename = function
+  | Gtype.PTSimple t | Gtype.PTRefined (_, t, _) -> PayloadTypeName.user t
+
 let payload_values payload =
   let f = function
-    | Gtype.PValue (_, ty) -> PayloadTypeName.user ty
+    | Gtype.PValue (_, ty) -> payload_typename ty
     | _ -> raise (Err.Violation "Delegation is not supported")
   in
   List.map ~f payload
