@@ -237,7 +237,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             MessageG (of_syntax_message message, from_role, to_role, acc)
           in
           (List.fold_right ~f ~init to_roles, free_names)
-      | Recursion (rname, interactions) ->
+      | Recursion (rname, _, interactions) ->
           let rname = TypeVariableName.of_name rname in
           if Set.mem free_names rname then
             unimpl "Alpha convert recursion names"
@@ -253,7 +253,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           if Set.mem free_names_ rname then
             (MuG (rname, cont), Set.remove free_names_ rname)
           else (cont, free_names_)
-      | Continue name ->
+      | Continue (name, _) ->
           let name = TypeVariableName.of_name name in
           let cont =
             lazy

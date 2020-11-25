@@ -57,7 +57,7 @@ let show_binop = function
 let show_unop = function Neg -> "-" | Not -> "not "
 
 type ty = Simple of name | Refined of name * name * expr
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, sexp_of]
 
 type annotation = string [@@deriving show {with_path= false}, sexp_of]
 
@@ -81,7 +81,7 @@ type payloadt =
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadBnd of name * name
   | PayloadRTy of ty
-[@@deriving eq, ord]
+[@@deriving eq, ord, sexp_of]
 
 (* var : type *)
 
@@ -123,6 +123,9 @@ let message_payload_ty =
   | Message {payload; _} -> List.map ~f:payload_type_of_payload_t payload
   | _ -> []
 
+type rec_var = {var: name; roles: name list; ty: payloadt; init: expr}
+[@@deriving show {with_path= false}, sexp_of]
+
 type global_interaction = raw_global_interaction located
 [@@deriving show {with_path= false}, sexp_of]
 
@@ -133,8 +136,8 @@ and raw_global_interaction =
       ; to_roles: name list
       ; ann: annotation option }
   (* recursion variable, protocol *)
-  | Recursion of name * global_interaction list
-  | Continue of name
+  | Recursion of name * rec_var list * global_interaction list
+  | Continue of name * expr list
   (* role, protocol options *)
   | Choice of name * global_interaction list list
   (* protocol * non role args * roles *)
