@@ -54,6 +54,12 @@ let of_syntax_payload (payload : Syntax.payloadt) =
       PDelegate (ProtocolName.of_name p, RoleName.of_name r)
   | PayloadBnd (var, n) ->
       PValue (Some (VariableName.of_name var), PayloadTypeName.of_name n)
+  | PayloadRTy ty ->
+      Stdio.printf "Encountered refined type: %s\nAborting...\n"
+        (Syntax.show_ty ty) ;
+      assert false
+
+(* FIXME *)
 
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, ord]

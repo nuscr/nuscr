@@ -74,12 +74,23 @@ and token = parse
 | pragmas as str { PRAGMA_STR str }
 | "(*" { ml_style_block 1 lexbuf }
 
+| ['0'-'9']+ as i { INT (int_of_string i) }
+
 (* symbols *)
 | ',' { COMMA }
 | ';' { SEMICOLON }
 | ':' { COLON }
 | '.' { DOT }
+| '=' { EQUAL }
+| '~' { TILDE }
+| '+' { PLUS }
+| '-' { MINUS }
+| "&&" { AMPAMP }
+| "||" { BARBAR }
+| "<>" { LTGT }
+| "<=" { LTEQ }
 | '<' { LT }
+| ">=" { GTEQ }
 | '>' { GT }
 | '(' { LPAR }
 | ')' { RPAR }
@@ -88,7 +99,9 @@ and token = parse
 | '@' { ARROBA }
 
 (* keywords *)
-
+| "not" { NOT_KW }
+| "true" { TRUE_KW }
+| "false" { FALSE_KW }
 | "module" { MODULE_KW }
 | "import" { RESERVED }
 | "type" { TYPE_KW }
