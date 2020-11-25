@@ -3,8 +3,22 @@ open Names
 
 (** Global types *)
 
+type expr =
+  | Var of VariableName.t
+  | Int of int
+  | Bool of bool
+  | String of string
+  | Binop of Syntax.binop * expr * expr
+  | Unop of Syntax.unop * expr
+[@@deriving sexp_of, eq, ord, show]
+
+type payload_type =
+  | PTSimple of PayloadTypeName.t
+  | PTRefined of VariableName.t * PayloadTypeName.t * expr
+[@@deriving sexp_of, eq, ord]
+
 type payload =
-  | PValue of VariableName.t option * PayloadTypeName.t
+  | PValue of VariableName.t option * payload_type
   | PDelegate of ProtocolName.t * RoleName.t
 [@@deriving eq, sexp_of, show, ord]
 
