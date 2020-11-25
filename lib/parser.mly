@@ -324,7 +324,9 @@ let raw_qname ==
 
 let name == create(raw_name)
 
-let raw_name == IDENT
+let raw_name ==
+  | i = IDENT ; { i }
+  | i = INT ; { string_of_int i }
 
 (* expressions *)
 expr:
@@ -332,19 +334,19 @@ expr:
     { Int i }
   | s = EXTIDENT
     { String s }
-  | v = name
-    { Var v }
+  | i = create(IDENT)
+    { Var i }
   | TRUE_KW { Bool true }
   | FALSE_KW { Bool false }
   | LPAR e = expr RPAR { e }
   | e1 = expr b = binop e2 = expr
     { Binop (b, e1, e2) }
-  | NOT_KW e = expr
+  | NOT_KW e = expr %prec TILDE
     { Unop (Not, e) }
   | MINUS e = expr %prec UMINUS
     { Unop (Neg, e) }
 
-binop:
+%inline binop:
   | PLUS { Add }
   | MINUS { Minus }
   | EQUAL { Eq }
