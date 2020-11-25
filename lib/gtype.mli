@@ -27,6 +27,8 @@ type message = {label: LabelName.t; payload: payload list}
 
 val equal_pvalue_payload : payload -> payload -> bool
 
+val payload_typename_of_payload_type : payload_type -> PayloadTypeName.t
+
 (** The type of global types *)
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t

@@ -33,6 +33,9 @@ let show_payload_type = function
       sprintf "%s:%s{%s}" (VariableName.user v) (PayloadTypeName.user t)
         (show_expr e)
 
+let payload_typename_of_payload_type = function
+  | PTSimple n | PTRefined (_, n, _) -> n
+
 type payload =
   | PValue of VariableName.t option * payload_type
   | PDelegate of ProtocolName.t * RoleName.t
@@ -50,7 +53,7 @@ let equal_pvalue_payload p1 p2 =
   let var_name_equal = Option.equal VariableName.equal in
   match (p1, p2) with
   | PValue (v1, n1), PValue (v2, n2) ->
-      var_name_equal v1 v2 && PayloadTypeName.equal n1 n2
+      var_name_equal v1 v2 && equal_payload_type n1 n2
   | _ -> equal_payload p1 p2
 
 let compare_payload p1 p2 =

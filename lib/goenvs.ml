@@ -192,6 +192,7 @@ end = struct
       payload =
     match payload with
     | PValue (None, payload_type) ->
+        let payload_type = payload_typename_of_payload_type payload_type in
         let field_name = msg_field_name_from_type payload_type in
         let name_gen, field_name = Namegen.unique_name name_gen field_name in
         let payload_field_info =
@@ -204,6 +205,7 @@ end = struct
       =
     match payload with
     | PValue (Some name, payload_type) ->
+        let payload_type = payload_typename_of_payload_type payload_type in
         let field_name = msg_field_name name in
         let name_gen, field_name = Namegen.unique_name name_gen field_name in
         let payload_field_info =
