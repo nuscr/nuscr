@@ -4,15 +4,44 @@ open Loc
 open Err
 open Names
 
+type expr =
+  | Var of VariableName.t
+  | Int of int
+  | Bool of bool
+  | String of string
+  | Binop of Syntax.binop * expr * expr
+  | Unop of Syntax.unop * expr
+[@@deriving sexp_of, eq, ord, show]
+
+let rec expr_of_syntax_expr = function
+  | Syntax.Var n -> Var (VariableName.of_name n)
+  | Syntax.Int n -> Int n
+  | Syntax.Bool n -> Bool n
+  | Syntax.String n -> String n
+  | Syntax.Binop (b, e1, e2) ->
+      Binop (b, expr_of_syntax_expr e1, expr_of_syntax_expr e2)
+  | Syntax.Unop (u, e) -> Unop (u, expr_of_syntax_expr e)
+
+type payload_type =
+  | PTSimple of PayloadTypeName.t
+  | PTRefined of VariableName.t * PayloadTypeName.t * expr
+[@@deriving sexp_of, eq, ord]
+
+let show_payload_type = function
+  | PTSimple n -> PayloadTypeName.user n
+  | PTRefined (v, t, e) ->
+      sprintf "%s:%s{%s}" (VariableName.user v) (PayloadTypeName.user t)
+        (show_expr e)
+
 type payload =
-  | PValue of VariableName.t option * PayloadTypeName.t
+  | PValue of VariableName.t option * payload_type
   | PDelegate of ProtocolName.t * RoleName.t
 [@@deriving sexp_of]
 
 (* Ignoring variable names for now *)
 let equal_payload p1 p2 =
   match (p1, p2) with
-  | PValue (_, n1), PValue (_, n2) -> PayloadTypeName.equal n1 n2
+  | PValue (_, n1), PValue (_, n2) -> equal_payload_type n1 n2
   | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
       ProtocolName.equal pn1 pn2 && RoleName.equal rn1 rn2
   | _, _ -> false
@@ -26,7 +55,7 @@ let equal_pvalue_payload p1 p2 =
 
 let compare_payload p1 p2 =
   match (p1, p2) with
-  | PValue (_, ptn1), PValue (_, ptn2) -> PayloadTypeName.compare ptn1 ptn2
+  | PValue (_, ptn1), PValue (_, ptn2) -> compare_payload_type ptn1 ptn2
   | PValue _, PDelegate _ -> -1
   | PDelegate _, PValue _ -> 1
   | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
@@ -40,7 +69,7 @@ let show_payload = function
         | Some var -> VariableName.user var ^ ": "
         | None -> ""
       in
-      sprintf "%s%s" var (PayloadTypeName.user ty)
+      sprintf "%s%s" var (show_payload_type ty)
   | PDelegate (proto, role) ->
       sprintf "%s @ %s" (ProtocolName.user proto) (RoleName.user role)
 
@@ -49,15 +78,22 @@ let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
 let of_syntax_payload (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
-  | PayloadName n -> PValue (None, PayloadTypeName.of_name n)
+  | PayloadName n -> PValue (None, PTSimple (PayloadTypeName.of_name n))
   | PayloadDel (p, r) ->
       PDelegate (ProtocolName.of_name p, RoleName.of_name r)
   | PayloadBnd (var, n) ->
-      PValue (Some (VariableName.of_name var), PayloadTypeName.of_name n)
-  | PayloadRTy ty ->
-      Stdio.printf "Encountered refined type: %s\nAborting...\n"
-        (Syntax.show_ty ty) ;
-      assert false
+      PValue
+        ( Some (VariableName.of_name var)
+        , PTSimple (PayloadTypeName.of_name n) )
+  | PayloadRTy (Simple n) ->
+      PValue (None, PTSimple (PayloadTypeName.of_name n))
+  | PayloadRTy (Refined (v, t, e)) ->
+      PValue
+        ( Some (VariableName.of_name v)
+        , PTRefined
+            ( VariableName.of_name v
+            , PayloadTypeName.of_name t
+            , expr_of_syntax_expr e ) )
 
 (* FIXME *)
 

@@ -40,7 +40,7 @@ type expr =
 
 and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
-and unop = Neg | Not [@@deriving eq, ord, show]
+and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
 
 type ty = Simple of name | Refined of name * name * expr
 [@@deriving eq, ord, show]
