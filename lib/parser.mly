@@ -2,6 +2,7 @@
 
 %token <string>IDENT
 %token <string>EXTIDENT
+%token <int>INT
 
 %token EOI
 
@@ -16,6 +17,26 @@
 %token LCURLY
 %token RCURLY
 %token ARROBA
+
+(* For expressions *)
+%token AMPAMP
+%token BARBAR
+%token EQUAL
+%token LTGT
+%token TILDE
+%token PLUS
+%token MINUS
+%token LTEQ
+%token GTEQ
+
+%token NOT_KW
+%token TRUE_KW
+%token FALSE_KW
+
+%left AMPAMP BARBAR
+%left EQUAL LTGT LTEQ GTEQ LT GT
+%left PLUS MINUS
+%nonassoc UMINUS TILDE
 
 %token RESERVED
 
@@ -287,6 +308,8 @@ let payload_el ==
   (* protocol @ role (delegation) *)
   | n1 = name ; ARROBA ; n2 = name  ; { PayloadDel(n1, n2) }
   | nm = qname ; < PayloadName >
+  | v = name ; COLON ; t = name; LCURLY; e = expr; RCURLY;
+    { PayloadRTy (Refined (v, t, e)) }
   | ~ = name ; COLON ; ~ = qname ; < PayloadBnd >
 
 
@@ -302,6 +325,36 @@ let raw_qname ==
 let name == create(raw_name)
 
 let raw_name == IDENT
+
+(* expressions *)
+expr:
+  | i = INT
+    { Int i }
+  | s = EXTIDENT
+    { String s }
+  | v = name
+    { Var v }
+  | TRUE_KW { Bool true }
+  | FALSE_KW { Bool false }
+  | LPAR e = expr RPAR { e }
+  | e1 = expr b = binop e2 = expr
+    { Binop (b, e1, e2) }
+  | NOT_KW e = expr
+    { Unop (Not, e) }
+  | MINUS e = expr %prec UMINUS
+    { Unop (Neg, e) }
+
+binop:
+  | PLUS { Add }
+  | MINUS { Minus }
+  | EQUAL { Eq }
+  | LTGT { Neq }
+  | LT { Lt }
+  | GT { Gt }
+  | LTEQ { Leq }
+  | GTEQ { Geq }
+  | AMPAMP { And }
+  | BARBAR { Or }
 
 (* utilities *)
 let located(x) ==

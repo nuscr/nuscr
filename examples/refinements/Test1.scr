@@ -1,0 +1,4 @@
+protocol Refined(role A, role B) {
+  Positive(x: int{x>0}) from A to B;
+  Twice(y: int{y=x+x}) from B to A;
+}

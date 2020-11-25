@@ -30,6 +30,21 @@ let equal_name = N.equal
 
 let compare_name = N.compare
 
+type expr =
+  | Var of name
+  | Int of int
+  | Bool of bool
+  | String of string
+  | Binop of binop * expr * expr
+  | Unop of unop * expr
+
+and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
+
+and unop = Neg | Not [@@deriving eq, ord, show]
+
+type ty = Simple of name | Refined of name * name * expr
+[@@deriving eq, ord, show]
+
 type annotation = string [@@deriving show {with_path= false}, sexp_of]
 
 type raw_mod_decl = {module_name: name} [@@deriving show {with_path= false}]
@@ -51,6 +66,7 @@ type payloadt =
   | PayloadName of name
   | PayloadDel of name * name (* protocol @ role *)
   | PayloadBnd of name * name
+  | PayloadRTy of ty
 [@@deriving eq, ord]
 
 (* var : type *)
@@ -59,6 +75,7 @@ let show_payloadt = function
   | PayloadName n -> N.user n
   | PayloadDel (p, r) -> sprintf "%s @ %s" (N.user p) (N.user r)
   | PayloadBnd (n, n') -> sprintf "%s: %s" (N.user n) (N.user n')
+  | PayloadRTy ty -> show_ty ty
 
 let pp_payloadt fmt p = Caml.Format.fprintf fmt "%s" (show_payloadt p)
 
@@ -86,6 +103,7 @@ let message_payload_ty =
     | PayloadName n -> N.user n
     | PayloadDel (_p, _r) -> failwith "Delegation is not supported"
     | PayloadBnd (_n, n) -> N.user n
+    | PayloadRTy _ -> assert false
   in
   function
   | Message {payload; _} -> List.map ~f:payload_type_of_payload_t payload
