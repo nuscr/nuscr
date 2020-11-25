@@ -16,6 +16,8 @@
 %token RPAR
 %token LCURLY
 %token RCURLY
+%token LSQUARE
+%token RSQUARE
 %token ARROBA
 
 (* For expressions *)
@@ -271,10 +273,30 @@ let global_choice ==
   < Choice >
 
 let global_continue ==
-  CONTINUE_KW ; ~ = name ; SEMICOLON ; < Continue >
+  | CONTINUE_KW ; n = name ; LSQUARE; exprs = separated_list(COMMA, expr); RSQUARE; SEMICOLON ; { Continue(n, exprs) }
+  | CONTINUE_KW ; n = name ; SEMICOLON ; { Continue(n, []) }
 
 let global_recursion ==
-  REC_KW ; ~ = name ; ~ = global_protocol_block ; < Recursion >
+  | REC_KW ; n = name ; LSQUARE ;
+    rec_vars = separated_list(COMMA, rec_var); RSQUARE;
+    g = global_protocol_block ;
+    { Recursion(n, rec_vars, g) }
+  | REC_KW ; n = name ; g = global_protocol_block ; { Recursion(n, [], g) }
+
+let rec_var ==
+  var = name; LT;
+  roles = separated_nonempty_list(COMMA, name);
+  GT; COLON;
+  ty = payload_el;
+  EQUAL;
+  init = expr;
+  {
+   { var
+   ; roles
+   ; ty
+   ; init
+   }
+  }
 
 let global_message_transfer ==
   msg = message ; FROM_KW ; frn = name ;
