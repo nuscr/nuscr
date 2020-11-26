@@ -26,7 +26,7 @@ let show_protocol_decl (proto_decl : protocol_decl) =
 (** Symbol table type *)
 type symbol_table =
   { protocol: string
-  ; table: (string, protocol_decl, String.comparator_witness) Map.t
+  ; table: protocol_decl Map.M(String).t
         [@printer
           fun fmt tbl ->
             let nested_protos =

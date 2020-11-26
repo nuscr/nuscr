@@ -42,11 +42,7 @@ end
 module LocalProtocolId : S
 
 (** Mapping of local protocol id to the protocol's roles and local type *)
-type local_t =
-  ( LocalProtocolId.t
-  , RoleName.t list * t
-  , LocalProtocolId.comparator_witness )
-  Map.t
+type local_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
 
 val show : t -> string
 (** Converts a local type to a string. *)
@@ -60,11 +56,7 @@ val project_global_t : Gtype.global_t -> local_t
 (** Generate the local protocols for a given global_t *)
 
 (** Mapping from local protocol ids to their unique local protocol names *)
-type local_proto_name_lookup =
-  ( LocalProtocolId.t
-  , LocalProtocolName.t
-  , LocalProtocolId.comparator_witness )
-  Map.t
+type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
 val build_local_proto_name_lookup : local_t -> local_proto_name_lookup
 (** Builds a map containing the unique string representations for the unique

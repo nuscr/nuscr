@@ -955,23 +955,13 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
 
 (** Result of code generation process *)
 type codegen_result =
-  { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; invite_channels:
-      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; results: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; impl:
-      ( LocalProtocolName.t
-      , string
-      , LocalProtocolName.comparator_witness )
-      Map.t
-  ; callbacks:
-      ( LocalProtocolName.t
-      , string
-      , LocalProtocolName.comparator_witness )
-      Map.t
-  ; protocol_setup:
-      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  { messages: string Map.M(ProtocolName).t
+  ; channels: string Map.M(ProtocolName).t
+  ; invite_channels: string Map.M(ProtocolName).t
+  ; results: string Map.M(ProtocolName).t
+  ; impl: string Map.M(LocalProtocolName).t
+  ; callbacks: string Map.M(LocalProtocolName).t
+  ; protocol_setup: string Map.M(ProtocolName).t
   ; entry_point: string }
 
 (** Generate empty code gen result *)

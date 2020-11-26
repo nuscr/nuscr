@@ -4,23 +4,13 @@ open Names
 (** Record containing the implementation of all the components of the Go
     protocol implementation *)
 type codegen_result =
-  { messages: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; channels: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; invite_channels:
-      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; results: (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
-  ; impl:
-      ( LocalProtocolName.t
-      , string
-      , LocalProtocolName.comparator_witness )
-      Map.t
-  ; callbacks:
-      ( LocalProtocolName.t
-      , string
-      , LocalProtocolName.comparator_witness )
-      Map.t
-  ; protocol_setup:
-      (ProtocolName.t, string, ProtocolName.comparator_witness) Map.t
+  { messages: string Map.M(ProtocolName).t
+  ; channels: string Map.M(ProtocolName).t
+  ; invite_channels: string Map.M(ProtocolName).t
+  ; results: string Map.M(ProtocolName).t
+  ; impl: string Map.M(LocalProtocolName).t
+  ; callbacks: string Map.M(LocalProtocolName).t
+  ; protocol_setup: string Map.M(ProtocolName).t
   ; entry_point: string }
 
 val show_codegen_result :

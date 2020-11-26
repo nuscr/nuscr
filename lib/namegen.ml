@@ -1,7 +1,7 @@
 open! Base
 open Printf
 
-type t = (string, int, String.comparator_witness) Map.t
+type t = int Map.M(String).t
 
 let create () = Map.empty (module String)
 

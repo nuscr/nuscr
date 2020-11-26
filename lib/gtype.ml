@@ -81,10 +81,8 @@ type t =
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 
 type global_t =
-  ( ProtocolName.t
-  , (RoleName.t list * RoleName.t list) * ProtocolName.t list * t
-  , ProtocolName.comparator_witness )
-  Map.t
+  ((RoleName.t list * RoleName.t list) * ProtocolName.t list * t)
+  Map.M(ProtocolName).t
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
