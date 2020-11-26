@@ -19,7 +19,7 @@ type t =
       (** [MessageG (msg, sender, receiver, t)] starts by sending message
           [msg] from [sender] to [receiver] and continues as [t] *)
   | MuG of TypeVariableName.t * t  (** Fixpoint *)
-  | TVarG of TypeVariableName.t  (** Recursive variable *)
+  | TVarG of TypeVariableName.t * t Lazy.t  (** Recursive variable *)
   | ChoiceG of RoleName.t * t list
       (** [ChoiceG (name, ts)] expresses a choice located at participant
           [name] between the [ts] *)

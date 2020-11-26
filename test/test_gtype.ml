@@ -1,3 +1,4 @@
+(*
 open! Base
 open Nuscrlib
 open Gtype
@@ -46,3 +47,4 @@ let%test "Normal Form Example" =
         ; mkMG m3 EndG ] )
   in
   Poly.equal (normalise before) after
+ *)

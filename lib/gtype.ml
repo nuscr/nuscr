@@ -75,7 +75,7 @@ let of_syntax_message (message : Syntax.message) =
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
   | MuG of TypeVariableName.t * t
-  | TVarG of TypeVariableName.t
+  | TVarG of TypeVariableName.t * t Lazy.t
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
@@ -98,7 +98,7 @@ let show =
           (TypeVariableName.user n)
           (show_global_type_internal (indent + 1) g)
           current_indent
-    | TVarG n ->
+    | TVarG (n, _) ->
         sprintf "%scontinue %s;\n" current_indent (TypeVariableName.user n)
     | EndG -> sprintf "%send\n" current_indent
     | ChoiceG (r, gs) ->
@@ -161,7 +161,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
     if not @@ List.mem roles r ~equal:RoleName.equal then
       uerr @@ UnboundRole r
   in
-  let rec conv_interactions free_names
+  let rec conv_interactions free_names lazy_conts
       (interactions : global_interaction list) =
     match interactions with
     | [] -> (EndG, free_names)
@@ -171,7 +171,9 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           let from_role = RoleName.of_name from_role in
           let to_roles = List.map ~f:RoleName.of_name to_roles in
           check_role from_role ;
-          let init, free_names = conv_interactions free_names rest in
+          let init, free_names =
+            conv_interactions free_names lazy_conts rest
+          in
           let f to_role acc =
             check_role to_role ;
             if RoleName.equal from_role to_role then
@@ -184,23 +186,36 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           if Set.mem free_names rname then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
-          let cont, free_names_ =
-            conv_interactions free_names interactions
+          let rec lazy_cont =
+            lazy
+              (conv_interactions free_names
+                 ((rname, lazy_cont) :: lazy_conts)
+                 interactions)
           in
+          let cont, free_names_ = Lazy.force lazy_cont in
           (* Remove degenerate recursion here *)
           if Set.mem free_names_ rname then
             (MuG (rname, cont), Set.remove free_names_ rname)
           else (cont, free_names_)
       | Continue name ->
           let name = TypeVariableName.of_name name in
+          let cont =
+            lazy
+              ( Lazy.force
+                  (List.Assoc.find_exn ~equal:TypeVariableName.equal
+                     lazy_conts name)
+              |> fst )
+          in
           assert_empty rest ;
-          (TVarG name, Set.add free_names name)
+          (TVarG (name, cont), Set.add free_names name)
       | Choice (role, interactions_list) ->
           let role = RoleName.of_name role in
           assert_empty rest ;
           check_role role ;
           let conts =
-            List.map ~f:(conv_interactions free_names) interactions_list
+            List.map
+              ~f:(conv_interactions free_names lazy_conts)
+              interactions_list
           in
           ( ChoiceG (role, List.map ~f:fst conts)
           , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
@@ -209,20 +224,24 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           (* Previously this would've been a violation *)
           let fst_role = RoleName.of_name @@ List.hd_exn roles in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont, free_names = conv_interactions free_names rest in
+          let cont, free_names =
+            conv_interactions free_names lazy_conts rest
+          in
           ( CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
           , free_names )
       | Calls (caller, proto, _, roles, _) ->
           let caller_role = RoleName.of_name caller in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont, free_names = conv_interactions free_names rest in
+          let cont, free_names =
+            conv_interactions free_names lazy_conts rest
+          in
           ( CallG (caller_role, ProtocolName.of_name proto, role_names, cont)
           , free_names ) )
   in
   let gtype, free_names =
     conv_interactions
       (Set.empty (module Names.TypeVariableName))
-      interactions
+      [] interactions
   in
   match Set.choose free_names with
   | Some free_name -> uerr (UnboundRecursionName free_name)
@@ -287,7 +306,7 @@ let rec get_participants rec_protocols participants = function
       let participants = List.fold ~init:participants ~f:Set.add roles in
       get_participants rec_protocols participants gtype
   | EndG -> participants
-  | TVarG rec_var -> (
+  | TVarG (rec_var, _) -> (
     match Map.find rec_protocols rec_var with
     | None ->
         (* If the participants this variable's protocol have not been
@@ -330,7 +349,7 @@ let rec convert_recursion_to_protocols protocol rec_protocols
           in
           ( (global_t, name_gen)
           , CallG (fst_role, rec_protocol_name, roles, EndG) ) )
-  | TVarG rec_var ->
+  | TVarG (rec_var, _) ->
       let rec_protocol, roles = Map.find_exn rec_protocols rec_var in
       let caller = List.hd_exn roles in
       ((global_t, name_gen), CallG (caller, rec_protocol, roles, EndG))
@@ -387,7 +406,7 @@ let replace_recursion_with_nested_protocols global_t =
 
 let rec substitute g tvar g_sub =
   match g with
-  | TVarG tvar_ when TypeVariableName.equal tvar tvar_ -> g_sub
+  | TVarG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g_sub
   | TVarG _ -> g
   | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
   | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
