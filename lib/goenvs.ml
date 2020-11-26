@@ -27,8 +27,7 @@ module ImportsEnv : sig
 
   val create : RootDirName.t -> t
 end = struct
-  type aliases =
-    (PackageName.t, PackageName.t, PackageName.comparator_witness) Map.t
+  type aliases = PackageName.t Map.M(PackageName).t
 
   type import_aliases =
     { messages: aliases
@@ -187,9 +186,7 @@ end = struct
 
   type message_info = MessageStructName.t * payload_field list
 
-  type t =
-    Namegen.t
-    * (LabelName.t, message_info, LabelName.comparator_witness) Map.t
+  type t = Namegen.t * message_info Map.M(LabelName).t
 
   let gen_unnamed_payload_field_names ((name_gen, named_fields) as acc)
       payload =
@@ -534,20 +531,11 @@ end = struct
     InviteChannelStructName.t
     * (InviteChannelName.t * InviteChannelStructName.t) list
 
-  type setup_functions_env =
-    (ProtocolName.t, FunctionName.t, ProtocolName.comparator_witness) Map.t
+  type setup_functions_env = FunctionName.t Map.M(ProtocolName).t
 
   type t =
-    { role_channels:
-        ( ProtocolName.t
-        , role_chan_field
-        , ProtocolName.comparator_witness )
-        Map.t
-    ; invite_channels:
-        ( ProtocolName.t
-        , invite_chan_field
-        , ProtocolName.comparator_witness )
-        Map.t
+    { role_channels: role_chan_field Map.M(ProtocolName).t
+    ; invite_channels: invite_chan_field Map.M(ProtocolName).t
     ; setup_functions: Namegen.t * setup_functions_env }
 
   let new_protocol_setup_channel_struct env protocol roles =
@@ -681,30 +669,18 @@ module ProtocolSetupGen : sig
     -> local_proto_name_lookup
     -> t
     -> ImportsEnv.t
-       * (RoleName.t, VariableName.t, RoleName.comparator_witness) Map.t
-       * (RoleName.t, VariableName.t, RoleName.comparator_witness) Map.t
+       * VariableName.t Map.M(RoleName).t
+       * VariableName.t Map.M(RoleName).t
        * string
 end = struct
-  type setup_channels =
-    ( RoleName.t
-    , (ChannelName.t, VariableName.t, ChannelName.comparator_witness) Map.t
-    , RoleName.comparator_witness )
-    Map.t
+  type setup_channels = VariableName.t Map.M(ChannelName).t Map.M(RoleName).t
 
   type setup_invite_channels =
-    ( RoleName.t
-    , ( InviteChannelName.t
-      , VariableName.t
-      , InviteChannelName.comparator_witness )
-      Map.t
-    , RoleName.comparator_witness )
-    Map.t
+    VariableName.t Map.M(InviteChannelName).t Map.M(RoleName).t
 
-  type channel_envs =
-    (RoleName.t, ChannelEnv.t, RoleName.comparator_witness) Map.t
+  type channel_envs = ChannelEnv.t Map.M(RoleName).t
 
-  type invite_envs =
-    (RoleName.t, InviteEnv.t, RoleName.comparator_witness) Map.t
+  type invite_envs = InviteEnv.t Map.M(RoleName).t
 
   type setup_env =
     { channel_envs: channel_envs

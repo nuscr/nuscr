@@ -46,11 +46,7 @@ module LocalProtocolId = struct
   include Comparable.Make (T)
 end
 
-type local_t =
-  ( LocalProtocolId.t
-  , RoleName.t list * t
-  , LocalProtocolId.comparator_witness )
-  Map.t
+type local_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
 
 let roles_to_string roles =
   let str_roles = List.map ~f:RoleName.user roles in
@@ -134,11 +130,7 @@ let show_local_t (local_t : local_t) =
   |> List.map ~f:show_local_protocol
   |> String.concat ~sep:"\n\n"
 
-type local_proto_name_lookup =
-  ( LocalProtocolId.t
-  , LocalProtocolName.t
-  , LocalProtocolId.comparator_witness )
-  Map.t
+type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
 let build_local_proto_name_lookup (local_t : local_t) :
     local_proto_name_lookup =

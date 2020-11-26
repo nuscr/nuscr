@@ -223,8 +223,8 @@ module ProtocolSetupGen : sig
     -> local_proto_name_lookup
     -> t
     -> ImportsEnv.t
-       * (RoleName.t, VariableName.t, RoleName.comparator_witness) Map.t
-       * (RoleName.t, VariableName.t, RoleName.comparator_witness) Map.t
+       * VariableName.t Map.M(RoleName).t
+       * VariableName.t Map.M(RoleName).t
        * string
   (** Generate the assignments for all of the channels needed in a protocol
       and create all the channel and invitation structs for each role with

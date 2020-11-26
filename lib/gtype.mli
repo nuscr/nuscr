@@ -33,10 +33,8 @@ type t =
     participants) participating in the protocol, the names of the nested
     protocols defined inside it and its global type*)
 type global_t =
-  ( ProtocolName.t
-  , (RoleName.t list * RoleName.t list) * ProtocolName.t list * t
-  , ProtocolName.comparator_witness )
-  Map.t
+  ((RoleName.t list * RoleName.t list) * ProtocolName.t list * t)
+  Map.M(ProtocolName).t
 
 val show : t -> string
 (** Provides a textual representation of a global type *)
