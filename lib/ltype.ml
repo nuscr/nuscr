@@ -285,7 +285,7 @@ let check_consistent_gchoice choice_r possible_roles = function
 let rec project' (global_t : global_t) (projected_role : RoleName.t) =
   function
   | EndG -> EndL
-  | TVarG name -> TVarL name
+  | TVarG (name, _) -> TVarL name
   | MuG (name, g_type) -> (
     match project' global_t projected_role g_type with
     | TVarL _ | EndL -> EndL
