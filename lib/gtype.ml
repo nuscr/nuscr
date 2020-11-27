@@ -420,3 +420,9 @@ let normalise_global_t (global_t : global_t) =
   Map.fold
     ~init:(Map.empty (module ProtocolName))
     ~f:normalise_protocol global_t
+
+let global_t_of_ast (ast : Syntax.scr_module) : global_t =
+  let ast = Protocol.rename_nested_protocols ast in
+  let global_t = global_t_of_module ast in
+  let global_t = normalise_global_t global_t in
+  replace_recursion_with_nested_protocols global_t
