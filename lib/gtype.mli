@@ -53,6 +53,9 @@ val of_protocol : Syntax.global_protocol -> t
 val global_t_of_module : Syntax.scr_module -> global_t
 (** Turn scribble module (from the parser) into a global type *)
 
+val global_t_of_ast : Syntax.scr_module -> global_t
+(** Turn scribble ast (from the parser) into a global type *)
+
 val normalise : t -> t
 (** Normalise a global type. This mainly collapses nested choice on the same
     participant and unfolds fixpoints *)
