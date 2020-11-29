@@ -258,7 +258,7 @@ let rec merge projected_role lty1 lty2 =
    if recv_r is Some; return receive role *)
 (* In nested protocols, calls will send invitation messages all participants,
    so need to check if any of the roles in a call is the receiver *)
-let check_consistent_gchoice choice_r possible_roles = function
+let rec check_consistent_gchoice choice_r possible_roles = function
   | MessageG (_, send_r, recv_r_, _) ->
       if not @@ RoleName.equal send_r choice_r then
         uerr (RoleMismatch (choice_r, send_r)) ;
@@ -277,10 +277,14 @@ let check_consistent_gchoice choice_r possible_roles = function
         if Set.is_empty intersection then
           uerr (ChoiceCallRoleMismatch protocol) ;
         intersection
-  | _ ->
+  | MuG (_, g) -> check_consistent_gchoice choice_r possible_roles g
+  | TVarG (_, g) ->
+      check_consistent_gchoice choice_r possible_roles (Lazy.force g)
+  | g ->
       raise
         (Violation
-           "Normalised global type always has a message in choice branches")
+           ( "Normalised global type always has a message in choice branches\n"
+           ^ Gtype.show g ))
 
 let rec project' (global_t : global_t) (projected_role : RoleName.t) =
   function
@@ -309,6 +313,8 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
               let l = call_label caller protocol roles in
               if Set.mem acc l then uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
+          | MuG (_, g) :: rest -> aux acc (g :: rest)
+          | TVarG (_, g) :: rest -> aux acc (Lazy.force g :: rest)
           | _ ->
               raise
                 (Violation

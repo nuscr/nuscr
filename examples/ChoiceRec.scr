@@ -1,0 +1,22 @@
+global protocol Test(role C, role S, role D) {
+  m2() from C to S;
+  choice at C {
+    m() from C to D;
+  } or {
+    rec SEND {
+      m1() from C to D;
+      continue SEND;
+    }
+  }
+}
+
+global protocol Test2(role C, role S) {
+  rec X {
+    m() from C to S;
+    choice at C {
+      continue X;
+    } or {
+      fin() from C to S;
+    }
+  }
+}
