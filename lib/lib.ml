@@ -40,9 +40,8 @@ let validate_protocols_exn (ast : scr_module) ~verbose : unit =
   let g_types =
     List.map ~f:(fun p -> (Gtype.of_protocol p, p.value.roles)) protocols
   in
-  let g_types =
-    List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles)) g_types
-  in
+  (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
+     g_types in *)
   show ~sep:"\n" ~f:(fun (g, _) -> Gtype.show g) g_types ;
   let l_types =
     List.map
@@ -68,7 +67,7 @@ let validate_nested_protocols (ast : scr_module) ~verbose =
   let ast = Protocol.rename_nested_protocols ast in
   show ~f:show_scr_module ~sep:"\n---------\n\n" ast ;
   let global_t = Gtype.global_t_of_module ast in
-  let global_t = Gtype.normalise_global_t global_t in
+  (* let global_t = Gtype.normalise_global_t global_t in *)
   show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
   let global_t = Gtype.replace_recursion_with_nested_protocols global_t in
   show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
