@@ -51,29 +51,34 @@ end
 
 module DotOutput = Graphviz.Dot (Display)
 
-type conv_env = {g: G.t; tyvars: (TypeVariableName.t * int) list}
+type conv_env =
+  {g: G.t; tyvars: (TypeVariableName.t * int) list; non_deterministic: bool}
 
-let init_conv_env = {g= G.empty; tyvars= []}
+let init_conv_env = {g= G.empty; tyvars= []; non_deterministic= false}
 
-(* Redirect all edges into st_remove to st_base, then remove st_remove *)
-let merge_state g st_base st_remove =
-  let f (src, action, _dst) g_ =
-    let g_ = G.add_edge_e g_ (src, action, st_base) in
-    g_
-  in
-  let g = G.fold_pred_e f g st_remove g in
-  let g = G.remove_vertex g st_remove in
-  g
+(* (* Redirect all edges into st_remove to st_base, then remove st_remove *)
+ * let merge_state g st_base st_remove =
+ *   let f (src, action, _dst) g_ =
+ *     let g_ = G.add_edge_e g_ (src, action, st_base) in
+ *     g_
+ *   in
+ *   let g = G.fold_pred_e f g st_remove g in
+ *   let g = G.remove_vertex g st_remove in
+ *   g
+ *
+ * (* Redirect all edges from st_remove to st_base, then remove st_remove *)
+ * let merge_state_rev st_base g st_remove =
+ *   let f (_src, action, dst) g_ =
+ *     let g_ = G.add_edge_e g_ (st_base, action, dst) in
+ *     g_
+ *   in
+ *   let g = G.fold_succ_e f g st_remove g in
+ *   let g = G.remove_vertex g st_remove in
+ *   g
+ *)
 
-(* Redirect all edges from st_remove to st_base, then remove st_remove *)
-let merge_state_rev st_base g st_remove =
-  let f (_src, action, dst) g_ =
-    let g_ = G.add_edge_e g_ (st_base, action, dst) in
-    g_
-  in
-  let g = G.fold_succ_e f g st_remove g in
-  let g = G.remove_vertex g st_remove in
-  g
+let powerset_construction (start, g) =
+  start, g
 
 let of_local_type lty =
   let count = ref 0 in
@@ -83,7 +88,7 @@ let of_local_type lty =
     n
   in
   let rec conv_ltype_aux env =
-    let {g; tyvars} = env in
+    let {g; tyvars; _} = env in
     function
     | RecvL (m, n, l) ->
         let curr = fresh () in
@@ -108,8 +113,7 @@ let of_local_type lty =
         let es = List.map ~f:(fun n -> (curr, Epsilon, n)) nexts in
         let g = G.add_vertex g curr in
         let g = List.fold ~f:G.add_edge_e ~init:g es in
-        let g = List.fold ~f:(merge_state_rev curr) ~init:g nexts in
-        ({env with g}, curr)
+        ({env with g; non_deterministic= true}, curr)
     | EndL ->
         let curr = fresh () in
         let g = G.add_vertex g curr in
@@ -117,18 +121,22 @@ let of_local_type lty =
     | MuL (tv, l) ->
         let new_st = fresh () in
         let g = G.add_vertex g new_st in
-        let old_env = env in
-        let env = {tyvars= (tv, new_st) :: tyvars; g} in
+        let env =
+          {tyvars= (tv, new_st) :: tyvars; g; non_deterministic= true}
+        in
         let env, curr = conv_ltype_aux env l in
-        let g = merge_state env.g curr new_st in
-        ({old_env with g}, curr)
+        let g = env.g in
+        let g = G.add_edge_e g (new_st, Epsilon, curr) in
+        ({env with g}, curr)
     | TVarL tv ->
         (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
     | AcceptL _ | InviteCreateL _ ->
         raise (Err.Violation "Nested protocols are not supported in efsm")
   in
   let env, start = conv_ltype_aux init_conv_env lty in
-  (start, env.g)
+  let g = env.g in
+  if env.non_deterministic then powerset_construction (start, g)
+  else (start, g)
 
 let show g =
   let buffer = Buffer.create 4196 in
