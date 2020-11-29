@@ -25,7 +25,7 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
+let main file enumerate _verbose go_path out_dir project fsm gencode_ocaml
     gencode_monadic_ocaml gencode_go sexp_global_type =
   let process_pragmas (pragmas : Syntax.pragmas) : unit =
     let process_global_pragma (k, v) =
@@ -41,7 +41,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
   try
     let ast = process_file file Lib.parse in
     process_pragmas ast.pragmas ;
-    Lib.validate_exn ast ~verbose ;
+    (* Lib.validate_exn ast ~verbose ; *)
     let () =
       if enumerate then
         Lib.enumerate ast
