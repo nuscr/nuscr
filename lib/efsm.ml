@@ -18,9 +18,16 @@ let show_action = function
   | Epsilon -> "ε"
 
 module Label = struct
-  type t = action
+  module M = struct
+    type t = action
 
-  let compare = compare_action
+    let compare = compare_action
+
+    let sexp_of_t = sexp_of_action
+  end
+
+  include M
+  include Comparator.Make (M)
 
   let default = Epsilon
 end
