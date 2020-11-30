@@ -1,0 +1,11 @@
+global protocol NestChoice(role A, role B) {
+  choice at A {
+    One() from A to B;
+  } or {
+    choice at A {
+      Two() from A to B;
+    } or {
+      Three() from A to B;
+    }
+  }
+}

@@ -277,6 +277,12 @@ let rec check_consistent_gchoice choice_r possible_roles = function
         if Set.is_empty intersection then
           uerr (ChoiceCallRoleMismatch protocol) ;
         intersection
+  | ChoiceG (new_choice_r, gs) ->
+      if not @@ RoleName.equal choice_r new_choice_r then
+        uerr (RoleMismatch (choice_r, new_choice_r)) ;
+      Set.union_list
+        (module RoleName)
+        (List.map ~f:(check_consistent_gchoice choice_r possible_roles) gs)
   | MuG (_, g) -> check_consistent_gchoice choice_r possible_roles g
   | TVarG (_, g) ->
       check_consistent_gchoice choice_r possible_roles (Lazy.force g)
@@ -313,6 +319,7 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
               let l = call_label caller protocol roles in
               if Set.mem acc l then uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
+          | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
           | MuG (_, g) :: rest -> aux acc (g :: rest)
           | TVarG (_, g) :: rest -> aux acc (Lazy.force g :: rest)
           | _ ->
