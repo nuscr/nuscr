@@ -8,7 +8,7 @@ type action =
   | SendA of RoleName.t * Gtype.message
   | RecvA of RoleName.t * Gtype.message
   | Epsilon
-[@@deriving ord]
+[@@deriving ord, sexp_of]
 
 let show_action = function
   | SendA (r, msg) ->
@@ -116,9 +116,64 @@ let epsilon_closure g =
   in
   compute_fixpoint ()
 
-let powerset_construction (start, g) =
-  let epsilons = epsilon_closure g in
-  (start, g)
+module IntSet = struct
+  module M = struct
+    type t = Set.M(Int).t
+
+    let compare = Set.compare_direct
+
+    let sexp_of_t = Set.sexp_of_m__t (module Int)
+  end
+
+  include M
+  include Comparator.Make (M)
+end
+
+let powerset_construction (start, old_g) =
+  let epsilons = epsilon_closure old_g in
+  let count = ref 0 in
+  let fresh () =
+    let n = !count in
+    count := n + 1 ;
+    n
+  in
+  let rec aux (g, state_map) states =
+    match Map.find state_map states with
+    | Some _ -> (g, state_map)
+    | None ->
+        let st = fresh () in
+        let g = G.add_vertex g st in
+        let state_map = Map.add_exn ~key:states ~data:st state_map in
+        let f acc old_node =
+          let edges = G.succ_e old_g old_node in
+          let f acc (_, lbl, dst) =
+            match lbl with
+            | Epsilon -> acc
+            | _ ->
+                let dst = Map.find_exn epsilons dst in
+                let f = function
+                  | None -> dst
+                  | Some states -> Set.union states dst
+                in
+                Map.update acc lbl ~f
+          in
+          List.fold ~init:acc ~f edges
+        in
+        let out_edges =
+          Set.fold ~init:(Map.empty (module Label)) ~f states
+        in
+        let f ~key:label ~data:states (g, state_map) =
+          let g, state_map = aux (g, state_map) states in
+          let g =
+            G.add_edge_e g (st, label, Map.find_exn state_map states)
+          in
+          (g, state_map)
+        in
+        Map.fold out_edges ~init:(g, state_map) ~f
+  in
+  let start_states = Map.find_exn epsilons start in
+  let g, state_map = aux (G.empty, Map.empty (module IntSet)) start_states in
+  (Map.find_exn state_map start_states, g)
 
 let of_local_type lty =
   let count = ref 0 in
