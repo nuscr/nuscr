@@ -77,8 +77,48 @@ let init_conv_env = {g= G.empty; tyvars= []; non_deterministic= false}
  *   g
  *)
 
+
+(** Construct the epsilon closure for a given NDA *)
+let epsilon_closure g =
+  let one_shot =
+    let f node acc =
+      let f edge acc =
+        match edge with _, Epsilon, dst -> Set.add acc dst | _ -> acc
+      in
+      let data = G.fold_succ_e f g node (Set.singleton (module Int) node) in
+      Map.add_exn ~key:node ~data acc
+    in
+    G.fold_vertex f g (Map.empty (module Int))
+  in
+  let iterate_once curr =
+    let updated = ref false in
+    let f ~key:_ ~data =
+      let f acc node =
+        let nexts = Map.find_exn curr node in
+        let f acc new_node =
+          if Set.mem acc new_node then acc
+          else (
+            updated := true ;
+            Set.add acc new_node )
+        in
+        Set.fold ~init:acc ~f nexts
+      in
+      Set.fold ~init:data ~f data
+    in
+    (Map.mapi ~f curr, not !updated)
+  in
+  let compute_fixpoint () =
+    let rec aux curr =
+      let curr, complete = iterate_once curr in
+      if complete then curr else aux curr
+    in
+    aux one_shot
+  in
+  compute_fixpoint ()
+
 let powerset_construction (start, g) =
-  start, g
+  let epsilons = epsilon_closure g in
+  (start, g)
 
 let of_local_type lty =
   let count = ref 0 in
