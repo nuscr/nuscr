@@ -79,6 +79,7 @@ type t =
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
+[@@deriving sexp_of]
 
 type global_t =
   ((RoleName.t list * RoleName.t list) * ProtocolName.t list * t)
