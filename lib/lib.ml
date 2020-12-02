@@ -156,7 +156,9 @@ let generate_sexp ast ~protocol =
     | None -> uerr (ProtocolNotFound protocol)
   in
   let gp = Protocol.expand_global_protocol ast gp in
-  Syntax.sexp_of_global_protocol gp |> Sexp.to_string
+  let gtype = Gtype.of_protocol gp in
+  let gtype = Gtype.normalise gtype in
+  Gtype.sexp_of_t gtype |> Sexp.to_string
 
 let generate_ast ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
