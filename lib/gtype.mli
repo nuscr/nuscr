@@ -28,6 +28,7 @@ type t =
       (** [CallG (caller, protocol, participants, t)] - [caller] calls
           [protocol], inviting [participants] to carry out the roles in
           [protocol] (dynamic roles in nested protocols are not included) *)
+[@@deriving sexp_of]
 
 (** Mapping of protocol name to the roles ('static' participants, dynamic
     participants) participating in the protocol, the names of the nested
