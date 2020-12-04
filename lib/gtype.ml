@@ -319,36 +319,37 @@ let rec get_participants rec_protocols participants = function
         let all_participants = Set.union participants roles_set in
         all_participants )
 
-let rec convert_recursion_to_protocols protocol rec_protocols
+let rec convert_recursion_to_protocols protocol rec_protocols ?caller
     (global_t, name_gen) = function
   (* Return name gen *)
-  | MuG (rec_var, gtype') -> (
+  | MuG (rec_var, gtype') ->
       let roles_set =
         get_participants rec_protocols (Set.empty (module RoleName)) gtype'
       in
-      let roles = Set.to_list roles_set in
-      match roles with
-      | [] -> ((global_t, name_gen), EndG)
-      | fst_role :: _ ->
-          let protocol_name = recursion_protocol_name protocol rec_var in
-          let name_gen, protocol_name =
-            Namegen.unique_name name_gen protocol_name
-          in
-          let rec_protocol_name = ProtocolName.of_string protocol_name in
-          let rec_protocols =
-            Map.add_exn rec_protocols ~key:rec_var
-              ~data:(rec_protocol_name, roles)
-          in
-          let (global_t, name_gen), new_gtype =
-            convert_recursion_to_protocols protocol rec_protocols
-              (global_t, name_gen) gtype'
-          in
-          let global_t =
-            Map.add_exn global_t ~key:rec_protocol_name
-              ~data:((roles, []), [], new_gtype)
-          in
-          ( (global_t, name_gen)
-          , CallG (fst_role, rec_protocol_name, roles, EndG) ) )
+      if Set.is_empty roles_set then ((global_t, name_gen), EndG)
+      else
+        let roles = Set.to_list roles_set in
+        let caller =
+          Option.value ~default:(Set.choose_exn roles_set) caller
+        in
+        let protocol_name = recursion_protocol_name protocol rec_var in
+        let name_gen, protocol_name =
+          Namegen.unique_name name_gen protocol_name
+        in
+        let rec_protocol_name = ProtocolName.of_string protocol_name in
+        let rec_protocols =
+          Map.add_exn rec_protocols ~key:rec_var
+            ~data:(rec_protocol_name, roles)
+        in
+        let (global_t, name_gen), new_gtype =
+          convert_recursion_to_protocols protocol rec_protocols
+            (global_t, name_gen) gtype'
+        in
+        let global_t =
+          Map.add_exn global_t ~key:rec_protocol_name
+            ~data:((roles, []), [], new_gtype)
+        in
+        ((global_t, name_gen), CallG (caller, rec_protocol_name, roles, EndG))
   | TVarG (rec_var, _) ->
       let rec_protocol, roles = Map.find_exn rec_protocols rec_var in
       let caller = List.hd_exn roles in
@@ -362,7 +363,9 @@ let rec convert_recursion_to_protocols protocol rec_protocols
   | ChoiceG (choice_role, gtypes) ->
       let (global_t, name_gen), new_gtypes =
         List.fold_map gtypes ~init:(global_t, name_gen)
-          ~f:(convert_recursion_to_protocols protocol rec_protocols)
+          ~f:
+            (convert_recursion_to_protocols protocol rec_protocols
+               ~caller:choice_role)
       in
       ((global_t, name_gen), ChoiceG (choice_role, new_gtypes))
   | EndG -> ((global_t, name_gen), EndG)
