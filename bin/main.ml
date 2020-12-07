@@ -205,7 +205,7 @@ let out_dir =
      generated, relative to Go source directory [Only applicable for Go \
      Codegen]"
   in
-  Arg.(value & opt (some dir) None & info ["out-dir"] ~doc ~docv:"DIR")
+  Arg.(value & opt (some string) None & info ["out-dir"] ~doc ~docv:"DIR")
 
 let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
 
