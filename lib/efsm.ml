@@ -84,6 +84,7 @@ let init_conv_env = {g= G.empty; tyvars= []; non_deterministic= false}
  *   g
  *)
 
+
 (** Construct the epsilon closure for a given NDA *)
 let epsilon_closure g =
   let one_shot =
