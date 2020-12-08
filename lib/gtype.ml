@@ -293,6 +293,23 @@ let recursion_protocol_name protocol rec_var =
     (ProtocolName.user protocol)
     (TypeVariableName.user rec_var)
 
+let rec substitute g tvar g_sub =
+  match g with
+  | TVarG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g_sub
+  | TVarG _ -> g
+  | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
+  | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
+  | EndG -> EndG
+  | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
+  | ChoiceG (r, g_) ->
+      ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
+  | CallG (caller, protocol, roles, g_) ->
+      CallG (caller, protocol, roles, substitute g_ tvar g_sub)
+
+let rec unfold = function
+  | MuG (tvar, g_) as g -> substitute g_ tvar g
+  | g -> g
+
 let rec get_participants rec_protocols participants = function
   | MuG (_, gtype) -> get_participants rec_protocols participants gtype
   | MessageG (_, sender, recv, gtype) ->
@@ -362,7 +379,9 @@ let rec convert_recursion_to_protocols protocol rec_protocols
   | ChoiceG (choice_role, gtypes) ->
       let (global_t, name_gen), new_gtypes =
         List.fold_map gtypes ~init:(global_t, name_gen)
-          ~f:(convert_recursion_to_protocols protocol rec_protocols)
+          ~f:(fun (global_t, name_gen) g ->
+            convert_recursion_to_protocols protocol rec_protocols
+              (global_t, name_gen) (unfold g))
       in
       ((global_t, name_gen), ChoiceG (choice_role, new_gtypes))
   | EndG -> ((global_t, name_gen), EndG)
@@ -403,23 +422,6 @@ let replace_recursion_with_nested_protocols global_t =
       ~f:replace_recursion_in_protocol
   in
   global_t
-
-let rec substitute g tvar g_sub =
-  match g with
-  | TVarG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g_sub
-  | TVarG _ -> g
-  | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
-  | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
-  | EndG -> EndG
-  | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
-  | ChoiceG (r, g_) ->
-      ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
-  | CallG (caller, protocol, roles, g_) ->
-      CallG (caller, protocol, roles, substitute g_ tvar g_sub)
-
-let rec unfold = function
-  | MuG (tvar, g_) as g -> substitute g_ tvar g
-  | g -> g
 
 let rec normalise = function
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, normalise g_)
