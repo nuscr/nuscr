@@ -221,7 +221,11 @@ let gen_run_expr ~monad start g =
                 let send_payload = comm_payload `Send payload_ty in
                 { pc_lhs=
                     Pat.tuple
-                      [[%pat? env]; Pat.variant label (Some [%pat? payload])]
+                      [ [%pat? env]
+                      ; Pat.variant label
+                          (Some
+                             ( if List.is_empty payload_ty then [%pat? ()]
+                             else [%pat? payload] )) ]
                 ; pc_guard= None
                 ; pc_rhs=
                     ( if monad then
