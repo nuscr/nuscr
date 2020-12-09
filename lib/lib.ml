@@ -141,7 +141,7 @@ let generate_go_code = Gocodegen.generate_go_code
 
 let generate_ocaml_code ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
-  Codegen.gen_code ~monad (protocol, role) fsm
+  Ocamlcodegen.gen_code ~monad (protocol, role) fsm
 
 let generate_sexp ast ~protocol =
   let gp =
@@ -159,4 +159,4 @@ let generate_sexp ast ~protocol =
 
 let generate_ast ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
-  Codegen.gen_ast ~monad (protocol, role) fsm
+  Ocamlcodegen.gen_ast ~monad (protocol, role) fsm
