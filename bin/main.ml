@@ -35,6 +35,7 @@ let main file enumerate _verbose go_path out_dir project fsm gencode_ocaml
       | Syntax.NestedProtocols, _ ->
           if Option.is_some fsm then
             Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
+      | Syntax.RefinementTypes, _ -> ()
     in
     List.iter ~f:process_global_pragma pragmas
   in

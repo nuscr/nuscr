@@ -67,6 +67,7 @@ let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
     | PrintUsage, _ -> ()
     | ShowPragmas, _ -> ()
     | NestedProtocols, _ -> ()
+    | RefinementTypes, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas
 
