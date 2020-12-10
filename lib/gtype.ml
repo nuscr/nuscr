@@ -516,3 +516,7 @@ let global_t_of_ast (ast : Syntax.scr_module) : global_t =
   let global_t = global_t_of_module ast in
   (* let global_t = normalise_global_t global_t in *)
   replace_recursion_with_nested_protocols global_t
+
+type ty_env = payload_type Map.M(VariableName).t
+
+let validate_refinements_exn _ = ()
