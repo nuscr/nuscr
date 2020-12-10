@@ -32,19 +32,53 @@ let rec of_syntax_expr = function
   | Syntax.Unop (u, e) -> Unop (u, of_syntax_expr e)
 
 type payload_type =
-  | PTSimple of PayloadTypeName.t
-  | PTRefined of VariableName.t * PayloadTypeName.t * t
+  | PTInt
+  | PTBool
+  | PTString
+  | PTAbstract of PayloadTypeName.t
+  | PTRefined of VariableName.t * payload_type * t
 [@@deriving sexp_of, eq, ord]
 
-let show_payload_type = function
-  | PTSimple n -> PayloadTypeName.user n
+let rec show_payload_type = function
+  | PTAbstract n -> PayloadTypeName.user n
   | PTRefined (v, t, e) ->
-      sprintf "%s:%s{%s}" (VariableName.user v) (PayloadTypeName.user t)
+      sprintf "%s:%s{%s}" (VariableName.user v) (show_payload_type t)
         (show e)
+  | PTInt -> "int"
+  | PTBool -> "bool"
+  | PTString -> "string"
 
-let payload_typename_of_payload_type = function
-  | PTSimple n | PTRefined (_, n, _) -> n
+let rec payload_typename_of_payload_type = function
+  | PTInt -> PayloadTypeName.of_string "int"
+  | PTBool -> PayloadTypeName.of_string "bool"
+  | PTString -> PayloadTypeName.of_string "string"
+  | PTAbstract n -> n
+  | PTRefined (_, t, _) -> payload_typename_of_payload_type t
 
 type typing_env = payload_type Map.M(VariableName).t
 
 let new_typing_env = Map.empty (module VariableName)
+
+let env_append env var ty =
+  match Map.add env ~key:var ~data:ty with
+  | `Ok env -> env
+  | `Duplicate -> Err.unimpl "alpha-converting variables"
+
+let typecheck_basic env expr ty =
+  match expr with
+  | Int _ -> equal_payload_type ty PTInt
+  | Bool _ -> equal_payload_type ty PTBool
+  | Var v -> (
+    match Map.find env v with
+    | Some ty_ -> equal_payload_type ty ty_
+    | None -> false )
+  | _ -> assert false
+
+let is_well_formed_type env = function
+  | PTAbstract _ -> true
+  | PTInt -> true
+  | PTBool -> true
+  | PTString -> true
+  | PTRefined (v, t, e) ->
+      let env = env_append env v t in
+      typecheck_basic env e PTBool

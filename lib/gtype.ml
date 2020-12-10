@@ -46,25 +46,33 @@ let show_payload = function
 
 let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
 
+let parse_typename name =
+  match Name.Name.user name with
+  | "int" -> Expr.PTInt
+  | "string" -> Expr.PTString
+  | "bool" -> Expr.PTBool
+  | _ -> Expr.PTAbstract (PayloadTypeName.of_name name)
+
 let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
-  | PayloadName n -> PValue (None, Expr.PTSimple (PayloadTypeName.of_name n))
+  | PayloadName n ->
+      PValue (None, Expr.PTAbstract (PayloadTypeName.of_name n))
   | PayloadDel (p, r) ->
       PDelegate (ProtocolName.of_name p, RoleName.of_name r)
   | PayloadBnd (var, n) ->
       PValue
         ( Some (VariableName.of_name var)
-        , Expr.PTSimple (PayloadTypeName.of_name n) )
+        , Expr.PTAbstract (PayloadTypeName.of_name n) )
   | PayloadRTy (Simple n) ->
-      PValue (None, Expr.PTSimple (PayloadTypeName.of_name n))
+      PValue (None, Expr.PTAbstract (PayloadTypeName.of_name n))
   | PayloadRTy (Refined (v, t, e)) ->
       if refined then
         PValue
           ( Some (VariableName.of_name v)
           , Expr.PTRefined
               ( VariableName.of_name v
-              , PayloadTypeName.of_name t
+              , parse_typename t
               , Expr.of_syntax_expr e ) )
       else
         uerr
