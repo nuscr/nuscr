@@ -248,8 +248,8 @@ let gen_run_expr ~monad start g =
                     ( if monad then
                       [%expr
                         let* payload = [%e recv_payload] in
-                            let env = [%e recv_callback] env payload in
-                            [%e next_state] env]
+                        let env = [%e recv_callback] env payload in
+                        [%e next_state] env]
                     else
                       [%expr
                         let payload = [%e recv_payload] in
@@ -307,9 +307,10 @@ let gen_impl_module ~monad (proto : ProtocolName.t) (role : RoleName.t) start
         let open CB in
         [%e run_expr]]
   in
-  let let_syntax = [%stri let (let*) x f = M.bind x f] in
+  let let_syntax = [%stri let ( let* ) x f = M.bind x f] in
   let inner_structure =
-    Mod.structure ((if monad then [let_syntax] else []) @ [comms_typedef; run])
+    Mod.structure
+      ((if monad then [let_syntax] else []) @ [comms_typedef; run])
   in
   let inner_structure =
     if monad then
