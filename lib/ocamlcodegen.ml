@@ -230,10 +230,9 @@ let gen_run_expr ~monad start g =
                 ; pc_rhs=
                     ( if monad then
                       [%expr
-                        let ret = [%e send_label] in
-                        M.bind ret (fun () ->
-                            let ret = [%e send_payload] in
-                            M.bind ret (fun () -> [%e next_state] env))]
+                        let* () = [%e send_label] in
+                        let* () = [%e send_payload] in
+                        [%e next_state] env]
                     else
                       [%expr
                         [%e send_label] ;
@@ -248,10 +247,9 @@ let gen_run_expr ~monad start g =
                 ; pc_rhs=
                     ( if monad then
                       [%expr
-                        let payload = [%e recv_payload] in
-                        M.bind payload (fun payload ->
+                        let* payload = [%e recv_payload] in
                             let env = [%e recv_callback] env payload in
-                            [%e next_state] env)]
+                            [%e next_state] env]
                     else
                       [%expr
                         let payload = [%e recv_payload] in
@@ -271,8 +269,8 @@ let gen_run_expr ~monad start g =
                 in
                 if monad then
                   [%expr
-                    let label = comms.recv_string () in
-                    M.bind label (fun label -> [%e e])]
+                    let* label = comms.recv_string () in
+                    [%e e]]
                 else
                   [%expr
                     let label = comms.recv_string () in
@@ -309,7 +307,10 @@ let gen_impl_module ~monad (proto : ProtocolName.t) (role : RoleName.t) start
         let open CB in
         [%e run_expr]]
   in
-  let inner_structure = Mod.structure [comms_typedef; run] in
+  let let_syntax = [%stri let (let*) x f = M.bind x f] in
+  let inner_structure =
+    Mod.structure ((if monad then [let_syntax] else []) @ [comms_typedef; run])
+  in
   let inner_structure =
     if monad then
       Mod.functor_ (Location.mknoloc "M")
