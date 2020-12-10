@@ -4,46 +4,16 @@ open Loc
 open Err
 open Names
 
-type expr =
-  | Var of VariableName.t
-  | Int of int
-  | Bool of bool
-  | String of string
-  | Binop of Syntax.binop * expr * expr
-  | Unop of Syntax.unop * expr
-[@@deriving sexp_of, eq, ord]
-
-let rec show_expr = function
-  | Var v -> VariableName.user v
-  | Int i -> Int.to_string i
-  | Bool b -> Bool.to_string b
-  | String s -> "\"" ^ s ^ "\""
-  | Binop (b, e1, e2) ->
-      sprintf "(%s)%s(%s)" (show_expr e1) (Syntax.show_binop b)
-        (show_expr e2)
-  | Unop (u, e) -> sprintf "%s(%s)" (Syntax.show_unop u) (show_expr e)
-
-let pp_expr fmt e = Caml.Format.fprintf fmt "%s" (show_expr e)
-
-let rec expr_of_syntax_expr = function
-  | Syntax.Var n -> Var (VariableName.of_name n)
-  | Syntax.Int n -> Int n
-  | Syntax.Bool n -> Bool n
-  | Syntax.String n -> String n
-  | Syntax.Binop (b, e1, e2) ->
-      Binop (b, expr_of_syntax_expr e1, expr_of_syntax_expr e2)
-  | Syntax.Unop (u, e) -> Unop (u, expr_of_syntax_expr e)
-
 type payload_type =
   | PTSimple of PayloadTypeName.t
-  | PTRefined of VariableName.t * PayloadTypeName.t * expr
+  | PTRefined of VariableName.t * PayloadTypeName.t * Expr.t
 [@@deriving sexp_of, eq, ord]
 
 let show_payload_type = function
   | PTSimple n -> PayloadTypeName.user n
   | PTRefined (v, t, e) ->
       sprintf "%s:%s{%s}" (VariableName.user v) (PayloadTypeName.user t)
-        (show_expr e)
+        (Expr.show e)
 
 let payload_typename_of_payload_type = function
   | PTSimple n | PTRefined (_, n, _) -> n
@@ -109,7 +79,7 @@ let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
           , PTRefined
               ( VariableName.of_name v
               , PayloadTypeName.of_name t
-              , expr_of_syntax_expr e ) )
+              , Expr.of_syntax_expr e ) )
       else
         uerr
           (PragmaNotSet
@@ -516,7 +486,5 @@ let global_t_of_ast (ast : Syntax.scr_module) : global_t =
   let global_t = global_t_of_module ast in
   (* let global_t = normalise_global_t global_t in *)
   replace_recursion_with_nested_protocols global_t
-
-type ty_env = payload_type Map.M(VariableName).t
 
 let validate_refinements_exn _ = ()
