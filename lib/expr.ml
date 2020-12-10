@@ -30,3 +30,21 @@ let rec of_syntax_expr = function
   | Syntax.Binop (b, e1, e2) ->
       Binop (b, of_syntax_expr e1, of_syntax_expr e2)
   | Syntax.Unop (u, e) -> Unop (u, of_syntax_expr e)
+
+type payload_type =
+  | PTSimple of PayloadTypeName.t
+  | PTRefined of VariableName.t * PayloadTypeName.t * t
+[@@deriving sexp_of, eq, ord]
+
+let show_payload_type = function
+  | PTSimple n -> PayloadTypeName.user n
+  | PTRefined (v, t, e) ->
+      sprintf "%s:%s{%s}" (VariableName.user v) (PayloadTypeName.user t)
+        (show e)
+
+let payload_typename_of_payload_type = function
+  | PTSimple n | PTRefined (_, n, _) -> n
+
+type typing_env = payload_type Map.M(VariableName).t
+
+let new_typing_env = Map.empty (module VariableName)

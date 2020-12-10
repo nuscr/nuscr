@@ -48,7 +48,7 @@ let mk_receive_callback st label = sprintf "state%dReceive%s" st label
 let mk_send_callback st = sprintf "state%dSend" st
 
 let payload_typename = function
-  | Gtype.PTSimple t | Gtype.PTRefined (_, t, _) -> PayloadTypeName.user t
+  | Expr.PTSimple t | Expr.PTRefined (_, t, _) -> PayloadTypeName.user t
 
 let payload_values payload =
   let f = function
