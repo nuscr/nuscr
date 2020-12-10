@@ -10,13 +10,15 @@ open Loc
 
 (* association list of pragmas *)
 
-type pragma = NestedProtocols | ShowPragmas | PrintUsage [@@deriving show]
+type pragma = NestedProtocols | ShowPragmas | PrintUsage | RefinementTypes
+[@@deriving show]
 
 let pragma_of_string str : pragma =
   match str with
   | "ShowPragmas" -> ShowPragmas
   | "PrintUsage" -> PrintUsage
   | "NestedProtocols" -> NestedProtocols
+  | "RefinementTypes" -> RefinementTypes
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (pragma * string option) list [@@deriving show]
