@@ -3,18 +3,9 @@ open Names
 
 (** Global types *)
 
-type expr =
-  | Var of VariableName.t
-  | Int of int
-  | Bool of bool
-  | String of string
-  | Binop of Syntax.binop * expr * expr
-  | Unop of Syntax.unop * expr
-[@@deriving sexp_of, eq, ord, show]
-
 type payload_type =
   | PTSimple of PayloadTypeName.t
-  | PTRefined of VariableName.t * PayloadTypeName.t * expr
+  | PTRefined of VariableName.t * PayloadTypeName.t * Expr.t
 [@@deriving sexp_of, eq, ord]
 
 type payload =
