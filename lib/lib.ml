@@ -27,37 +27,38 @@ let parse fname (ch : In_channel.t) : scr_module =
 let parse_string string = parse_from_lexbuf @@ Lexing.from_string string
 
 let validate_protocols_exn (ast : scr_module) ~verbose : unit =
-  let show ~f ~sep xs =
+  let show ~f ?(sep = "\n") xs =
     (* only show if verbose is on *)
     if verbose then String.concat ~sep (List.map ~f xs) |> print_endline
     else ()
   in
+  let refined = Pragma.refinement_types_enabled ast in
   let protocols = ast.protocols in
   let protocols =
     List.map ~f:(Protocol.expand_global_protocol ast) protocols
   in
-  show ~sep:"\n" ~f:show_global_protocol protocols ;
+  show ~f:show_global_protocol protocols ;
   let g_types =
     List.map
-      ~f:(fun p ->
-        ( Gtype.of_protocol ~refined:(Pragma.refinement_types_enabled ast) p
-        , p.value.roles ))
+      ~f:(fun p -> (Gtype.of_protocol ~refined p, p.value.roles))
       protocols
   in
   (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
      g_types in *)
-  show ~sep:"\n" ~f:(fun (g, _) -> Gtype.show g) g_types ;
+  show ~f:(fun (g, _) -> Gtype.show g) g_types ;
+  if refined then
+    List.iter ~f:(fun (g, _) -> Gtype.validate_refinements_exn g) g_types ;
   let l_types =
     List.map
       ~f:(fun (g, roles) ->
         List.map ~f:(fun r -> Ltype.project (RoleName.of_name r) g) roles)
       g_types
   in
-  show ~sep:"\n"
+  show
     ~f:(fun ls -> String.concat ~sep:"\n" (List.map ~f:Ltype.show ls))
     l_types ;
   let efsmss = List.map ~f:(List.map ~f:Efsm.of_local_type) l_types in
-  show ~sep:"\n"
+  show
     ~f:(fun efsms ->
       String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
     efsmss

@@ -83,3 +83,7 @@ val normalise_global_t : global_t -> global_t
 
 val replace_recursion_with_nested_protocols : global_t -> global_t
 (** Replace the MuG type with explicit calls to nested protocols*)
+
+val validate_refinements_exn : t -> unit
+(** Validate refinements in the given global type, requires [RefinementTypes]
+    pragma *)
