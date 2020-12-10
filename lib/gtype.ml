@@ -4,29 +4,15 @@ open Loc
 open Err
 open Names
 
-type payload_type =
-  | PTSimple of PayloadTypeName.t
-  | PTRefined of VariableName.t * PayloadTypeName.t * Expr.t
-[@@deriving sexp_of, eq, ord]
-
-let show_payload_type = function
-  | PTSimple n -> PayloadTypeName.user n
-  | PTRefined (v, t, e) ->
-      sprintf "%s:%s{%s}" (VariableName.user v) (PayloadTypeName.user t)
-        (Expr.show e)
-
-let payload_typename_of_payload_type = function
-  | PTSimple n | PTRefined (_, n, _) -> n
-
 type payload =
-  | PValue of VariableName.t option * payload_type
+  | PValue of VariableName.t option * Expr.payload_type
   | PDelegate of ProtocolName.t * RoleName.t
 [@@deriving sexp_of]
 
 (* Ignoring variable names for now *)
 let equal_payload p1 p2 =
   match (p1, p2) with
-  | PValue (_, n1), PValue (_, n2) -> equal_payload_type n1 n2
+  | PValue (_, n1), PValue (_, n2) -> Expr.equal_payload_type n1 n2
   | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
       ProtocolName.equal pn1 pn2 && RoleName.equal rn1 rn2
   | _, _ -> false
@@ -35,12 +21,12 @@ let equal_pvalue_payload p1 p2 =
   let var_name_equal = Option.equal VariableName.equal in
   match (p1, p2) with
   | PValue (v1, n1), PValue (v2, n2) ->
-      var_name_equal v1 v2 && equal_payload_type n1 n2
+      var_name_equal v1 v2 && Expr.equal_payload_type n1 n2
   | _ -> equal_payload p1 p2
 
 let compare_payload p1 p2 =
   match (p1, p2) with
-  | PValue (_, ptn1), PValue (_, ptn2) -> compare_payload_type ptn1 ptn2
+  | PValue (_, ptn1), PValue (_, ptn2) -> Expr.compare_payload_type ptn1 ptn2
   | PValue _, PDelegate _ -> -1
   | PDelegate _, PValue _ -> 1
   | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
@@ -54,7 +40,7 @@ let show_payload = function
         | Some var -> VariableName.user var ^ ": "
         | None -> ""
       in
-      sprintf "%s%s" var (show_payload_type ty)
+      sprintf "%s%s" var (Expr.show_payload_type ty)
   | PDelegate (proto, role) ->
       sprintf "%s @ %s" (ProtocolName.user proto) (RoleName.user role)
 
@@ -63,20 +49,20 @@ let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
 let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
-  | PayloadName n -> PValue (None, PTSimple (PayloadTypeName.of_name n))
+  | PayloadName n -> PValue (None, Expr.PTSimple (PayloadTypeName.of_name n))
   | PayloadDel (p, r) ->
       PDelegate (ProtocolName.of_name p, RoleName.of_name r)
   | PayloadBnd (var, n) ->
       PValue
         ( Some (VariableName.of_name var)
-        , PTSimple (PayloadTypeName.of_name n) )
+        , Expr.PTSimple (PayloadTypeName.of_name n) )
   | PayloadRTy (Simple n) ->
-      PValue (None, PTSimple (PayloadTypeName.of_name n))
+      PValue (None, Expr.PTSimple (PayloadTypeName.of_name n))
   | PayloadRTy (Refined (v, t, e)) ->
       if refined then
         PValue
           ( Some (VariableName.of_name v)
-          , PTRefined
+          , Expr.PTRefined
               ( VariableName.of_name v
               , PayloadTypeName.of_name t
               , Expr.of_syntax_expr e ) )
@@ -487,4 +473,7 @@ let global_t_of_ast (ast : Syntax.scr_module) : global_t =
   (* let global_t = normalise_global_t global_t in *)
   replace_recursion_with_nested_protocols global_t
 
-let validate_refinements_exn _ = ()
+let validate_refinements_exn t =
+  let env = Expr.new_typing_env in
+  let rec aux _env = function EndG -> () | _ -> assert false in
+  aux env t
