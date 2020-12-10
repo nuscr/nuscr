@@ -3,13 +3,8 @@ open Names
 
 (** Global types *)
 
-type payload_type =
-  | PTSimple of PayloadTypeName.t
-  | PTRefined of VariableName.t * PayloadTypeName.t * Expr.t
-[@@deriving sexp_of, eq, ord]
-
 type payload =
-  | PValue of VariableName.t option * payload_type
+  | PValue of VariableName.t option * Expr.payload_type
   | PDelegate of ProtocolName.t * RoleName.t
 [@@deriving eq, sexp_of, show, ord]
 
@@ -17,8 +12,6 @@ type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, show, ord]
 
 val equal_pvalue_payload : payload -> payload -> bool
-
-val payload_typename_of_payload_type : payload_type -> PayloadTypeName.t
 
 (** The type of global types *)
 type t =
