@@ -38,7 +38,11 @@ let validate_protocols_exn (ast : scr_module) ~verbose : unit =
   in
   show ~sep:"\n" ~f:show_global_protocol protocols ;
   let g_types =
-    List.map ~f:(fun p -> (Gtype.of_protocol p, p.value.roles)) protocols
+    List.map
+      ~f:(fun p ->
+        ( Gtype.of_protocol ~refined:(Pragma.refinement_types_enabled ast) p
+        , p.value.roles ))
+      protocols
   in
   (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
      g_types in *)
@@ -118,7 +122,9 @@ let project_protocol_role ast ~protocol ~role : Ltype.t =
     | None -> uerr (ProtocolNotFound protocol)
   in
   let gp = Protocol.expand_global_protocol ast gp in
-  let gt = Gtype.of_protocol gp in
+  let gt =
+    Gtype.of_protocol ~refined:(Pragma.refinement_types_enabled ast) gp
+  in
   Ltype.project role gt
 
 let project_nested_protocol ast ~protocol ~role : Ltype.t =

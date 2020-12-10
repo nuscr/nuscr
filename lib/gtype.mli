@@ -64,8 +64,9 @@ val call_label :
 (** Generates a unique label for a protocol call based on the caller, the
     protocol called and the participants involved *)
 
-val of_protocol : Syntax.global_protocol -> t
-(** Turn a raw protocol (from the parser) into a global type *)
+val of_protocol : ?refined:bool -> Syntax.global_protocol -> t
+(** Turn a raw protocol (from the parser) into a global type, optional
+    argument [refined] determines whether refinement types are enabled. *)
 
 val global_t_of_module : Syntax.scr_module -> global_t
 (** Turn scribble module (from the parser) into a global type *)

@@ -23,3 +23,8 @@ let nested_protocol_enabled ast =
   List.exists
     ~f:(fun (p, _) -> Poly.( = ) p Syntax.NestedProtocols)
     ast.Syntax.pragmas
+
+let refinement_types_enabled ast =
+  List.exists
+    ~f:(fun (p, _) -> Poly.( = ) p Syntax.RefinementTypes)
+    ast.Syntax.pragmas

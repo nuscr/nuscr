@@ -90,7 +90,7 @@ let show_payload = function
 
 let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
 
-let of_syntax_payload (payload : Syntax.payloadt) =
+let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
   | PayloadName n -> PValue (None, PTSimple (PayloadTypeName.of_name n))
@@ -103,12 +103,19 @@ let of_syntax_payload (payload : Syntax.payloadt) =
   | PayloadRTy (Simple n) ->
       PValue (None, PTSimple (PayloadTypeName.of_name n))
   | PayloadRTy (Refined (v, t, e)) ->
-      PValue
-        ( Some (VariableName.of_name v)
-        , PTRefined
-            ( VariableName.of_name v
-            , PayloadTypeName.of_name t
-            , expr_of_syntax_expr e ) )
+      if refined then
+        PValue
+          ( Some (VariableName.of_name v)
+          , PTRefined
+              ( VariableName.of_name v
+              , PayloadTypeName.of_name t
+              , expr_of_syntax_expr e ) )
+      else
+        uerr
+          (PragmaNotSet
+             ( show_pragma RefinementTypes
+             , "Refinement Types require RefinementTypes pramga to be set."
+             ))
 
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, ord]
@@ -119,12 +126,12 @@ let show_message {label; payload} =
 
 let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
 
-let of_syntax_message (message : Syntax.message) =
+let of_syntax_message ?(refined = false) (message : Syntax.message) =
   let open Syntax in
   match message with
   | Message {name; payload} ->
       { label= LabelName.of_name name
-      ; payload= List.map ~f:of_syntax_payload payload }
+      ; payload= List.map ~f:(of_syntax_payload ~refined) payload }
   | MessageName name -> {label= LabelName.of_name name; payload= []}
 
 type t =
@@ -206,7 +213,8 @@ let show_global_t (g : global_t) =
   in
   String.concat ~sep:"\n\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
 
-let of_protocol (global_protocol : Syntax.global_protocol) =
+let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
+    =
   let open Syntax in
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
   let roles = List.map ~f:RoleName.of_name roles in
@@ -234,7 +242,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             check_role to_role ;
             if RoleName.equal from_role to_role then
               uerr (ReflexiveMessage from_role) ;
-            MessageG (of_syntax_message message, from_role, to_role, acc)
+            MessageG
+              (of_syntax_message ~refined message, from_role, to_role, acc)
           in
           (List.fold_right ~f ~init to_roles, free_names)
       | Recursion (rname, _, interactions) ->
@@ -316,7 +325,11 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
       List.fold ~init:protocols ~f:add_protocol nested_protocols
     in
     let proto_name = ProtocolName.of_name protocol.value.name in
-    let g = of_protocol protocol in
+    let g =
+      of_protocol
+        ~refined:(Pragma.refinement_types_enabled scr_module)
+        protocol
+    in
     let roles = split_role_names protocol.value.split_roles in
     let nested_protocol_names =
       List.map
