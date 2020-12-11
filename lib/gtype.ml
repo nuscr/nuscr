@@ -483,5 +483,25 @@ let global_t_of_ast (ast : Syntax.scr_module) : global_t =
 
 let validate_refinements_exn t =
   let env = Expr.new_typing_env in
-  let rec aux _env = function EndG -> () | _ -> assert false in
+  let rec aux env = function
+    | EndG -> ()
+    | MessageG (m, _, _, g) ->
+        let payloads = m.payload in
+        let f env = function
+          | PValue (v_opt, p_type) ->
+              if Expr.is_well_formed_type env p_type then
+                match v_opt with
+                | Some v -> Expr.env_append env v p_type
+                | None -> env
+              else
+                uerr (IllFormedPayloadType (Expr.show_payload_type p_type))
+          | PDelegate _ -> unimpl "Delegation as payload"
+        in
+        let env = List.fold ~init:env ~f payloads in
+        aux env g
+    | ChoiceG (_, gs) -> List.iter ~f:(aux env) gs
+    | MuG (_, g) -> aux env g
+    | TVarG _ -> ()
+    | CallG _ -> assert false
+  in
   aux env t
