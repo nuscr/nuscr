@@ -72,7 +72,7 @@ let typecheck_basic env expr ty =
     match Map.find env v with
     | Some ty_ -> equal_payload_type ty ty_
     | None -> false )
-  | _ -> assert false
+  | e -> raise @@ Err.Violation ("Don't know how to deal with " ^ show e)
 
 let is_well_formed_type env = function
   | PTAbstract _ -> true

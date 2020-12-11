@@ -28,6 +28,7 @@ type user_error =
   | DuplicatePayloadField of LabelName.t * VariableName.t
   | FileSysErr of string
   | ProtocolNotFound of ProtocolName.t
+  | IllFormedPayloadType of string
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -106,6 +107,7 @@ let show_user_error = function
       @@ LabelName.where label
   | FileSysErr msg -> "File System Error: " ^ msg
   | ProtocolNotFound p -> "Cannot find protocol: " ^ ProtocolName.user p
+  | IllFormedPayloadType ty -> "Ill-formed payload type: " ^ ty
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
