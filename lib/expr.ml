@@ -39,6 +39,16 @@ type payload_type =
   | PTRefined of VariableName.t * payload_type * t
 [@@deriving sexp_of, eq, ord]
 
+let rec equal_payload_type_basic t1 t2 =
+  match (t1, t2) with
+  | PTInt, PTInt -> true
+  | PTBool, PTBool -> true
+  | PTString, PTString -> true
+  | PTAbstract n1, PTAbstract n2 -> PayloadTypeName.equal n1 n2
+  | PTRefined (_, t1, _), t2 -> equal_payload_type_basic t1 t2
+  | t1, PTRefined (_, t2, _) -> equal_payload_type_basic t1 t2
+  | _, _ -> false
+
 let rec show_payload_type = function
   | PTAbstract n -> PayloadTypeName.user n
   | PTRefined (v, t, e) ->
@@ -64,15 +74,55 @@ let env_append env var ty =
   | `Ok env -> env
   | `Duplicate -> Err.unimpl "alpha-converting variables"
 
-let typecheck_basic env expr ty =
+(* let env_print env =
+ *   Map.iteri
+ *     ~f:(fun ~key ~data ->
+ *       Stdio.print_endline
+ *         (Printf.sprintf "%s: %s" (VariableName.user key)
+ *            (show_payload_type data)))
+ *     env
+ *)
+
+let rec typecheck_basic env expr ty =
   match expr with
-  | Int _ -> equal_payload_type ty PTInt
-  | Bool _ -> equal_payload_type ty PTBool
+  | Int _ -> equal_payload_type_basic ty PTInt
+  | Bool _ -> equal_payload_type_basic ty PTBool
+  | String _ -> equal_payload_type_basic ty PTString
   | Var v -> (
     match Map.find env v with
-    | Some ty_ -> equal_payload_type ty ty_
+    | Some ty_ -> equal_payload_type_basic ty ty_
     | None -> false )
-  | e -> raise @@ Err.Violation ("Don't know how to deal with " ^ show e)
+  | Unop (unop, e) ->
+      let typecheck_unop env e = function
+        | Syntax.Neg ->
+            typecheck_basic env e PTInt && equal_payload_type_basic ty PTInt
+        | Syntax.Not ->
+            typecheck_basic env e PTBool
+            && equal_payload_type_basic ty PTBool
+      in
+      typecheck_unop env e unop
+  | Binop (binop, e1, e2) ->
+      let typecheck_binop env e1 e2 = function
+        | Syntax.Add | Syntax.Minus ->
+            typecheck_basic env e1 PTInt
+            && typecheck_basic env e2 PTInt
+            && equal_payload_type_basic ty PTInt
+        | Syntax.And | Syntax.Or ->
+            typecheck_basic env e1 PTBool
+            && typecheck_basic env e2 PTBool
+            && equal_payload_type_basic ty PTBool
+        | Syntax.Lt | Syntax.Gt | Syntax.Geq | Syntax.Leq ->
+            typecheck_basic env e1 PTInt
+            && typecheck_basic env e2 PTInt
+            && equal_payload_type_basic ty PTBool
+        | Syntax.Eq | Syntax.Neq ->
+            equal_payload_type_basic ty PTBool
+            && List.exists
+                 ~f:(fun t ->
+                   typecheck_basic env e1 t && typecheck_basic env e2 t)
+                 [PTInt; PTBool; PTString]
+      in
+      typecheck_binop env e1 e2 binop
 
 let is_well_formed_type env = function
   | PTAbstract _ -> true
