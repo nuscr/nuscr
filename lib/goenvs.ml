@@ -321,8 +321,10 @@ end
 module ChannelEnv : sig
   type t
 
-  val add_channel :
-    t -> RoleName.t -> PayloadTypeName.t option -> bool -> t * ChannelName.t
+  val get_or_add_channel :
+       t
+    -> RoleName.t * PayloadTypeName.t option * bool
+    -> t * (ChannelName.t * string)
 
   val gen_channel_struct : t -> string
 
@@ -342,7 +344,7 @@ end = struct
     include Comparable.Make (T)
   end
 
-  type channel_fields = ChannelName.t Map.M(ChannelId).t
+  type channel_fields = (ChannelName.t * string) Map.M(ChannelId).t
 
   type t =
     Namegen.t
@@ -351,33 +353,44 @@ end = struct
     * channel_fields
     * ImportsEnv.t
 
-  let add_channel
-      ((namegen, struct_name, protocol, chan_fields, imports) as env) role
-      payload is_send =
+  let get_or_add_channel
+      ((namegen, struct_name, protocol, chan_fields, imports) as env : t)
+      (role, payload, is_send) =
     let chan_id = (role, payload, is_send) in
     match Map.find chan_fields chan_id with
-    | Some chan_field -> (env, chan_field)
+    | Some channel_field_and_type -> (env, channel_field_and_type)
     | None ->
-        let chan_field, imports =
+        let chan_field_name, field_type, imports =
           match payload with
           | None ->
-              let imports, _ = ImportsEnv.import_messages imports in
-              (chan_field_name role "Label" is_send, imports)
+              let imports, pkg = ImportsEnv.import_messages imports in
+              let label_enum_type = message_label_enum_name protocol in
+              let label_enum_type_str =
+                pkg_enum_type_access pkg label_enum_type
+              in
+              ( chan_field_name role "Label" is_send
+              , label_enum_type_str
+              , imports )
           | Some payload_type ->
               (* TODO: Assumes payload type is valid identifier: e.g. string,
                  int. etc.*)
               ( chan_field_name role
                   (capitalize_payload_type payload_type)
                   is_send
+              , PayloadTypeName.user payload_type
               , imports )
         in
-        let namegen, chan_field = Namegen.unique_name namegen chan_field in
+        let field_type = chan_type field_type in
+        let namegen, chan_field =
+          Namegen.unique_name namegen chan_field_name
+        in
         let channel_field = ChannelName.of_string chan_field in
         let chan_fields =
-          Map.add_exn chan_fields ~key:chan_id ~data:channel_field
+          Map.add_exn chan_fields ~key:chan_id
+            ~data:(channel_field, field_type)
         in
         let env = (namegen, struct_name, protocol, chan_fields, imports) in
-        (env, channel_field)
+        (env, (channel_field, field_type))
 
   (* let update_channel_entry is_send = function | None -> if is_send then
      (true, false) else (false, true) | send, recv -> if is_send then (true,
@@ -407,20 +420,9 @@ end = struct
      (name_gen, struct_name, protocol, channel_fields, imports) in (env,
      channel_name, msg_struct_name) *)
 
-  let gen_channel_struct
-      ((_, struct_name, protocol, channel_fields, imports) : t) =
-    let gen_chan_field_decl ~key:(_, payload, _) ~data:chan_name chan_fields
-        =
+  let gen_channel_struct ((_, struct_name, _, channel_fields, _) : t) =
+    let gen_chan_field_decl ~key:_ ~data:(chan_name, chan_type) chan_fields =
       (* Get pkg name *)
-      let chan_payload_type =
-        match payload with
-        | None ->
-            let _, pkg = ImportsEnv.import_messages imports in
-            let label_enum_type = message_label_enum_name protocol in
-            pkg_enum_type_access pkg label_enum_type
-        | Some payload_type -> PayloadTypeName.user payload_type
-      in
-      let chan_type = chan_type chan_payload_type in
       struct_field_decl (ChannelName.user chan_name) chan_type :: chan_fields
     in
     let chan_decls =
@@ -789,6 +791,7 @@ end = struct
     { channel_envs: channel_envs
     ; invite_envs: invite_envs
     ; chan_vars: (VariableName.t * string) list
+          (* ; data_chan_vars: Map.M(String).t *)
     ; setup_channels: setup_channels
     ; setup_invite_channels: setup_invite_channels }
 
@@ -863,14 +866,14 @@ end = struct
 
   let new_channel_vars
       (protocol, imports, var_name_gen, ({chan_vars; _} as setup_env)) sender
-      recv label =
+      recv label payloads =
     let update_channel_envs imports
         ({channel_envs; setup_channels; _} as setup_env) role1 role2 chan_var
         =
-      let imports, msgs_pkg = ImportsEnv.import_messages imports protocol in
+      let imports, msgs_pkg = ImportsEnv.import_messages imports in
       let channel_env = Map.find_exn channel_envs role1 in
-      let channel_env, channel_name, msg_struct =
-        ChannelEnv.new_channel channel_env role2 label
+      let channel_env, channel_fields =
+        ChannelEnv.get_or_add_channel channel_env role2 label
       in
       let channel_envs =
         Map.update channel_envs role1 ~f:(fun _ -> channel_env)
