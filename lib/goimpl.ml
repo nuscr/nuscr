@@ -108,6 +108,12 @@ let invitation_pkg_access invite_pkg struct_name =
 let callbacks_pkg_enum callbacks_pkg enum_name =
   sprintf "%s.%s" (PackageName.user callbacks_pkg) (EnumName.user enum_name)
 
+let pkg_enum_access pkg enum_value =
+  sprintf "%s.%s" (PackageName.user pkg) (EnumName.user enum_value)
+
+let pkg_enum_type_access pkg enum_type =
+  sprintf "%s.%s" (PackageName.user pkg) (EnumTypeName.user enum_type)
+
 let callbacks_pkg_env callbacks_pkg env_name =
   sprintf "%s.%s"
     (PackageName.user callbacks_pkg)
@@ -213,6 +219,11 @@ let enum_decl enum_type enum_values =
     | _ -> failwith "Enum decl should have at least one value"
   in
   sprintf "const (\n\t%s\n)" enum_value_decls
+
+let gen_enum (enum_type, enum_values) =
+  let type_decl = enum_type_decl enum_type in
+  let value_decls = enum_decl enum_type enum_values in
+  join_non_empty_lines [type_decl; value_decls]
 
 (* MESSAGE STRUCT *)
 let msg_field_decl (field_name, field_type) =

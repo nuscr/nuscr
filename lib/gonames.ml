@@ -74,6 +74,9 @@ let lowercase_label label = String.lowercase @@ LabelName.user label
 let lowercase_local_protocol local_protocol =
   String.lowercase @@ LocalProtocolName.user local_protocol
 
+let capitalize_payload_type payload_type =
+  String.capitalize @@ PayloadTypeName.user payload_type
+
 (* FILE NAMES *)
 
 let gen_protocol_file_name protocol =
@@ -110,9 +113,25 @@ let msg_field_name_from_type payload_type =
 let msg_field_name field_name =
   String.capitalize @@ VariableName.user field_name
 
+let msg_enum_name msg_label = capitalize_label msg_label
+
+let invitation_enum_name protocol roles =
+  let roles_str =
+    List.map roles ~f:(fun role -> String.capitalize @@ RoleName.user role)
+  in
+  let capitalized_protocol = capitalize_protocol protocol in
+  String.concat ~sep:"_" (capitalized_protocol :: roles_str)
+
+let message_label_enum_name protocol =
+  EnumTypeName.of_string @@ sprintf "%s_Label" (capitalize_protocol protocol)
+
 (* CHANNELS *)
 let chan_struct_field_name role msg_type =
   sprintf "%s_%s" (capitalize_role_name role) (msg_type_name msg_type)
+
+let chan_field_name role payload_str is_send =
+  if is_send then sprintf "%s_To_%s" payload_str (RoleName.user role)
+  else sprintf "%s_From_%s" payload_str (RoleName.user role)
 
 let chan_struct_name role_name =
   sprintf "%s_Chan" (capitalize_role_name role_name)
