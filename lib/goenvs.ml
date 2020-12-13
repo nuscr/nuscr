@@ -8,7 +8,7 @@ open Ltype
 module ImportsEnv : sig
   type t
 
-  val import_messages : t -> ProtocolName.t -> t * PackageName.t
+  val import_messages : t -> t * PackageName.t
 
   val import_channels : t -> ProtocolName.t -> t * PackageName.t
 
@@ -50,8 +50,8 @@ end = struct
         let aliases = Map.add_exn aliases ~key:pkg_key ~data:pkg_alias in
         (name_gen, aliases, pkg_alias)
 
-  let import_messages (name_gen, root_dir, imports) protocol =
-    let pkg = protocol_pkg_name protocol in
+  let import_messages (name_gen, root_dir, imports) =
+    let pkg = PackageName.user pkg_messages in
     let name_gen, messages, pkg_alias =
       get_or_add_import_alias name_gen imports.messages pkg
     in
@@ -175,79 +175,111 @@ end
 module MessagesEnv : sig
   type t
 
-  val create : unit -> t
+  val create : ProtocolName.t -> t
 
-  val add_message_struct :
-    t -> LabelName.t -> payload list -> t * MessageStructName.t
+  (* val add_message_struct : t -> LabelName.t -> payload list -> t *
+     MessageStructName.t *)
 
-  val generate_messages_file : t -> PackageName.t -> string
+  val add_message_enum : t -> LabelName.t -> t
+
+  val add_invitation_enum : t -> ProtocolName.t -> RoleName.t list -> t
+
+  val get_message_enum : t -> LabelName.t -> EnumName.t
+
+  val get_enum_type_name : t -> EnumTypeName.t
+
+  val get_invitation_enum :
+    t -> ProtocolName.t -> RoleName.t list -> EnumName.t
+
+  (* val generate_messages_file : t -> PackageName.t -> string *)
+
+  val generate_messages_file : t -> string
 end = struct
-  type payload_field = VariableName.t * PayloadTypeName.t
+  (* type payload_field = VariableName.t * PayloadTypeName.t *)
 
-  type message_info = MessageStructName.t * payload_field list
+  (* type message_info = MessageStructName.t * payload_field list *)
 
-  type t = Namegen.t * message_info Map.M(LabelName).t
+  type t = EnumTypeName.t * Namegen.t * EnumName.t Map.M(LabelName).t
 
-  let gen_unnamed_payload_field_names ((name_gen, named_fields) as acc)
-      payload =
-    match payload with
-    | PValue (None, payload_type) ->
-        let payload_type =
-          Expr.payload_typename_of_payload_type payload_type
-        in
-        let field_name = msg_field_name_from_type payload_type in
-        let name_gen, field_name = Namegen.unique_name name_gen field_name in
-        let payload_field_info =
-          (VariableName.of_string field_name, payload_type)
-        in
-        (name_gen, payload_field_info :: named_fields)
-    | _ -> acc
+  (* let gen_unnamed_payload_field_names ((name_gen, named_fields) as acc)
+     payload = match payload with | PValue (None, payload_type) -> let
+     field_name = msg_field_name_from_type payload_type in let name_gen,
+     field_name = Namegen.unique_name name_gen field_name in let
+     payload_field_info = (VariableName.of_string field_name, payload_type)
+     in (name_gen, payload_field_info :: named_fields) | _ -> acc *)
 
-  let gen_named_payload_field_names ((name_gen, named_fields) as acc) payload
-      =
-    match payload with
-    | PValue (Some name, payload_type) ->
-        let payload_type =
-          Expr.payload_typename_of_payload_type payload_type
-        in
-        let field_name = msg_field_name name in
-        let name_gen, field_name = Namegen.unique_name name_gen field_name in
-        let payload_field_info =
-          (VariableName.of_string field_name, payload_type)
-        in
-        (name_gen, payload_field_info :: named_fields)
-    | _ -> acc
+  (* let gen_named_payload_field_names ((name_gen, named_fields) as acc)
+     payload = match payload with | PValue (Some name, payload_type) -> let
+     field_name = msg_field_name name in let name_gen, field_name =
+     Namegen.unique_name name_gen field_name in let payload_field_info =
+     (VariableName.of_string field_name, payload_type) in (name_gen,
+     payload_field_info :: named_fields) | _ -> acc *)
 
-  let add_message_struct ((name_gen, msgs) as env) label payload =
-    match Map.find msgs label with
-    | None ->
-        let struct_name = msg_type_name label in
-        let name_gen, struct_name =
-          Namegen.unique_name name_gen struct_name
-        in
-        let msg_struct_name = MessageStructName.of_string struct_name in
-        let payload_name_gen = Namegen.create () in
-        let payload_name_gen, payload_fields =
-          List.fold ~init:(payload_name_gen, [])
-            ~f:gen_named_payload_field_names payload
-        in
-        let _, payload_fields =
-          List.fold
-            ~init:(payload_name_gen, payload_fields)
-            ~f:gen_unnamed_payload_field_names payload
-        in
-        let msg_struct_info = (msg_struct_name, payload_fields) in
-        let msgs = Map.add_exn msgs ~key:label ~data:msg_struct_info in
-        let env = (name_gen, msgs) in
-        (env, msg_struct_name)
-    | Some (msg_struct_name, _) -> (env, msg_struct_name)
+  (* let add_message_struct ((name_gen, msgs) as env) label payload = match
+     Map.find msgs label with | None -> let struct_name = msg_type_name label
+     in let name_gen, struct_name = Namegen.unique_name name_gen struct_name
+     in let msg_struct_name = MessageStructName.of_string struct_name in let
+     payload_name_gen = Namegen.create () in let payload_name_gen,
+     payload_fields = List.fold ~init:(payload_name_gen, [])
+     ~f:gen_named_payload_field_names payload in let _, payload_fields =
+     List.fold ~init:(payload_name_gen, payload_fields)
+     ~f:gen_unnamed_payload_field_names payload in let msg_struct_info =
+     (msg_struct_name, payload_fields) in let msgs = Map.add_exn msgs
+     ~key:label ~data:msg_struct_info in let env = (name_gen, msgs) in (env,
+     msg_struct_name) | Some (msg_struct_name, _) -> (env, msg_struct_name) *)
 
-  let generate_messages_file (_, msgs) pkg =
-    let pkg_stmt = package_stmt pkg in
-    let msg_structs = List.map ~f:gen_msg_struct (Map.data msgs) in
-    join_non_empty_lines ~sep:"\n\n" (pkg_stmt :: msg_structs)
+  let add_message_enum ((enum_type, name_gen, enums) as env) label =
+    if Map.mem enums label then env
+    else
+      let enum_name = msg_enum_name label in
+      let name_gen, enum_name = Namegen.unique_name name_gen enum_name in
+      ( enum_type
+      , name_gen
+      , Map.add_exn enums ~key:label ~data:(EnumName.of_string enum_name) )
 
-  let create () = (Namegen.create (), Map.empty (module LabelName))
+  let gen_call_label protocol roles =
+    let roles_str =
+      String.concat ~sep:"," (List.map roles ~f:RoleName.user)
+    in
+    LabelName.of_string
+    @@ Printf.sprintf "%s(%s)" (ProtocolName.user protocol) roles_str
+
+  let add_invitation_enum ((enum_type, name_gen, enums) as env) protocol
+      roles =
+    let call_label = gen_call_label protocol roles in
+    if Map.mem enums call_label then env
+    else
+      let enum_name = invitation_enum_name protocol roles in
+      let name_gen, enum_name = Namegen.unique_name name_gen enum_name in
+      ( enum_type
+      , name_gen
+      , Map.add_exn enums ~key:call_label
+          ~data:(EnumName.of_string enum_name) )
+
+  let get_invitation_enum (_, _, enums) protocol roles =
+    let call_label = gen_call_label protocol roles in
+    Map.find_exn enums call_label
+
+  let get_message_enum (_, _, enums) label = Map.find_exn enums label
+
+  let get_enum_type_name (enum_type, _, _) = enum_type
+
+  let generate_messages_file (enum_name, _, enums) =
+    let pkg_stmt = package_stmt pkg_messages in
+    let label_enum_decl = gen_enum (enum_name, Map.data enums) in
+    join_non_empty_lines ~sep:"\n\n" [pkg_stmt; label_enum_decl]
+
+  (* let pkg_stmt = package_stmt pkg in let msg_structs = List.map
+     ~f:gen_msg_struct (Map.data msgs) in join_non_empty_lines ~sep:"\n\n"
+     (pkg_stmt :: msg_structs) *)
+
+  let create protocol_name =
+    let namegen = Namegen.create () in
+    let enum_type = message_label_enum_name protocol_name in
+    let namegen, _ =
+      Namegen.unique_name namegen (EnumTypeName.user enum_type)
+    in
+    (enum_type, namegen, Map.empty (module LabelName))
 end
 
 module EnumNamesEnv : sig
@@ -289,8 +321,8 @@ end
 module ChannelEnv : sig
   type t
 
-  val new_channel :
-    t -> RoleName.t -> LabelName.t -> t * ChannelName.t * MessageStructName.t
+  val add_channel :
+    t -> RoleName.t -> PayloadTypeName.t option -> bool -> t * ChannelName.t
 
   val gen_channel_struct : t -> string
 
@@ -300,7 +332,17 @@ module ChannelEnv : sig
 
   val create : RoleName.t -> ProtocolName.t -> ImportsEnv.t -> t
 end = struct
-  type channel_fields = (ChannelName.t * MessageStructName.t) list
+  module ChannelId = struct
+    module T = struct
+      type t = RoleName.t * PayloadTypeName.t option * bool
+      [@@deriving sexp_of, ord]
+    end
+
+    include T
+    include Comparable.Make (T)
+  end
+
+  type channel_fields = ChannelName.t Map.M(ChannelId).t
 
   type t =
     Namegen.t
@@ -309,39 +351,94 @@ end = struct
     * channel_fields
     * ImportsEnv.t
 
-  let new_channel (name_gen, struct_name, protocol, channel_fields, imports)
-      role msg_label =
-    let chan_name = chan_struct_field_name role msg_label in
-    let name_gen, chan_name = Namegen.unique_name name_gen chan_name in
-    let channel_name = ChannelName.of_string chan_name in
-    let msg_struct_name =
-      MessageStructName.of_string (msg_type_name msg_label)
-    in
-    let channel_fields = (channel_name, msg_struct_name) :: channel_fields in
-    (* Add messages/protocol import if the role receives any message *)
-    let imports, _ = ImportsEnv.import_messages imports protocol in
-    let env = (name_gen, struct_name, protocol, channel_fields, imports) in
-    (env, channel_name, msg_struct_name)
+  let add_channel
+      ((namegen, struct_name, protocol, chan_fields, imports) as env) role
+      payload is_send =
+    let chan_id = (role, payload, is_send) in
+    match Map.find chan_fields chan_id with
+    | Some chan_field -> (env, chan_field)
+    | None ->
+        let chan_field, imports =
+          match payload with
+          | None ->
+              let imports, _ = ImportsEnv.import_messages imports in
+              (chan_field_name role "Label" is_send, imports)
+          | Some payload_type ->
+              (* TODO: Assumes payload type is valid identifier: e.g. string,
+                 int. etc.*)
+              ( chan_field_name role
+                  (capitalize_payload_type payload_type)
+                  is_send
+              , imports )
+        in
+        let namegen, chan_field = Namegen.unique_name namegen chan_field in
+        let channel_field = ChannelName.of_string chan_field in
+        let chan_fields =
+          Map.add_exn chan_fields ~key:chan_id ~data:channel_field
+        in
+        let env = (namegen, struct_name, protocol, chan_fields, imports) in
+        (env, channel_field)
+
+  (* let update_channel_entry is_send = function | None -> if is_send then
+     (true, false) else (false, true) | send, recv -> if is_send then (true,
+     recv) else (send, true)
+
+     let new_label_channel (struct_name, protocol, (label_channels,
+     payload_channels), imports) role is_send = let imports, _ =
+     ImportsEnv.import_messages imports protocol in let label_channels =
+     Map.update label_channels role ~f:(update_channel_entry is_send) in
+     (struct_name, protocol, (label_channels, payload_channels), imports)
+
+     let new_payload_channel (struct_name, protocol, (label_channels,
+     payload_channels), imports) role payload is_send = let
+     update_payload_entry =function | None -> Map.singleton (module
+     PayloadTypeName) payload (update_channel_entry is_send None) | Some
+     payload_chans -> Map.update payload ~f:(update_channel_entry is_send) in
+     let payload_channels = Map.update payload_channels role
+     ~f:(update_payload_entry) in (struct_name, ) *)
+
+  (* let chan_name = chan_struct_field_name role msg_label in let name_gen,
+     chan_name = Namegen.unique_name name_gen chan_name in let channel_name =
+     ChannelName.of_string chan_name in let msg_struct_name =
+     MessageStructName.of_string (msg_type_name msg_label) in let
+     channel_fields = (channel_name, msg_struct_name) :: channel_fields in (*
+     Add messages/protocol import if the role receives any message *) let
+     imports, _ = ImportsEnv.import_messages imports protocol in let env =
+     (name_gen, struct_name, protocol, channel_fields, imports) in (env,
+     channel_name, msg_struct_name) *)
 
   let gen_channel_struct
       ((_, struct_name, protocol, channel_fields, imports) : t) =
-    let gen_chan_field_decl (chan_name, msg_struct) =
+    let gen_chan_field_decl ~key:(_, payload, _) ~data:chan_name chan_fields
+        =
       (* Get pkg name *)
-      let _, pkg = ImportsEnv.import_messages imports protocol in
-      let msg_struct_type = protocol_msg_access pkg msg_struct in
-      let chan_type = chan_type msg_struct_type in
-      struct_field_decl (ChannelName.user chan_name) chan_type
+      let chan_payload_type =
+        match payload with
+        | None ->
+            let _, pkg = ImportsEnv.import_messages imports in
+            let label_enum_type = message_label_enum_name protocol in
+            pkg_enum_type_access pkg label_enum_type
+        | Some payload_type -> PayloadTypeName.user payload_type
+      in
+      let chan_type = chan_type chan_payload_type in
+      struct_field_decl (ChannelName.user chan_name) chan_type :: chan_fields
     in
-    let chan_decls = List.map ~f:gen_chan_field_decl channel_fields in
+    let chan_decls =
+      Map.fold ~init:[] ~f:gen_chan_field_decl channel_fields
+    in
     struct_decl (ChannelStructName.user struct_name) chan_decls
 
   let struct_name (_, struct_name, _, _, _) = struct_name
 
   let get_channel_imports (_, _, _, _, imports) = imports
 
-  let create role protocol imports =
+  let create role protocol imports : t =
     let struct_name = ChannelStructName.of_string @@ chan_struct_name role in
-    (Namegen.create (), struct_name, protocol, [], imports)
+    ( Namegen.create ()
+    , struct_name
+    , protocol
+    , Map.empty (module ChannelId)
+    , imports )
 end
 
 module InviteEnv : sig
@@ -1284,11 +1381,6 @@ end = struct
 
   let gen_callbacks_file (_, (_, enums), callbacks, imports) local_protocol
       is_dynamic_role =
-    let gen_enum (enum_type, enum_values) =
-      let type_decl = enum_type_decl enum_type in
-      let value_decls = enum_decl enum_type enum_values in
-      join_non_empty_lines [type_decl; value_decls]
-    in
     let pkg = package_stmt pkg_callbacks in
     let enum_decls = List.map ~f:gen_enum enums in
     let enum_decls_str = String.concat ~sep:"\n\n" enum_decls in
