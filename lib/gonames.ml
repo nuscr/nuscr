@@ -107,6 +107,12 @@ let role_impl_file_name local_protocol =
 let protocol_setup_file_name protocol =
   sprintf "%s_setup.go" (lowercase_protocol protocol)
 
+(* UIDs for protocol calls *)
+let gen_call_label protocol roles =
+  let roles_str = String.concat ~sep:"," (List.map roles ~f:RoleName.user) in
+  LabelName.of_string
+  @@ Printf.sprintf "%s(%s)" (ProtocolName.user protocol) roles_str
+
 (* MSGS *)
 let msg_type_name msg = capitalize_label msg
 
