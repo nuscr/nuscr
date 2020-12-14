@@ -71,6 +71,9 @@ let capitalize_label label = String.capitalize @@ LabelName.user label
 
 let lowercase_label label = String.lowercase @@ LabelName.user label
 
+let lowercase_payload_type payload_type =
+  String.lowercase @@ PayloadTypeName.user payload_type
+
 let lowercase_local_protocol local_protocol =
   String.lowercase @@ LocalProtocolName.user local_protocol
 
@@ -269,6 +272,16 @@ let new_msg_chan_var sender recv label =
     (lowercase_role_name sender)
     (lowercase_role_name recv)
     (lowercase_label label)
+
+let new_data_chan_var sender recv payload =
+  (* TODO: assumes that the types are valid identifiers *)
+  let payload_name =
+    match payload with None -> "label" | Some p -> lowercase_payload_type p
+  in
+  sprintf "%s_%s_%s"
+    (lowercase_role_name sender)
+    (lowercase_role_name recv)
+    payload_name
 
 let new_setup_role_chan_var caller participant =
   sprintf "%s_invite_%s"
