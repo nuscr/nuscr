@@ -1562,6 +1562,8 @@ module LTypeCodeGenEnv : sig
 
   val gen_result_struct : RoleName.t -> string
 
+  val import_messages : t -> t * PackageName.t
+
   val import_channels : t -> ProtocolName.t -> t * PackageName.t
 
   val import_results : t -> ProtocolName.t -> t * PackageName.t
@@ -1677,6 +1679,10 @@ end = struct
   let gen_result_struct role =
     let struct_name = result_struct_name role in
     struct_decl struct_name []
+
+  let import_messages ({role_imports; _} as env) =
+    let role_imports, pkg_alias = ImportsEnv.import_messages role_imports in
+    ({env with role_imports}, pkg_alias)
 
   let import_channels ({role_imports; _} as env) protocol =
     let role_imports, pkg_alias =
