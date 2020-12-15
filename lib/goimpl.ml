@@ -7,9 +7,7 @@ open Gonames
 
 (* IMPORTS *)
 let messages_import_path root pkg =
-  sprintf "\"%s/%s/%s\"" (RootDirName.user root)
-    (PackageName.user pkg_messages)
-    (PackageName.user pkg)
+  sprintf "\"%s/%s\"" (RootDirName.user root) (PackageName.user pkg)
 
 let channels_import_path root pkg =
   sprintf "\"%s/%s/%s\"" (RootDirName.user root)

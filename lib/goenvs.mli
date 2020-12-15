@@ -10,7 +10,7 @@ open Ltype
 module ImportsEnv : sig
   type t
 
-  val import_messages : t -> ProtocolName.t -> t * PackageName.t
+  val import_messages : t -> t * PackageName.t
   (** Import package 'messages/<protocol>'*)
 
   val import_channels : t -> ProtocolName.t -> t * PackageName.t
@@ -45,14 +45,25 @@ end
 module MessagesEnv : sig
   type t
 
-  val create : unit -> t
+  val create : ProtocolName.t -> t
 
-  val add_message_struct :
-    t -> LabelName.t -> payload list -> t * MessageStructName.t
-  (** Add struct for labeled message if it doesn't already exist. Assumes
-      message labels are used consistently throughout the protocol *)
+  val add_message_enum : t -> LabelName.t -> t
+  (** Add enum for message label if it doesn't already exist. *)
 
-  val generate_messages_file : t -> PackageName.t -> string
+  val add_invitation_enum : t -> ProtocolName.t -> RoleName.t list -> t
+  (** Add enum for protocol call if it doesn't already exist *)
+
+  val get_message_enum : t -> LabelName.t -> EnumName.t
+  (** Get enum value for message label *)
+
+  val get_enum_type_name : t -> EnumTypeName.t
+  (** Get name of enum type *)
+
+  val get_invitation_enum :
+    t -> ProtocolName.t -> RoleName.t list -> EnumName.t
+  (** Get enum value for protocol call *)
+
+  val generate_messages_file : t -> string
   (** Generate Go source file containing the message structs defined in the
       environment *)
 end
@@ -80,9 +91,12 @@ end
 module ChannelEnv : sig
   type t
 
-  val new_channel :
-    t -> RoleName.t -> LabelName.t -> t * ChannelName.t * MessageStructName.t
-  (** Generate new struct field given the label of the message exchanged*)
+  val get_or_add_channel :
+       t
+    -> RoleName.t * PayloadTypeName.t option * bool
+    -> t * (ChannelName.t * string)
+  (** Generate new struct field for a channel to send or receive a payload or
+      message label *)
 
   val gen_channel_struct : t -> string
   (** Generate role channel struct declaration *)
@@ -103,62 +117,36 @@ end
 module InviteEnv : sig
   type t
 
-  val new_send_role_channel :
+  type role_channel_field =
+    InviteChannelName.t * (PackageName.t * ChannelStructName.t)
+
+  type role_invite_channel_field =
+    InviteChannelName.t * InviteChannelStructName.t
+
+  val get_or_add_send_invitation_channels :
        t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RoleName.t
     -> ProtocolName.t
-    -> t * InviteChannelName.t * ChannelStructName.t
-  (** Generate new struct field for sending a role channel struct (first part
-      of the invitation) *)
+    -> t * role_channel_field * role_invite_channel_field
+  (** Generate, if they don't exist already, two new struct field for sending
+      the invitations to a role (potentially itself). Invitations consist of
+      the channel struct and invitation struct that the role will need to
+      communicate in the nested protocol *)
 
-  val new_send_invite_channel :
-       t
-    -> RoleName.t
-    -> LocalProtocolName.t
-    -> t * InviteChannelName.t * InviteChannelStructName.t
-  (** Generate new struct field for sending a invitation channel struct
-      (second part of the invitation) *)
-
-  val send_self_role_channel :
-       t
-    -> RoleName.t
-    -> LocalProtocolName.t
-    -> InviteChannelName.t * ChannelStructName.t
-  (** Return struct field name of the channel used to send the role channel
-      struct invitation to itself. When a role receives an invitation, if the
-      invitation was sent by itself then no new channel fields should be
-      created. The same channel used to send the invitation should be
-      returned *)
-
-  val send_self_invite_channel :
-       t
-    -> RoleName.t
-    -> LocalProtocolName.t
-    -> InviteChannelName.t * InviteChannelStructName.t
-  (** Return struct field name of the channel used to send the invitation
-      channel struct invitation to itself. When a role receives an
-      invitation, if the invitation was sent by itself then no new channel
-      fields should be created. The same channel used to send the invitation
-      should be returned *)
-
-  val new_recv_role_channel :
+  val get_or_add_recv_invitation_channels :
        t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RoleName.t
     -> ProtocolName.t
-    -> t * InviteChannelName.t * ChannelStructName.t
-  (** Generate new channel field to accept the role channel struct invitation *)
-
-  val new_recv_invite_channel :
-       t
-    -> RoleName.t
-    -> LocalProtocolName.t
-    -> t * InviteChannelName.t * InviteChannelStructName.t
-  (** Generate new channel field to accept the invitation channel struct
-      invitation *)
+    -> t * role_channel_field * role_invite_channel_field
+  (** Generate, if they don't exist already, two new struct field for
+      receiving the invitations from the role which is initiating a protocol
+      call - this should not be called if the role itself is initiating the
+      protocol call. Invitations consist of the channel struct and invitation
+      struct that the role will need to communicate in the nested protocol *)
 
   val gen_invite_channel_struct : t -> string
   (** Generate invitation channel struct *)
@@ -240,12 +228,12 @@ module CallbacksEnv : sig
   type t
 
   val new_send_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
-  (** Add callback for returning the message which will be sent in a labelled
-      message exchange *)
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
+  (** Add callback for returning the payloads for the message which will be
+      sent in a labelled message exchange *)
 
   val new_recv_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
   (** Add callback which takes in the message which was received in labelled
       message exchange *)
 
@@ -312,47 +300,36 @@ module LTypeCodeGenEnv : sig
     -> t
 
   (* ChannelEnv *)
-  val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
+  val get_or_add_channel :
+    t -> RoleName.t * PayloadTypeName.t option * bool -> t * ChannelName.t
 
   val gen_channel_struct : t -> string
 
   (* InviteEnv *)
-  val new_send_role_channel :
+  val get_or_add_send_invitation_channels :
        t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RoleName.t
     -> ProtocolName.t
-    -> t * InviteChannelName.t
+    -> t * InviteChannelName.t * InviteChannelName.t
 
-  val new_send_invite_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
-
-  val send_self_role_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> InviteChannelName.t
-
-  val send_self_invite_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> InviteChannelName.t
-
-  val new_recv_role_channel :
+  val get_or_add_recv_invitation_channels :
        t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RoleName.t
     -> ProtocolName.t
-    -> t * InviteChannelName.t
-
-  val new_recv_invite_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
+    -> t * InviteChannelName.t * InviteChannelName.t
 
   val gen_invite_channel_struct : t -> string
 
   (* CallbacksEnv *)
   val new_send_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
 
   val new_recv_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
 
   val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 
@@ -382,6 +359,8 @@ module LTypeCodeGenEnv : sig
   (** Generate result struct declaration for a role *)
 
   (* ImportsEnv *)
+  val import_messages : t -> t * PackageName.t
+
   val import_channels : t -> ProtocolName.t -> t * PackageName.t
 
   val import_results : t -> ProtocolName.t -> t * PackageName.t
