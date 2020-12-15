@@ -1271,11 +1271,11 @@ end
 module CallbacksEnv : sig
   type t
 
-  (* val new_send_callback : t -> LabelName.t -> RoleName.t -> ProtocolName.t
-     -> t * CallbackName.t
+  val new_send_callback :
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
 
-     val new_recv_callback : t -> LabelName.t -> RoleName.t -> ProtocolName.t
-     -> t * CallbackName.t *)
+  val new_recv_callback :
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
 
   val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 
@@ -1337,7 +1337,7 @@ end = struct
         | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
     in
     let return_val = Some (`Payloads payload_types) in
-    let callbacks = (callback, [], return_val) :: callbacks in
+    let callbacks = (callback, None, return_val) :: callbacks in
     let env = (name_gen, choice_enums, callbacks, imports) in
     (env, callback)
 
@@ -1509,45 +1509,34 @@ module LTypeCodeGenEnv : sig
     -> protocol_env
     -> t
 
-  val new_channel : t -> RoleName.t -> LabelName.t -> t * ChannelName.t
+  val get_or_add_channel :
+    t -> RoleName.t * PayloadTypeName.t option * bool -> t * ChannelName.t
 
   val gen_channel_struct : t -> string
 
-  val new_send_role_channel :
+  val get_or_add_send_invitation_channels :
        t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RoleName.t
     -> ProtocolName.t
-    -> t * InviteChannelName.t
+    -> t * InviteChannelName.t * InviteChannelName.t
 
-  val new_send_invite_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
-
-  val send_self_role_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> InviteChannelName.t
-
-  val send_self_invite_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> InviteChannelName.t
-
-  val new_recv_role_channel :
+  val get_or_add_recv_invitation_channels :
        t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RoleName.t
     -> ProtocolName.t
-    -> t * InviteChannelName.t
-
-  val new_recv_invite_channel :
-    t -> RoleName.t -> LocalProtocolName.t -> t * InviteChannelName.t
+    -> t * InviteChannelName.t * InviteChannelName.t
 
   val gen_invite_channel_struct : t -> string
 
   val new_send_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
 
   val new_recv_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
 
   val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 
@@ -1605,72 +1594,47 @@ end = struct
     let role_imports = ImportsEnv.create root_dir in
     {protocol; role; channel_env; invite_env; callbacks_env; role_imports}
 
-  let new_channel ({channel_env; _} as t) role msg_label =
-    let channel_env, channel_name, _ =
-      ChannelEnv.new_channel channel_env role msg_label
+  let get_or_add_channel ({channel_env; _} as t) chan_key =
+    let channel_env, (channel_name, _) =
+      ChannelEnv.get_or_add_channel channel_env chan_key
     in
     ({t with channel_env}, channel_name)
 
   let gen_channel_struct {channel_env; _} =
     ChannelEnv.gen_channel_struct channel_env
 
-  let new_send_role_channel ({invite_env; _} as t) participant local_protocol
-      new_role protocol =
-    let invite_env, channel_name, _ =
-      InviteEnv.new_send_role_channel invite_env participant local_protocol
-        new_role protocol
+  let get_or_add_send_invitation_channels ({invite_env; _} as env)
+      participant local_protocol new_role protocol =
+    let invite_env, (role_chan, _), (invite_chan, _) =
+      InviteEnv.get_or_add_send_invitation_channels invite_env participant
+        local_protocol new_role protocol
     in
-    ({t with invite_env}, channel_name)
+    ({env with invite_env}, role_chan, invite_chan)
 
-  let new_recv_role_channel ({invite_env; _} as t) caller local_protocol
-      new_role protocol =
-    let invite_env, channel_name, _ =
-      InviteEnv.new_recv_role_channel invite_env caller local_protocol
-        new_role protocol
+  let get_or_add_recv_invitation_channels ({invite_env; _} as env) caller
+      local_protocol new_role protocol =
+    let invite_env, (role_chan, _), (invite_chan, _) =
+      InviteEnv.get_or_add_recv_invitation_channels invite_env caller
+        local_protocol new_role protocol
     in
-    ({t with invite_env}, channel_name)
-
-  let new_send_invite_channel ({invite_env; _} as t) participant
-      local_protocol =
-    let invite_env, channel_name, _ =
-      InviteEnv.new_send_invite_channel invite_env participant local_protocol
-    in
-    ({t with invite_env}, channel_name)
-
-  let send_self_role_channel {invite_env; _} role local_protocol =
-    let role_chan, _ =
-      InviteEnv.send_self_role_channel invite_env role local_protocol
-    in
-    role_chan
-
-  let send_self_invite_channel {invite_env; _} role local_protocol =
-    let invite_chan, _ =
-      InviteEnv.send_self_invite_channel invite_env role local_protocol
-    in
-    invite_chan
-
-  let new_recv_invite_channel ({invite_env; _} as t) caller local_protocol =
-    let invite_env, channel_name, _ =
-      InviteEnv.new_recv_invite_channel invite_env caller local_protocol
-    in
-    ({t with invite_env}, channel_name)
+    ({env with invite_env}, role_chan, invite_chan)
 
   let gen_invite_channel_struct {invite_env; _} =
     InviteEnv.gen_invite_channel_struct invite_env
 
-  let new_send_callback ({callbacks_env; _} as env) msg_label recv_role
-      protocol =
+  let new_send_callback ({callbacks_env; _} as env) msg_label payloads
+      recv_role =
     let callbacks_env, callback =
-      CallbacksEnv.new_send_callback callbacks_env msg_label recv_role
-        protocol
+      CallbacksEnv.new_send_callback callbacks_env msg_label payloads
+        recv_role
     in
     ({env with callbacks_env}, callback)
 
-  let new_recv_callback ({callbacks_env; _} as env) msg_label sender_role
-      protocol =
+  let new_recv_callback ({callbacks_env; _} as env) msg_label payloads
+      sender_role =
     let callbacks_env, callback =
-      CallbacksEnv.new_recv_callback callbacks_env msg_label sender_role
-        protocol
+      CallbacksEnv.new_recv_callback callbacks_env msg_label payloads
+        sender_role
     in
     ({env with callbacks_env}, callback)
 
