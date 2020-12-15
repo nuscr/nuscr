@@ -1271,11 +1271,11 @@ end
 module CallbacksEnv : sig
   type t
 
-  val new_send_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+  (* val new_send_callback : t -> LabelName.t -> RoleName.t -> ProtocolName.t
+     -> t * CallbackName.t
 
-  val new_recv_callback :
-    t -> LabelName.t -> RoleName.t -> ProtocolName.t -> t * CallbackName.t
+     val new_recv_callback : t -> LabelName.t -> RoleName.t -> ProtocolName.t
+     -> t * CallbackName.t *)
 
   val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 
@@ -1305,18 +1305,17 @@ module CallbacksEnv : sig
 
   val create : RootDirName.t -> EnumNamesEnv.t -> t
 end = struct
-  type param =
-    ParameterName.t
-    * [ `Result of PackageName.t * ResultName.t
-      | `Msg of PackageName.t * MessageStructName.t ]
+  type params =
+    [ `Result of ParameterName.t * (PackageName.t * ResultName.t)
+    | `Payloads of (ParameterName.t * PayloadTypeName.t) list ]
 
   type return_val =
     [ `Env of CallbacksEnvName.t
     | `Result of PackageName.t * ResultName.t
-    | `Msg of PackageName.t * MessageStructName.t
+    | `Payloads of PayloadTypeName.t list
     | `Enum of EnumTypeName.t ]
 
-  type callbacks = (CallbackName.t * param option * return_val option) list
+  type callbacks = (CallbackName.t * params option * return_val option) list
 
   type enum = EnumTypeName.t * EnumName.t list
 
@@ -1325,37 +1324,42 @@ end = struct
   type t = Namegen.t * choice_enums * callbacks * ImportsEnv.t
 
   let new_send_callback (name_gen, choice_enums, callbacks, imports)
-      msg_label recv_role protocol =
-    (* <msg_struct>_To_<role>[_<uid>]() <pkg>.<msg_struct> *)
+      msg_label payloads recv_role =
+    (* <msg_label>_To_<role>[_<uid>]() (payload_1, ... , payload_n)*)
     let callback_name = send_callback_name msg_label recv_role in
     let name_gen, callback_name =
       Namegen.unique_name name_gen callback_name
     in
     let callback = CallbackName.of_string callback_name in
-    let msg_struct_name =
-      MessageStructName.of_string (msg_type_name msg_label)
+    let payload_types =
+      List.map payloads ~f:(function
+        | PValue (_, payload_type) -> payload_type
+        | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
     in
-    let imports, pkg = ImportsEnv.import_messages imports protocol in
-    let return_val = Some (`Msg (pkg, msg_struct_name)) in
-    let callbacks = (callback, None, return_val) :: callbacks in
+    let return_val = Some (`Payloads payload_types) in
+    let callbacks = (callback, [], return_val) :: callbacks in
     let env = (name_gen, choice_enums, callbacks, imports) in
     (env, callback)
 
   let new_recv_callback (name_gen, choice_enums, callbacks, imports)
-      msg_label sender_role protocol =
-    (* <msg_struct>_From_<role>[_uid](<msg_struct> <pkg>.<msg_struct>) *)
+      msg_label payloads sender_role =
+    (* <msg_label>_From_<role>[_uid](p_1 payload_type_1, ..., p_n
+       payload_type_n) *)
     let callback_name = recv_callback_name msg_label sender_role in
     let name_gen, callback_name =
       Namegen.unique_name name_gen callback_name
     in
     let callback = CallbackName.of_string callback_name in
-    let msg_struct_name =
-      MessageStructName.of_string (msg_type_name msg_label)
+    (* Assumes unique, valid parameter names (preprocessing already applied) *)
+    let callback_params =
+      List.map payloads ~f:(function
+        | PValue (param_name, payload_type) ->
+            (var_to_param_name param_name, payload_type)
+        | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
     in
-    let imports, pkg = ImportsEnv.import_messages imports protocol in
-    let param_name = ParameterName.of_string @@ new_msg_var msg_label in
-    let param_decl = Some (param_name, `Msg (pkg, msg_struct_name)) in
-    let callbacks = (callback, param_decl, None) :: callbacks in
+    let callbacks =
+      (callback, Some (`Payloads callback_params), None) :: callbacks
+    in
     let env = (name_gen, choice_enums, callbacks, imports) in
     (env, callback)
 
@@ -1403,7 +1407,7 @@ end = struct
       ParameterName.of_string (VariableName.user result_var)
     in
     let callbacks =
-      (callback, Some (result_param, `Result (pkg, result_name)), None)
+      (callback, Some (`Result (result_param, (pkg, result_name))), None)
       :: callbacks
     in
     let env = (name_gen, choice_enums, callbacks, imports) in
