@@ -119,15 +119,44 @@ let gen_accept_invite_chan_names env curr_role caller new_role protocol
 (** Extract labels from the first interactions in each local type. These
     labels will not necessarily be unique in the case of protocol calls *)
 let extract_choice_labels ltypes =
-  let extract_label = function
+  let rec extract_label = function
     | InviteCreateL (_, _, protocol, _) ->
         LabelName.of_string @@ ProtocolName.user protocol
     | SendL ({label; _}, _, _) -> label
+    | MuL (_, ltype) -> extract_label ltype
+    | TVarL _ ->
+        raise
+          (Err.Violation
+             "Currently unfolding of recursion not supported for extracting \
+              choice labels - branches of choices should have an explit \
+              first message")
     | _ ->
-        failwith
-          "First choice interaction should always be a Send or InviteCreate"
+        raise
+          (Err.Violation
+             "Cannot generate code for nested choices - choices should be \
+              flattened or local type should be normalised to ensure this")
   in
   List.map ~f:extract_label ltypes
+
+let extract_choice_label_enums msgs_env ltypes =
+  let rec extract_enum_label = function
+    | AcceptL (_, protocol, roles, _, _, _) ->
+        MessagesEnv.get_invitation_enum msgs_env protocol roles
+    | RecvL ({label; _}, _, _) -> MessagesEnv.get_message_enum msgs_env label
+    | MuL (_, ltype) -> extract_enum_label ltype
+    | TVarL _ ->
+        raise
+          (Err.Violation
+             "Currently unfolding of recursion not supported for extracting \
+              choice labels - branches of choices should have an explit \
+              first message")
+    | _ ->
+        raise
+          (Err.Violation
+             "Cannot generate code for nested choices, choices should be \
+              flattened or local type should be normalised to ensure this")
+  in
+  List.map ltypes ~f:extract_enum_label
 
 (** Generate implementation of accept local type *)
 let gen_accept_impl var_name_gen local_protocol role_chan role_invite_chan
@@ -378,8 +407,29 @@ let gen_make_choice_impl var_name_gen role callbacks_pkg choice_cb
 
 (** Generate implementation of choice local type when the current role is not
     making the choice*)
-let gen_recv_choice_impl choice_impls indent =
-  gen_select_stmt choice_impls indent
+let gen_recv_choice_impl env var_name_gen choice_role label_msg_enums
+    choice_impls msgs_pkg indent =
+  let choice_var_str = new_choice_enum_var choice_role in
+  let var_name_gen, label_msg_var =
+    new_variable var_name_gen choice_var_str
+  in
+  let env, chan_name =
+    LTypeCodeGenEnv.get_or_add_channel env (choice_role, None, false)
+  in
+  let recv_choice_stmt =
+    indent_line indent
+    @@ recv_from_msg_chan label_msg_var role_chan chan_name
+  in
+  let invalid_choice_panic = panic_with_msg invalid_choice_panic_msg in
+  let invalid_choice_panic =
+    indent_line (incr_indent indent) invalid_choice_panic
+  in
+  let default_impl = Some invalid_choice_panic in
+  let choice_switch =
+    gen_switch_stmt label_msg_var msgs_pkg label_msg_enums choice_impls
+      indent default_impl
+  in
+  (env, var_name_gen, join_non_empty_lines [recv_choice_stmt; choice_switch])
 
 (** Generate implementation of end local type *)
 let gen_end_of_protocol indent is_dynamic_role done_cb =
@@ -950,13 +1000,18 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
           in
           ((env, var_name_gen), impl)
         else
-          let env, choice_impls =
+          let msg_label_enums = extract_choice_label_enums msgs_env ltys in
+          let (env, var_name_gen), choice_impls =
             List.fold_map ~init:(env, var_name_gen)
               ~f:(gen_implementation (incr_indent indent) true)
               ltys
           in
-          let impl = gen_recv_choice_impl choice_impls indent in
-          (env, impl)
+          let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
+          let env, var_name_gen, impl =
+            gen_recv_choice_impl env var_name_gen r msg_label_enums
+              choice_impls msgs_pkg indent
+          in
+          ((env, var_name_gen), impl)
     | RecvL ({label; payload= payloads}, r, ltype') ->
         let env, recv_cb =
           LTypeCodeGenEnv.new_recv_callback env label payloads r
