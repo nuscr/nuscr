@@ -98,13 +98,11 @@ let gen_send_invite_chan_names protocol_lookup protocol env
   let local_protocol =
     lookup_local_protocol protocol_lookup protocol new_role
   in
-  let env, role_chan =
-    LTypeCodeGenEnv.new_send_role_channel env participant local_protocol
-      new_role protocol
+  let env, role_chan, invite_chan =
+    LTypeCodeGenEnv.get_or_add_send_invitation_channels env participant
+      local_protocol new_role protocol
   in
-  let env, invite_chan =
-    LTypeCodeGenEnv.new_send_invite_channel env participant local_protocol
-  in
+  (* TODO: Fix label channels *)
   (env, (role_chan, invite_chan))
 
 (** Generate the struct field names for the channels over which to accept the
@@ -112,22 +110,11 @@ let gen_send_invite_chan_names protocol_lookup protocol env
 let gen_accept_invite_chan_names env curr_role caller new_role protocol
     local_protocol =
   if RoleName.equal caller curr_role then
-    let role_chan =
-      LTypeCodeGenEnv.send_self_role_channel env curr_role local_protocol
-    in
-    let invite_chan =
-      LTypeCodeGenEnv.send_self_invite_channel env curr_role local_protocol
-    in
-    (env, role_chan, invite_chan)
+    LTypeCodeGenEnv.get_or_add_send_invitation_channels env curr_role
+      local_protocol new_role protocol
   else
-    let env, role_chan =
-      LTypeCodeGenEnv.new_recv_role_channel env caller local_protocol
-        new_role protocol
-    in
-    let env, invite_chan =
-      LTypeCodeGenEnv.new_recv_invite_channel env caller local_protocol
-    in
-    (env, role_chan, invite_chan)
+    LTypeCodeGenEnv.get_or_add_recv_invitation_channels env caller
+      local_protocol new_role protocol
 
 (** Extract labels from the first interactions in each local type. These
     labels will not necessarily be unique in the case of protocol calls *)
@@ -202,32 +189,87 @@ let gen_accept_impl var_name_gen local_protocol role_chan role_invite_chan
   , var_name_gen )
 
 (** Generate implementation of receive local type *)
-let gen_recv_impl var_name_gen msg_label msg_chan recv_cb =
-  (* <msg> := <-roleChannels.<msg_chan> *)
-  let msg_var = new_msg_var msg_label in
-  let var_name_gen, msg_var_name = new_variable var_name_gen msg_var in
-  let msg_assign = recv_from_msg_chan msg_var_name role_chan msg_chan in
+let gen_recv_impl env var_name_gen sender payloads recv_cb is_recv_choice_msg
+    =
+  let env, var_name_gen, chan_recv_stmts, chan_vars =
+    List.fold (List.rev payloads) ~init:(env, var_name_gen, [], [])
+      ~f:(fun (env, var_name_gen, chan_recv_stmts, chan_vars) -> function
+      | PValue (payload_name, payload_type) ->
+          let env, chan_name =
+            LTypeCodeGenEnv.get_or_add_channel env
+              (sender, Some payload_type, false)
+          in
+          (* Assume all payloads are named *)
+          let payload_var_str = extract_var_name_str payload_name in
+          let var_name_gen, payload_var =
+            new_variable var_name_gen payload_var_str
+          in
+          let recv_payload_stmt =
+            recv_from_msg_chan payload_var role_chan chan_name
+          in
+          ( env
+          , var_name_gen
+          , recv_payload_stmt :: chan_recv_stmts
+          , VariableName.user payload_var :: chan_vars )
+      | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
+  in
   (* env.<msg>_From_<sender>(<msg>) *)
   let recv_function = FunctionName.of_string @@ CallbackName.user recv_cb in
-  let call_recv_callback =
-    call_method env_var recv_function [VariableName.user msg_var_name]
-  in
-  ([msg_assign; call_recv_callback], var_name_gen)
+  let call_recv_callback = call_method env_var recv_function chan_vars in
+  let recv_impl_stmts = chan_recv_stmts @ [call_recv_callback] in
+  if is_recv_choice_msg then
+    (* let _ = in *)
+    (env, var_name_gen, recv_impl_stmts)
+  else
+    let env, chan_name =
+      LTypeCodeGenEnv.get_or_add_channel env (sender, None, false)
+    in
+    let recv_label_stmt = ignore_recv_msg role_chan chan_name in
+    (env, var_name_gen, recv_label_stmt :: recv_impl_stmts)
 
 (** Generate implementation of send local type *)
-let gen_send_impl var_name_gen msg_label msg_chan send_cb =
-  (* <msg_var> := env.<msg>_To_<recv>() *)
-  let msg_var = new_msg_var msg_label in
-  let var_name_gen, msg_var_name = new_variable var_name_gen msg_var in
+let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
+  let env, var_name_gen, chan_send_stmts, chan_vars =
+    List.fold (List.rev payloads) ~init:(env, var_name_gen, [], [])
+      ~f:(fun (env, var_name_gen, chan_recv_stmts, chan_vars) -> function
+      | PValue (payload_name, payload_type) ->
+          let env, chan_name =
+            LTypeCodeGenEnv.get_or_add_channel env
+              (receiver, Some payload_type, true)
+          in
+          (* Assume all payloads are named *)
+          let payload_var_str = extract_var_name_str payload_name in
+          let var_name_gen, payload_var =
+            new_variable var_name_gen payload_var_str
+          in
+          let recv_payload_stmt =
+            send_msg_over_channel role_chan chan_name payload_var
+          in
+          ( env
+          , var_name_gen
+          , recv_payload_stmt :: chan_recv_stmts
+          , VariableName.user payload_var :: chan_vars )
+      | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
+  in
+  (* env.<msg>_From_<sender>(<msg>) *)
   let send_function = FunctionName.of_string @@ CallbackName.user send_cb in
-  let msg_assign =
-    new_var_assignment msg_var_name (call_method env_var send_function [])
+  let call_send_callback = call_method env_var send_function [] in
+  let call_send_callback =
+    if List.length chan_vars > 0 then
+      multiple_var_assignment chan_vars call_send_callback
+    else call_send_callback
   in
-  (* roleChannels.<msg_chan> <- <msg> *)
-  let send_msg_stmt =
-    send_msg_over_channel role_chan msg_chan msg_var_name
+  let env, label_chan =
+    LTypeCodeGenEnv.get_or_add_channel env (receiver, None, true)
   in
-  ([msg_assign; send_msg_stmt], var_name_gen)
+  let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
+  let send_label_stmt =
+    send_value_over_channel role_chan label_chan
+      (pkg_enum_access msgs_pkg msg_enum)
+  in
+  ( env
+  , var_name_gen
+  , call_send_callback :: send_label_stmt :: chan_send_stmts )
 
 (** Generate implementation of invite + create local types *)
 let gen_invite_impl var_name_gen protocol invite_pkg setup_env
@@ -798,17 +840,20 @@ let gen_setup_file protocol_setup_env imports indent setup_channels_impl
 (** Generate all the environment containing all the messages in a protocol *)
 let rec gen_message_structs msgs_env = function
   | EndG | TVarG _ -> msgs_env
-  | MuG (_, _, g) | CallG (_, _, _, g) -> gen_message_structs msgs_env g
+  | MuG (_, _, g) -> gen_message_structs msgs_env g
+  | CallG (_, protocol, roles, g) ->
+      let msgs_env =
+        MessagesEnv.add_invitation_enum msgs_env protocol roles
+      in
+      gen_message_structs msgs_env g
   | ChoiceG (_, gtypes) ->
       List.fold ~init:msgs_env ~f:gen_message_structs gtypes
-  | MessageG ({label; payload}, _, _, g) ->
-      let msgs_env, _ =
-        MessagesEnv.add_message_struct msgs_env label payload
-      in
+  | MessageG ({label; _}, _, _, g) ->
+      let msgs_env = MessagesEnv.add_message_enum msgs_env label in
       gen_message_structs msgs_env g
 
 (** Generate implementation of a role from its local type *)
-let gen_role_implementation protocol_setup_env ltype_env global_t
+let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
     protocol_lookup is_dynamic_role protocol role
     (local_proto_name : LocalProtocolName.t) ltype =
   let rec gen_implementation indent is_recv_choice_msg (env, var_name_gen)
@@ -822,11 +867,18 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
           gen_end_of_protocol indent is_dynamic_role done_callback
         in
         ((env, var_name_gen), impl)
-    | TVarL _ | MuL _ ->
-        (* TODO: Support recursion *)
-        Err.violation
-          "Explicit recursion constructs not currently supported in this \
-           code generation scheme"
+    | TVarL (var, _) ->
+        let impl = continue_stmt var in
+        ((env, var_name_gen), indent_line indent impl)
+    | MuL (var, _, ltype') ->
+        let loop_label = recursion_label var in
+        let (env, var_name_gen), recursion_body =
+          gen_implementation (incr_indent indent) false (env, var_name_gen)
+            ltype'
+        in
+        let loop = recursion_loop recursion_body indent in
+        let impl = recursion_impl loop_label loop in
+        ((env, var_name_gen), impl)
     | InviteCreateL (invite_roles, _, protocol', ltype') ->
         let (new_proto_roles, _), _, _ = Map.find_exn global_t protocol' in
         let acting_roles = List.zip_exn invite_roles new_proto_roles in
@@ -905,31 +957,28 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
           in
           let impl = gen_recv_choice_impl choice_impls indent in
           (env, impl)
-    | RecvL ({label; _}, r, ltype') ->
-        let env, channel_name = LTypeCodeGenEnv.new_channel env r label in
+    | RecvL ({label; payload= payloads}, r, ltype') ->
         let env, recv_cb =
-          LTypeCodeGenEnv.new_recv_callback env label r protocol
+          LTypeCodeGenEnv.new_recv_callback env label payloads r
         in
-        let recv_impl, var_name_gen =
-          gen_recv_impl var_name_gen label channel_name recv_cb
+        let env, var_name_gen, recv_impl =
+          gen_recv_impl env var_name_gen r payloads recv_cb
+            is_recv_choice_msg
         in
-        let recv_impl, cont_indent =
-          if is_recv_choice_msg then gen_select_case recv_impl indent
-          else (List.map ~f:(indent_line indent) recv_impl, indent)
-        in
+        let recv_impl = List.map ~f:(indent_line indent) recv_impl in
         let recv_impl_str = join_non_empty_lines recv_impl in
         let (env, var_name_gen), impl =
-          gen_implementation cont_indent false (env, var_name_gen) ltype'
+          gen_implementation indent false (env, var_name_gen) ltype'
         in
         ( (env, var_name_gen)
         , join_non_empty_lines ~sep:"\n\n" [recv_impl_str; impl] )
-    | SendL ({label; _}, r, ltype') ->
-        let env, channel_name = LTypeCodeGenEnv.new_channel env r label in
+    | SendL ({label; payload= payloads}, r, ltype') ->
         let env, send_cb =
-          LTypeCodeGenEnv.new_send_callback env label r protocol
+          LTypeCodeGenEnv.new_send_callback env label payloads r
         in
-        let send_impl, var_name_gen =
-          gen_send_impl var_name_gen label channel_name send_cb
+        let label_enum = MessagesEnv.get_message_enum msgs_env label in
+        let env, var_name_gen, send_impl =
+          gen_send_impl env var_name_gen r label_enum payloads send_cb
         in
         let send_impl = List.map ~f:(indent_line indent) send_impl in
         let send_impl_str = join_non_empty_lines send_impl in
@@ -1074,7 +1123,8 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
       ; invite_imports= ImportsEnv.create root_dir
       ; callback_enum_names= EnumNamesEnv.create () }
     in
-    let messages_env = MessagesEnv.create () in
+    (* TODO: fix messages env - should be preserved across protocols *)
+    let messages_env = MessagesEnv.create gen_protocol in
     let messages_env = gen_message_structs messages_env gtype in
     let (result, protocol_env), envs =
       List.fold_map ~init:(result, protocol_env)
@@ -1092,9 +1142,9 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
             List.mem new_roles role ~equal:RoleName.equal
           in
           let (env, _), protocol_impl =
-            gen_role_implementation protocol_setup_env env global_t
-              protocol_lookup is_dynamic_role protocol role local_protocol
-              ltype
+            gen_role_implementation messages_env protocol_setup_env env
+              global_t protocol_lookup is_dynamic_role protocol role
+              local_protocol ltype
           in
           let env, impl_file =
             gen_role_impl_file env protocol_impl is_dynamic_role role
