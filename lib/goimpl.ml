@@ -52,6 +52,8 @@ let package_stmt pkg_name = sprintf "package %s" (PackageName.user pkg_name)
 
 let pointer_type type_str = sprintf "*%s" type_str
 
+let tuple_return_type ret_type_str = sprintf "(%s)" ret_type_str
+
 let reference_var var =
   let ref_var = sprintf "&%s" (VariableName.user var) in
   VariableName.of_string ref_var
@@ -168,31 +170,39 @@ let gen_interface interface_name interface_method_decls =
 
 (* CALLBACKS INTERFACE *)
 let callbacks_env_interface env_name callbacks =
-  let gen_callback_decl (callback_name, param, return_val) =
-    let params =
-      match param with
+  let gen_callback_decl (callback_name, params, return_val) =
+    let params_decl =
+      match params with
       | None -> []
-      | Some (param_name, `Result (pkg, result)) ->
+      | Some (`Result (param_name, (pkg, result))) ->
           [ var_type_decl
               (ParameterName.user param_name)
               (protocol_result_access pkg result) ]
-      | Some (param_name, `Msg (pkg, msg)) ->
-          [ var_type_decl
-              (ParameterName.user param_name)
-              (protocol_msg_access pkg msg) ]
+      | Some (`Payloads payloads) ->
+          List.map payloads ~f:(fun (payload_name, payload_type) ->
+              var_type_decl
+                (ParameterName.user payload_name)
+                (PayloadTypeName.user payload_type))
     in
     let return_type =
       match return_val with
       | None -> ""
-      | Some (`Msg (pkg, msg)) -> protocol_msg_access pkg msg
       | Some (`Result (pkg, result)) -> protocol_result_access pkg result
       | Some (`Env env) -> CallbacksEnvName.user env
       | Some (`Enum enum) -> EnumTypeName.user enum
+      | Some (`Payloads payload_types) ->
+          let str_payload_types =
+            List.map payload_types ~f:PayloadTypeName.user
+          in
+          let ret_type = join_non_empty_lines ~sep:", " str_payload_types in
+          if List.length str_payload_types > 1 then
+            tuple_return_type ret_type
+          else ret_type
     in
     let callback_function =
       FunctionName.of_string (CallbackName.user callback_name)
     in
-    (callback_function, params, return_type)
+    (callback_function, params_decl, return_type)
   in
   let callback_decls = List.map ~f:gen_callback_decl callbacks in
   let callbacks_interface_name =
