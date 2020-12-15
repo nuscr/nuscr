@@ -71,6 +71,9 @@ let new_var_decl var_name var_type =
 let new_var_assignment var_name rhs =
   sprintf "%s := %s" (VariableName.user var_name) rhs
 
+let multiple_var_assignment vars rhs =
+  sprintf "%s := %s" (join_non_empty_lines ~sep:", " vars) rhs
+
 let panic_with_msg msg = sprintf "panic(\"%s\")" msg
 
 (* STRUCT DECLARATION *)
@@ -260,9 +263,12 @@ let invite_chan_field_decl (chan_name, invite_chan_struct) =
 (* CHANNEL OPERATIONS *)
 let msg_from_channel chan_str = sprintf "<-%s" chan_str
 
-let send_msg_over_channel chan_struct chan_field msg_var =
+let send_value_over_channel chan_struct chan_field msg =
   let chan = channel_struct_field_access chan_struct chan_field in
-  sprintf "%s <- %s" chan (VariableName.user msg_var)
+  sprintf "%s <- %s" chan msg
+
+let send_msg_over_channel chan_struct chan_field msg_var =
+  send_value_over_channel chan_struct chan_field (VariableName.user msg_var)
 
 let send_invite_over_channel invite_chan_struct (chan_field, chan_var) =
   let chan =
@@ -281,6 +287,10 @@ let recv_from_msg_chan var_name chan_struct chan_field =
   let chan = channel_struct_field_access chan_struct chan_field in
   let recv_from_chan = msg_from_channel chan in
   new_var_assignment var_name recv_from_chan
+
+let ignore_recv_msg chan_struct chan_field =
+  let chan = channel_struct_field_access chan_struct chan_field in
+  msg_from_channel chan
 
 let make_async_chan chan_type =
   (* chan_type = "chan <type>" *)
@@ -364,3 +374,12 @@ let call_method obj_var method_name params =
 let goroutine_call function_call = sprintf "go %s" function_call
 
 let defer_call function_call = sprintf "defer %s" function_call
+
+let continue_stmt label = sprintf "continue %s" (TypeVariableName.user label)
+
+let recursion_label rec_var = sprintf "%s:" (TypeVariableName.user rec_var)
+
+let recursion_loop loop_body indent =
+  sprintf "%sfor {\n%s\n%s}" indent loop_body indent
+
+let recursion_impl label loop = sprintf "%s\n%s" label loop

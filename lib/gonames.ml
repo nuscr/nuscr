@@ -206,9 +206,11 @@ let result_callback_name local_protocol =
 
 let done_callback = CallbackName.of_string "Done"
 
+let extract_var_name_str var_name_opt =
+  VariableName.user @@ Option.value_exn var_name_opt
+
 let var_to_param_name var_name_opt =
-  ParameterName.of_string @@ VariableName.user
-  @@ Option.value_exn var_name_opt
+  ParameterName.of_string @@ extract_var_name_str var_name_opt
 
 (* CHOICE ENUMS *)
 let choice_enum_value local_protocol label =
