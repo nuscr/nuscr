@@ -1136,10 +1136,12 @@ end = struct
           ~data:(role_chan_var_name, invite_chan_var_name)
       in
       let setup_env = {setup_env with chan_vars; invite_chan_vars} in
-      (* Create Label channel for caller -> participant *)
-      create_channels_for_interaction
-        (protocol, imports, var_name_gen, setup_env)
-        caller participant []
+      if not (RoleName.equal caller participant) then
+        (* Create Label channel for caller -> participant *)
+        create_channels_for_interaction
+          (protocol, imports, var_name_gen, setup_env)
+          caller participant []
+      else (protocol, imports, var_name_gen, setup_env)
 
   let generate_invitation_vars env caller roles new_roles call_protocol
       protocol_lookup =
