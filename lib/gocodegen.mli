@@ -4,7 +4,7 @@ open Names
 (** Record containing the implementation of all the components of the Go
     protocol implementation *)
 type codegen_result =
-  { messages: string Map.M(ProtocolName).t
+  { messages: string
   ; channels: string Map.M(ProtocolName).t
   ; invite_channels: string Map.M(ProtocolName).t
   ; results: string Map.M(ProtocolName).t
