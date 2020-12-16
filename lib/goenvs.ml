@@ -325,7 +325,8 @@ module ChannelEnv : sig
 
   val struct_name : t -> ChannelStructName.t
 
-  val create : RoleName.t -> ProtocolName.t -> ImportsEnv.t -> t
+  val create :
+    RoleName.t -> ProtocolName.t -> ProtocolName.t -> ImportsEnv.t -> t
 end = struct
   module ChannelId = struct
     module T = struct
@@ -343,12 +344,18 @@ end = struct
     Namegen.t
     * ChannelStructName.t
     * ProtocolName.t
+    * ProtocolName.t
     * channel_fields
     * ImportsEnv.t
 
   let get_or_add_channel
-      ((namegen, struct_name, protocol, chan_fields, imports) as env : t)
-      (role, payload, is_send) =
+      (( namegen
+       , struct_name
+       , entrypoint_protocol
+       , protocol
+       , chan_fields
+       , imports ) as env :
+        t) (role, payload, is_send) =
     let chan_id = (role, payload, is_send) in
     match Map.find chan_fields chan_id with
     | Some channel_field_and_type -> (env, channel_field_and_type)
@@ -357,7 +364,9 @@ end = struct
           match payload with
           | None ->
               let imports, pkg = ImportsEnv.import_messages imports in
-              let label_enum_type = message_label_enum_name protocol in
+              let label_enum_type =
+                message_label_enum_name entrypoint_protocol
+              in
               let label_enum_type_str =
                 pkg_enum_type_access pkg label_enum_type
               in
@@ -382,7 +391,14 @@ end = struct
           Map.add_exn chan_fields ~key:chan_id
             ~data:(channel_field, field_type)
         in
-        let env = (namegen, struct_name, protocol, chan_fields, imports) in
+        let env =
+          ( namegen
+          , struct_name
+          , entrypoint_protocol
+          , protocol
+          , chan_fields
+          , imports )
+        in
         (env, (channel_field, field_type))
 
   (* let update_channel_entry is_send = function | None -> if is_send then
@@ -413,7 +429,7 @@ end = struct
      (name_gen, struct_name, protocol, channel_fields, imports) in (env,
      channel_name, msg_struct_name) *)
 
-  let gen_channel_struct ((_, struct_name, _, channel_fields, _) : t) =
+  let gen_channel_struct ((_, struct_name, _, _, channel_fields, _) : t) =
     let gen_chan_field_decl ~key:_ ~data:(chan_name, chan_type) chan_fields =
       (* Get pkg name *)
       struct_field_decl (ChannelName.user chan_name) chan_type :: chan_fields
@@ -423,14 +439,15 @@ end = struct
     in
     struct_decl (ChannelStructName.user struct_name) chan_decls
 
-  let struct_name (_, struct_name, _, _, _) = struct_name
+  let struct_name (_, struct_name, _, _, _, _) = struct_name
 
-  let get_channel_imports (_, _, _, _, imports) = imports
+  let get_channel_imports (_, _, _, _, _, imports) = imports
 
-  let create role protocol imports : t =
+  let create role entrypoint_protocol protocol imports : t =
     let struct_name = ChannelStructName.of_string @@ chan_struct_name role in
     ( Namegen.create ()
     , struct_name
+    , entrypoint_protocol
     , protocol
     , Map.empty (module ChannelId)
     , imports )
@@ -764,6 +781,7 @@ module ProtocolSetupGen : sig
 
   val create :
        RootDirName.t
+    -> ProtocolName.t
     -> RoleName.t list
     -> ProtocolName.t
     -> local_proto_name_lookup
@@ -819,10 +837,13 @@ end = struct
 
   type t = ProtocolName.t * ImportsEnv.t * Namegen.t * setup_env
 
-  let init_channel_envs ({channel_envs; _} as env) roles protocol imports =
+  let init_channel_envs ({channel_envs; _} as env) entrypoint_protocol roles
+      protocol imports =
     let channel_envs =
       List.fold roles ~init:channel_envs ~f:(fun acc role ->
-          let chan_env = ChannelEnv.create role protocol imports in
+          let chan_env =
+            ChannelEnv.create role entrypoint_protocol protocol imports
+          in
           Map.add_exn acc ~key:role ~data:chan_env)
     in
     {env with channel_envs}
@@ -875,13 +896,14 @@ end = struct
     let imports = ImportsEnv.create root_dir in
     (protocol, imports, var_name_gen, setup_env)
 
-  let create root_dir roles protocol protocol_lookup =
+  let create root_dir entrypoint_protocol roles protocol protocol_lookup =
     let protocol, imports, var_name_gen, setup_env =
       create_empty_env root_dir protocol
     in
     let dummy_imports = ImportsEnv.create root_dir in
     let setup_env =
-      init_channel_envs setup_env roles protocol dummy_imports
+      init_channel_envs setup_env entrypoint_protocol roles protocol
+        dummy_imports
     in
     let setup_env =
       init_invite_envs setup_env roles protocol protocol_lookup dummy_imports
@@ -1503,6 +1525,7 @@ module LTypeCodeGenEnv : sig
 
   val create :
        ProtocolName.t
+    -> ProtocolName.t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RootDirName.t
@@ -1588,9 +1611,11 @@ end = struct
     ; callbacks_env: CallbacksEnv.t
     ; role_imports: ImportsEnv.t }
 
-  let create protocol role local_protocol root_dir
+  let create entrypoint_protocol protocol role local_protocol root_dir
       {callback_enum_names; channel_imports; invite_imports} =
-    let channel_env = ChannelEnv.create role protocol channel_imports in
+    let channel_env =
+      ChannelEnv.create role entrypoint_protocol protocol channel_imports
+    in
     let invite_env = InviteEnv.create local_protocol invite_imports in
     let callbacks_env = CallbacksEnv.create root_dir callback_enum_names in
     let role_imports = ImportsEnv.create root_dir in

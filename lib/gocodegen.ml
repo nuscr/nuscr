@@ -311,12 +311,12 @@ let gen_invite_impl env var_name_gen protocol invite_enum invite_roles
     FunctionName.of_string @@ CallbackName.user setup_cb
   in
   let setup_callback_call = call_method env_var setup_function [] in
+  let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
   let env, send_invite_label_stmts =
     List.fold_map invite_roles ~init:env ~f:(fun env invite_role ->
         let env, label_chan =
           LTypeCodeGenEnv.get_or_add_channel env (invite_role, None, true)
         in
-        let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
         let send_label_stmt =
           send_value_over_channel role_chan label_chan
             (pkg_enum_access msgs_pkg invite_enum)
@@ -903,19 +903,19 @@ let gen_setup_file protocol_setup_env imports indent setup_channels_impl
     [pkg_stmt; ImportsEnv.generate_imports imports; setup_function]
 
 (** Generate all the environment containing all the messages in a protocol *)
-let rec gen_message_structs msgs_env = function
+let rec gen_message_label_enums msgs_env = function
   | EndG | TVarG _ -> msgs_env
-  | MuG (_, _, g) -> gen_message_structs msgs_env g
+  | MuG (_, _, g) -> gen_message_label_enums msgs_env g
   | CallG (_, protocol, roles, g) ->
       let msgs_env =
         MessagesEnv.add_invitation_enum msgs_env protocol roles
       in
-      gen_message_structs msgs_env g
+      gen_message_label_enums msgs_env g
   | ChoiceG (_, gtypes) ->
-      List.fold ~init:msgs_env ~f:gen_message_structs gtypes
+      List.fold ~init:msgs_env ~f:gen_message_label_enums gtypes
   | MessageG ({label; _}, _, _, g) ->
       let msgs_env = MessagesEnv.add_message_enum msgs_env label in
-      gen_message_structs msgs_env g
+      gen_message_label_enums msgs_env g
 
 (** Generate implementation of a role from its local type *)
 let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
@@ -1075,7 +1075,7 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
 
 (** Result of code generation process *)
 type codegen_result =
-  { messages: string Map.M(ProtocolName).t
+  { messages: string
   ; channels: string Map.M(ProtocolName).t
   ; invite_channels: string Map.M(ProtocolName).t
   ; results: string Map.M(ProtocolName).t
@@ -1085,8 +1085,8 @@ type codegen_result =
   ; entry_point: string }
 
 (** Generate empty code gen result *)
-let empty_result () : codegen_result =
-  { messages= Map.empty (module ProtocolName)
+let init_result messages_file : codegen_result =
+  { messages= messages_file
   ; channels= Map.empty (module ProtocolName)
   ; results= Map.empty (module ProtocolName)
   ; invite_channels= Map.empty (module ProtocolName)
@@ -1134,6 +1134,12 @@ let show_codegen_result
       (PackageName.user pkg_protocol)
       (protocol_file_name protocol)
   in
+  let messages_file_path =
+    Printf.sprintf "%s/%s/%s"
+      (RootDirName.user root_dir)
+      (PackageName.user pkg_messages)
+      messages_file_name
+  in
   let show_file file_path impl = Printf.sprintf "%s:\n\n%s" file_path impl in
   let show_files files ~gen_file_path =
     let files =
@@ -1143,10 +1149,7 @@ let show_codegen_result
     in
     String.concat ~sep:"\n\n" (Map.data files)
   in
-  let message_files =
-    show_files messages
-      ~gen_file_path:(protocol_pkg_file_path pkg_messages messages_file_name)
-  in
+  let message_file = show_file messages_file_path messages in
   let channel_files =
     show_files channels
       ~gen_file_path:(protocol_pkg_file_path pkg_channels channels_file_name)
@@ -1169,7 +1172,7 @@ let show_codegen_result
     show_file (entry_point_file_path fst_protocol) entry_point
   in
   String.concat ~sep:"\n\n"
-    [ message_files
+    [ message_file
     ; channel_files
     ; result_files
     ; invitation_files
@@ -1186,16 +1189,20 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
   let protocol_setup_env =
     ProtocolSetupEnv.create protocol_lookup local_t global_t
   in
+  (* TODO: fix messages env - should be preserved across protocols *)
+  let messages_env = MessagesEnv.create gen_protocol in
+  let messages_env =
+    Map.fold global_t ~init:messages_env
+      ~f:(fun ~key:_ ~data:(_, _, gtype) msgs_env ->
+        gen_message_label_enums msgs_env gtype)
+  in
   let gen_protocol_role_implementation ~key:protocol ~data result =
-    let (roles, new_roles), _, gtype = data in
+    let (roles, new_roles), _, _ = data in
     let protocol_env =
       { channel_imports= ImportsEnv.create root_dir
       ; invite_imports= ImportsEnv.create root_dir
       ; callback_enum_names= EnumNamesEnv.create () }
     in
-    (* TODO: fix messages env - should be preserved across protocols *)
-    let messages_env = MessagesEnv.create gen_protocol in
-    let messages_env = gen_message_structs messages_env gtype in
     let (result, protocol_env), envs =
       List.fold_map ~init:(result, protocol_env)
         ~f:(fun (({impl; callbacks; _} as result), protocol_env) role ->
@@ -1205,8 +1212,8 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
             lookup_local_protocol protocol_lookup protocol role
           in
           let env =
-            LTypeCodeGenEnv.create protocol role local_protocol root_dir
-              protocol_env
+            LTypeCodeGenEnv.create gen_protocol protocol role local_protocol
+              root_dir protocol_env
           in
           let is_dynamic_role =
             List.mem new_roles role ~equal:RoleName.equal
@@ -1239,12 +1246,6 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
         (roles @ new_roles)
     in
     let pkg = PackageName.of_string @@ protocol_pkg_name protocol in
-    let messages_file =
-      MessagesEnv.generate_messages_file messages_env pkg
-    in
-    let messages =
-      Map.add_exn result.messages ~key:protocol ~data:messages_file
-    in
     let invite_imports, channels_pkg =
       ImportsEnv.import_channels protocol_env.invite_imports protocol
     in
@@ -1273,8 +1274,8 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
       Map.add_exn result.results ~key:protocol ~data:results_file
     in
     let protocol_setup_gen =
-      ProtocolSetupGen.create root_dir (roles @ new_roles) protocol
-        protocol_lookup
+      ProtocolSetupGen.create root_dir gen_protocol (roles @ new_roles)
+        protocol protocol_lookup
     in
     let setup_imports, role_chan_vars, invite_chan_vars, setup_channels_impl
         =
@@ -1297,15 +1298,15 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
       else result.entry_point
     in
     { result with
-      messages
-    ; channels
+      channels
     ; invite_channels
     ; results
     ; protocol_setup
     ; entry_point }
   in
-  Map.fold ~init:(empty_result ()) ~f:gen_protocol_role_implementation
-    global_t
+  let messages_file = MessagesEnv.generate_messages_file messages_env in
+  let initial_result = init_result messages_file in
+  Map.fold ~init:initial_result ~f:gen_protocol_role_implementation global_t
 
 let generate_go_impl
     { messages
@@ -1327,8 +1328,13 @@ let generate_go_impl
         let file_path = gen_file_path protocol_pkg_path file_name in
         write_file file_path impl)
   in
+  let write_single_file_pkg pkg file_name impl =
+    create_pkg pkg ;
+    let file_path = gen_file_path (PackageName.user pkg) file_name in
+    write_file file_path impl
+  in
   let write_messages () =
-    write_protocol_pkgs messages pkg_messages messages_file_name
+    write_single_file_pkg pkg_messages messages_file_name messages
   in
   let write_results () =
     write_protocol_pkgs results pkg_results results_file_name
@@ -1346,13 +1352,9 @@ let generate_go_impl
         write_file file_path impl)
   in
   let write_entry_point () =
-    create_pkg pkg_protocol ;
-    let file_path =
-      gen_file_path
-        (PackageName.user pkg_protocol)
-        (protocol_file_name first_protocol)
-    in
-    write_file file_path entry_point
+    write_single_file_pkg pkg_protocol
+      (protocol_file_name first_protocol)
+      entry_point
   in
   let write_callbacks () =
     create_pkg pkg_callbacks ;
