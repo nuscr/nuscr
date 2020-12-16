@@ -108,7 +108,8 @@ module ChannelEnv : sig
   val struct_name : t -> ChannelStructName.t
   (** Returns the name of the channel struct *)
 
-  val create : RoleName.t -> ProtocolName.t -> ImportsEnv.t -> t
+  val create :
+    RoleName.t -> ProtocolName.t -> ProtocolName.t -> ImportsEnv.t -> t
 end
 
 (** Environment to generate the invitation channel struct for a role in a
@@ -201,6 +202,7 @@ module ProtocolSetupGen : sig
 
   val create :
        RootDirName.t
+    -> ProtocolName.t
     -> RoleName.t list
     -> ProtocolName.t
     -> local_proto_name_lookup
@@ -293,6 +295,7 @@ module LTypeCodeGenEnv : sig
 
   val create :
        ProtocolName.t
+    -> ProtocolName.t
     -> RoleName.t
     -> LocalProtocolName.t
     -> RootDirName.t
