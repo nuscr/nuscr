@@ -154,8 +154,8 @@ let extract_choice_label_enums msgs_env ltypes =
   List.map ltypes ~f:extract_enum_label
 
 (** Generate implementation of accept local type *)
-let gen_accept_impl env var_name_gen caller local_protocol role_channel
-    role_invite_chan accept_cb result_cb is_recv_choice_msg =
+let gen_accept_impl env var_name_gen caller curr_role local_protocol
+    role_channel role_invite_chan accept_cb result_cb is_recv_choice_msg =
   (* <local_proto>_chan := <-inviteChan.<role_chan> *)
   let role_chan_var = new_role_chan_var local_protocol in
   let var_name_gen, role_chan_var_name =
@@ -212,7 +212,8 @@ let gen_accept_impl env var_name_gen caller local_protocol role_channel
     ; result_assign
     ; result_callback_call ]
   in
-  if is_recv_choice_msg then (env, var_name_gen, accept_impl)
+  if is_recv_choice_msg || RoleName.equal caller curr_role then
+    (env, var_name_gen, accept_impl)
   else
     let env, chan_name =
       LTypeCodeGenEnv.get_or_add_channel env (caller, None, false)
@@ -304,8 +305,8 @@ let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
   , call_send_callback :: send_label_stmt :: chan_send_stmts )
 
 (** Generate implementation of invite + create local types *)
-let gen_invite_impl env var_name_gen protocol invite_enum invite_roles
-    invite_pkg setup_env invite_channels setup_cb indent =
+let gen_invite_impl env var_name_gen protocol curr_role invite_enum
+    invite_roles invite_pkg setup_env invite_channels setup_cb indent =
   (* env.<protocol>_Setup() *)
   let setup_function =
     FunctionName.of_string @@ CallbackName.user setup_cb
@@ -314,14 +315,17 @@ let gen_invite_impl env var_name_gen protocol invite_enum invite_roles
   let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
   let env, send_invite_label_stmts =
     List.fold_map invite_roles ~init:env ~f:(fun env invite_role ->
-        let env, label_chan =
-          LTypeCodeGenEnv.get_or_add_channel env (invite_role, None, true)
-        in
-        let send_label_stmt =
-          send_value_over_channel role_chan label_chan
-            (pkg_enum_access msgs_pkg invite_enum)
-        in
-        (env, send_label_stmt))
+        (* TODO: make less hacky *)
+        if RoleName.equal invite_role curr_role then (env, "")
+        else
+          let env, label_chan =
+            LTypeCodeGenEnv.get_or_add_channel env (invite_role, None, true)
+          in
+          let send_label_stmt =
+            send_value_over_channel role_chan label_chan
+              (pkg_enum_access msgs_pkg invite_enum)
+          in
+          (env, send_label_stmt))
   in
   let role_channels, invite_channels = List.unzip invite_channels in
   (* <protocol>_rolechan := <protocol>_RoleSetupChan{<role1>_Chan:
@@ -960,8 +964,9 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
           MessagesEnv.get_invitation_enum msgs_env protocol' invite_roles
         in
         let env, var_name_gen, invite_impl =
-          gen_invite_impl env var_name_gen protocol' invite_enum invite_roles
-            invite_pkg protocol_setup_env invite_channels setup_cb indent
+          gen_invite_impl env var_name_gen protocol' role invite_enum
+            invite_roles invite_pkg protocol_setup_env invite_channels
+            setup_cb indent
         in
         let invite_impl = List.map ~f:(indent_line indent) invite_impl in
         let invite_impl_str = join_non_empty_lines invite_impl in
@@ -986,8 +991,9 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
             protocol' new_role
         in
         let env, var_name_gen, accept_impl =
-          gen_accept_impl env var_name_gen caller local_protocol role_channel
-            invite_channel accept_cb result_cb is_recv_choice_msg
+          gen_accept_impl env var_name_gen caller role local_protocol
+            role_channel invite_channel accept_cb result_cb
+            is_recv_choice_msg
         in
         let accept_impl = List.map ~f:(indent_line indent) accept_impl in
         let accept_impl_str = join_non_empty_lines accept_impl in
