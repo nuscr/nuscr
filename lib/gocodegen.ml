@@ -143,31 +143,26 @@ let extract_choice_label_enums msgs_env ltypes =
     | AcceptL (_, protocol, roles, _, _, _) ->
         MessagesEnv.get_invitation_enum msgs_env protocol roles
     | RecvL ({label; _}, _, _) -> MessagesEnv.get_message_enum msgs_env label
-    | MuL (_, ltype) -> extract_enum_label ltype
-    | TVarL _ ->
-        raise
-          (Err.Violation
-             "Currently unfolding of recursion not supported for extracting \
-              choice labels - branches of choices should have an explit \
-              first message")
     | _ ->
         raise
           (Err.Violation
-             "Cannot generate code for nested choices, choices should be \
-              flattened or local type should be normalised to ensure this")
+             "Cannot extract choice msg labels: choices should be flattened \
+              and recursion should be unfolded (local type should be \
+              normalised) to ensure that all branches have an explict first \
+              message ")
   in
   List.map ltypes ~f:extract_enum_label
 
 (** Generate implementation of accept local type *)
-let gen_accept_impl var_name_gen local_protocol role_chan role_invite_chan
-    accept_cb result_cb =
+let gen_accept_impl env var_name_gen caller local_protocol role_channel
+    role_invite_chan accept_cb result_cb is_recv_choice_msg =
   (* <local_proto>_chan := <-inviteChan.<role_chan> *)
   let role_chan_var = new_role_chan_var local_protocol in
   let var_name_gen, role_chan_var_name =
     new_variable var_name_gen role_chan_var
   in
   let role_chan_assign =
-    recv_from_invite_chan role_chan_var_name invite_chan role_chan
+    recv_from_invite_chan role_chan_var_name invite_chan role_channel
   in
   (* <local_proto>_invite_chan := <-inviteChan.<role_invite_chan> *)
   let role_invite_chan_var = new_role_invite_chan_var local_protocol in
@@ -210,12 +205,20 @@ let gen_accept_impl var_name_gen local_protocol role_chan role_invite_chan
   let result_callback_call =
     call_method env_var result_function [VariableName.user result_var_name]
   in
-  ( [ role_chan_assign
+  let accept_impl =
+    [ role_chan_assign
     ; invite_chan_assign
     ; new_env_assign
     ; result_assign
     ; result_callback_call ]
-  , var_name_gen )
+  in
+  if is_recv_choice_msg then (env, var_name_gen, accept_impl)
+  else
+    let env, chan_name =
+      LTypeCodeGenEnv.get_or_add_channel env (caller, None, false)
+    in
+    let recv_label_stmt = ignore_recv_msg role_chan chan_name in
+    (env, var_name_gen, recv_label_stmt :: accept_impl)
 
 (** Generate implementation of receive local type *)
 let gen_recv_impl env var_name_gen sender payloads recv_cb is_recv_choice_msg
@@ -301,13 +304,25 @@ let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
   , call_send_callback :: send_label_stmt :: chan_send_stmts )
 
 (** Generate implementation of invite + create local types *)
-let gen_invite_impl var_name_gen protocol invite_pkg setup_env
-    invite_channels setup_cb indent =
+let gen_invite_impl env var_name_gen protocol invite_enum invite_roles
+    invite_pkg setup_env invite_channels setup_cb indent =
   (* env.<protocol>_Setup() *)
   let setup_function =
     FunctionName.of_string @@ CallbackName.user setup_cb
   in
   let setup_callback_call = call_method env_var setup_function [] in
+  let env, send_invite_label_stmts =
+    List.fold_map invite_roles ~init:env ~f:(fun env invite_role ->
+        let env, label_chan =
+          LTypeCodeGenEnv.get_or_add_channel env (invite_role, None, true)
+        in
+        let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
+        let send_label_stmt =
+          send_value_over_channel role_chan label_chan
+            (pkg_enum_access msgs_pkg invite_enum)
+        in
+        (env, send_label_stmt))
+  in
   let role_channels, invite_channels = List.unzip invite_channels in
   (* <protocol>_rolechan := <protocol>_RoleSetupChan{<role1>_Chan:
      roleChannels.<role_channel>, ...} *)
@@ -370,11 +385,11 @@ let gen_invite_impl var_name_gen protocol invite_pkg setup_env
   let protocol_setup_call =
     call_function (FunctionName.user protocol_setup_function) setup_params
   in
-  ( [ setup_callback_call
-    ; role_struct_assign
-    ; invite_struct_assign
-    ; protocol_setup_call ]
-  , var_name_gen )
+  ( env
+  , var_name_gen
+  , setup_callback_call
+    :: ( send_invite_label_stmts
+       @ [role_struct_assign; invite_struct_assign; protocol_setup_call] ) )
 
 (** Generate implementation of choice local type when the current role is
     making the choice*)
@@ -923,8 +938,8 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
     | MuL (var, _, ltype') ->
         let loop_label = recursion_label var in
         let (env, var_name_gen), recursion_body =
-          gen_implementation (incr_indent indent) false (env, var_name_gen)
-            ltype'
+          gen_implementation (incr_indent indent) is_recv_choice_msg
+            (env, var_name_gen) ltype'
         in
         let loop = recursion_loop recursion_body indent in
         let impl = recursion_impl loop_label loop in
@@ -941,9 +956,12 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
           LTypeCodeGenEnv.new_protocol_setup_callback env protocol'
         in
         let env, invite_pkg = LTypeCodeGenEnv.import_invitations env in
-        let invite_impl, var_name_gen =
-          gen_invite_impl var_name_gen protocol' invite_pkg
-            protocol_setup_env invite_channels setup_cb indent
+        let invite_enum =
+          MessagesEnv.get_invitation_enum msgs_env protocol' invite_roles
+        in
+        let env, var_name_gen, invite_impl =
+          gen_invite_impl env var_name_gen protocol' invite_enum invite_roles
+            invite_pkg protocol_setup_env invite_channels setup_cb indent
         in
         let invite_impl = List.map ~f:(indent_line indent) invite_impl in
         let invite_impl_str = join_non_empty_lines invite_impl in
@@ -967,17 +985,14 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
           LTypeCodeGenEnv.new_protocol_result_callback env local_protocol
             protocol' new_role
         in
-        let accept_impl, var_name_gen =
-          gen_accept_impl var_name_gen local_protocol role_channel
-            invite_channel accept_cb result_cb
+        let env, var_name_gen, accept_impl =
+          gen_accept_impl env var_name_gen caller local_protocol role_channel
+            invite_channel accept_cb result_cb is_recv_choice_msg
         in
-        let accept_impl, cont_indent =
-          if is_recv_choice_msg then gen_select_case accept_impl indent
-          else (List.map ~f:(indent_line indent) accept_impl, indent)
-        in
+        let accept_impl = List.map ~f:(indent_line indent) accept_impl in
         let accept_impl_str = join_non_empty_lines accept_impl in
         let (env, var_name_gen), impl =
-          gen_implementation cont_indent false (env, var_name_gen) ltype'
+          gen_implementation indent false (env, var_name_gen) ltype'
         in
         ( (env, var_name_gen)
         , join_non_empty_lines ~sep:"\n\n" [accept_impl_str; impl] )
