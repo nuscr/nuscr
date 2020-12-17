@@ -86,41 +86,20 @@ let init_conv_env = {g= G.empty; tyvars= []; non_deterministic= false}
 
 (** Construct the epsilon closure for a given NDA *)
 let epsilon_closure g =
-  let one_shot =
-    let f node acc =
-      let f edge acc =
-        match edge with _, Epsilon, dst -> Set.add acc dst | _ -> acc
-      in
-      let data = G.fold_succ_e f g node (Set.singleton (module Int) node) in
-      Map.add_exn ~key:node ~data acc
-    in
-    G.fold_vertex f g (Map.empty (module Int))
+  let rec compute_closure visited state =
+    let edges = G.succ_e g state in
+    List.fold edges ~init:visited ~f:(fun visited -> function
+      | _, Epsilon, dst when not (Set.mem visited dst) ->
+          let visited = Set.add visited dst in
+          compute_closure visited dst
+      | _ -> visited)
   in
-  let iterate_once curr =
-    let updated = ref false in
-    let f ~key:_ ~data =
-      let f acc node =
-        let nexts = Map.find_exn curr node in
-        let f acc new_node =
-          if Set.mem acc new_node then acc
-          else (
-            updated := true ;
-            Set.add acc new_node )
-        in
-        Set.fold ~init:acc ~f nexts
-      in
-      Set.fold ~init:data ~f data
-    in
-    (Map.mapi ~f curr, not !updated)
-  in
-  let compute_fixpoint () =
-    let rec aux curr =
-      let curr, complete = iterate_once curr in
-      if complete then curr else aux curr
-    in
-    aux one_shot
-  in
-  compute_fixpoint ()
+  G.fold_vertex
+    (fun v closures ->
+      Map.add_exn closures ~key:v
+        ~data:(compute_closure (Set.singleton (module Int) v) v))
+    g
+    (Map.empty (module Int))
 
 module IntSet = struct
   module M = struct
