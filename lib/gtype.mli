@@ -65,18 +65,12 @@ val of_protocol : Syntax.global_protocol -> t
 val global_t_of_module : Syntax.scr_module -> global_t
 (** Turn scribble module (from the parser) into a global type *)
 
-val global_t_of_ast : Syntax.scr_module -> global_t
-(** Turn scribble ast (from the parser) into a global type *)
-
 val normalise : t -> t
 (** Normalise a global type. This mainly collapses nested choice on the same
     participant and unfolds fixpoints *)
 
 val normalise_global_t : global_t -> global_t
 (** Apply normalisation to all protocols in global_t *)
-
-val replace_recursion_with_nested_protocols : global_t -> global_t
-(** Replace the MuG type with explicit calls to nested protocols*)
 
 val validate_refinements_exn : t -> unit
 (** Validate refinements in the given global type, requires [RefinementTypes]
