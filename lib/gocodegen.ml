@@ -1421,7 +1421,7 @@ let generate_go_code ast ~protocol ~out_dir ~go_path =
     RootDirName.of_string @@ Printf.sprintf "%s/%s" out_dir protocol_pkg
   in
   let gen_code () =
-    let global_t = global_t_of_ast ast in
+    let global_t = global_t_of_module ast in
     ensure_unique_identifiers global_t ;
     let local_t = Ltype.project_global_t global_t in
     gen_code root_dir protocol global_t local_t

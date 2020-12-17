@@ -71,9 +71,6 @@ let validate_nested_protocols (ast : scr_module) =
   let ast = Protocol.rename_nested_protocols ast in
   show ~f:show_scr_module ~sep:"\n---------\n\n" ast ;
   let global_t = Gtype.global_t_of_module ast in
-  (* let global_t = Gtype.normalise_global_t global_t in *)
-  show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
-  let global_t = Gtype.replace_recursion_with_nested_protocols global_t in
   show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
   let local_t = Ltype.project_global_t global_t in
   show ~f:Ltype.show_local_t ~sep:"\n" local_t ;
@@ -98,7 +95,7 @@ let enumerate_protocols (ast : scr_module) :
 
 let enumerate_nested_protocols (ast : scr_module) :
     (ProtocolName.t * RoleName.t) list =
-  let global_t = Gtype.global_t_of_ast ast in
+  let global_t = Gtype.global_t_of_module ast in
   let enumerated =
     Map.mapi global_t ~f:(fun ~key:protocol ~data:((roles, roles'), _, _) ->
         List.map (roles @ roles') ~f:(fun role -> (protocol, role)))
@@ -125,7 +122,7 @@ let project_protocol_role ast ~protocol ~role : Ltype.t =
   Ltype.project role gt
 
 let project_nested_protocol ast ~protocol ~role : Ltype.t =
-  let global_t = Gtype.global_t_of_ast ast in
+  let global_t = Gtype.global_t_of_module ast in
   let local_t = Ltype.project_global_t global_t in
   let local_protocol_id = Ltype.LocalProtocolId.create protocol role in
   let _, l_type = Map.find_exn local_t local_protocol_id in
