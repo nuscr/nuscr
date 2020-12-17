@@ -39,6 +39,10 @@ module type S = sig
 
   val create : ProtocolName.t -> RoleName.t -> t
 
+  val get_role : t -> RoleName.t
+
+  val get_protocol : t -> ProtocolName.t
+
   include Comparable.S with type t := t
 end
 
