@@ -325,34 +325,6 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
   | Some free_name -> uerr (UnboundRecursionName free_name)
   | None -> gtype
 
-let global_t_of_module (scr_module : Syntax.scr_module) =
-  let open Syntax in
-  let split_role_names (roles, new_roles) =
-    let role_names = List.map ~f:RoleName.of_name roles in
-    let new_role_names = List.map ~f:RoleName.of_name new_roles in
-    (role_names, new_role_names)
-  in
-  let rec add_protocol protocols (protocol : global_protocol) =
-    let nested_protocols = protocol.value.nested_protocols in
-    let protocols =
-      List.fold ~init:protocols ~f:add_protocol nested_protocols
-    in
-    let proto_name = ProtocolName.of_name protocol.value.name in
-    let g = of_protocol protocol in
-    let roles = split_role_names protocol.value.split_roles in
-    let nested_protocol_names =
-      List.map
-        ~f:(fun {Loc.value= {name; _}; _} -> ProtocolName.of_name name)
-        nested_protocols
-    in
-    Map.add_exn protocols ~key:proto_name
-      ~data:(roles, nested_protocol_names, g)
-  in
-  let all_protocols = scr_module.protocols @ scr_module.nested_protocols in
-  List.fold
-    ~init:(Map.empty (module ProtocolName))
-    ~f:add_protocol all_protocols
-
 let rec flatten = function
   | ChoiceG (role, choices) ->
       let choices = List.map ~f:flatten choices in
@@ -365,11 +337,6 @@ let rec flatten = function
       in
       ChoiceG (role, List.concat_map ~f:lift choices)
   | g -> g
-
-let recursion_protocol_name protocol rec_var =
-  sprintf "%s_%s"
-    (ProtocolName.user protocol)
-    (TypeVariableName.user rec_var)
 
 let rec substitute g tvar g_sub =
   match g with
@@ -403,118 +370,6 @@ let rec unfold = function
   | MuG (tvar, _, g_) as g -> substitute g_ tvar g
   | g -> g
 
-let rec get_participants rec_protocols participants = function
-  | MuG (_, _, gtype) -> get_participants rec_protocols participants gtype
-  | MessageG (_, sender, recv, gtype) ->
-      let participants = Set.add participants sender in
-      let participants = Set.add participants recv in
-      get_participants rec_protocols participants gtype
-  | ChoiceG (_, gtypes) ->
-      List.fold ~init:participants ~f:(get_participants rec_protocols) gtypes
-  | CallG (caller, _, roles, gtype) ->
-      let participants = Set.add participants caller in
-      let participants = List.fold ~init:participants ~f:Set.add roles in
-      get_participants rec_protocols participants gtype
-  | EndG -> participants
-  | TVarG (rec_var, _, _) -> (
-    match Map.find rec_protocols rec_var with
-    | None ->
-        (* If the participants this variable's protocol have not been
-           computed it means that either it is currently being computed or a
-           recursion variable above it is being computed. In both cases all
-           its participants will be included in the current computation *)
-        participants
-    | Some (_, roles) ->
-        let roles_set = Set.of_list (module RoleName) roles in
-        let all_participants = Set.union participants roles_set in
-        all_participants )
-
-let rec convert_recursion_to_protocols protocol rec_protocols
-    (global_t, name_gen) = function
-  (* Return name gen *)
-  | MuG (rec_var, _, gtype') -> (
-      let roles_set =
-        get_participants rec_protocols (Set.empty (module RoleName)) gtype'
-      in
-      let roles = Set.to_list roles_set in
-      match roles with
-      | [] -> ((global_t, name_gen), EndG)
-      | fst_role :: _ ->
-          let protocol_name = recursion_protocol_name protocol rec_var in
-          let name_gen, protocol_name =
-            Namegen.unique_name name_gen protocol_name
-          in
-          let rec_protocol_name = ProtocolName.of_string protocol_name in
-          let rec_protocols =
-            Map.add_exn rec_protocols ~key:rec_var
-              ~data:(rec_protocol_name, roles)
-          in
-          let (global_t, name_gen), new_gtype =
-            convert_recursion_to_protocols protocol rec_protocols
-              (global_t, name_gen) gtype'
-          in
-          let global_t =
-            Map.add_exn global_t ~key:rec_protocol_name
-              ~data:((roles, []), [], new_gtype)
-          in
-          ( (global_t, name_gen)
-          , CallG (fst_role, rec_protocol_name, roles, EndG) ) )
-  | TVarG (rec_var, _, _) ->
-      let rec_protocol, roles = Map.find_exn rec_protocols rec_var in
-      let caller = List.hd_exn roles in
-      ((global_t, name_gen), CallG (caller, rec_protocol, roles, EndG))
-  | MessageG (msg, sender, recv, gtype') ->
-      let (global_t, name_gen), new_gtype =
-        convert_recursion_to_protocols protocol rec_protocols
-          (global_t, name_gen) gtype'
-      in
-      ((global_t, name_gen), MessageG (msg, sender, recv, new_gtype))
-  | ChoiceG (choice_role, gtypes) ->
-      let (global_t, name_gen), new_gtypes =
-        List.fold_map gtypes ~init:(global_t, name_gen)
-          ~f:(fun (global_t, name_gen) g ->
-            convert_recursion_to_protocols protocol rec_protocols
-              (global_t, name_gen) (unfold g))
-      in
-      ((global_t, name_gen), ChoiceG (choice_role, new_gtypes))
-  | EndG -> ((global_t, name_gen), EndG)
-  | CallG (caller, protocol, participants, gtype') ->
-      let (global_t, name_gen), new_gtype =
-        convert_recursion_to_protocols protocol rec_protocols
-          (global_t, name_gen) gtype'
-      in
-      ( (global_t, name_gen)
-      , CallG (caller, protocol, participants, new_gtype) )
-
-let replace_recursion_with_nested_protocols global_t =
-  let replace_recursion_in_protocol ~key:protocol
-      ~data:(roles, nested_protocols, gtype) (global_t, name_gen) =
-    let (global_t, name_gen), gtype =
-      convert_recursion_to_protocols protocol
-        (Map.empty (module TypeVariableName))
-        (global_t, name_gen) gtype
-    in
-    let global_t =
-      Map.add_exn global_t ~key:protocol
-        ~data:(roles, nested_protocols, gtype)
-    in
-    (global_t, name_gen)
-  in
-  let name_gen = Namegen.create () in
-  let name_gen =
-    Map.fold global_t ~init:name_gen
-      ~f:(fun ~key:protocol ~data:_ name_gen ->
-        let name_gen, _ =
-          Namegen.unique_name name_gen (ProtocolName.user protocol)
-        in
-        name_gen)
-  in
-  let global_t, _ =
-    Map.fold global_t
-      ~init:(Map.empty (module ProtocolName), name_gen)
-      ~f:replace_recursion_in_protocol
-  in
-  global_t
 
 let rec normalise = function
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, normalise g_)
@@ -534,12 +389,6 @@ let normalise_global_t (global_t : global_t) =
   Map.fold
     ~init:(Map.empty (module ProtocolName))
     ~f:normalise_protocol global_t
-
-let global_t_of_ast (ast : Syntax.scr_module) : global_t =
-  let ast = Protocol.rename_nested_protocols ast in
-  let global_t = global_t_of_module ast in
-  (* let global_t = normalise_global_t global_t in *)
-  replace_recursion_with_nested_protocols global_t
 
 let validate_refinements_exn t =
   let env = (Expr.new_typing_env, Map.empty (module TypeVariableName)) in
@@ -597,3 +446,78 @@ let validate_refinements_exn t =
     | CallG _ -> assert false
   in
   aux env t
+=======
+let add_missing_payload_field_names global_t =
+  let add_missing_names namegen = function
+    | PValue (None, n1) ->
+        let payload_name_str =
+          String.uncapitalize @@ PayloadTypeName.user n1
+        in
+        let namegen, payload_name_str =
+          Namegen.unique_name namegen payload_name_str
+        in
+        let payload_name = VariableName.of_string payload_name_str in
+        (namegen, PValue (Some payload_name, n1))
+    | PValue (Some payload_name, n1) ->
+        let payload_name_str =
+          String.uncapitalize @@ VariableName.user payload_name
+        in
+        let namegen, payload_name_str =
+          Namegen.unique_name namegen payload_name_str
+        in
+        let payload_name =
+          VariableName.rename payload_name payload_name_str
+        in
+        (namegen, PValue (Some payload_name, n1))
+    | PDelegate _ as p -> (namegen, p)
+  in
+  let rec add_missing_payload_names = function
+    | MessageG (m, sender, recv, g) ->
+        let g = add_missing_payload_names g in
+        let {payload; _} = m in
+        let namegen = Namegen.create () in
+        let _, payload =
+          List.fold_map payload ~init:namegen ~f:add_missing_names
+        in
+        MessageG ({m with payload}, sender, recv, g)
+    | MuG (n, g) -> MuG (n, add_missing_payload_names g)
+    | (TVarG _ | EndG) as p -> p
+    | ChoiceG (r, gs) -> ChoiceG (r, List.map gs ~f:add_missing_payload_names)
+    | CallG (caller, proto_name, roles, g) ->
+        let g = add_missing_payload_names g in
+        CallG (caller, proto_name, roles, g)
+  in
+  Map.map global_t ~f:(fun (roles, nested_protocols, gtype) ->
+      (roles, nested_protocols, add_missing_payload_names gtype))
+
+let global_t_of_module (scr_module : Syntax.scr_module) =
+  let open Syntax in
+  let split_role_names (roles, new_roles) =
+    let role_names = List.map ~f:RoleName.of_name roles in
+    let new_role_names = List.map ~f:RoleName.of_name new_roles in
+    (role_names, new_role_names)
+  in
+  let rec add_protocol protocols (protocol : global_protocol) =
+    let nested_protocols = protocol.value.nested_protocols in
+    let protocols =
+      List.fold ~init:protocols ~f:add_protocol nested_protocols
+    in
+    let proto_name = ProtocolName.of_name protocol.value.name in
+    let g = of_protocol protocol in
+    let roles = split_role_names protocol.value.split_roles in
+    let nested_protocol_names =
+      List.map
+        ~f:(fun {Loc.value= {name; _}; _} -> ProtocolName.of_name name)
+        nested_protocols
+    in
+    Map.add_exn protocols ~key:proto_name
+      ~data:(roles, nested_protocol_names, g)
+  in
+  let all_protocols = scr_module.protocols @ scr_module.nested_protocols in
+  let global_t =
+    List.fold
+      ~init:(Map.empty (module ProtocolName))
+      ~f:add_protocol all_protocols
+  in
+  normalise_global_t @@ add_missing_payload_field_names global_t
+
