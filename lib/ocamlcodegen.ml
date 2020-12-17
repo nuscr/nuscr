@@ -26,7 +26,7 @@ let state_action_type (g : Efsm.t) (st : int) =
       match a with
       | SendA _ -> `Send
       | RecvA _ -> `Recv
-      | Epsilon -> failwith "Impossible"
+      | InviteA _ | AcceptA _ | Epsilon -> failwith "Impossible"
     in
     merge_state_action_type aty acc
   in
