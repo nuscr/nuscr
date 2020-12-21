@@ -312,7 +312,6 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
     FunctionName.of_string @@ CallbackName.user setup_cb
   in
   let setup_callback_call = call_method env_var setup_function [] in
-  let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
   let env, send_invite_label_stmts =
     List.fold_map invite_roles ~init:env ~f:(fun env invite_role ->
         (* TODO: make less hacky *)
@@ -321,6 +320,7 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
           let env, label_chan =
             LTypeCodeGenEnv.get_or_add_channel env (invite_role, None, true)
           in
+          let env, msgs_pkg = LTypeCodeGenEnv.import_messages env in
           let send_label_stmt =
             send_value_over_channel role_chan label_chan
               (pkg_enum_access msgs_pkg invite_enum)
