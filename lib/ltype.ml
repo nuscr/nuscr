@@ -149,9 +149,8 @@ let show =
 let show_local_t (local_t : local_t) =
   let show_local_protocol ((protocol, role), (roles, ltype)) =
     let roles_str = List.map ~f:RoleName.user roles in
-    sprintf "%s@%s(%s) {\n\n%s\n}"
+    sprintf "%s@%s(%s) {\n\n%s\n}" (RoleName.user role)
       (ProtocolName.user protocol)
-      (RoleName.user role)
       (Symtable.show_roles (roles_str, []))
       (show ltype)
   in
