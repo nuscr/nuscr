@@ -451,7 +451,7 @@ let add_missing_payload_field_names global_t =
   let add_missing_names namegen = function
     | PValue (None, n1) ->
         let payload_name_str =
-          String.uncapitalize @@ PayloadTypeName.user n1
+          "p_" ^ String.uncapitalize @@ PayloadTypeName.user n1
         in
         let namegen, payload_name_str =
           Namegen.unique_name namegen payload_name_str
