@@ -1,0 +1,9 @@
+global protocol Bad(role A, role B, role C) {
+  choice at A {
+    m1() from A to B;
+    // C does nothing here
+  } or {
+    m2() from A to B;
+    m3() from A to C;
+  }
+}
