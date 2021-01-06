@@ -5,10 +5,12 @@ synopsis:
 description:
   "A toolkit to manipulate Scribble-style multiparty protocols, based on classical multiparty session type theory. The toolkit provides means to define global protocols, project to local protocols, convert local protocols to a CFSM representation, and generate OCaml code for protocol implementations."
 maintainer: ["Francisco Ferreira"]
-authors: ["Francisco Ferreira" "Fangyi Zhou" "Simon Castellan"]
+authors: [
+  "Francisco Ferreira" "Fangyi Zhou" "Simon Castellan" "Benito Echarren"
+]
 license: "GPL-3.0-or-later"
-homepage: "https://nuscr.github.io/nuscr/"
-doc: "https://nuscr.github.io/nuscr/docs/"
+homepage: "https://nuscr.dev/"
+doc: "https://nuscr.dev/nuscr/docs/"
 bug-reports: "https://github.com/nuscr/nuscr/issues"
 depends: [
   "nuscr" {= version}

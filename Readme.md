@@ -7,7 +7,7 @@ to define global protocols, project to local protocols, convert local
 protocols to a CFSM representation, and generate OCaml code for
 protocol implementations.
 
-You can quickly try the live version [here](https://nuscr.github.io/nuscr/).
+You can quickly try the live version [here](https://nuscr.dev/nuscr/).
 
 ## How to install
 
