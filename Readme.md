@@ -1,4 +1,4 @@
-𝝼Scr -- New Scribble [![CircleCI](https://circleci.com/gh/nuscr/nuscr.svg?style=svg)](https://circleci.com/gh/nuscr/nuscr)
+𝝼Scr (nuScr) [![CircleCI](https://circleci.com/gh/nuscr/nuscr.svg?style=svg)](https://circleci.com/gh/nuscr/nuscr)
 =====================
 
 A toolkit to manipulate Scribble-style multiparty protocols, based on
