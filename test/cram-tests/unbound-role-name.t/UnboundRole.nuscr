@@ -1,0 +1,5 @@
+module UnboundRole;
+
+protocol Unbound(role A, role B) {
+  Hello from A to C;
+}
