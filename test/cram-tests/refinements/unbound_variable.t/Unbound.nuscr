@@ -1,0 +1,5 @@
+(*# RefinementTypes #*)
+
+global protocol Unbound(role A, role B) {
+  Hello(x: int{y = x}) from A to B;
+}
