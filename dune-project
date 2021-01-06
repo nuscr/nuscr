@@ -13,13 +13,13 @@
 
 (license GPL-3.0-or-later)
 
-(authors "Francisco Ferreira" "Fangyi Zhou" "Simon Castellan")
+(authors "Francisco Ferreira" "Fangyi Zhou" "Simon Castellan" "Benito Echarren")
 
 (maintainers "Francisco Ferreira")
 
-(homepage "https://nuscr.github.io/nuscr/")
+(homepage "https://nuscr.dev/")
 
-(documentation "https://nuscr.github.io/nuscr/docs/")
+(documentation "https://nuscr.dev/nuscr/docs/")
 
 (package
  (name nuscr)
