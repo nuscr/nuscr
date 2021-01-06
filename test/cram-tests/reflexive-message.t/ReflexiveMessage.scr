@@ -1,4 +1,0 @@
-module Fail;
-protocol Reflexive(role A, role B) {
-  Bye from A to A;
-}
