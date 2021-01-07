@@ -184,7 +184,7 @@ let encode_env env =
   Map.fold ~init
     ~f:(fun ~key ~data {declare_consts; asserts} ->
       let declare_consts =
-        (PayloadTypeName.user key, smt_sort_of_type data) :: declare_consts
+        (VariableName.user key, smt_sort_of_type data) :: declare_consts
       in
       let asserts =
         match data with
