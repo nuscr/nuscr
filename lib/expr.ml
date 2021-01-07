@@ -153,7 +153,7 @@ let rec sexp_of_expr = function
   | Var v -> Sexp.Atom (VariableName.user v)
   | Int i -> Int.sexp_of_t i
   | Bool b -> Bool.sexp_of_t b
-  | String _s -> failwith "Encode string for SMT"
+  | String s -> Sexp.Atom (String.escaped s)
   | Binop (binop, e1, e2) ->
       let binop = sexp_of_binop binop in
       let e1 = sexp_of_expr e1 in
