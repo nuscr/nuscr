@@ -163,3 +163,94 @@ let rec sexp_of_expr = function
       let unop = sexp_of_unop unop in
       let e = sexp_of_expr e in
       Sexp.List [unop; e]
+
+type smt_script =
+  {declare_consts: (string * string) list; asserts: Sexp.t list}
+
+let empty_smt_script = {declare_consts= []; asserts= []}
+
+let rec smt_sort_of_type = function
+  | PTInt -> "Int"
+  | PTBool -> "Bool"
+  | PTString -> "String"
+  | PTAbstract n ->
+      Err.unimpl
+        (Printf.sprintf "Type %s is currently not supported for SMT encoding"
+           (PayloadTypeName.user n))
+  | PTRefined (_, t, _) -> smt_sort_of_type t
+
+let encode_env env =
+  let init = empty_smt_script in
+  Map.fold ~init
+    ~f:(fun ~key ~data {declare_consts; asserts} ->
+      let declare_consts =
+        (PayloadTypeName.user key, smt_sort_of_type data) :: declare_consts
+      in
+      let asserts =
+        match data with
+        | PTRefined (_, _, e) -> sexp_of_expr e :: asserts
+        | _ -> asserts
+      in
+      {declare_consts; asserts})
+    env
+
+let check_sat {declare_consts; asserts} =
+  let buffer = Buffer.create 4096 in
+  List.iter
+    ~f:(fun (var, sort) ->
+      Buffer.add_string buffer
+        (Printf.sprintf "(declare-const %s %s)\n" var sort))
+    declare_consts ;
+  List.iter
+    ~f:(fun sexp ->
+      Buffer.add_string buffer
+        (Printf.sprintf "(assert %s)\n" (Sexp.to_string sexp)))
+    asserts ;
+  Buffer.add_string buffer "(check-sat)" ;
+  let script = Buffer.contents buffer in
+  let result = Solver.run_solver script in
+  match String.strip result with
+  | "sat" -> `Sat
+  | "unsat" -> `Unsat
+  | "unknown" -> `Unknown
+  | result -> failwith @@ "Unexpected response from solver:" ^ result
+
+let is_unsat script =
+  match check_sat script with `Unsat -> true | _ -> false
+
+let subtype env t1 t2 =
+  match (t1, t2) with
+  (* Types with different base types are never subtypes *)
+  | t1, t2 when not (equal_payload_type_basic t1 t2) -> false
+  (* Subtyping is reflexive *)
+  | t1, t2 when equal_payload_type t1 t2 -> true
+  (* Shortcut for base types: Base types are always supertypes of refined
+     types *)
+  | PTRefined (_, PTInt, _), PTInt
+   |PTRefined (_, PTBool, _), PTBool
+   |PTRefined (_, PTString, _), PTString ->
+      true
+  | PTRefined (v1, t, e1), PTRefined (v2, _, e2) ->
+      let t = smt_sort_of_type t in
+      let {declare_consts; asserts} = encode_env env in
+      let {declare_consts; asserts} =
+        if not (VariableName.equal v1 v2) then
+          let declare_consts =
+            (VariableName.user v1, t)
+            :: (VariableName.user v2, t)
+            :: declare_consts
+          in
+          let asserts =
+            sexp_of_expr (Binop (Syntax.Eq, Var v1, Var v2)) :: asserts
+          in
+          {declare_consts; asserts}
+        else
+          let declare_consts = (VariableName.user v1, t) :: declare_consts in
+          {declare_consts; asserts}
+      in
+      let asserts =
+        sexp_of_expr e1 :: sexp_of_expr (Unop (Syntax.Not, e2)) :: asserts
+      in
+      let script = {declare_consts; asserts} in
+      is_unsat script
+  | _, _ -> assert false
