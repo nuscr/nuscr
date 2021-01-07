@@ -132,3 +132,34 @@ let is_well_formed_type env = function
   | PTRefined (v, t, e) ->
       let env = env_append env v t in
       typecheck_basic env e PTBool
+
+let sexp_of_binop = function
+  | Syntax.Add -> Sexp.Atom "+"
+  | Syntax.Minus -> Sexp.Atom "-"
+  | Syntax.Eq -> Sexp.Atom "="
+  | Syntax.Neq -> Sexp.Atom "distinct"
+  | Syntax.Lt -> Sexp.Atom "<"
+  | Syntax.Gt -> Sexp.Atom ">"
+  | Syntax.Leq -> Sexp.Atom "<="
+  | Syntax.Geq -> Sexp.Atom ">="
+  | Syntax.And -> Sexp.Atom "and"
+  | Syntax.Or -> Sexp.Atom "or"
+
+let sexp_of_unop = function
+  | Syntax.Neg -> Sexp.Atom "-"
+  | Syntax.Not -> Sexp.Atom "not"
+
+let rec sexp_of_expr = function
+  | Var v -> Sexp.Atom (VariableName.user v)
+  | Int i -> Int.sexp_of_t i
+  | Bool b -> Bool.sexp_of_t b
+  | String _s -> failwith "Encode string for SMT"
+  | Binop (binop, e1, e2) ->
+      let binop = sexp_of_binop binop in
+      let e1 = sexp_of_expr e1 in
+      let e2 = sexp_of_expr e2 in
+      Sexp.List [binop; e1; e2]
+  | Unop (unop, e) ->
+      let unop = sexp_of_unop unop in
+      let e = sexp_of_expr e in
+      Sexp.List [unop; e]
