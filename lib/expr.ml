@@ -254,3 +254,63 @@ let subtype env t1 t2 =
       let script = {declare_consts; asserts} in
       is_unsat script
   | _, _ -> assert false
+
+let count = ref 0
+
+let fresh_var () =
+  let var = Printf.sprintf "freshvar$%d" !count in
+  let var = VariableName.of_string var in
+  count := !count + 1 ;
+  var
+
+let infer_type env = function
+  | Var v -> Map.find env v
+  | (Int _ | Bool _ | String _) as e ->
+      let var = fresh_var () in
+      let t =
+        match e with
+        | Int _ -> PTInt
+        | Bool _ -> PTBool
+        | String _ -> PTString
+        | _ -> assert false
+      in
+      Some (PTRefined (var, t, Binop (Syntax.Eq, Var var, e)))
+  | Binop (b, e1, e2) as e -> (
+      let var = fresh_var () in
+      match b with
+      | Syntax.Add | Syntax.Minus ->
+          if typecheck_basic env e1 PTInt && typecheck_basic env e2 PTInt
+          then Some (PTRefined (var, PTInt, Binop (Syntax.Eq, Var var, e)))
+          else None
+      | Syntax.And | Syntax.Or ->
+          if typecheck_basic env e1 PTBool && typecheck_basic env e2 PTBool
+          then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          else None
+      | Syntax.Lt | Syntax.Gt | Syntax.Geq | Syntax.Leq ->
+          if typecheck_basic env e1 PTInt && typecheck_basic env e2 PTInt
+          then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          else None
+      | Syntax.Eq | Syntax.Neq ->
+          if
+            List.exists
+              ~f:(fun t ->
+                typecheck_basic env e1 t && typecheck_basic env e2 t)
+              [PTInt; PTBool; PTString]
+          then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          else None )
+  | Unop (u, e_) as e -> (
+      let var = fresh_var () in
+      match u with
+      | Syntax.Neg ->
+          if typecheck_basic env e_ PTInt then
+            Some (PTRefined (var, PTInt, Binop (Syntax.Eq, Var var, e)))
+          else None
+      | Syntax.Not ->
+          if typecheck_basic env e_ PTBool then
+            Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          else None )
+
+let check_type env expr ty =
+  match infer_type env expr with
+  | Some inferred -> subtype env inferred ty
+  | None -> false
