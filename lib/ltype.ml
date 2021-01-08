@@ -283,8 +283,8 @@ let rec check_consistent_gchoice choice_r possible_roles = function
       Set.union_list
         (module RoleName)
         (List.map ~f:(check_consistent_gchoice choice_r possible_roles) gs)
-  | MuG (_, g) -> check_consistent_gchoice choice_r possible_roles g
-  | TVarG (_, g) ->
+  | MuG (_, _, g) -> check_consistent_gchoice choice_r possible_roles g
+  | TVarG (_, _, g) ->
       check_consistent_gchoice choice_r possible_roles (Lazy.force g)
   | g ->
       raise
@@ -295,8 +295,8 @@ let rec check_consistent_gchoice choice_r possible_roles = function
 let rec project' (global_t : global_t) (projected_role : RoleName.t) =
   function
   | EndG -> EndL
-  | TVarG (name, _) -> TVarL name
-  | MuG (name, g_type) -> (
+  | TVarG (name, _, _) -> TVarL name
+  | MuG (name, _, g_type) -> (
     match project' global_t projected_role g_type with
     | TVarL _ | EndL -> EndL
     | lType -> MuL (name, lType) )
@@ -320,8 +320,8 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
               if Set.mem acc l then uerr (DuplicateLabel l)
               else aux (Set.add acc l) rest
           | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
-          | MuG (_, g) :: rest -> aux acc (g :: rest)
-          | TVarG (_, g) :: rest -> aux acc (Lazy.force g :: rest)
+          | MuG (_, _, g) :: rest -> aux acc (g :: rest)
+          | TVarG (_, _, g) :: rest -> aux acc (Lazy.force g :: rest)
           | _ ->
               raise
                 (Violation

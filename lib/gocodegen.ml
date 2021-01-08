@@ -70,7 +70,8 @@ let ensure_unique_identifiers (global_t : global_t) =
     let rec validate_protocol_msgs messages gtype =
       match gtype with
       | EndG | TVarG _ -> messages
-      | MuG (_, g) | CallG (_, _, _, g) -> validate_protocol_msgs messages g
+      | MuG (_, _, g) | CallG (_, _, _, g) ->
+          validate_protocol_msgs messages g
       | ChoiceG (_, gtypes) ->
           List.fold ~init:messages ~f:validate_protocol_msgs gtypes
       | MessageG (msg, _, _, g) ->
@@ -799,7 +800,7 @@ let gen_setup_file protocol_setup_env imports indent setup_channels_impl
 (** Generate all the environment containing all the messages in a protocol *)
 let rec gen_message_structs msgs_env = function
   | EndG | TVarG _ -> msgs_env
-  | MuG (_, g) | CallG (_, _, _, g) -> gen_message_structs msgs_env g
+  | MuG (_, _, g) | CallG (_, _, _, g) -> gen_message_structs msgs_env g
   | ChoiceG (_, gtypes) ->
       List.fold ~init:msgs_env ~f:gen_message_structs gtypes
   | MessageG ({label; payload}, _, _, g) ->
