@@ -82,8 +82,8 @@
 (* pragmas *)
 let pragmas :=
   | ps = PRAGMA_STR* ; {
-      List.map (fun pragma -> 
-        Pragma.parse_pragmas_string pragma 
+      List.map (fun pragma ->
+        Pragma.parse_pragmas_string pragma
       ) ps
       |> List.concat
   }
@@ -102,12 +102,12 @@ let scr_module :=
   nps = nested_protocol_decl*;
   ps = protocol_decl* ;
   EOI ;
-    { 
-      { decl = md 
+    {
+      { decl = md
       ; pragmas = pgs
       ; types = ts
       ; nested_protocols = nps
-      ; protocols = ps } 
+      ; protocols = ps }
     }
 
 
@@ -155,7 +155,7 @@ let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = name ;
   pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ;
   ann = annotation? ; body = global_protocol_body ;
-  { 
+  {
     let (nested_protos, ints) = body in
     { name = nm
     ; options = opts
@@ -218,18 +218,18 @@ let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }
 
 
-let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ; 
+let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                          new_nms = new_role_decls? ; RPAR ; { (nms, loalo new_nms) }
 
 let role_decl == ROLE_KW ; nm = name ; { nm }
 
 
-let new_role_decls == SEMICOLON ; NEW_KW ; 
+let new_role_decls == SEMICOLON ; NEW_KW ;
                       nms = separated_nonempty_list(COMMA, role_decl) ; { nms }
 
 
 let global_protocol_body ==
-  LCURLY ; nested_protos = nested_protocol_decl*; ints = global_interaction* ; 
+  LCURLY ; nested_protos = nested_protocol_decl*; ints = global_interaction* ;
   RCURLY ; { (nested_protos, ints) }
 
 
@@ -284,19 +284,22 @@ let global_recursion ==
   | REC_KW ; n = name ; g = global_protocol_block ; { Recursion(n, [], g) }
 
 let rec_var ==
-  var = name; LT;
-  roles = separated_nonempty_list(COMMA, name);
-  GT; COLON;
-  ty = payload_el;
-  EQUAL;
-  init = expr;
-  {
-   { var
-   ; roles
-   ; ty
-   ; init
-   }
-  }
+  | var = name; LT;
+    roles = separated_nonempty_list(COMMA, name);
+    GT; COLON;
+    ty = payload_el;
+    EQUAL;
+    init = expr;
+    { { var ; roles ; ty ; init } }
+  | var = name; LT;
+    roles = separated_nonempty_list(COMMA, name);
+    GT; COLON;
+    LPAR ;
+    ty = payload_el;
+    RPAR ;
+    EQUAL;
+    init = expr;
+    { { var ; roles ; ty ; init } }
 
 let global_message_transfer ==
   msg = message ; FROM_KW ; frn = name ;
