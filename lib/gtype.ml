@@ -56,16 +56,12 @@ let parse_typename name =
 let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
-  | PayloadName n ->
-      PValue (None, Expr.PTAbstract (PayloadTypeName.of_name n))
+  | PayloadName n -> PValue (None, parse_typename n)
   | PayloadDel (p, r) ->
       PDelegate (ProtocolName.of_name p, RoleName.of_name r)
   | PayloadBnd (var, n) ->
-      PValue
-        ( Some (VariableName.of_name var)
-        , Expr.PTAbstract (PayloadTypeName.of_name n) )
-  | PayloadRTy (Simple n) ->
-      PValue (None, Expr.PTAbstract (PayloadTypeName.of_name n))
+      PValue (Some (VariableName.of_name var), parse_typename n)
+  | PayloadRTy (Simple n) -> PValue (None, parse_typename n)
   | PayloadRTy (Refined (v, t, e)) ->
       if refined then
         PValue
