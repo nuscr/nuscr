@@ -13,13 +13,19 @@ type message = {label: LabelName.t; payload: payload list}
 
 val equal_pvalue_payload : payload -> payload -> bool
 
+type rec_var =
+  { rv_name: VariableName.t
+  ; rv_roles: RoleName.t list
+  ; rv_ty: Expr.payload_type
+  ; rv_init_expr: Expr.t }
+
 (** The type of global types *)
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
       (** [MessageG (msg, sender, receiver, t)] starts by sending message
           [msg] from [sender] to [receiver] and continues as [t] *)
-  | MuG of TypeVariableName.t * t  (** Fixpoint *)
-  | TVarG of TypeVariableName.t * t Lazy.t  (** Recursive variable *)
+  | MuG of TypeVariableName.t * rec_var list * t
+  | TVarG of TypeVariableName.t * Expr.t list * t Lazy.t
   | ChoiceG of RoleName.t * t list
       (** [ChoiceG (name, ts)] expresses a choice located at participant
           [name] between the [ts] *)

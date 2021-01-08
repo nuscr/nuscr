@@ -98,10 +98,23 @@ let of_syntax_message ?(refined = false) (message : Syntax.message) =
       ; payload= List.map ~f:(of_syntax_payload ~refined) payload }
   | MessageName name -> {label= LabelName.of_name name; payload= []}
 
+type rec_var =
+  { rv_name: VariableName.t
+  ; rv_roles: RoleName.t list
+  ; rv_ty: Expr.payload_type
+  ; rv_init_expr: Expr.t }
+
+let show_rec_var {rv_name; rv_roles; rv_ty; rv_init_expr} =
+  sprintf "%s<%s>: %s = %s"
+    (VariableName.user rv_name)
+    (String.concat ~sep:", " (List.map ~f:RoleName.user rv_roles))
+    (Expr.show_payload_type rv_ty)
+    (Expr.show rv_init_expr)
+
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
-  | MuG of TypeVariableName.t * t
-  | TVarG of TypeVariableName.t * t Lazy.t
+  | MuG of TypeVariableName.t * rec_var list * t
+  | TVarG of TypeVariableName.t * Expr.t list * t Lazy.t
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
@@ -120,13 +133,28 @@ let show =
         sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m)
           (RoleName.user r1) (RoleName.user r2)
           (show_global_type_internal indent g)
-    | MuG (n, g) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent
-          (TypeVariableName.user n)
+    | MuG (n, rec_vars, g) ->
+        let rec_vars_s =
+          if List.is_empty rec_vars then ""
+          else
+            "["
+            ^ String.concat ~sep:", " (List.map ~f:show_rec_var rec_vars)
+            ^ "] "
+        in
+        sprintf "%srec %s %s{\n%s%s}\n" current_indent
+          (TypeVariableName.user n) rec_vars_s
           (show_global_type_internal (indent + 1) g)
           current_indent
-    | TVarG (n, _) ->
-        sprintf "%scontinue %s;\n" current_indent (TypeVariableName.user n)
+    | TVarG (n, rec_exprs, _) ->
+        let rec_exprs_s =
+          if List.is_empty rec_exprs then ""
+          else
+            " ["
+            ^ String.concat ~sep:", " (List.map ~f:Expr.show rec_exprs)
+            ^ "]"
+        in
+        sprintf "%scontinue %s%s;\n" current_indent (TypeVariableName.user n)
+          rec_exprs_s
     | EndG -> sprintf "%send\n" current_indent
     | ChoiceG (r, gs) ->
         let pre =
@@ -177,6 +205,19 @@ let show_global_t (g : global_t) =
   in
   String.concat ~sep:"\n\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
 
+let rec_var_of_syntax_rec_var rec_var =
+  let open Syntax in
+  let {var; roles; ty; init} = rec_var in
+  let rv_ty =
+    match of_syntax_payload ~refined:true ty with
+    | PValue (_, ty) -> ty
+    | _ -> assert false
+  in
+  { rv_name= VariableName.of_name var
+  ; rv_roles= List.map ~f:RoleName.of_name roles
+  ; rv_ty
+  ; rv_init_expr= Expr.of_syntax_expr init }
+
 let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
     =
   let open Syntax in
@@ -210,7 +251,7 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
               (of_syntax_message ~refined message, from_role, to_role, acc)
           in
           (List.fold_right ~f ~init to_roles, free_names)
-      | Recursion (rname, _, interactions) ->
+      | Recursion (rname, rec_vars, interactions) ->
           let rname = TypeVariableName.of_name rname in
           if Set.mem free_names rname then
             unimpl "Alpha convert recursion names"
@@ -221,13 +262,20 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
                  ((rname, lazy_cont) :: lazy_conts)
                  interactions)
           in
+          let rec_vars =
+            if refined then List.map ~f:rec_var_of_syntax_rec_var rec_vars
+            else []
+          in
           let cont, free_names_ = Lazy.force lazy_cont in
           (* Remove degenerate recursion here *)
           if Set.mem free_names_ rname then
-            (MuG (rname, cont), Set.remove free_names_ rname)
+            (MuG (rname, rec_vars, cont), Set.remove free_names_ rname)
           else (cont, free_names_)
-      | Continue (name, _) ->
+      | Continue (name, rec_exprs) ->
           let name = TypeVariableName.of_name name in
+          let rec_exprs =
+            if refined then List.map ~f:Expr.of_syntax_expr rec_exprs else []
+          in
           let cont =
             lazy
               ( Lazy.force
@@ -236,7 +284,7 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
               |> fst )
           in
           assert_empty rest ;
-          (TVarG (name, cont), Set.add free_names name)
+          (TVarG (name, rec_exprs, cont), Set.add free_names name)
       | Choice (role, interactions_list) ->
           let role = RoleName.of_name role in
           assert_empty rest ;
@@ -328,10 +376,25 @@ let recursion_protocol_name protocol rec_var =
 
 let rec substitute g tvar g_sub =
   match g with
-  | TVarG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g_sub
+  | TVarG (tvar_, rec_exprs, _) when TypeVariableName.equal tvar tvar_ -> (
+    match g_sub with
+    | MuG (tvar__, rec_vars, g) ->
+        let rec_vars =
+          match
+            List.map2
+              ~f:(fun rec_var rec_expr ->
+                {rec_var with rv_init_expr= rec_expr})
+              rec_vars rec_exprs
+          with
+          | Base.List.Or_unequal_lengths.Ok rec_vars -> rec_vars
+          | _ -> unimpl "Error in substitution"
+        in
+        MuG (tvar__, rec_vars, g)
+    | g_sub -> g_sub )
   | TVarG _ -> g
-  | MuG (tvar_, _) when TypeVariableName.equal tvar tvar_ -> g
-  | MuG (tvar_, g_) -> MuG (tvar_, substitute g_ tvar g_sub)
+  | MuG (tvar_, _, _) when TypeVariableName.equal tvar tvar_ -> g
+  | MuG (tvar_, rec_vars, g_) ->
+      MuG (tvar_, rec_vars, substitute g_ tvar g_sub)
   | EndG -> EndG
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, substitute g_ tvar g_sub)
   | ChoiceG (r, g_) ->
@@ -340,11 +403,11 @@ let rec substitute g tvar g_sub =
       CallG (caller, protocol, roles, substitute g_ tvar g_sub)
 
 let rec unfold = function
-  | MuG (tvar, g_) as g -> substitute g_ tvar g
+  | MuG (tvar, _, g_) as g -> substitute g_ tvar g
   | g -> g
 
 let rec get_participants rec_protocols participants = function
-  | MuG (_, gtype) -> get_participants rec_protocols participants gtype
+  | MuG (_, _, gtype) -> get_participants rec_protocols participants gtype
   | MessageG (_, sender, recv, gtype) ->
       let participants = Set.add participants sender in
       let participants = Set.add participants recv in
@@ -356,7 +419,7 @@ let rec get_participants rec_protocols participants = function
       let participants = List.fold ~init:participants ~f:Set.add roles in
       get_participants rec_protocols participants gtype
   | EndG -> participants
-  | TVarG (rec_var, _) -> (
+  | TVarG (rec_var, _, _) -> (
     match Map.find rec_protocols rec_var with
     | None ->
         (* If the participants this variable's protocol have not been
@@ -372,7 +435,7 @@ let rec get_participants rec_protocols participants = function
 let rec convert_recursion_to_protocols protocol rec_protocols
     (global_t, name_gen) = function
   (* Return name gen *)
-  | MuG (rec_var, gtype') -> (
+  | MuG (rec_var, _, gtype') -> (
       let roles_set =
         get_participants rec_protocols (Set.empty (module RoleName)) gtype'
       in
@@ -399,7 +462,7 @@ let rec convert_recursion_to_protocols protocol rec_protocols
           in
           ( (global_t, name_gen)
           , CallG (fst_role, rec_protocol_name, roles, EndG) ) )
-  | TVarG (rec_var, _) ->
+  | TVarG (rec_var, _, _) ->
       let rec_protocol, roles = Map.find_exn rec_protocols rec_var in
       let caller = List.hd_exn roles in
       ((global_t, name_gen), CallG (caller, rec_protocol, roles, EndG))
@@ -462,7 +525,7 @@ let rec normalise = function
       let g_ = List.map ~f:normalise g_ in
       flatten (ChoiceG (r, g_))
   | (EndG | TVarG _) as g -> g
-  | MuG (tvar, g_) -> unfold (MuG (tvar, normalise g_))
+  | MuG (tvar, rec_vars, g_) -> unfold (MuG (tvar, rec_vars, normalise g_))
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
 
@@ -500,7 +563,19 @@ let validate_refinements_exn t =
         let env = List.fold ~init:env ~f payloads in
         aux env g
     | ChoiceG (_, gs) -> List.iter ~f:(aux env) gs
-    | MuG (_, g) -> aux env g
+    | MuG (_, rec_vars, g) ->
+        let f env {rv_name; rv_ty; rv_init_expr; _} =
+          if Expr.is_well_formed_type env rv_ty then
+            if Expr.check_type env rv_init_expr rv_ty then
+              Expr.env_append env rv_name rv_ty
+            else
+              uerr
+                (TypeError
+                   (Expr.show rv_init_expr, Expr.show_payload_type rv_ty))
+          else uerr (IllFormedPayloadType (Expr.show_payload_type rv_ty))
+        in
+        let env = List.fold ~init:env ~f rec_vars in
+        aux env g
     | TVarG _ -> ()
     | CallG _ -> assert false
   in

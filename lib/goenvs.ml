@@ -951,7 +951,7 @@ end = struct
 
   let rec generate_channel_vars global_t protocol_lookup (env : t) = function
     | EndG | TVarG _ -> env
-    | MuG (_, gtype) ->
+    | MuG (_, _, gtype) ->
         generate_channel_vars global_t protocol_lookup env gtype
     | MessageG ({label; _}, sender, recv, gtype) ->
         let env = new_channel_vars env sender recv label in
