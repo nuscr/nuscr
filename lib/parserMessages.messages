@@ -1,0 +1,1865 @@
+doc: AUX_KW TYPE_KW
+##
+## Ends in an error in state: 166.
+##
+## option(protocol_options) -> AUX_KW . [ PROTOCOL_KW GLOBAL_KW ]
+## option(protocol_options) -> AUX_KW . EXPLICIT_KW [ PROTOCOL_KW GLOBAL_KW ]
+##
+## The known suffix of the stack is as follows:
+## AUX_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: EXPLICIT_KW TYPE_KW
+##
+## Ends in an error in state: 168.
+##
+## list(protocol_decl) -> option(protocol_options) . GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+## list(protocol_decl) -> option(protocol_options) . PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT RPAR ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 191.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) . LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY AUX_KW
+##
+## Ends in an error in state: 193.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) . list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 162, spurious reduction of production list(nested_protocol_decl) -> 
+## In state 163, spurious reduction of production list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY TYPE_KW
+##
+## Ends in an error in state: 195.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY . list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY TYPE_KW
+##
+## Ends in an error in state: 192.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY . list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT COLON IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 190.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) . option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 189.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR . option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR ROLE_KW IDENT SEMICOLON
+##
+## Ends in an error in state: 188.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) . RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 55, spurious reduction of production separated_nonempty_list(COMMA,role_decl) -> ROLE_KW IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LPAR TYPE_KW
+##
+## Ends in an error in state: 187.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR . separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT LT SIG_KW IDENT GT LCURLY
+##
+## Ends in an error in state: 186.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls) . LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT option(parameter_decls)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 185.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT . option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW PROTOCOL_KW GT
+##
+## Ends in an error in state: 184.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW option(PROTOCOL_KW) . IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW option(PROTOCOL_KW)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: GLOBAL_KW TYPE_KW
+##
+## Ends in an error in state: 182.
+##
+## list(protocol_decl) -> option(protocol_options) GLOBAL_KW . option(PROTOCOL_KW) IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) GLOBAL_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: MODULE_KW IDENT DOT TYPE_KW
+##
+## Ends in an error in state: 3.
+##
+## separated_nonempty_list(DOT,IDENT) -> IDENT DOT . separated_nonempty_list(DOT,IDENT) [ SEMICOLON RPAR GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IDENT DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: MODULE_KW IDENT RPAR
+##
+## Ends in an error in state: 5.
+##
+## option(module_decl) -> MODULE_KW separated_nonempty_list(DOT,IDENT) . SEMICOLON [ TYPE_KW SIG_KW PROTOCOL_KW PRAGMA_STR NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## MODULE_KW separated_nonempty_list(DOT,IDENT)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 2, spurious reduction of production separated_nonempty_list(DOT,IDENT) -> IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: MODULE_KW IDENT SEMICOLON AT_KW
+##
+## Ends in an error in state: 8.
+##
+## scr_module -> option(module_decl) . pragmas list(payload_type_decl) list(nested_protocol_decl) list(protocol_decl) EOI [ # ]
+##
+## The known suffix of the stack is as follows:
+## option(module_decl)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: MODULE_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 2.
+##
+## separated_nonempty_list(DOT,IDENT) -> IDENT . [ SEMICOLON RPAR GT COMMA ]
+## separated_nonempty_list(DOT,IDENT) -> IDENT . DOT separated_nonempty_list(DOT,IDENT) [ SEMICOLON RPAR GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: MODULE_KW TYPE_KW
+##
+## Ends in an error in state: 1.
+##
+## option(module_decl) -> MODULE_KW . separated_nonempty_list(DOT,IDENT) SEMICOLON [ TYPE_KW SIG_KW PROTOCOL_KW PRAGMA_STR NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## MODULE_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 75.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) . LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY AUX_KW
+##
+## Ends in an error in state: 77.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) . list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 162, spurious reduction of production list(nested_protocol_decl) -> 
+## In state 163, spurious reduction of production list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY REC_KW
+##
+## Ends in an error in state: 164.
+##
+## scr_module -> option(module_decl) pragmas list(payload_type_decl) list(nested_protocol_decl) . list(protocol_decl) EOI [ # ]
+##
+## The known suffix of the stack is as follows:
+## option(module_decl) pragmas list(payload_type_decl) list(nested_protocol_decl)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 162, spurious reduction of production list(nested_protocol_decl) -> 
+## In state 163, spurious reduction of production list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY TYPE_KW
+##
+## Ends in an error in state: 162.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY . list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY TYPE_KW
+##
+## Ends in an error in state: 76.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY . list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT COLON IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 72.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) . option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 63.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR . option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT SEMICOLON NEW_KW ROLE_KW IDENT SEMICOLON
+##
+## Ends in an error in state: 62.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) . RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 55, spurious reduction of production separated_nonempty_list(COMMA,role_decl) -> ROLE_KW IDENT 
+## In state 61, spurious reduction of production option(new_role_decls) -> SEMICOLON NEW_KW separated_nonempty_list(COMMA,role_decl) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT SEMICOLON NEW_KW TYPE_KW
+##
+## Ends in an error in state: 60.
+##
+## option(new_role_decls) -> SEMICOLON NEW_KW . separated_nonempty_list(COMMA,role_decl) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## SEMICOLON NEW_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT SEMICOLON TYPE_KW
+##
+## Ends in an error in state: 59.
+##
+## option(new_role_decls) -> SEMICOLON . NEW_KW separated_nonempty_list(COMMA,role_decl) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LPAR TYPE_KW
+##
+## Ends in an error in state: 53.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR . separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT LT SIG_KW IDENT GT LCURLY
+##
+## Ends in an error in state: 52.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) . LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT option(parameter_decls)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 37.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT . option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW PROTOCOL_KW TYPE_KW
+##
+## Ends in an error in state: 36.
+##
+## list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW . IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW PROTOCOL_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: NESTED_KW TYPE_KW
+##
+## Ends in an error in state: 35.
+##
+## list(nested_protocol_decl) -> NESTED_KW . PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) [ REC_KW RCURLY PROTOCOL_KW IDENT GLOBAL_KW EXPLICIT_KW EOI DO_KW CONTINUE_KW CHOICE_KW AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## NESTED_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PRAGMA_STR TO_KW
+##
+## Ends in an error in state: 9.
+##
+## list(PRAGMA_STR) -> PRAGMA_STR . list(PRAGMA_STR) [ TYPE_KW SIG_KW PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## PRAGMA_STR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 56.
+##
+## separated_nonempty_list(COMMA,role_decl) -> ROLE_KW IDENT COMMA . separated_nonempty_list(COMMA,role_decl) [ SEMICOLON RPAR ]
+##
+## The known suffix of the stack is as follows:
+## ROLE_KW IDENT COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 176.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) . LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR ARROBA TYPE_KW
+##
+## Ends in an error in state: 73.
+##
+## option(annotation) -> ARROBA . EXTIDENT [ REC_KW RCURLY LCURLY IDENT DO_KW CONTINUE_KW CHOICE_KW ]
+##
+## The known suffix of the stack is as follows:
+## ARROBA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CHOICE_KW AT_KW IDENT LCURLY RCURLY OR_KW TYPE_KW
+##
+## Ends in an error in state: 137.
+##
+## separated_nonempty_list(OR_KW,global_protocol_block) -> LCURLY list(global_interaction) RCURLY OR_KW . separated_nonempty_list(OR_KW,global_protocol_block) [ REC_KW RCURLY IDENT DO_KW CONTINUE_KW CHOICE_KW ]
+##
+## The known suffix of the stack is as follows:
+## LCURLY list(global_interaction) RCURLY OR_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CHOICE_KW AT_KW IDENT LCURLY RCURLY TYPE_KW
+##
+## Ends in an error in state: 136.
+##
+## separated_nonempty_list(OR_KW,global_protocol_block) -> LCURLY list(global_interaction) RCURLY . [ REC_KW RCURLY IDENT DO_KW CONTINUE_KW CHOICE_KW ]
+## separated_nonempty_list(OR_KW,global_protocol_block) -> LCURLY list(global_interaction) RCURLY . OR_KW separated_nonempty_list(OR_KW,global_protocol_block) [ REC_KW RCURLY IDENT DO_KW CONTINUE_KW CHOICE_KW ]
+##
+## The known suffix of the stack is as follows:
+## LCURLY list(global_interaction) RCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CHOICE_KW AT_KW IDENT LCURLY TYPE_KW
+##
+## Ends in an error in state: 134.
+##
+## separated_nonempty_list(OR_KW,global_protocol_block) -> LCURLY . list(global_interaction) RCURLY [ REC_KW RCURLY IDENT DO_KW CONTINUE_KW CHOICE_KW ]
+## separated_nonempty_list(OR_KW,global_protocol_block) -> LCURLY . list(global_interaction) RCURLY OR_KW separated_nonempty_list(OR_KW,global_protocol_block) [ REC_KW RCURLY IDENT DO_KW CONTINUE_KW CHOICE_KW ]
+##
+## The known suffix of the stack is as follows:
+## LCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CHOICE_KW AT_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 133.
+##
+## list(global_interaction) -> CHOICE_KW AT_KW IDENT . separated_nonempty_list(OR_KW,global_protocol_block) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## CHOICE_KW AT_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CHOICE_KW AT_KW TYPE_KW
+##
+## Ends in an error in state: 132.
+##
+## list(global_interaction) -> CHOICE_KW AT_KW . IDENT separated_nonempty_list(OR_KW,global_protocol_block) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## CHOICE_KW AT_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CHOICE_KW TYPE_KW
+##
+## Ends in an error in state: 131.
+##
+## list(global_interaction) -> CHOICE_KW . AT_KW IDENT separated_nonempty_list(OR_KW,global_protocol_block) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## CHOICE_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CONTINUE_KW IDENT SEMICOLON TYPE_KW
+##
+## Ends in an error in state: 130.
+##
+## list(global_interaction) -> CONTINUE_KW IDENT SEMICOLON . list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## CONTINUE_KW IDENT SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CONTINUE_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 129.
+##
+## list(global_interaction) -> CONTINUE_KW IDENT . SEMICOLON list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## CONTINUE_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY CONTINUE_KW TYPE_KW
+##
+## Ends in an error in state: 128.
+##
+## list(global_interaction) -> CONTINUE_KW . IDENT SEMICOLON list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## CONTINUE_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LPAR IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 102.
+##
+## separated_nonempty_list(COMMA,name) -> IDENT COMMA . separated_nonempty_list(COMMA,name) [ SEMICOLON RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LPAR IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 125.
+##
+## list(global_interaction) -> DO_KW IDENT option(non_role_args) option(role_args) . SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## DO_KW IDENT option(non_role_args) option(role_args)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LPAR IDENT SEMICOLON
+##
+## Ends in an error in state: 123.
+##
+## option(role_args) -> LPAR separated_nonempty_list(COMMA,name) . RPAR [ SEMICOLON ]
+##
+## The known suffix of the stack is as follows:
+## LPAR separated_nonempty_list(COMMA,name)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 101, spurious reduction of production separated_nonempty_list(COMMA,name) -> IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LPAR IDENT TYPE_KW
+##
+## Ends in an error in state: 101.
+##
+## separated_nonempty_list(COMMA,name) -> IDENT . [ SEMICOLON RPAR ]
+## separated_nonempty_list(COMMA,name) -> IDENT . COMMA separated_nonempty_list(COMMA,name) [ SEMICOLON RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LPAR TYPE_KW
+##
+## Ends in an error in state: 122.
+##
+## option(role_args) -> LPAR . separated_nonempty_list(COMMA,name) RPAR [ SEMICOLON ]
+##
+## The known suffix of the stack is as follows:
+## LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 116.
+##
+## separated_nonempty_list(COMMA,non_role_arg) -> separated_nonempty_list(DOT,IDENT) COMMA . separated_nonempty_list(COMMA,non_role_arg) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## separated_nonempty_list(DOT,IDENT) COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT DOT IDENT SEMICOLON
+##
+## Ends in an error in state: 115.
+##
+## separated_nonempty_list(COMMA,non_role_arg) -> separated_nonempty_list(DOT,IDENT) . [ GT ]
+## separated_nonempty_list(COMMA,non_role_arg) -> separated_nonempty_list(DOT,IDENT) . COMMA separated_nonempty_list(COMMA,non_role_arg) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## separated_nonempty_list(DOT,IDENT)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 2, spurious reduction of production separated_nonempty_list(DOT,IDENT) -> IDENT 
+## In state 4, spurious reduction of production separated_nonempty_list(DOT,IDENT) -> IDENT DOT separated_nonempty_list(DOT,IDENT) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT GT LCURLY
+##
+## Ends in an error in state: 121.
+##
+## list(global_interaction) -> DO_KW IDENT option(non_role_args) . option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## DO_KW IDENT option(non_role_args)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT LPAR RPAR COMMA TYPE_KW
+##
+## Ends in an error in state: 114.
+##
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR COMMA . separated_nonempty_list(COMMA,non_role_arg) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT LPAR RPAR TYPE_KW
+##
+## Ends in an error in state: 113.
+##
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR . [ GT ]
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR . COMMA separated_nonempty_list(COMMA,non_role_arg) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT LPAR TYPE_KW
+##
+## Ends in an error in state: 111.
+##
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT LPAR . loption(separated_nonempty_list(COMMA,payload_el)) RPAR [ GT ]
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT LPAR . loption(separated_nonempty_list(COMMA,payload_el)) RPAR COMMA separated_nonempty_list(COMMA,non_role_arg) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT IDENT TYPE_KW
+##
+## Ends in an error in state: 110.
+##
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT . LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR [ GT ]
+## separated_nonempty_list(COMMA,non_role_arg) -> IDENT . LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR COMMA separated_nonempty_list(COMMA,non_role_arg) [ GT ]
+## separated_nonempty_list(DOT,IDENT) -> IDENT . [ GT COMMA ]
+## separated_nonempty_list(DOT,IDENT) -> IDENT . DOT separated_nonempty_list(DOT,IDENT) [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT LT TYPE_KW
+##
+## Ends in an error in state: 109.
+##
+## option(non_role_args) -> LT . separated_nonempty_list(COMMA,non_role_arg) GT [ SEMICOLON LPAR ]
+##
+## The known suffix of the stack is as follows:
+## LT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT SEMICOLON ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 127.
+##
+## list(global_interaction) -> DO_KW IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation) . list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## DO_KW IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT SEMICOLON TYPE_KW
+##
+## Ends in an error in state: 126.
+##
+## list(global_interaction) -> DO_KW IDENT option(non_role_args) option(role_args) SEMICOLON . option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## DO_KW IDENT option(non_role_args) option(role_args) SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 108.
+##
+## list(global_interaction) -> DO_KW IDENT . option(non_role_args) option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## DO_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY DO_KW TYPE_KW
+##
+## Ends in an error in state: 107.
+##
+## list(global_interaction) -> DO_KW . IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## DO_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT CALLS_KW IDENT LPAR IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 154.
+##
+## list(global_interaction) -> IDENT CALLS_KW IDENT option(non_role_args) option(role_args) . SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT CALLS_KW IDENT option(non_role_args) option(role_args)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT CALLS_KW IDENT LT IDENT GT LCURLY
+##
+## Ends in an error in state: 153.
+##
+## list(global_interaction) -> IDENT CALLS_KW IDENT option(non_role_args) . option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT CALLS_KW IDENT option(non_role_args)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT CALLS_KW IDENT SEMICOLON ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 156.
+##
+## list(global_interaction) -> IDENT CALLS_KW IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation) . list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT CALLS_KW IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT CALLS_KW IDENT SEMICOLON TYPE_KW
+##
+## Ends in an error in state: 155.
+##
+## list(global_interaction) -> IDENT CALLS_KW IDENT option(non_role_args) option(role_args) SEMICOLON . option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT CALLS_KW IDENT option(non_role_args) option(role_args) SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT CALLS_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 152.
+##
+## list(global_interaction) -> IDENT CALLS_KW IDENT . option(non_role_args) option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT CALLS_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT CALLS_KW TYPE_KW
+##
+## Ends in an error in state: 151.
+##
+## list(global_interaction) -> IDENT CALLS_KW . IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT CALLS_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT FROM_KW IDENT TO_KW IDENT RPAR
+##
+## Ends in an error in state: 147.
+##
+## list(global_interaction) -> IDENT FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) . SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 101, spurious reduction of production separated_nonempty_list(COMMA,name) -> IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT FROM_KW IDENT TO_KW IDENT SEMICOLON ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 149.
+##
+## list(global_interaction) -> IDENT FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) . list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT FROM_KW IDENT TO_KW IDENT SEMICOLON TYPE_KW
+##
+## Ends in an error in state: 148.
+##
+## list(global_interaction) -> IDENT FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON . option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT FROM_KW IDENT TO_KW TYPE_KW
+##
+## Ends in an error in state: 146.
+##
+## list(global_interaction) -> IDENT FROM_KW IDENT TO_KW . separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT FROM_KW IDENT TO_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT FROM_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 145.
+##
+## list(global_interaction) -> IDENT FROM_KW IDENT . TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT FROM_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT FROM_KW TYPE_KW
+##
+## Ends in an error in state: 144.
+##
+## list(global_interaction) -> IDENT FROM_KW . IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT FROM_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT ARROBA IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 93.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT ARROBA IDENT COMMA . separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT ARROBA IDENT COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT ARROBA IDENT TYPE_KW
+##
+## Ends in an error in state: 92.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT ARROBA IDENT . [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT ARROBA IDENT . COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT ARROBA IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT ARROBA TYPE_KW
+##
+## Ends in an error in state: 91.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT ARROBA . IDENT [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT ARROBA . IDENT COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT ARROBA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT COLON IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 86.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT COLON separated_nonempty_list(DOT,IDENT) COMMA . separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COLON separated_nonempty_list(DOT,IDENT) COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT COLON IDENT SEMICOLON
+##
+## Ends in an error in state: 85.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT COLON separated_nonempty_list(DOT,IDENT) . [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT COLON separated_nonempty_list(DOT,IDENT) . COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COLON separated_nonempty_list(DOT,IDENT)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 2, spurious reduction of production separated_nonempty_list(DOT,IDENT) -> IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT COLON TYPE_KW
+##
+## Ends in an error in state: 84.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT COLON . separated_nonempty_list(DOT,IDENT) [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT COLON . separated_nonempty_list(DOT,IDENT) COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 88.
+##
+## separated_nonempty_list(COMMA,payload_el) -> separated_nonempty_list(DOT,IDENT) COMMA . separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## separated_nonempty_list(DOT,IDENT) COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT DOT IDENT SEMICOLON
+##
+## Ends in an error in state: 87.
+##
+## separated_nonempty_list(COMMA,payload_el) -> separated_nonempty_list(DOT,IDENT) . [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> separated_nonempty_list(DOT,IDENT) . COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## separated_nonempty_list(DOT,IDENT)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 2, spurious reduction of production separated_nonempty_list(DOT,IDENT) -> IDENT 
+## In state 4, spurious reduction of production separated_nonempty_list(DOT,IDENT) -> IDENT DOT separated_nonempty_list(DOT,IDENT) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR IDENT TYPE_KW
+##
+## Ends in an error in state: 83.
+##
+## separated_nonempty_list(COMMA,payload_el) -> IDENT . ARROBA IDENT [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT . COLON separated_nonempty_list(DOT,IDENT) [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT . ARROBA IDENT COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+## separated_nonempty_list(COMMA,payload_el) -> IDENT . COLON separated_nonempty_list(DOT,IDENT) COMMA separated_nonempty_list(COMMA,payload_el) [ RPAR ]
+## separated_nonempty_list(DOT,IDENT) -> IDENT . [ RPAR COMMA ]
+## separated_nonempty_list(DOT,IDENT) -> IDENT . DOT separated_nonempty_list(DOT,IDENT) [ RPAR COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR FROM_KW IDENT TO_KW IDENT RPAR
+##
+## Ends in an error in state: 104.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) . SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 101, spurious reduction of production separated_nonempty_list(COMMA,name) -> IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR FROM_KW IDENT TO_KW IDENT SEMICOLON ARROBA EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 106.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) . list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR FROM_KW IDENT TO_KW IDENT SEMICOLON TYPE_KW
+##
+## Ends in an error in state: 105.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON . option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR FROM_KW IDENT TO_KW TYPE_KW
+##
+## Ends in an error in state: 100.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW . separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR FROM_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 99.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT . TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR FROM_KW TYPE_KW
+##
+## Ends in an error in state: 98.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW . IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR RPAR TYPE_KW
+##
+## Ends in an error in state: 97.
+##
+## list(global_interaction) -> IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR . FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT LPAR TYPE_KW
+##
+## Ends in an error in state: 82.
+##
+## list(global_interaction) -> IDENT LPAR . loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY IDENT TYPE_KW
+##
+## Ends in an error in state: 81.
+##
+## list(global_interaction) -> IDENT . LPAR loption(separated_nonempty_list(COMMA,payload_el)) RPAR FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+## list(global_interaction) -> IDENT . FROM_KW IDENT TO_KW separated_nonempty_list(COMMA,name) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+## list(global_interaction) -> IDENT . CALLS_KW IDENT option(non_role_args) option(role_args) SEMICOLON option(annotation) list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY NESTED_KW PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY AUX_KW
+##
+## Ends in an error in state: 178.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) . list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 162, spurious reduction of production list(nested_protocol_decl) -> 
+## In state 163, spurious reduction of production list(nested_protocol_decl) -> NESTED_KW PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) option(new_role_decls) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(nested_protocol_decl) 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY RCURLY TYPE_KW
+##
+## Ends in an error in state: 180.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY . list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY REC_KW IDENT LCURLY RCURLY TYPE_KW
+##
+## Ends in an error in state: 159.
+##
+## list(global_interaction) -> REC_KW IDENT LCURLY list(global_interaction) RCURLY . list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## REC_KW IDENT LCURLY list(global_interaction) RCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY REC_KW IDENT LCURLY TYPE_KW
+##
+## Ends in an error in state: 80.
+##
+## list(global_interaction) -> REC_KW IDENT LCURLY . list(global_interaction) RCURLY list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## REC_KW IDENT LCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY REC_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 79.
+##
+## list(global_interaction) -> REC_KW IDENT . LCURLY list(global_interaction) RCURLY list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## REC_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY REC_KW TYPE_KW
+##
+## Ends in an error in state: 78.
+##
+## list(global_interaction) -> REC_KW . IDENT LCURLY list(global_interaction) RCURLY list(global_interaction) [ RCURLY ]
+##
+## The known suffix of the stack is as follows:
+## REC_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LCURLY TYPE_KW
+##
+## Ends in an error in state: 177.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY . list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT COLON IDENT COMMA TYPE_KW
+##
+## Ends in an error in state: 68.
+##
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT COLON IDENT COMMA . separated_nonempty_list(COMMA,rec_parameter_decl) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COLON IDENT COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT COLON IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 175.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) . option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT COLON IDENT TYPE_KW
+##
+## Ends in an error in state: 67.
+##
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT COLON IDENT . [ RPAR ]
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT COLON IDENT . COMMA separated_nonempty_list(COMMA,rec_parameter_decl) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COLON IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT COLON TYPE_KW
+##
+## Ends in an error in state: 66.
+##
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT COLON . IDENT [ RPAR ]
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT COLON . IDENT COMMA separated_nonempty_list(COMMA,rec_parameter_decl) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT COLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR IDENT TYPE_KW
+##
+## Ends in an error in state: 65.
+##
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT . COLON IDENT [ RPAR ]
+## separated_nonempty_list(COMMA,rec_parameter_decl) -> IDENT . COLON IDENT COMMA separated_nonempty_list(COMMA,rec_parameter_decl) [ RPAR ]
+##
+## The known suffix of the stack is as follows:
+## IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR LPAR TYPE_KW
+##
+## Ends in an error in state: 64.
+##
+## option(rec_parameter_decls) -> LPAR . separated_nonempty_list(COMMA,rec_parameter_decl) RPAR [ LCURLY ARROBA ]
+##
+## The known suffix of the stack is as follows:
+## LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT RPAR TYPE_KW
+##
+## Ends in an error in state: 174.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR . option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT SEMICOLON
+##
+## Ends in an error in state: 173.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) . RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 55, spurious reduction of production separated_nonempty_list(COMMA,role_decl) -> ROLE_KW IDENT 
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 55.
+##
+## separated_nonempty_list(COMMA,role_decl) -> ROLE_KW IDENT . [ SEMICOLON RPAR ]
+## separated_nonempty_list(COMMA,role_decl) -> ROLE_KW IDENT . COMMA separated_nonempty_list(COMMA,role_decl) [ SEMICOLON RPAR ]
+##
+## The known suffix of the stack is as follows:
+## ROLE_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR ROLE_KW TYPE_KW
+##
+## Ends in an error in state: 54.
+##
+## separated_nonempty_list(COMMA,role_decl) -> ROLE_KW . IDENT [ SEMICOLON RPAR ]
+## separated_nonempty_list(COMMA,role_decl) -> ROLE_KW . IDENT COMMA separated_nonempty_list(COMMA,role_decl) [ SEMICOLON RPAR ]
+##
+## The known suffix of the stack is as follows:
+## ROLE_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LPAR TYPE_KW
+##
+## Ends in an error in state: 172.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR . separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) LPAR
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT SIG_KW IDENT AS_KW TYPE_KW
+##
+## Ends in an error in state: 45.
+##
+## parameter_decl -> SIG_KW IDENT AS_KW . IDENT [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW IDENT AS_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT SIG_KW IDENT GT LCURLY
+##
+## Ends in an error in state: 171.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls) . LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT option(parameter_decls)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT SIG_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 44.
+##
+## parameter_decl -> SIG_KW IDENT . [ GT COMMA ]
+## parameter_decl -> SIG_KW IDENT . AS_KW IDENT [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT SIG_KW TYPE_KW
+##
+## Ends in an error in state: 43.
+##
+## parameter_decl -> SIG_KW . IDENT [ GT COMMA ]
+## parameter_decl -> SIG_KW . IDENT AS_KW IDENT [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT TO_KW
+##
+## Ends in an error in state: 38.
+##
+## option(parameter_decls) -> LT . separated_nonempty_list(COMMA,parameter_decl) GT [ LPAR ]
+##
+## The known suffix of the stack is as follows:
+## LT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT TYPE_KW IDENT AS_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 49.
+##
+## separated_nonempty_list(COMMA,parameter_decl) -> parameter_decl . [ GT ]
+## separated_nonempty_list(COMMA,parameter_decl) -> parameter_decl . COMMA separated_nonempty_list(COMMA,parameter_decl) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## parameter_decl
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT TYPE_KW IDENT AS_KW TYPE_KW
+##
+## Ends in an error in state: 41.
+##
+## parameter_decl -> TYPE_KW IDENT AS_KW . IDENT [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW IDENT AS_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT TYPE_KW IDENT COMMA TO_KW
+##
+## Ends in an error in state: 50.
+##
+## separated_nonempty_list(COMMA,parameter_decl) -> parameter_decl COMMA . separated_nonempty_list(COMMA,parameter_decl) [ GT ]
+##
+## The known suffix of the stack is as follows:
+## parameter_decl COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT TYPE_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 40.
+##
+## parameter_decl -> TYPE_KW IDENT . [ GT COMMA ]
+## parameter_decl -> TYPE_KW IDENT . AS_KW IDENT [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT LT TYPE_KW TYPE_KW
+##
+## Ends in an error in state: 39.
+##
+## parameter_decl -> TYPE_KW . IDENT [ GT COMMA ]
+## parameter_decl -> TYPE_KW . IDENT AS_KW IDENT [ GT COMMA ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 170.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW IDENT . option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: PROTOCOL_KW TYPE_KW
+##
+## Ends in an error in state: 169.
+##
+## list(protocol_decl) -> option(protocol_options) PROTOCOL_KW . IDENT option(parameter_decls) LPAR separated_nonempty_list(COMMA,role_decl) RPAR option(rec_parameter_decls) option(annotation) LCURLY list(nested_protocol_decl) list(global_interaction) RCURLY list(protocol_decl) [ EOI ]
+##
+## The known suffix of the stack is as follows:
+## option(protocol_options) PROTOCOL_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON TO_KW
+##
+## Ends in an error in state: 31.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON . list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 30.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT . SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW TYPE_KW
+##
+## Ends in an error in state: 29.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW . IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 28.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT . AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT EXTIDENT FROM_KW TYPE_KW
+##
+## Ends in an error in state: 27.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT EXTIDENT FROM_KW . EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT EXTIDENT FROM_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 26.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT EXTIDENT . FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT EXTIDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT GT TYPE_KW
+##
+## Ends in an error in state: 25.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT GT . EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT GT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT IDENT TYPE_KW
+##
+## Ends in an error in state: 24.
+##
+## list(payload_type_decl) -> SIG_KW LT IDENT . GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW LT TYPE_KW
+##
+## Ends in an error in state: 23.
+##
+## list(payload_type_decl) -> SIG_KW LT . IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW LT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: SIG_KW TYPE_KW
+##
+## Ends in an error in state: 22.
+##
+## list(payload_type_decl) -> SIG_KW . LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## SIG_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TO_KW
+##
+## Ends in an error in state: 0.
+##
+## doc' -> . doc [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON TO_KW
+##
+## Ends in an error in state: 21.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON . list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT TYPE_KW
+##
+## Ends in an error in state: 20.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT . SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW TYPE_KW
+##
+## Ends in an error in state: 19.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW . IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 18.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT . AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT EXTIDENT FROM_KW EXTIDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT EXTIDENT FROM_KW TYPE_KW
+##
+## Ends in an error in state: 17.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT EXTIDENT FROM_KW . EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT EXTIDENT FROM_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT EXTIDENT TYPE_KW
+##
+## Ends in an error in state: 16.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT EXTIDENT . FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT EXTIDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT GT TYPE_KW
+##
+## Ends in an error in state: 15.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT GT . EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT GT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT IDENT TYPE_KW
+##
+## Ends in an error in state: 14.
+##
+## list(payload_type_decl) -> TYPE_KW LT IDENT . GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT IDENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW LT TYPE_KW
+##
+## Ends in an error in state: 13.
+##
+## list(payload_type_decl) -> TYPE_KW LT . IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW LT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+doc: TYPE_KW TYPE_KW
+##
+## Ends in an error in state: 12.
+##
+## list(payload_type_decl) -> TYPE_KW . LT IDENT GT EXTIDENT FROM_KW EXTIDENT AS_KW IDENT SEMICOLON list(payload_type_decl) [ PROTOCOL_KW NESTED_KW GLOBAL_KW EXPLICIT_KW EOI AUX_KW ]
+##
+## The known suffix of the stack is as follows:
+## TYPE_KW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
