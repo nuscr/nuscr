@@ -941,6 +941,7 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
         in
         ( (env, var_name_gen)
         , join_non_empty_lines ~sep:"\n\n" [send_impl_str; impl] )
+    | SilentL _ -> assert false
   in
   let indent = incr_indent "" in
   let var_name_gen = Namegen.create () in

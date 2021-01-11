@@ -1,0 +1,7 @@
+(*# RefinementTypes #*)
+
+global protocol Relay(role A, role B, role C, role D) {
+    First(x: int) from A to B;
+    Second(y: int{x = y}) from B to C;
+    Third(z: int{x = z}) from C to D;
+}
