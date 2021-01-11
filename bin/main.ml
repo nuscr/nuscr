@@ -26,7 +26,8 @@ let gen_output ast f = function
   | _ -> ()
 
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
-    gencode_monadic_ocaml gencode_go sexp_global_type =
+    gencode_monadic_ocaml gencode_go sexp_global_type show_solver_queries =
+  Config.solver_show_queries := show_solver_queries ;
   let process_pragmas (pragmas : Syntax.pragmas) : unit =
     let process_global_pragma (k, v) =
       match (k, v) with
@@ -210,6 +211,10 @@ let out_dir =
 
 let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
 
+let show_solver_queries =
+  let doc = "Print solver queries (With RefinementTypes pragma)" in
+  Arg.(value & flag & info ["show_solver_queries"] ~doc)
+
 let cmd =
   let doc =
     "A tool to manipulate and validate Scribble-style multiparty protocols"
@@ -229,7 +234,7 @@ let cmd =
       ret
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
-        $ sexp_global_type ))
+        $ sexp_global_type $ show_solver_queries ))
   , Term.info "nuscr" ~version:"%%VERSION%%" ~doc ~exits:Term.default_exits
       ~man )
 
