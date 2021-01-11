@@ -165,9 +165,10 @@ let rec sexp_of_expr = function
       Sexp.List [unop; e]
 
 type smt_script =
-  {declare_consts: (string * string) list; asserts: Sexp.t list}
+  {declare_consts: string Map.M(String).t; asserts: Sexp.t list}
 
-let empty_smt_script = {declare_consts= []; asserts= []}
+let empty_smt_script =
+  {declare_consts= Map.empty (module String); asserts= []}
 
 let rec smt_sort_of_type = function
   | PTInt -> "Int"
@@ -179,25 +180,37 @@ let rec smt_sort_of_type = function
            (PayloadTypeName.user n))
   | PTRefined (_, t, _) -> smt_sort_of_type t
 
+let add_const var ty env =
+  let {declare_consts; _} = env in
+  let key = VariableName.user var in
+  let data = smt_sort_of_type ty in
+  let declare_consts =
+    match Map.find declare_consts key with
+    | Some data_ ->
+        if String.equal data data_ then declare_consts
+        else Err.unimpl "Handling multiply defined variables"
+    | None -> Map.add_exn declare_consts ~key ~data
+  in
+  {env with declare_consts}
+
+let add_assert assert_ env =
+  {env with asserts= sexp_of_expr assert_ :: env.asserts}
+
 let encode_env env =
   let init = empty_smt_script in
   Map.fold ~init
-    ~f:(fun ~key ~data {declare_consts; asserts} ->
-      let declare_consts =
-        (VariableName.user key, smt_sort_of_type data) :: declare_consts
+    ~f:(fun ~key ~data env ->
+      let env = add_const key data env in
+      let env =
+        match data with PTRefined (_, _, e) -> add_assert e env | _ -> env
       in
-      let asserts =
-        match data with
-        | PTRefined (_, _, e) -> sexp_of_expr e :: asserts
-        | _ -> asserts
-      in
-      {declare_consts; asserts})
+      env)
     env
 
 let check_sat {declare_consts; asserts} =
   let buffer = Buffer.create 4096 in
-  List.iter
-    ~f:(fun (var, sort) ->
+  Map.iteri
+    ~f:(fun ~key:var ~data:sort ->
       Buffer.add_string buffer
         (Printf.sprintf "(declare-const %s %s)\n" var sort))
     declare_consts ;
@@ -231,28 +244,17 @@ let subtype env t1 t2 =
    |PTRefined (_, PTString, _), PTString ->
       true
   | PTRefined (v1, t, e1), PTRefined (v2, _, e2) ->
-      let t = smt_sort_of_type t in
-      let {declare_consts; asserts} = encode_env env in
-      let {declare_consts; asserts} =
-        if not (VariableName.equal v1 v2) then
-          let declare_consts =
-            (VariableName.user v1, t)
-            :: (VariableName.user v2, t)
-            :: declare_consts
-          in
-          let asserts =
-            sexp_of_expr (Binop (Syntax.Eq, Var v1, Var v2)) :: asserts
-          in
-          {declare_consts; asserts}
-        else
-          let declare_consts = (VariableName.user v1, t) :: declare_consts in
-          {declare_consts; asserts}
+      let env = encode_env env in
+      let env = add_const v1 t env in
+      let env = add_const v2 t env in
+      let env =
+        if VariableName.equal v1 v2 then
+          add_assert (Binop (Syntax.Eq, Var v1, Var v2)) env
+        else env
       in
-      let asserts =
-        sexp_of_expr e1 :: sexp_of_expr (Unop (Syntax.Not, e2)) :: asserts
-      in
-      let script = {declare_consts; asserts} in
-      is_unsat script
+      let env = add_assert e1 env in
+      let env = add_assert (Unop (Syntax.Not, e2)) env in
+      is_unsat env
   | _, _ -> assert false
 
 let count = ref 0
