@@ -34,9 +34,12 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
       | Syntax.PrintUsage, _ -> ()
       | Syntax.ShowPragmas, _ -> Syntax.show_pragmas pragmas |> print_endline
       | Syntax.NestedProtocols, _ ->
-          if Option.is_some fsm then
-            Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
-      | Syntax.RefinementTypes, _ -> ()
+          let () =
+            if Option.is_some fsm then
+              Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
+          in
+          Config.nested_protocol_enabled := true
+      | Syntax.RefinementTypes, _ -> Config.refinement_type_enabled := true
     in
     List.iter ~f:process_global_pragma pragmas
   in
