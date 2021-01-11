@@ -66,9 +66,10 @@ let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
     match (k, v) with
     | PrintUsage, _ -> ()
     | ShowPragmas, _ -> ()
-    | NestedProtocols, _ -> ()
-    | RefinementTypes, _ -> ()
+    | NestedProtocols, _ -> Nuscrlib.Config.nested_protocol_enabled := true
+    | RefinementTypes, _ -> Nuscrlib.Config.refinement_type_enabled := true
   in
+  Nuscrlib.Config.reset () ;
   List.iter ~f:process_global_pragma pragmas
 
 let process_files fns =

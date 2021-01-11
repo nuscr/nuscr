@@ -318,7 +318,10 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
                 | PValue (Some var, t) -> Some (var, t) | _ -> None)
               m.payload
           in
-          if List.is_empty named_payloads then next
+          if
+            List.is_empty named_payloads
+            || not !Config.refinement_type_enabled
+          then next
           else
             List.fold ~init:next
               ~f:(fun acc (var, t) -> SilentL (var, t, acc))

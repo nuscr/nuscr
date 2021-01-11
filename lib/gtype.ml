@@ -53,7 +53,7 @@ let parse_typename name =
   | "bool" -> Expr.PTBool
   | _ -> Expr.PTAbstract (PayloadTypeName.of_name name)
 
-let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
+let of_syntax_payload (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
   | PayloadName n -> PValue (None, parse_typename n)
@@ -63,7 +63,7 @@ let of_syntax_payload ?(refined = false) (payload : Syntax.payloadt) =
       PValue (Some (VariableName.of_name var), parse_typename n)
   | PayloadRTy (Simple n) -> PValue (None, parse_typename n)
   | PayloadRTy (Refined (v, t, e)) ->
-      if refined then
+      if !Config.refinement_type_enabled then
         PValue
           ( Some (VariableName.of_name v)
           , Expr.PTRefined
@@ -86,12 +86,12 @@ let show_message {label; payload} =
 
 let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
 
-let of_syntax_message ?(refined = false) (message : Syntax.message) =
+let of_syntax_message (message : Syntax.message) =
   let open Syntax in
   match message with
   | Message {name; payload} ->
       { label= LabelName.of_name name
-      ; payload= List.map ~f:(of_syntax_payload ~refined) payload }
+      ; payload= List.map ~f:of_syntax_payload payload }
   | MessageName name -> {label= LabelName.of_name name; payload= []}
 
 type rec_var =
@@ -205,7 +205,7 @@ let rec_var_of_syntax_rec_var rec_var =
   let open Syntax in
   let {var; roles; ty; init} = rec_var in
   let rv_ty =
-    match of_syntax_payload ~refined:true ty with
+    match of_syntax_payload ty with
     | PValue (_, ty) -> ty
     | _ -> assert false
   in
@@ -243,8 +243,7 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
             check_role to_role ;
             if RoleName.equal from_role to_role then
               uerr (ReflexiveMessage from_role) ;
-            MessageG
-              (of_syntax_message ~refined message, from_role, to_role, acc)
+            MessageG (of_syntax_message message, from_role, to_role, acc)
           in
           (List.fold_right ~f ~init to_roles, free_names)
       | Recursion (rname, rec_vars, interactions) ->
@@ -336,11 +335,7 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
       List.fold ~init:protocols ~f:add_protocol nested_protocols
     in
     let proto_name = ProtocolName.of_name protocol.value.name in
-    let g =
-      of_protocol
-        ~refined:(Pragma.refinement_types_enabled scr_module)
-        protocol
-    in
+    let g = of_protocol protocol in
     let roles = split_role_names protocol.value.split_roles in
     let nested_protocol_names =
       List.map
