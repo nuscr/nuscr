@@ -262,6 +262,9 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
             if refined then List.map ~f:rec_var_of_syntax_rec_var rec_vars
             else []
           in
+          List.iter
+            ~f:(fun {rv_roles; _} -> List.iter ~f:check_role rv_roles)
+            rec_vars ;
           let cont, free_names_ = Lazy.force lazy_cont in
           (* Remove degenerate recursion here *)
           if Set.mem free_names_ rname then
