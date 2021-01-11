@@ -198,7 +198,7 @@ let of_local_type lty =
         let curr = fresh () in
         let g = G.add_vertex g curr in
         ({env with g}, curr)
-    | MuL (tv, l) ->
+    | MuL (tv, _, l) ->
         let new_st = fresh () in
         let g = G.add_vertex g new_st in
         let env =
@@ -208,7 +208,7 @@ let of_local_type lty =
         let g = env.g in
         let g = G.add_edge_e g (new_st, Epsilon, curr) in
         ({env with g}, curr)
-    | TVarL tv ->
+    | TVarL (tv, _) ->
         (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
     | AcceptL _ | InviteCreateL _ ->
         raise (Err.Violation "Nested protocols are not supported in efsm")

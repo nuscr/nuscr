@@ -8,8 +8,8 @@ type t =
   | RecvL of Gtype.message * RoleName.t * t
   | SendL of Gtype.message * RoleName.t * t
   | ChoiceL of RoleName.t * t list
-  | TVarL of TypeVariableName.t
-  | MuL of TypeVariableName.t * t
+  | TVarL of TypeVariableName.t * Expr.t list
+  | MuL of TypeVariableName.t * Gtype.rec_var list * t
   | EndL
   | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
   | AcceptL of
@@ -66,13 +66,29 @@ let show =
         sprintf "%s%s to %s;\n%s" current_indent (show_message m)
           (RoleName.user r)
           (show_local_type_internal indent l)
-    | MuL (n, l) ->
-        sprintf "%srec %s {\n%s%s}\n" current_indent
-          (TypeVariableName.user n)
+    | MuL (n, rec_vars, l) ->
+        let rec_vars_s =
+          if List.is_empty rec_vars then ""
+          else
+            "["
+            ^ String.concat ~sep:", "
+                (List.map ~f:Gtype.show_rec_var rec_vars)
+            ^ "] "
+        in
+        sprintf "%srec %s %s{\n%s%s}\n" current_indent
+          (TypeVariableName.user n) rec_vars_s
           (show_local_type_internal (indent + 1) l)
           current_indent
-    | TVarL n ->
-        sprintf "%scontinue %s;\n" current_indent (TypeVariableName.user n)
+    | TVarL (n, rec_exprs) ->
+        let rec_exprs_s =
+          if List.is_empty rec_exprs then ""
+          else
+            " ["
+            ^ String.concat ~sep:", " (List.map ~f:Expr.show rec_exprs)
+            ^ "]"
+        in
+        sprintf "%scontinue %s%s;\n" current_indent (TypeVariableName.user n)
+          rec_exprs_s
     | EndL -> sprintf "%send\n" current_indent
     | ChoiceL (r, ls) ->
         let pre =
@@ -298,16 +314,36 @@ let rec check_consistent_gchoice choice_r possible_roles = function
            ( "Normalised global type always has a message in choice branches\n"
            ^ Gtype.show g ))
 
-let rec project' (global_t : global_t) (projected_role : RoleName.t) =
-  function
+let rec project' env (projected_role : RoleName.t) = function
   | EndG -> EndL
-  | TVarG (name, _, _) -> TVarL name
-  | MuG (name, _, g_type) -> (
-    match project' global_t projected_role g_type with
-    | TVarL _ | EndL -> EndL
-    | lType -> MuL (name, lType) )
+  | TVarG (name, rec_exprs, _) ->
+      let _, rvenv = env in
+      let rec_expr_filter = Map.find_exn rvenv name in
+      let rec_exprs =
+        List.map2_exn
+          ~f:(fun x y ->
+            match (x, y) with Some _, y -> Some y | None, _ -> None)
+          rec_expr_filter rec_exprs
+      in
+      let rec_exprs = List.filter_opt rec_exprs in
+      TVarL (name, rec_exprs)
+  | MuG (name, rec_exprs, g_type) -> (
+      let rec_exprs =
+        List.map
+          ~f:(fun ({rv_roles; _} as rec_expr) ->
+            if List.mem ~equal:RoleName.equal rv_roles projected_role then
+              Some rec_expr
+            else None)
+          rec_exprs
+      in
+      let penv, rvenv = env in
+      let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv) in
+      let rec_exprs = List.filter_map ~f:Fn.id rec_exprs in
+      match project' env projected_role g_type with
+      | TVarL _ | EndL -> EndL
+      | lType -> MuL (name, rec_exprs, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-      let next = project' global_t projected_role g_type in
+      let next = project' env projected_role g_type in
       match projected_role with
       | _ when RoleName.equal projected_role send_r -> SendL (m, recv_r, next)
       | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
@@ -358,7 +394,7 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
           g_types
       in
       let recv_r = Set.choose_exn possible_roles in
-      let l_types = List.map ~f:(project' global_t projected_role) g_types in
+      let l_types = List.map ~f:(project' env projected_role) g_types in
       match projected_role with
       | _
         when RoleName.equal projected_role choice_r
@@ -369,9 +405,10 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
         | Some l -> l
         | None -> EndL ) )
   | CallG (caller, protocol, roles, g_type) -> (
-      let next = project' global_t projected_role g_type in
+      let next = project' env projected_role g_type in
+      let penv, _ = env in
       let (protocol_roles, new_protocol_roles), _, _ =
-        Map.find_exn global_t protocol
+        Map.find_exn penv protocol
       in
       let gen_acceptl next =
         let role_elem =
@@ -398,12 +435,18 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
       | _ -> next )
 
 let project projected_role g =
-  project' (Map.empty (module ProtocolName)) projected_role g
+  project'
+    (Map.empty (module ProtocolName), Map.empty (module TypeVariableName))
+    projected_role g
 
 let project_global_t (global_t : global_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
-    let ltype = project' global_t projected_role gtype in
+    let ltype =
+      project'
+        (global_t, Map.empty (module TypeVariableName))
+        projected_role gtype
+    in
     Map.add_exn local_protocols
       ~key:(protocol_name, projected_role)
       ~data:(all_roles, ltype)
