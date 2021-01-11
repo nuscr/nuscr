@@ -214,8 +214,7 @@ let rec_var_of_syntax_rec_var rec_var =
   ; rv_ty
   ; rv_init_expr= Expr.of_syntax_expr init }
 
-let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
-    =
+let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
   let roles = List.map ~f:RoleName.of_name roles in
@@ -258,7 +257,8 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
                  interactions)
           in
           let rec_vars =
-            if refined then List.map ~f:rec_var_of_syntax_rec_var rec_vars
+            if !Config.refinement_type_enabled then
+              List.map ~f:rec_var_of_syntax_rec_var rec_vars
             else []
           in
           List.iter
@@ -272,7 +272,9 @@ let of_protocol ?(refined = false) (global_protocol : Syntax.global_protocol)
       | Continue (name, rec_exprs) ->
           let name = TypeVariableName.of_name name in
           let rec_exprs =
-            if refined then List.map ~f:Expr.of_syntax_expr rec_exprs else []
+            if !Config.refinement_type_enabled then
+              List.map ~f:Expr.of_syntax_expr rec_exprs
+            else []
           in
           let cont =
             lazy
