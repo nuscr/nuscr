@@ -99,6 +99,7 @@ type rec_var =
   ; rv_roles: RoleName.t list
   ; rv_ty: Expr.payload_type
   ; rv_init_expr: Expr.t }
+[@@deriving sexp_of, eq]
 
 let show_rec_var {rv_name; rv_roles; rv_ty; rv_init_expr} =
   sprintf "%s<%s>: %s = %s"
