@@ -202,7 +202,15 @@ let encode_env env =
     ~f:(fun ~key ~data env ->
       let env = add_const key data env in
       let env =
-        match data with PTRefined (_, _, e) -> add_assert e env | _ -> env
+        match data with
+        | PTRefined (v, _, e) ->
+            let env = add_assert e env in
+            let env =
+              if VariableName.equal v key then env
+              else add_assert (Binop (Syntax.Eq, Var v, Var key)) env
+            in
+            env
+        | _ -> env
       in
       env)
     env
@@ -248,7 +256,7 @@ let subtype env t1 t2 =
       let env = add_const v1 t env in
       let env = add_const v2 t env in
       let env =
-        if VariableName.equal v1 v2 then
+        if not (VariableName.equal v1 v2) then
           add_assert (Binop (Syntax.Eq, Var v1, Var v2)) env
         else env
       in
