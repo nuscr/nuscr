@@ -19,6 +19,7 @@ type t =
       * RoleName.t list
       * RoleName.t
       * t
+  | SilentL of VariableName.t * Expr.payload_type * t
 [@@deriving sexp_of, eq]
 
 module type S = sig
@@ -113,6 +114,11 @@ let show =
           (ProtocolName.user protocol)
           (Symtable.show_roles (roles_str, new_roles_str))
           (RoleName.user caller)
+          (show_local_type_internal indent l)
+    | SilentL (var, ty, l) ->
+        sprintf "%s(silent) %s(%s);\n%s" current_indent
+          (VariableName.user var)
+          (Expr.show_payload_type ty)
           (show_local_type_internal indent l)
   in
   show_local_type_internal 0
@@ -305,7 +311,18 @@ let rec project' (global_t : global_t) (projected_role : RoleName.t) =
       match projected_role with
       | _ when RoleName.equal projected_role send_r -> SendL (m, recv_r, next)
       | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
-      | _ -> next )
+      | _ ->
+          let named_payloads =
+            List.rev_filter_map
+              ~f:(function
+                | PValue (Some var, t) -> Some (var, t) | _ -> None)
+              m.payload
+          in
+          if List.is_empty named_payloads then next
+          else
+            List.fold ~init:next
+              ~f:(fun acc (var, t) -> SilentL (var, t, acc))
+              named_payloads )
   | ChoiceG (choice_r, g_types) -> (
       let check_distinct_prefix gtys =
         let rec aux acc = function

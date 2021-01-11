@@ -29,6 +29,9 @@ type t =
       * RoleName.t list
       * RoleName.t
       * t  (** accept role'\@Proto(roles...; new roles'...) from X; t *)
+  | SilentL of VariableName.t * Expr.payload_type * t
+      (** Used with refinement types to indicate knowledge obtained via a
+          global protocol. *)
 
 module type S = sig
   type t [@@deriving show {with_path= false}, sexp_of]
