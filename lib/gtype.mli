@@ -13,11 +13,15 @@ type message = {label: LabelName.t; payload: payload list}
 
 val equal_pvalue_payload : payload -> payload -> bool
 
+(** Recursion variable *)
 type rec_var =
-  { rv_name: VariableName.t
-  ; rv_roles: RoleName.t list
-  ; rv_ty: Expr.payload_type
-  ; rv_init_expr: Expr.t }
+  { rv_name: VariableName.t  (** Variable Name *)
+  ; rv_roles: RoleName.t list  (** Which roles know this variable *)
+  ; rv_ty: Expr.payload_type  (** What type does the variable carry *)
+  ; rv_init_expr: Expr.t
+        (** What is the initial expression assigned at the beginning of
+            recursion *) }
+[@@deriving sexp_of, eq]
 
 (** The type of global types *)
 type t =
@@ -77,3 +81,6 @@ val replace_recursion_with_nested_protocols : global_t -> global_t
 val validate_refinements_exn : t -> unit
 (** Validate refinements in the given global type, requires [RefinementTypes]
     pragma *)
+
+val show_rec_var : rec_var -> string
+(** Convert rec_var to string *)
