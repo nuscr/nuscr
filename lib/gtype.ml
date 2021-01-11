@@ -544,17 +544,17 @@ let global_t_of_ast (ast : Syntax.scr_module) : global_t =
   replace_recursion_with_nested_protocols global_t
 
 let validate_refinements_exn t =
-  let env = Expr.new_typing_env in
+  let env = (Expr.new_typing_env, Map.empty (module TypeVariableName)) in
   let rec aux env = function
     | EndG -> ()
     | MessageG (m, _, _, g) ->
         let payloads = m.payload in
-        let f env = function
+        let f (tenv, rvenv) = function
           | PValue (v_opt, p_type) ->
-              if Expr.is_well_formed_type env p_type then
+              if Expr.is_well_formed_type tenv p_type then
                 match v_opt with
-                | Some v -> Expr.env_append env v p_type
-                | None -> env
+                | Some v -> (Expr.env_append tenv v p_type, rvenv)
+                | None -> (tenv, rvenv)
               else
                 uerr (IllFormedPayloadType (Expr.show_payload_type p_type))
           | PDelegate _ -> unimpl "Delegation as payload"
@@ -562,11 +562,12 @@ let validate_refinements_exn t =
         let env = List.fold ~init:env ~f payloads in
         aux env g
     | ChoiceG (_, gs) -> List.iter ~f:(aux env) gs
-    | MuG (_, rec_vars, g) ->
-        let f env {rv_name; rv_ty; rv_init_expr; _} =
-          if Expr.is_well_formed_type env rv_ty then
-            if Expr.check_type env rv_init_expr rv_ty then
-              Expr.env_append env rv_name rv_ty
+    | MuG (tvar, rec_vars, g) ->
+        let f (tenv, rvenv) {rv_name; rv_ty; rv_init_expr; _} =
+          if Expr.is_well_formed_type tenv rv_ty then
+            if Expr.check_type tenv rv_init_expr rv_ty then
+              ( Expr.env_append tenv rv_name rv_ty
+              , Map.add_exn ~key:tvar ~data:rec_vars rvenv )
             else
               uerr
                 (TypeError
@@ -575,7 +576,26 @@ let validate_refinements_exn t =
         in
         let env = List.fold ~init:env ~f rec_vars in
         aux env g
-    | TVarG _ -> ()
+    | TVarG (tvar, rec_exprs, _) -> (
+        let tenv, rvenv = env in
+        (* Unbound TypeVariable should not be possible, because it was
+           previously validated *)
+        let rec_vars = Map.find_exn rvenv tvar in
+        match
+          List.iter2
+            ~f:(fun {rv_ty; _} rec_expr ->
+              if Expr.check_type tenv rec_expr rv_ty then ()
+              else
+                uerr
+                  (TypeError
+                     (Expr.show rec_expr, Expr.show_payload_type rv_ty)))
+            rec_vars rec_exprs
+        with
+        | Base.List.Or_unequal_lengths.Ok () -> ()
+        | Base.List.Or_unequal_lengths.Unequal_lengths ->
+            unimpl
+              "Error message for mismatched number of recursion variable \
+               declaration and expressions" )
     | CallG _ -> assert false
   in
   aux env t
