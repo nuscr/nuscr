@@ -32,21 +32,18 @@ let validate_protocols_exn (ast : scr_module) ~verbose : unit =
     if verbose then String.concat ~sep (List.map ~f xs) |> print_endline
     else ()
   in
-  let refined = Pragma.refinement_types_enabled ast in
   let protocols = ast.protocols in
   let protocols =
     List.map ~f:(Protocol.expand_global_protocol ast) protocols
   in
   show ~f:show_global_protocol protocols ;
   let g_types =
-    List.map
-      ~f:(fun p -> (Gtype.of_protocol ~refined p, p.value.roles))
-      protocols
+    List.map ~f:(fun p -> (Gtype.of_protocol p, p.value.roles)) protocols
   in
   (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
      g_types in *)
   show ~f:(fun (g, _) -> Gtype.show g) g_types ;
-  if refined then
+  if !Config.refinement_type_enabled then
     List.iter ~f:(fun (g, _) -> Gtype.validate_refinements_exn g) g_types ;
   let l_types =
     List.map
@@ -81,7 +78,7 @@ let validate_nested_protocols (ast : scr_module) ~verbose =
   ()
 
 let validate_exn (ast : scr_module) ~verbose : unit =
-  if Pragma.nested_protocol_enabled ast then
+  if !Config.nested_protocol_enabled then
     validate_nested_protocols ast ~verbose
   else (
     Protocol.ensure_no_nested_protocols ast ;
@@ -108,7 +105,7 @@ let enumerate_nested_protocols (ast : scr_module) :
   List.concat @@ Map.data enumerated
 
 let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
-  if Pragma.nested_protocol_enabled ast then enumerate_nested_protocols ast
+  if !Config.nested_protocol_enabled then enumerate_nested_protocols ast
   else enumerate_protocols ast
 
 let project_protocol_role ast ~protocol ~role : Ltype.t =
@@ -123,9 +120,7 @@ let project_protocol_role ast ~protocol ~role : Ltype.t =
     | None -> uerr (ProtocolNotFound protocol)
   in
   let gp = Protocol.expand_global_protocol ast gp in
-  let gt =
-    Gtype.of_protocol ~refined:(Pragma.refinement_types_enabled ast) gp
-  in
+  let gt = Gtype.of_protocol gp in
   Ltype.project role gt
 
 let project_nested_protocol ast ~protocol ~role : Ltype.t =
@@ -136,7 +131,7 @@ let project_nested_protocol ast ~protocol ~role : Ltype.t =
   l_type
 
 let project_role ast ~protocol ~role : Ltype.t =
-  if Pragma.nested_protocol_enabled ast then
+  if !Config.nested_protocol_enabled then
     project_nested_protocol ast ~protocol ~role
   else project_protocol_role ast ~protocol ~role
 
