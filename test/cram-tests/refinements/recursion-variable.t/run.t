@@ -52,14 +52,14 @@ The protocol with recursion variable should be well-formed.
 When projected on B, the recursion variable `count` should not appear.
 
   $ nuscr Recursion.nuscr --project B@Recursion1
-  rec X {
+  rec X [(silent) count<A>: int = 0] {
     Num(curr: curr:int{(curr)=(count)}) from A;
     continue X;
   }
   
 
   $ nuscr Recursion.nuscr --project B@Recursion2
-  rec X {
+  rec X [(silent) count<A>: count:int{(count)>=(0)} = 0] {
     Num(curr: curr:int{(curr)=(count)}) from A;
     continue X;
   }

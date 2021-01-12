@@ -17,7 +17,8 @@ type t =
       (** [ChoiceL (name, ts)] is a choice (internal or external) from [name]
           between the [ts] *)
   | TVarL of TypeVariableName.t * Expr.t list  (** Recursive variable *)
-  | MuL of TypeVariableName.t * Gtype.rec_var list * t  (** Fixpoint *)
+  | MuL of TypeVariableName.t * (bool (* Silent? *) * Gtype.rec_var) list * t
+      (** Fixpoint *)
   | EndL  (** Empty type *)
   | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
       (** Send invitations to existing roles and set up/create dynamic
