@@ -9,7 +9,7 @@ type t =
   | SendL of Gtype.message * RoleName.t * t
   | ChoiceL of RoleName.t * t list
   | TVarL of TypeVariableName.t * Expr.t list
-  | MuL of TypeVariableName.t * Gtype.rec_var list * t
+  | MuL of TypeVariableName.t * (bool * Gtype.rec_var) list * t
   | EndL
   | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
   | AcceptL of
@@ -72,7 +72,11 @@ let show =
           else
             "["
             ^ String.concat ~sep:", "
-                (List.map ~f:Gtype.show_rec_var rec_vars)
+                (List.map
+                   ~f:(fun (is_silent, rv) ->
+                     let prefix = if is_silent then "(silent) " else "" in
+                     prefix ^ Gtype.show_rec_var rv)
+                   rec_vars)
             ^ "] "
         in
         sprintf "%srec %s %s{\n%s%s}\n" current_indent
@@ -321,8 +325,7 @@ let rec project' env (projected_role : RoleName.t) = function
       let rec_expr_filter = Map.find_exn rvenv name in
       let rec_exprs =
         List.map2_exn
-          ~f:(fun x y ->
-            match (x, y) with Some _, y -> Some y | None, _ -> None)
+          ~f:(fun (x, _) y -> if not x then Some y else None)
           rec_expr_filter rec_exprs
       in
       let rec_exprs = List.filter_opt rec_exprs in
@@ -331,14 +334,12 @@ let rec project' env (projected_role : RoleName.t) = function
       let rec_exprs =
         List.map
           ~f:(fun ({rv_roles; _} as rec_expr) ->
-            if List.mem ~equal:RoleName.equal rv_roles projected_role then
-              Some rec_expr
-            else None)
+            ( not @@ List.mem ~equal:RoleName.equal rv_roles projected_role
+            , rec_expr ))
           rec_exprs
       in
       let penv, rvenv = env in
       let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv) in
-      let rec_exprs = List.filter_map ~f:Fn.id rec_exprs in
       match project' env projected_role g_type with
       | TVarL _ | EndL -> EndL
       | lType -> MuL (name, rec_exprs, lType) )
