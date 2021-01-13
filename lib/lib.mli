@@ -77,3 +77,7 @@ val generate_ast :
   -> Ppxlib_ast.Parsetree.structure
 (** [generate_ast ~monad module protocol role] is similar to [generate_code],
     except it returns an AST instead of a string *)
+
+val generate_fstar_code :
+  Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
+(** Generate F* code, with support for refinement types *)

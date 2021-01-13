@@ -26,7 +26,8 @@ let gen_output ast f = function
   | _ -> ()
 
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
-    gencode_monadic_ocaml gencode_go sexp_global_type show_solver_queries =
+    gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
+    show_solver_queries =
   Config.set_solver_show_queries show_solver_queries ;
   Config.set_verbose verbose ;
   let process_pragmas (pragmas : Syntax.pragmas) : unit =
@@ -84,6 +85,12 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
           Lib.generate_ocaml_code ~monad:true ast ~protocol ~role
           |> print_endline)
         gencode_monadic_ocaml
+    in
+    let () =
+      Option.iter
+        ~f:(fun (role, protocol) ->
+          Lib.generate_fstar_code ast ~protocol ~role |> print_endline)
+        gencode_fstar
     in
     let () =
       Option.iter
@@ -180,6 +187,16 @@ let gencode_ocaml =
     & opt (some role_proto) None
     & info ["gencode-ocaml"] ~doc ~docv:"ROLE@PROTO")
 
+let gencode_fstar =
+  let doc =
+    "Generate OCaml code for specified protocol and role. \
+     <role_name>@<protocol_name>"
+  in
+  Arg.(
+    value
+    & opt (some role_proto) None
+    & info ["gencode-fstar"] ~doc ~docv:"ROLE@PROTO")
+
 let gencode_monadic_ocaml =
   let doc =
     "Generate monadic OCaml code for specified protocol and role. \
@@ -242,7 +259,7 @@ let cmd =
       ret
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
-        $ sexp_global_type $ show_solver_queries ))
+        $ gencode_fstar $ sexp_global_type $ show_solver_queries ))
   , Term.info "nuscr" ~version:"%%VERSION%%" ~doc ~exits:Term.default_exits
       ~man )
 
