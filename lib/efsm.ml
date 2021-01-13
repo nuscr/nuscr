@@ -17,6 +17,14 @@ let show_action = function
       sprintf "%s?%s" (RoleName.user r) (Gtype.show_message msg)
   | Epsilon -> "ε"
 
+type var_info_entry =
+  | PayloadV of VariableName.t * Expr.payload_type
+  | SilentV of VariableName.t * Expr.payload_type
+  | RecursionV of VariableName.t * Expr.payload_type * Expr.t
+  | RecursionVUpdate of VariableName.t * Expr.t
+
+type var_info = var_info_entry list Map.M(Int).t
+
 module Label = struct
   module M = struct
     type t = action
@@ -68,9 +76,16 @@ let show g =
 type conv_env =
   { g: G.t
   ; tyvars: (TypeVariableName.t * int) list
-  ; states_to_merge: (int * int) list }
+  ; states_to_merge: (int * int) list
+  ; var_info: var_info
+  ; silent_var_buffer: (VariableName.t * Expr.payload_type) list }
 
-let init_conv_env = {g= G.empty; tyvars= []; states_to_merge= []}
+let init_conv_env =
+  { g= G.empty
+  ; tyvars= []
+  ; states_to_merge= []
+  ; var_info= Map.empty (module Int)
+  ; silent_var_buffer= [] }
 
 (* (* Redirect all edges into st_remove to st_base, then remove st_remove *)
  * let merge_state g st_base st_remove =
@@ -197,7 +212,7 @@ let merge_state ~from_state ~to_state g =
   let g = G.remove_vertex g from_state in
   g
 
-let of_local_type lty =
+let of_local_type_with_var_info lty =
   let count = ref 0 in
   let fresh () =
     let n = !count in
@@ -206,6 +221,31 @@ let of_local_type lty =
   in
   let rec conv_ltype_aux env =
     let {g; tyvars; _} = env in
+    let process_silent_var_buffer env st =
+      let {silent_var_buffer; var_info; _} = env in
+      let silent_var_buffer = List.rev silent_var_buffer in
+      let var_info =
+        List.fold ~init:var_info
+          ~f:(fun acc (var, ty) ->
+            Map.add_multi acc ~key:st ~data:(SilentV (var, ty)))
+          silent_var_buffer
+      in
+      {env with var_info; silent_var_buffer= []}
+    in
+    let process_payload_var env st payloads =
+      let {var_info; _} = env in
+      let var_info =
+        List.fold ~init:var_info
+          ~f:(fun acc payload ->
+            match payload with
+            | Gtype.PDelegate _ -> Err.unimpl "Delegation not supported"
+            | Gtype.PValue (Some var, ty) ->
+                Map.add_multi acc ~key:st ~data:(PayloadV (var, ty))
+            | Gtype.PValue (None, _) -> acc)
+          payloads
+      in
+      {env with var_info}
+    in
     function
     | RecvL (m, n, l) ->
         let curr = fresh () in
@@ -213,6 +253,8 @@ let of_local_type lty =
         let g = env.g in
         let g = G.add_vertex g curr in
         let e = (curr, RecvA (n, m), next) in
+        let env = process_silent_var_buffer env next in
+        let env = process_payload_var env next m.Gtype.payload in
         let g = G.add_edge_e g e in
         ({env with g}, curr)
     | SendL (m, n, l) ->
@@ -222,6 +264,8 @@ let of_local_type lty =
         let g = env.g in
         let g = G.add_vertex g curr in
         let g = G.add_edge_e g e in
+        let env = process_silent_var_buffer env next in
+        let env = process_payload_var env next m.Gtype.payload in
         ({env with g}, curr)
     | ChoiceL (_r, ltys) ->
         let curr = fresh () in
@@ -251,14 +295,18 @@ let of_local_type lty =
         (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
     | AcceptL _ | InviteCreateL _ ->
         Err.violation "Nested protocols are not supported in efsm"
-    | SilentL (_, _, l) -> conv_ltype_aux env l
-    (* TODO: Handle this case *)
+    | SilentL (v, ty, l) ->
+        let env =
+          {env with silent_var_buffer= (v, ty) :: env.silent_var_buffer}
+        in
+        conv_ltype_aux env l
   in
   let env, start = conv_ltype_aux init_conv_env lty in
-  let g = env.g in
+  let {g; var_info; _} = env in
   if not @@ List.is_empty env.states_to_merge then
-    let rec aux (start, g) = function
-      | [] -> (start, g)
+    let rec aux (start, g, var_info) = function
+      (* TODO: Handle var_info *)
+      | [] -> (start, g, var_info)
       | (s1, s2) :: rest ->
           let to_state = Int.min s1 s2 in
           let from_state = Int.max s1 s2 in
@@ -273,7 +321,11 @@ let of_local_type lty =
                 (x, y))
               rest
           in
-          aux (start, g) rest
+          aux (start, g, var_info) rest
     in
-    aux (start, g) env.states_to_merge
-  else (start, g)
+    aux (start, g, var_info) env.states_to_merge
+  else (start, g, var_info)
+
+let of_local_type ltype =
+  let start, g, _ = of_local_type_with_var_info ltype in
+  (start, g)
