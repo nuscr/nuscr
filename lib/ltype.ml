@@ -318,10 +318,18 @@ let rec check_consistent_gchoice choice_r possible_roles = function
            ( "Normalised global type always has a message in choice branches\n"
            ^ Gtype.show g ))
 
-let rec project' env (projected_role : RoleName.t) = function
+let rec project' env (projected_role : RoleName.t) =
+  let check_expr silent_vars e =
+    let free_vars = Expr.free_var e in
+    let unknown_vars = Set.inter free_vars silent_vars in
+    if not @@ Set.is_empty unknown_vars then
+      uerr
+        (UnknownVariableValue (projected_role, Set.choose_exn unknown_vars))
+  in
+  function
   | EndG -> EndL
   | TVarG (name, rec_exprs, _) ->
-      let _, rvenv = env in
+      let _, rvenv, svars = env in
       let rec_expr_filter = Map.find_exn rvenv name in
       let rec_exprs =
         List.map2_exn
@@ -329,6 +337,7 @@ let rec project' env (projected_role : RoleName.t) = function
           rec_expr_filter rec_exprs
       in
       let rec_exprs = List.filter_opt rec_exprs in
+      List.iter ~f:(check_expr svars) rec_exprs ;
       TVarL (name, rec_exprs)
   | MuG (name, rec_exprs, g_type) -> (
       let rec_exprs =
@@ -338,16 +347,24 @@ let rec project' env (projected_role : RoleName.t) = function
             , rec_expr ))
           rec_exprs
       in
-      let penv, rvenv = env in
-      let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv) in
+      let penv, rvenv, svars = env in
+      let svars =
+        List.fold ~init:svars
+          ~f:(fun acc (is_silent, {rv_name; _}) ->
+            if is_silent then Set.add acc rv_name else acc)
+          rec_exprs
+      in
+      let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv, svars) in
       match project' env projected_role g_type with
       | TVarL _ | EndL -> EndL
       | lType -> MuL (name, rec_exprs, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-      let next = project' env projected_role g_type in
+      let next env = project' env projected_role g_type in
       match projected_role with
-      | _ when RoleName.equal projected_role send_r -> SendL (m, recv_r, next)
-      | _ when RoleName.equal projected_role recv_r -> RecvL (m, send_r, next)
+      | _ when RoleName.equal projected_role send_r ->
+          SendL (m, recv_r, next env)
+      | _ when RoleName.equal projected_role recv_r ->
+          RecvL (m, send_r, next env)
       | _ ->
           let named_payloads =
             List.rev_filter_map
@@ -358,9 +375,16 @@ let rec project' env (projected_role : RoleName.t) = function
           if
             List.is_empty named_payloads
             || not !Config.refinement_type_enabled
-          then next
+          then next env
           else
-            List.fold ~init:next
+            let penv, rvenv, svars = env in
+            let svars =
+              List.fold ~init:svars
+                ~f:(fun acc (var, _) -> Set.add acc var)
+                named_payloads
+            in
+            let env = (penv, rvenv, svars) in
+            List.fold ~init:(next env)
               ~f:(fun acc (var, t) -> SilentL (var, t, acc))
               named_payloads )
   | ChoiceG (choice_r, g_types) -> (
@@ -407,7 +431,7 @@ let rec project' env (projected_role : RoleName.t) = function
         | None -> EndL ) )
   | CallG (caller, protocol, roles, g_type) -> (
       let next = project' env projected_role g_type in
-      let penv, _ = env in
+      let penv, _, _ = env in
       let (protocol_roles, new_protocol_roles), _, _ =
         Map.find_exn penv protocol
       in
@@ -437,7 +461,9 @@ let rec project' env (projected_role : RoleName.t) = function
 
 let project projected_role g =
   project'
-    (Map.empty (module ProtocolName), Map.empty (module TypeVariableName))
+    ( Map.empty (module ProtocolName)
+    , Map.empty (module TypeVariableName)
+    , Set.empty (module VariableName) )
     projected_role g
 
 let project_global_t (global_t : global_t) =
@@ -445,7 +471,9 @@ let project_global_t (global_t : global_t) =
       projected_role =
     let ltype =
       project'
-        (global_t, Map.empty (module TypeVariableName))
+        ( global_t
+        , Map.empty (module TypeVariableName)
+        , Set.empty (module VariableName) )
         projected_role gtype
     in
     Map.add_exn local_protocols

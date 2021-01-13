@@ -324,3 +324,9 @@ let check_type env expr ty =
   match infer_type env expr with
   | Some inferred -> subtype env inferred ty
   | None -> false
+
+let rec free_var = function
+  | Var v -> Set.singleton (module VariableName) v
+  | Int _ | Bool _ | String _ -> Set.empty (module VariableName)
+  | Binop (_, e1, e2) -> Set.union (free_var e1) (free_var e2)
+  | Unop (_, e) -> free_var e
