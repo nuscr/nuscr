@@ -109,20 +109,21 @@ let init_conv_env = {g= G.empty; tyvars= []; states_to_merge= []}
  *         ~data:(compute_closure (Set.singleton (module Int) v) v))
  *     g
  *     (Map.empty (module Int))
+ *
+
+ * module IntSet = struct
+ *   module M = struct
+ *     type t = Set.M(Int).t
+ *
+ *     let compare = Set.compare_direct
+ *
+ *     let sexp_of_t = Set.sexp_of_m__t (module Int)
+ *   end
+ *
+ *   include M
+ *   include Comparator.Make (M)
+ * end
  *)
-
-module IntSet = struct
-  module M = struct
-    type t = Set.M(Int).t
-
-    let compare = Set.compare_direct
-
-    let sexp_of_t = Set.sexp_of_m__t (module Int)
-  end
-
-  include M
-  include Comparator.Make (M)
-end
 
 (* let powerset_construction (start, old_g) =
  *   let epsilons = epsilon_closure old_g in
