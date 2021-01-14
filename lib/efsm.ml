@@ -93,22 +93,23 @@ let init_conv_env = {g= G.empty; tyvars= []; states_to_merge= []}
  *   g
  *)
 
-(** Construct the epsilon closure for a given NDA *)
-let epsilon_closure g =
-  let rec compute_closure visited state =
-    let edges = G.succ_e g state in
-    List.fold edges ~init:visited ~f:(fun visited -> function
-      | _, Epsilon, dst when not (Set.mem visited dst) ->
-          let visited = Set.add visited dst in
-          compute_closure visited dst
-      | _ -> visited)
-  in
-  G.fold_vertex
-    (fun v closures ->
-      Map.add_exn closures ~key:v
-        ~data:(compute_closure (Set.singleton (module Int) v) v))
-    g
-    (Map.empty (module Int))
+(* (** Construct the epsilon closure for a given NDA *)
+ * let epsilon_closure g =
+ *   let rec compute_closure visited state =
+ *     let edges = G.succ_e g state in
+ *     List.fold edges ~init:visited ~f:(fun visited -> function
+ *       | _, Epsilon, dst when not (Set.mem visited dst) ->
+ *           let visited = Set.add visited dst in
+ *           compute_closure visited dst
+ *       | _ -> visited)
+ *   in
+ *   G.fold_vertex
+ *     (fun v closures ->
+ *       Map.add_exn closures ~key:v
+ *         ~data:(compute_closure (Set.singleton (module Int) v) v))
+ *     g
+ *     (Map.empty (module Int))
+ *)
 
 module IntSet = struct
   module M = struct
