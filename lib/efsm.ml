@@ -58,10 +58,19 @@ end
 
 module DotOutput = Graphviz.Dot (Display)
 
-type conv_env =
-  {g: G.t; tyvars: (TypeVariableName.t * int) list; non_deterministic: bool}
+let show g =
+  let buffer = Buffer.create 4196 in
+  let formatter = Caml.Format.formatter_of_buffer buffer in
+  DotOutput.fprint_graph formatter g ;
+  Caml.Format.pp_print_flush formatter () ;
+  Buffer.contents buffer
 
-let init_conv_env = {g= G.empty; tyvars= []; non_deterministic= false}
+type conv_env =
+  { g: G.t
+  ; tyvars: (TypeVariableName.t * int) list
+  ; states_to_merge: (int * int) list }
+
+let init_conv_env = {g= G.empty; tyvars= []; states_to_merge= []}
 
 (* (* Redirect all edges into st_remove to st_base, then remove st_remove *)
  * let merge_state g st_base st_remove =
@@ -114,51 +123,77 @@ module IntSet = struct
   include Comparator.Make (M)
 end
 
-let powerset_construction (start, old_g) =
-  let epsilons = epsilon_closure old_g in
-  let count = ref 0 in
-  let fresh () =
-    let n = !count in
-    count := n + 1 ;
-    n
+(* let powerset_construction (start, old_g) =
+ *   let epsilons = epsilon_closure old_g in
+ *   let count = ref 0 in
+ *   let fresh () =
+ *     let n = !count in
+ *     count := n + 1 ;
+ *     n
+ *   in
+ *   let rec aux (g, state_map) states =
+ *     match Map.find state_map states with
+ *     | Some _ -> (g, state_map)
+ *     | None ->
+ *         let st = fresh () in
+ *         let g = G.add_vertex g st in
+ *         let state_map = Map.add_exn ~key:states ~data:st state_map in
+ *         let f acc old_node =
+ *           let edges = G.succ_e old_g old_node in
+ *           let f acc (_, lbl, dst) =
+ *             match lbl with
+ *             | Epsilon -> acc
+ *             | _ ->
+ *                 let dst = Map.find_exn epsilons dst in
+ *                 let f = function
+ *                   | None -> dst
+ *                   | Some states -> Set.union states dst
+ *                 in
+ *                 Map.update acc lbl ~f
+ *           in
+ *           List.fold ~init:acc ~f edges
+ *         in
+ *         let out_edges =
+ *           Set.fold ~init:(Map.empty (module Label)) ~f states
+ *         in
+ *         let f ~key:label ~data:states (g, state_map) =
+ *           let g, state_map = aux (g, state_map) states in
+ *           let g =
+ *             G.add_edge_e g (st, label, Map.find_exn state_map states)
+ *           in
+ *           (g, state_map)
+ *         in
+ *         Map.fold out_edges ~init:(g, state_map) ~f
+ *   in
+ *   let start_states = Map.find_exn epsilons start in
+ *   let g, state_map = aux (G.empty, Map.empty (module IntSet)) start_states in
+ *   (Map.find_exn state_map start_states, g)
+ *)
+
+let merge_state ~from_state ~to_state g =
+  let subst x = if x = from_state then to_state else x in
+  let g =
+    G.fold_succ_e
+      (fun (ori, label, dest) g ->
+        let ori = subst ori in
+        let dest = subst dest in
+        match label with
+        | Epsilon -> g
+        | label -> G.add_edge_e g (ori, label, dest))
+      g from_state g
   in
-  let rec aux (g, state_map) states =
-    match Map.find state_map states with
-    | Some _ -> (g, state_map)
-    | None ->
-        let st = fresh () in
-        let g = G.add_vertex g st in
-        let state_map = Map.add_exn ~key:states ~data:st state_map in
-        let f acc old_node =
-          let edges = G.succ_e old_g old_node in
-          let f acc (_, lbl, dst) =
-            match lbl with
-            | Epsilon -> acc
-            | _ ->
-                let dst = Map.find_exn epsilons dst in
-                let f = function
-                  | None -> dst
-                  | Some states -> Set.union states dst
-                in
-                Map.update acc lbl ~f
-          in
-          List.fold ~init:acc ~f edges
-        in
-        let out_edges =
-          Set.fold ~init:(Map.empty (module Label)) ~f states
-        in
-        let f ~key:label ~data:states (g, state_map) =
-          let g, state_map = aux (g, state_map) states in
-          let g =
-            G.add_edge_e g (st, label, Map.find_exn state_map states)
-          in
-          (g, state_map)
-        in
-        Map.fold out_edges ~init:(g, state_map) ~f
+  let g =
+    G.fold_pred_e
+      (fun (ori, label, dest) g ->
+        let ori = subst ori in
+        let dest = subst dest in
+        match label with
+        | Epsilon -> g
+        | label -> G.add_edge_e g (ori, label, dest))
+      g from_state g
   in
-  let start_states = Map.find_exn epsilons start in
-  let g, state_map = aux (G.empty, Map.empty (module IntSet)) start_states in
-  (Map.find_exn state_map start_states, g)
+  let g = G.remove_vertex g from_state in
+  g
 
 let of_local_type lty =
   let count = ref 0 in
@@ -193,7 +228,10 @@ let of_local_type lty =
         let es = List.map ~f:(fun n -> (curr, Epsilon, n)) nexts in
         let g = G.add_vertex g curr in
         let g = List.fold ~f:G.add_edge_e ~init:g es in
-        ({env with g; non_deterministic= true}, curr)
+        let states_to_merge =
+          List.map ~f:(fun next -> (curr, next)) nexts @ env.states_to_merge
+        in
+        ({env with g; states_to_merge}, curr)
     | EndL ->
         let curr = fresh () in
         let g = G.add_vertex g curr in
@@ -201,13 +239,12 @@ let of_local_type lty =
     | MuL (tv, _, l) ->
         let new_st = fresh () in
         let g = G.add_vertex g new_st in
-        let env =
-          {tyvars= (tv, new_st) :: tyvars; g; non_deterministic= true}
-        in
+        let env = {env with tyvars= (tv, new_st) :: tyvars; g} in
         let env, curr = conv_ltype_aux env l in
         let g = env.g in
         let g = G.add_edge_e g (new_st, Epsilon, curr) in
-        ({env with g}, curr)
+        let states_to_merge = (new_st, curr) :: env.states_to_merge in
+        ({env with g; states_to_merge}, curr)
     | TVarL (tv, _) ->
         (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
     | AcceptL _ | InviteCreateL _ ->
@@ -217,12 +254,24 @@ let of_local_type lty =
   in
   let env, start = conv_ltype_aux init_conv_env lty in
   let g = env.g in
-  if env.non_deterministic then powerset_construction (start, g)
+  if not @@ List.is_empty env.states_to_merge then
+    let rec aux (start, g) = function
+      | [] -> (start, g)
+      | (s1, s2) :: rest ->
+          let to_state = Int.min s1 s2 in
+          let from_state = Int.max s1 s2 in
+          let subst x = if x = from_state then to_state else x in
+          let g = merge_state ~from_state ~to_state g in
+          let start = subst start in
+          let rest =
+            List.map
+              ~f:(fun (x, y) ->
+                let x = subst x in
+                let y = subst y in
+                (x, y))
+              rest
+          in
+          aux (start, g) rest
+    in
+    aux (start, g) env.states_to_merge
   else (start, g)
-
-let show g =
-  let buffer = Buffer.create 4196 in
-  let formatter = Caml.Format.formatter_of_buffer buffer in
-  DotOutput.fprint_graph formatter g ;
-  Caml.Format.pp_print_flush formatter () ;
-  Buffer.contents buffer
