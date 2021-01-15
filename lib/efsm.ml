@@ -4,22 +4,51 @@ open Ltype
 open Names
 open Graph
 
+type refinement_action_annot =
+  { silent_vars: (VariableName.t * Expr.payload_type) list
+  ; rec_expr_updates: Expr.t list }
+[@@deriving ord, sexp_of]
+
+let show_refinement_actions_annot {silent_vars; rec_expr_updates} =
+  let silent_vars =
+    if List.is_empty silent_vars then ""
+    else
+      let svars_s =
+        String.concat ~sep:", "
+          (List.map
+             ~f:(fun (v, t) ->
+               sprintf "%s: %s" (VariableName.user v)
+                 (Expr.show_payload_type t))
+             silent_vars)
+      in
+      "<" ^ svars_s ^ ">"
+  in
+  let rec_expr_updates =
+    if List.is_empty rec_expr_updates then ""
+    else
+      let expr_s =
+        String.concat ~sep:", " (List.map ~f:Expr.show rec_expr_updates)
+      in
+      "[" ^ expr_s ^ "]"
+  in
+  silent_vars ^ rec_expr_updates
+
 type action =
-  | SendA of RoleName.t * Gtype.message
-  | RecvA of RoleName.t * Gtype.message
+  | SendA of RoleName.t * Gtype.message * refinement_action_annot
+  | RecvA of RoleName.t * Gtype.message * refinement_action_annot
   | Epsilon
 [@@deriving ord, sexp_of]
 
 let show_action = function
-  | SendA (r, msg) ->
-      sprintf "%s!%s" (RoleName.user r) (Gtype.show_message msg)
-  | RecvA (r, msg) ->
-      sprintf "%s?%s" (RoleName.user r) (Gtype.show_message msg)
+  | (SendA (r, msg, rannot) | RecvA (r, msg, rannot)) as a ->
+      let symb =
+        match a with SendA _ -> "!" | RecvA _ -> "?" | _ -> assert false
+      in
+      sprintf "%s%s%s%s" (RoleName.user r) symb (Gtype.show_message msg)
+        (show_refinement_actions_annot rannot)
   | Epsilon -> "ε"
 
 type var_info_entry =
-  | PayloadV of VariableName.t * Expr.payload_type
-  | SilentV of VariableName.t * Expr.payload_type
   | RecursionV of VariableName.t * Expr.payload_type * Expr.t
   | RecursionVUpdate of VariableName.t * Expr.t
 
@@ -219,53 +248,32 @@ let of_local_type_with_var_info lty =
     count := n + 1 ;
     n
   in
+  let make_refinement_annotation env next =
+    if !Config.refinement_type_enabled then
+      let silent_vars = env.silent_var_buffer in
+      let rec_expr_updates =
+        match next with TVarL (_, rec_exprs) -> rec_exprs | _ -> []
+      in
+      ({env with silent_var_buffer= []}, {silent_vars; rec_expr_updates})
+    else (env, {silent_vars= []; rec_expr_updates= []})
+  in
   let rec conv_ltype_aux env =
     let {g; tyvars; _} = env in
-    let process_silent_var_buffer env st =
-      let {silent_var_buffer; var_info; _} = env in
-      let silent_var_buffer = List.rev silent_var_buffer in
-      let var_info =
-        List.fold ~init:var_info
-          ~f:(fun acc (var, ty) ->
-            Map.add_multi acc ~key:st ~data:(SilentV (var, ty)))
-          silent_var_buffer
-      in
-      {env with var_info; silent_var_buffer= []}
-    in
-    let process_payload_var env st payloads =
-      let {var_info; _} = env in
-      let var_info =
-        List.fold ~init:var_info
-          ~f:(fun acc payload ->
-            match payload with
-            | Gtype.PDelegate _ -> Err.unimpl "Delegation not supported"
-            | Gtype.PValue (Some var, ty) ->
-                Map.add_multi acc ~key:st ~data:(PayloadV (var, ty))
-            | Gtype.PValue (None, _) -> acc)
-          payloads
-      in
-      {env with var_info}
-    in
     function
-    | RecvL (m, n, l) ->
+    | (RecvL (m, n, l) | SendL (m, n, l)) as curr_ty ->
         let curr = fresh () in
+        let env, rannot = make_refinement_annotation env l in
         let env, next = conv_ltype_aux env l in
         let g = env.g in
         let g = G.add_vertex g curr in
-        let e = (curr, RecvA (n, m), next) in
-        let env = process_silent_var_buffer env next in
-        let env = process_payload_var env next m.Gtype.payload in
+        let action =
+          match curr_ty with
+          | SendL _ -> SendA (n, m, rannot)
+          | RecvL _ -> RecvA (n, m, rannot)
+          | _ -> assert false
+        in
+        let e = (curr, action, next) in
         let g = G.add_edge_e g e in
-        ({env with g}, curr)
-    | SendL (m, n, l) ->
-        let curr = fresh () in
-        let env, next = conv_ltype_aux env l in
-        let e = (curr, SendA (n, m), next) in
-        let g = env.g in
-        let g = G.add_vertex g curr in
-        let g = G.add_edge_e g e in
-        let env = process_silent_var_buffer env next in
-        let env = process_payload_var env next m.Gtype.payload in
         ({env with g}, curr)
     | ChoiceL (_r, ltys) ->
         let curr = fresh () in
