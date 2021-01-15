@@ -48,9 +48,7 @@ let show_action = function
         (show_refinement_actions_annot rannot)
   | Epsilon -> "ε"
 
-type rec_var_info_entry = VariableName.t * Expr.payload_type * Expr.t
-
-type rec_var_info = rec_var_info_entry list Map.M(Int).t
+type rec_var_info = (bool * Gtype.rec_var) list Map.M(Int).t
 
 module Label = struct
   module M = struct
@@ -288,10 +286,16 @@ let of_local_type_with_rec_var_info lty =
         let curr = fresh () in
         let g = G.add_vertex g curr in
         ({env with g}, curr)
-    | MuL (tv, _, l) ->
+    | MuL (tv, rec_vars, l) ->
         let new_st = fresh () in
         let g = G.add_vertex g new_st in
-        let env = {env with tyvars= (tv, new_st) :: tyvars; g} in
+        let env =
+          { env with
+            tyvars= (tv, new_st) :: tyvars
+          ; g
+          ; rec_var_info= Map.set env.rec_var_info ~key:new_st ~data:rec_vars
+          }
+        in
         let env, curr = conv_ltype_aux env l in
         let g = env.g in
         let g = G.add_edge_e g (new_st, Epsilon, curr) in
@@ -311,7 +315,6 @@ let of_local_type_with_rec_var_info lty =
   let {g; rec_var_info; _} = env in
   if not @@ List.is_empty env.states_to_merge then
     let rec aux (start, g, rec_var_info) = function
-      (* TODO: Handle var_info *)
       | [] -> (start, g, rec_var_info)
       | (s1, s2) :: rest ->
           let to_state = Int.min s1 s2 in
@@ -326,6 +329,18 @@ let of_local_type_with_rec_var_info lty =
                 let y = subst y in
                 (x, y))
               rest
+          in
+          let rec_var_info =
+            match Map.find rec_var_info from_state with
+            | None -> rec_var_info
+            | Some rv ->
+                Map.update
+                  ~f:(function
+                    | None -> rv
+                    | Some _ ->
+                        Err.unimpl
+                          "Multiple recursions with variables in choices ")
+                  rec_var_info to_state
           in
           aux (start, g, rec_var_info) rest
     in
