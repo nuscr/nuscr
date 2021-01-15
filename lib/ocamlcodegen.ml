@@ -77,7 +77,7 @@ let gen_callback_module (g : G.t) : structure_item =
     | `Send ->
         let gen_send (_, a, _) acc =
           match a with
-          | SendA (_, msg) ->
+          | SendA (_, msg, _) ->
               let label, payload_type = process_msg msg in
               let row =
                 mk_variant
@@ -101,7 +101,7 @@ let gen_callback_module (g : G.t) : structure_item =
     | `Recv ->
         let gen_recv (_, a, _) callbacks =
           match a with
-          | RecvA (_, msg) ->
+          | RecvA (_, msg, _) ->
               let label, payload_type = process_msg msg in
               let ty = [%type: [%t env] -> [%t payload_type] -> [%t env]] in
               let name = mk_receive_callback st (LabelName.user label) in
@@ -120,7 +120,7 @@ let gen_callback_module (g : G.t) : structure_item =
 let find_all_payloads g =
   let f (_, a, _) acc =
     match a with
-    | SendA (_, msg) | RecvA (_, msg) -> (
+    | SendA (_, msg, _) | RecvA (_, msg, _) -> (
         let {Gtype.payload; _} = msg in
         let payloads = payload_values payload in
         match payloads with
@@ -133,7 +133,7 @@ let find_all_payloads g =
 let find_all_roles g =
   let f (_, a, _) acc =
     match a with
-    | SendA (r, _) | RecvA (r, _) -> S.add acc (RoleName.user r)
+    | SendA (r, _, _) | RecvA (r, _, _) -> S.add acc (RoleName.user r)
     | _ -> failwith "Impossible"
   in
   G.fold_edges_e f g (S.empty (module String)) |> S.to_list
@@ -169,7 +169,7 @@ let gen_role_ty roles =
 let get_transitions g st =
   let f (_, a, next) acc =
     match a with
-    | SendA (r, msg) | RecvA (r, msg) ->
+    | SendA (r, msg, _) | RecvA (r, msg, _) ->
         let {Gtype.label; Gtype.payload} = msg in
         (r, LabelName.user label, payload_values payload, next) :: acc
     | _ -> failwith "Impossible"
