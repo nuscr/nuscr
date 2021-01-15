@@ -48,11 +48,9 @@ let show_action = function
         (show_refinement_actions_annot rannot)
   | Epsilon -> "ε"
 
-type var_info_entry =
-  | RecursionV of VariableName.t * Expr.payload_type * Expr.t
-  | RecursionVUpdate of VariableName.t * Expr.t
+type rec_var_info_entry = VariableName.t * Expr.payload_type * Expr.t
 
-type var_info = var_info_entry list Map.M(Int).t
+type rec_var_info = rec_var_info_entry list Map.M(Int).t
 
 module Label = struct
   module M = struct
@@ -106,14 +104,14 @@ type conv_env =
   { g: G.t
   ; tyvars: (TypeVariableName.t * int) list
   ; states_to_merge: (int * int) list
-  ; var_info: var_info
+  ; rec_var_info: rec_var_info
   ; silent_var_buffer: (VariableName.t * Expr.payload_type) list }
 
 let init_conv_env =
   { g= G.empty
   ; tyvars= []
   ; states_to_merge= []
-  ; var_info= Map.empty (module Int)
+  ; rec_var_info= Map.empty (module Int)
   ; silent_var_buffer= [] }
 
 (* (* Redirect all edges into st_remove to st_base, then remove st_remove *)
@@ -241,7 +239,7 @@ let merge_state ~from_state ~to_state g =
   let g = G.remove_vertex g from_state in
   g
 
-let of_local_type_with_var_info lty =
+let of_local_type_with_rec_var_info lty =
   let count = ref 0 in
   let fresh () =
     let n = !count in
@@ -310,11 +308,11 @@ let of_local_type_with_var_info lty =
         conv_ltype_aux env l
   in
   let env, start = conv_ltype_aux init_conv_env lty in
-  let {g; var_info; _} = env in
+  let {g; rec_var_info; _} = env in
   if not @@ List.is_empty env.states_to_merge then
-    let rec aux (start, g, var_info) = function
+    let rec aux (start, g, rec_var_info) = function
       (* TODO: Handle var_info *)
-      | [] -> (start, g, var_info)
+      | [] -> (start, g, rec_var_info)
       | (s1, s2) :: rest ->
           let to_state = Int.min s1 s2 in
           let from_state = Int.max s1 s2 in
@@ -329,11 +327,11 @@ let of_local_type_with_var_info lty =
                 (x, y))
               rest
           in
-          aux (start, g, var_info) rest
+          aux (start, g, rec_var_info) rest
     in
-    aux (start, g, var_info) env.states_to_merge
-  else (start, g, var_info)
+    aux (start, g, rec_var_info) env.states_to_merge
+  else (start, g, rec_var_info)
 
 let of_local_type ltype =
-  let start, g, _ = of_local_type_with_var_info ltype in
+  let start, g, _ = of_local_type_with_rec_var_info ltype in
   (start, g)

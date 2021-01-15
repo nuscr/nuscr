@@ -36,13 +36,11 @@ type t = G.t
 val of_local_type : Ltype.t -> state * t
 (** Construct an EFSM from a local type *)
 
-type var_info_entry =
-  | RecursionV of VariableName.t * Expr.payload_type * Expr.t
-  | RecursionVUpdate of VariableName.t * Expr.t
+type rec_var_info_entry = VariableName.t * Expr.payload_type * Expr.t
 
-type var_info = var_info_entry list Map.M(Int).t
+type rec_var_info = rec_var_info_entry list Map.M(Int).t
 
-val of_local_type_with_var_info : Ltype.t -> state * t * var_info
+val of_local_type_with_rec_var_info : Ltype.t -> state * t * rec_var_info
 
 val show : t -> string
 (** Produce a DOT representation of EFSM, which can be visualised by Graphviz *)
