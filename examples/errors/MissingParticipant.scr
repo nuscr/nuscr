@@ -1,0 +1,9 @@
+
+// Ensure you handle case where a participant does not appear in all branches of a choice
+choice at A {
+  m1() from A to B;
+  end
+} or {
+  m2() from A to B;
+  m3() from A to C;
+}

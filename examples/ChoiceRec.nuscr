@@ -20,3 +20,22 @@ global protocol Test2(role C, role S) {
     }
   }
 }
+
+global protocol Test3(role X, role Y) {
+  rec SEND {
+    choice at X {
+      m1() from X to Y;
+      continue SEND;
+    } or {
+      m2() from X to Y;
+      rec SEND2 {
+        end() from X to Y;
+        choice at X {
+          continue SEND;
+        } or {
+          continue SEND2;
+        }
+      }
+    }
+  }
+}
