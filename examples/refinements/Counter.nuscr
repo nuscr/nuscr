@@ -1,0 +1,16 @@
+(*# RefinementTypes #*)
+
+global protocol Counter(role A, role B) {
+    rec Counting [count<B>: int = 0] {
+        choice at A {
+            Incr() from A to B;
+            continue Counting [count + 1];
+        } or {
+            Decr() from A to B;
+            continue Counting [count - 1];
+        } or {
+            Result() from A to B;
+            Total(total: int{total = count}) from B to A;
+        }
+    }
+}
