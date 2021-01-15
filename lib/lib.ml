@@ -165,5 +165,5 @@ let generate_ast ~monad ast ~protocol ~role =
 
 let generate_fstar_code ast ~protocol ~role =
   let lt = project_role ast ~protocol ~role in
-  let efsm = Efsm.of_local_type_with_var_info lt in
+  let efsm = Efsm.of_local_type_with_rec_var_info lt in
   Fstarcodegen.gen_code efsm
