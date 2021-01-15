@@ -339,7 +339,7 @@ let of_local_type_with_rec_var_info lty =
                     | None -> rv
                     | Some _ ->
                         Err.unimpl
-                          "Multiple recursions with variables in choices ")
+                          "Multiple recursions with variables in choices")
                   rec_var_info to_state
           in
           aux (start, g, rec_var_info) rest
