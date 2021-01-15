@@ -36,9 +36,7 @@ type t = G.t
 val of_local_type : Ltype.t -> state * t
 (** Construct an EFSM from a local type *)
 
-type rec_var_info_entry = VariableName.t * Expr.payload_type * Expr.t
-
-type rec_var_info = rec_var_info_entry list Map.M(Int).t
+type rec_var_info = (bool * Gtype.rec_var) list Map.M(Int).t
 
 val of_local_type_with_rec_var_info : Ltype.t -> state * t * rec_var_info
 
