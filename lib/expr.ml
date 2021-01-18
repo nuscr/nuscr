@@ -2,13 +2,14 @@ open! Base
 open Printf
 open Names
 
+(** An expression, used in RefinementType extension *)
 type t =
-  | Var of VariableName.t
-  | Int of int
-  | Bool of bool
-  | String of string
-  | Binop of Syntax.binop * t * t
-  | Unop of Syntax.unop * t
+  | Var of VariableName.t  (** A variable *)
+  | Int of int  (** An integer constant *)
+  | Bool of bool  (** An boolean constant *)
+  | String of string  (** A string literal *)
+  | Binop of Syntax.binop * t * t  (** A binary operator *)
+  | Unop of Syntax.unop * t  (** An unary operator *)
 [@@deriving sexp_of, eq, ord]
 
 let rec show = function
@@ -31,12 +32,17 @@ let rec of_syntax_expr = function
       Binop (b, of_syntax_expr e1, of_syntax_expr e2)
   | Syntax.Unop (u, e) -> Unop (u, of_syntax_expr e)
 
+(** Types for expressions. Integers, booleans and strings are are modelled,
+    and can be thus refined with RefinementTypes extension *)
 type payload_type =
-  | PTInt
-  | PTBool
-  | PTString
+  | PTInt  (** A type for integers *)
+  | PTBool  (** A type for booleans *)
+  | PTString  (** A type for strings *)
   | PTAbstract of PayloadTypeName.t
+      (** A type for other un-modelled payloads, e.g. custom types *)
   | PTRefined of VariableName.t * payload_type * t
+      (** A refined types, [PTRefined (x, ty, e)] stands for the refined type
+          'x:ty{e}' where [e] is a predicate on [x]. *)
 [@@deriving sexp_of, eq, ord]
 
 let rec equal_payload_type_basic t1 t2 =
@@ -58,6 +64,8 @@ let rec show_payload_type = function
   | PTBool -> "bool"
   | PTString -> "string"
 
+(** Obtain [PayloadTypeName.t] from a [payload_type], useful for code
+    generation purposes *)
 let rec payload_typename_of_payload_type = function
   | PTInt -> PayloadTypeName.of_string "int"
   | PTBool -> PayloadTypeName.of_string "bool"
