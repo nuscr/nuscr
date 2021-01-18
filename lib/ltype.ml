@@ -33,12 +33,7 @@ end
 module LocalProtocolId = struct
   module T = struct
     type t = ProtocolName.t * RoleName.t
-    [@@deriving show {with_path= false}, sexp_of]
-
-    let compare (p1, r1) (p2, r2) =
-      let cmp_protocol_name = ProtocolName.compare p1 p2 in
-      if cmp_protocol_name <> 0 then cmp_protocol_name
-      else RoleName.compare r1 r2
+    [@@deriving show {with_path= false}, sexp_of, ord]
 
     let create protocol role = (protocol, role)
   end
