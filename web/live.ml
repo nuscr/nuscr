@@ -53,7 +53,7 @@ let analyse () =
   match Lib.parse_string protocol with
   | exception e -> Interface.Error.display_exn e
   | ast -> (
-    match Lib.validate_exn ast ~verbose:false with
+    match Lib.validate_exn ast with
     | exception e -> Interface.Error.display_exn e
     | () ->
         let roles_html = display_roles ast @@ Lib.enumerate ast in
