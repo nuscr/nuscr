@@ -2,7 +2,20 @@ open! Base
 open Names
 open Efsm
 
-let gen_code (_start, _g, rec_vars) =
+let show_vars = function
+  | [] -> "(empty)"
+  | vars ->
+      let show (v, ty, is_silent) =
+        let is_silent = if is_silent then "(silent)" else "" in
+        let v = VariableName.user v in
+        let ty = Expr.show_payload_type ty in
+        is_silent ^ v ^ ": " ^ ty
+      in
+      let vars = List.map ~f:show vars in
+      let vars = String.concat ~sep:"; " vars in
+      "{" ^ vars ^ "}"
+
+let compute_var_map g rec_var_info =
   let module VariableAnalysis = struct
     type vertex = G.E.vertex
 
@@ -41,7 +54,7 @@ let gen_code (_start, _g, rec_vars) =
               | _ -> None)
           in
           let rec_vars =
-            Option.value ~default:[] (Map.find rec_vars to_state)
+            Option.value ~default:[] (Map.find rec_var_info to_state)
           in
           let rec_vars =
             List.map
@@ -57,4 +70,17 @@ let gen_code (_start, _g, rec_vars) =
                "Epsilon transitions should not appear in EFSM outputs")
   end in
   let module Variables = Graph.Fixpoint.Make (G) (VariableAnalysis) in
+  let compute_vars = Variables.analyze (fun _ -> []) g in
+  G.fold_vertex
+    (fun st acc ->
+      let data = compute_vars st in
+      if Config.verbose () then
+        Stdio.print_endline
+          (Printf.sprintf "State %d has variables: %s" st (show_vars data)) ;
+      Map.add_exn acc ~key:st ~data)
+    g
+    (Map.empty (module Int))
+
+let gen_code (_start, g, rec_var_info) =
+  let _var_maps = compute_var_map g rec_var_info in
   assert false
