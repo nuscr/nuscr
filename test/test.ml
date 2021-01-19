@@ -66,8 +66,8 @@ let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
     match (k, v) with
     | PrintUsage, _ -> ()
     | ShowPragmas, _ -> ()
-    | NestedProtocols, _ -> Nuscrlib.Config.nested_protocol_enabled := true
-    | RefinementTypes, _ -> Nuscrlib.Config.refinement_type_enabled := true
+    | NestedProtocols, _ -> Nuscrlib.Config.set_nested_protocol true
+    | RefinementTypes, _ -> Nuscrlib.Config.set_refinement_type true
   in
   Nuscrlib.Config.reset () ;
   List.iter ~f:process_global_pragma pragmas
