@@ -245,7 +245,7 @@ let of_local_type_with_rec_var_info lty =
     n
   in
   let make_refinement_annotation env next =
-    if !Config.refinement_type_enabled then
+    if Config.refinement_type_enabled () then
       let silent_vars = env.silent_var_buffer in
       let rec_expr_updates =
         match next with TVarL (_, rec_exprs) -> rec_exprs | _ -> []
