@@ -26,10 +26,11 @@ let parse fname (ch : In_channel.t) : scr_module =
 
 let parse_string string = parse_from_lexbuf @@ Lexing.from_string string
 
-let validate_protocols_exn (ast : scr_module) ~verbose : unit =
+let validate_protocols_exn (ast : scr_module) : unit =
   let show ~f ?(sep = "\n") xs =
     (* only show if verbose is on *)
-    if verbose then String.concat ~sep (List.map ~f xs) |> print_endline
+    if Config.verbose () then
+      String.concat ~sep (List.map ~f xs) |> print_endline
     else ()
   in
   let protocols = ast.protocols in
@@ -60,9 +61,10 @@ let validate_protocols_exn (ast : scr_module) ~verbose : unit =
       String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
     efsmss
 
-let validate_nested_protocols (ast : scr_module) ~verbose =
+let validate_nested_protocols (ast : scr_module) =
   let show ~f ~sep input =
-    if verbose then print_endline (Printf.sprintf "%s%s" (f input) sep)
+    if Config.verbose () then
+      print_endline (Printf.sprintf "%s%s" (f input) sep)
     else ()
   in
   Protocol.validate_calls_in_protocols ast ;
@@ -77,12 +79,11 @@ let validate_nested_protocols (ast : scr_module) ~verbose =
   show ~f:Ltype.show_local_t ~sep:"\n" local_t ;
   ()
 
-let validate_exn (ast : scr_module) ~verbose : unit =
-  if Config.nested_protocol_enabled () then
-    validate_nested_protocols ast ~verbose
+let validate_exn (ast : scr_module) : unit =
+  if Config.nested_protocol_enabled () then validate_nested_protocols ast
   else (
     Protocol.ensure_no_nested_protocols ast ;
-    validate_protocols_exn ast ~verbose )
+    validate_protocols_exn ast )
 
 let enumerate_protocols (ast : scr_module) :
     (ProtocolName.t * RoleName.t) list =
