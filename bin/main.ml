@@ -27,7 +27,8 @@ let gen_output ast f = function
 
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     gencode_monadic_ocaml gencode_go sexp_global_type show_solver_queries =
-  Config.solver_show_queries := show_solver_queries ;
+  Config.set_solver_show_queries show_solver_queries ;
+  Config.set_verbose verbose ;
   let process_pragmas (pragmas : Syntax.pragmas) : unit =
     let process_global_pragma (k, v) =
       match (k, v) with
@@ -38,8 +39,8 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
             if Option.is_some fsm then
               Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
           in
-          Config.nested_protocol_enabled := true
-      | Syntax.RefinementTypes, _ -> Config.refinement_type_enabled := true
+          Config.set_nested_protocol true
+      | Syntax.RefinementTypes, _ -> Config.set_refinement_type true
     in
     List.iter ~f:process_global_pragma pragmas
   in
