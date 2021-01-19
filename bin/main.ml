@@ -47,7 +47,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
   try
     let ast = process_file file Lib.parse in
     process_pragmas ast.pragmas ;
-    Lib.validate_exn ast ~verbose ;
+    Lib.validate_exn ast ;
     let () =
       if enumerate then
         Lib.enumerate ast

@@ -14,10 +14,10 @@ val parse : string -> Stdio.In_channel.t -> Syntax.scr_module
 
 (** {1 Validation} *)
 
-val validate_exn : Syntax.scr_module -> verbose:bool -> unit
-(** [validate_exn module ~verbose] validates the module [module] by
-    performing standard checks. If [verbose] is set to true, output messages
-    in the process. *)
+val validate_exn : Syntax.scr_module -> unit
+(** [validate_exn module] validates the module [module] by performing
+    standard checks. If verbose is set to true in the config, debugging
+    messages will be printed *)
 
 (** {1 Other operations} *)
 
