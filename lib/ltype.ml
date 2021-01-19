@@ -369,7 +369,7 @@ let rec project' env (projected_role : RoleName.t) =
           in
           if
             List.is_empty named_payloads
-            || not !Config.refinement_type_enabled
+            || (not @@ Config.refinement_type_enabled ())
           then next env
           else
             let penv, rvenv, svars = env in

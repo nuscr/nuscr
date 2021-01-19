@@ -43,7 +43,7 @@ let validate_protocols_exn (ast : scr_module) ~verbose : unit =
   (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
      g_types in *)
   show ~f:(fun (g, _) -> Gtype.show g) g_types ;
-  if !Config.refinement_type_enabled then
+  if Config.refinement_type_enabled () then
     List.iter ~f:(fun (g, _) -> Gtype.validate_refinements_exn g) g_types ;
   let l_types =
     List.map
@@ -78,7 +78,7 @@ let validate_nested_protocols (ast : scr_module) ~verbose =
   ()
 
 let validate_exn (ast : scr_module) ~verbose : unit =
-  if !Config.nested_protocol_enabled then
+  if Config.nested_protocol_enabled () then
     validate_nested_protocols ast ~verbose
   else (
     Protocol.ensure_no_nested_protocols ast ;
@@ -105,7 +105,7 @@ let enumerate_nested_protocols (ast : scr_module) :
   List.concat @@ Map.data enumerated
 
 let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
-  if !Config.nested_protocol_enabled then enumerate_nested_protocols ast
+  if Config.nested_protocol_enabled () then enumerate_nested_protocols ast
   else enumerate_protocols ast
 
 let project_protocol_role ast ~protocol ~role : Ltype.t =
@@ -131,7 +131,7 @@ let project_nested_protocol ast ~protocol ~role : Ltype.t =
   l_type
 
 let project_role ast ~protocol ~role : Ltype.t =
-  if !Config.nested_protocol_enabled then
+  if Config.nested_protocol_enabled () then
     project_nested_protocol ast ~protocol ~role
   else project_protocol_role ast ~protocol ~role
 
