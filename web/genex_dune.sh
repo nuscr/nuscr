@@ -1,4 +1,5 @@
 #! /bin/bash
+set -euo pipefail
 # Generate the examples.ml file
 EXAMPLE_DIR="../../../"
 (echo 'let list = [';
