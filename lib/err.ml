@@ -127,3 +127,5 @@ exception UnImplemented of string [@@deriving sexp_of]
 let unimpl desc = UnImplemented desc |> raise
 
 let uerr e = UserError e |> raise
+
+let violation e = Violation e |> raise
