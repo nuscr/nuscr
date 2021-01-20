@@ -23,20 +23,21 @@ let compute_var_map g rec_var_info =
 
     type g = G.t
 
-    type data =
-      (VariableName.t * Expr.payload_type * (* is_silent *) bool) list
+    type var_entry =
+      VariableName.t * Expr.payload_type * (* is_silent *) bool
+    [@@deriving eq]
+
+    type data = var_entry list
 
     let direction = Graph.Fixpoint.Forward
 
-    let equal =
-      List.equal [%derive.eq: VariableName.t * Expr.payload_type * bool]
+    let equal = List.equal [%derive.eq: var_entry]
 
     let join vars1 vars2 =
       let rec aux acc vars1 vars2 =
         match (List.hd vars1, List.hd vars2) with
-        | Some entry1, Some entry2
-          when [%derive.eq: VariableName.t * Expr.payload_type * bool] entry1
-                 entry2 ->
+        | Some entry1, Some entry2 when [%derive.eq: var_entry] entry1 entry2
+          ->
             aux (entry1 :: acc) (List.tl_exn vars1) (List.tl_exn vars2)
         | _ -> List.rev acc
       in
@@ -45,6 +46,21 @@ let compute_var_map g rec_var_info =
     let analyze (_from, action, to_state) vars =
       match action with
       | SendA (_, m, rannot) | RecvA (_, m, rannot) ->
+          let append lst ((v, _, _) as entry) =
+            let rec aux acc = function
+              | ((v_, _, _) as entry_) :: rest ->
+                  if VariableName.equal v v_ then
+                    if [%derive.eq: var_entry] entry entry_ then lst
+                    else
+                      raise
+                      @@ Err.Violation
+                           (Printf.sprintf "Clashing varaible %s"
+                              (VariableName.user v))
+                  else aux (entry_ :: acc) rest
+              | [] -> List.rev (entry :: acc)
+            in
+            aux [] lst
+          in
           let silent_vars =
             List.map ~f:(fun (v, ty) -> (v, ty, true)) rannot.silent_vars
           in
@@ -63,7 +79,10 @@ let compute_var_map g rec_var_info =
               rec_vars
           in
           let concrete_vars = find_named_variables m.Gtype.payload in
-          vars @ silent_vars @ rec_vars @ concrete_vars
+          let vars = List.fold ~f:append ~init:vars silent_vars in
+          let vars = List.fold ~f:append ~init:vars rec_vars in
+          let vars = List.fold ~f:append ~init:vars concrete_vars in
+          vars
       | Epsilon ->
           raise
             (Err.Violation
