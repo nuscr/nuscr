@@ -278,11 +278,9 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             else []
           in
           let cont =
-            lazy
-              ( Lazy.force
-                  (List.Assoc.find_exn ~equal:TypeVariableName.equal
-                     lazy_conts name)
-              |> fst )
+            Lazy.map ~f:fst
+              (List.Assoc.find_exn ~equal:TypeVariableName.equal lazy_conts
+                 name)
           in
           assert_empty rest ;
           (TVarG (name, rec_exprs, cont), Set.add free_names name)
