@@ -40,7 +40,7 @@ let instantiate (protocol : raw_global_protocol)
   let replacement_map =
     match replacement_map with
     | List.Or_unequal_lengths.Unequal_lengths ->
-        raise (Violation "Must check arity before calling `instantiate`")
+        violation "Must check arity before calling `instantiate`"
     | List.Or_unequal_lengths.Ok replacement_map -> replacement_map
   in
   let replacement_map =
@@ -224,7 +224,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
           let fst =
             match roles with
             | hd :: _ -> hd
-            | _ -> raise (Err.Violation "Role list should never be empty")
+            | _ -> Err.violation "Role list should never be empty"
           in
           (*Treat Do statements as nested protocol calls with no dynamic
             participants. Let the first role be the 'caller'*)

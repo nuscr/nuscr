@@ -12,9 +12,8 @@ let parse_pragmas_from_lexbuf lexbuf : Syntax.pragmas =
       in
       uerr (ParserError (build err_interval))
   | e ->
-      Err.Violation
+      Err.violation
         ("Found a problem while parsing pragmas:" ^ Exn.to_string e)
-      |> raise
 
 let parse_pragmas_string string =
   parse_pragmas_from_lexbuf @@ Lexing.from_string string
