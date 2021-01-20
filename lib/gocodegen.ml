@@ -22,13 +22,13 @@ let ensure_unique_identifiers (global_t : global_t) =
   let add_unique_protocol_name protocols protocol_name =
     let name_str = protocol_pkg_name protocol_name in
     if Set.mem protocols name_str then
-      raise (Err.Violation "Protocol names must be unique when lowercased") ;
+      Err.violation "Protocol names must be unique when lowercased" ;
     Set.add protocols name_str
   in
   let add_unique_role_name roles role =
     let role_str = lowercase_role_name role in
     if Set.mem roles role_str then
-      raise (Err.Violation "Role names must be unique when lowercased") ;
+      Err.violation "Role names must be unique when lowercased" ;
     Set.add roles role_str
   in
   (* Ensure message labels are unique when capitalised *)
@@ -43,7 +43,7 @@ let ensure_unique_identifiers (global_t : global_t) =
               (Err.DuplicatePayloadField
                  (label, VariableName.of_string field_str)) ;
           Set.add fields field_str
-      | PDelegate _ -> raise (Err.Violation "Delegation not supported")
+      | PDelegate _ -> Err.violation "Delegation not supported"
     in
     let label_str = msg_type_name label in
     match Map.find msgs label_str with
@@ -56,14 +56,12 @@ let ensure_unique_identifiers (global_t : global_t) =
         Map.add_exn msgs ~key:label_str ~data:(label, payload)
     | Some (label', payload') ->
         if not (LabelName.equal label label') then
-          raise
-            (Err.Violation
-               "Message labels must be unique when capitalized cased") ;
+          Err.violation
+            "Message labels must be unique when capitalized cased" ;
         if not (List.equal equal_pvalue_payload payload payload') then
-          raise
-            (Err.Violation
-               "Within a protocol, messages with the same label should  \
-                have the same payloads") ;
+          Err.violation
+            "Within a protocol, messages with the same label should  have \
+             the same payloads" ;
         msgs
   in
   let validate_protocol ~key ~data protocol_names =
@@ -826,10 +824,9 @@ let gen_role_implementation protocol_setup_env ltype_env global_t
         ((env, var_name_gen), impl)
     | TVarL _ | MuL _ ->
         (* TODO: Support recursion *)
-        raise
-          (Err.Violation
-             "Explicit recursion constructs not currently supported in this \
-              code generation scheme")
+        Err.violation
+          "Explicit recursion constructs not currently supported in this \
+           code generation scheme"
     | InviteCreateL (invite_roles, _, protocol', ltype') ->
         let (new_proto_roles, _), _, _ = Map.find_exn global_t protocol' in
         let acting_roles = List.zip_exn invite_roles new_proto_roles in

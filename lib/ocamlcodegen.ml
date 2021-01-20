@@ -53,7 +53,7 @@ let payload_typename payload_type =
 let payload_values payload =
   let f = function
     | Gtype.PValue (_, ty) -> payload_typename ty
-    | _ -> raise (Err.Violation "Delegation is not supported")
+    | _ -> Err.violation "Delegation is not supported"
   in
   List.map ~f payload
 
