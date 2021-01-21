@@ -38,6 +38,7 @@ type payload_type =
   | PTInt  (** A type for integers *)
   | PTBool  (** A type for booleans *)
   | PTString  (** A type for strings *)
+  | PTUnit  (** A type for units *)
   | PTAbstract of PayloadTypeName.t
       (** A type for other un-modelled payloads, e.g. custom types *)
   | PTRefined of VariableName.t * payload_type * t
@@ -50,6 +51,7 @@ let rec equal_payload_type_basic t1 t2 =
   | PTInt, PTInt -> true
   | PTBool, PTBool -> true
   | PTString, PTString -> true
+  | PTUnit, PTUnit -> true
   | PTAbstract n1, PTAbstract n2 -> PayloadTypeName.equal n1 n2
   | PTRefined (_, t1, _), t2 -> equal_payload_type_basic t1 t2
   | t1, PTRefined (_, t2, _) -> equal_payload_type_basic t1 t2
@@ -63,6 +65,7 @@ let rec show_payload_type = function
   | PTInt -> "int"
   | PTBool -> "bool"
   | PTString -> "string"
+  | PTUnit -> "unit"
 
 (** Obtain [PayloadTypeName.t] from a [payload_type], useful for code
     generation purposes *)
@@ -70,6 +73,7 @@ let rec payload_typename_of_payload_type = function
   | PTInt -> PayloadTypeName.of_string "int"
   | PTBool -> PayloadTypeName.of_string "bool"
   | PTString -> PayloadTypeName.of_string "string"
+  | PTUnit -> PayloadTypeName.of_string "unit"
   | PTAbstract n -> n
   | PTRefined (_, t, _) -> payload_typename_of_payload_type t
 
@@ -137,6 +141,7 @@ let is_well_formed_type env = function
   | PTInt -> true
   | PTBool -> true
   | PTString -> true
+  | PTUnit -> true
   | PTRefined (v, t, e) ->
       let env = env_append env v t in
       typecheck_basic env e PTBool
@@ -182,6 +187,7 @@ let rec smt_sort_of_type = function
   | PTInt -> "Int"
   | PTBool -> "Bool"
   | PTString -> "String"
+  | PTUnit -> "Int" (* SMT does not have a separate sort for units *)
   | PTAbstract n ->
       Err.unimpl
         (Printf.sprintf "Type %s is currently not supported for SMT encoding"
