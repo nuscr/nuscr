@@ -51,6 +51,7 @@ let parse_typename name =
   | "int" -> Expr.PTInt
   | "string" -> Expr.PTString
   | "bool" -> Expr.PTBool
+  | "unit" -> Expr.PTUnit
   | _ -> Expr.PTAbstract (PayloadTypeName.of_name name)
 
 let of_syntax_payload (payload : Syntax.payloadt) =
