@@ -1,6 +1,7 @@
 
 // Current Go code generation scheme requires that recursive variables
-// must be globally unique, but this is not currently enforced
+// must be globally unique, but currently conflicts are not resolved by
+// renaming, rather it fails if this is not the case.
 
 // Case 1: Same variable name used in nested recursion
 
