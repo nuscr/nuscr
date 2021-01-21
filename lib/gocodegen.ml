@@ -100,8 +100,10 @@ let ensure_globally_unique_tvars (global_t : Gtype.global_t) =
           if Set.mem tvars tvar then
             Err.unimpl
               (Printf.sprintf
-                 "Protocol %s: alpha equalpha equivalence not currently \
-                  supported, recursive variables must be globally unique "
+                 "- found duplicate variable '%s' in protocol '%s'. \
+                  Recursive variables must be globally unique, alpha \
+                  equivalence"
+                 (TypeVariableName.user tvar)
                  (ProtocolName.user protocol)) ;
           check_unique_tvars (Set.add tvars tvar) g
       | CallG (_, _, _, g) -> check_unique_tvars tvars g
