@@ -1,0 +1,37 @@
+
+// Current Go code generation scheme requires that recursive variables
+// must be globally unique, but this is not currently enforced
+
+// Case 1: Same variable name used in nested recursion
+
+// Shadowing of recursive variables currently not supported
+// global protocol Recursive(role A, role B) {
+//   rec T1 {
+//     choice at A {
+//       m2() from A to B;
+//       continue T1;
+//     } or {
+//       rec T1 {
+//         m3() from A to B;
+//         continue T1;
+//       }
+//     }  
+//   }
+// }
+
+
+// Case 2: Same recursive variable used in different branches of a choice
+
+global protocol Recursive(role A, role B) {
+  choice at A {
+    rec T1 {
+      m2() from A to B;
+      continue T1;
+    }
+  } or {
+    rec T1 {
+      m3() from A to B;
+      continue T1;     
+    }
+  }
+}
