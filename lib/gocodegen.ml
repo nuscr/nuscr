@@ -123,7 +123,7 @@ let extract_choice_labels ltypes =
     | InviteCreateL (_, _, protocol, _) ->
         LabelName.of_string @@ ProtocolName.user protocol
     | SendL ({label; _}, _, _) -> label
-    | MuL (_, ltype) -> extract_label ltype
+    | MuL (_, _, ltype) -> extract_label ltype
     | TVarL _ ->
         raise
           (Err.Violation
@@ -230,7 +230,9 @@ let gen_recv_impl env var_name_gen sender payloads recv_cb is_recv_choice_msg
       | PValue (payload_name, payload_type) ->
           let env, chan_name =
             LTypeCodeGenEnv.get_or_add_channel env
-              (sender, Some payload_type, false)
+              ( sender
+              , Some (Expr.payload_typename_of_payload_type payload_type)
+              , false )
           in
           (* Assume all payloads are named *)
           let payload_var_str = extract_var_name_str payload_name in
@@ -268,7 +270,9 @@ let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
       | PValue (payload_name, payload_type) ->
           let env, chan_name =
             LTypeCodeGenEnv.get_or_add_channel env
-              (receiver, Some payload_type, true)
+              ( receiver
+              , Some (Expr.payload_typename_of_payload_type payload_type)
+              , true )
           in
           (* Assume all payloads are named *)
           let payload_var_str = extract_var_name_str payload_name in

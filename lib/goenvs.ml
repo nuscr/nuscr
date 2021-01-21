@@ -971,7 +971,8 @@ end = struct
             | None ->
                 let imports, _ = ImportsEnv.import_messages imports in
                 (imports, None)
-            | Some (PValue (_, p_type)) -> (imports, Some p_type)
+            | Some (PValue (_, p_type)) ->
+                (imports, Some (Expr.payload_typename_of_payload_type p_type))
             | Some (PDelegate _) ->
                 raise (Err.Violation "Delegation not supported")
           in
@@ -1357,7 +1358,8 @@ end = struct
     let callback = CallbackName.of_string callback_name in
     let payload_types =
       List.map payloads ~f:(function
-        | PValue (_, payload_type) -> payload_type
+        | PValue (_, payload_type) ->
+            Expr.payload_typename_of_payload_type payload_type
         | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
     in
     let return_val = Some (`Payloads payload_types) in
@@ -1378,7 +1380,8 @@ end = struct
     let callback_params =
       List.map payloads ~f:(function
         | PValue (param_name, payload_type) ->
-            (var_to_param_name param_name, payload_type)
+            ( var_to_param_name param_name
+            , Expr.payload_typename_of_payload_type payload_type )
         | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
     in
     let callbacks =

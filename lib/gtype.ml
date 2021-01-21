@@ -370,7 +370,6 @@ let rec unfold = function
   | MuG (tvar, _, g_) as g -> substitute g_ tvar g
   | g -> g
 
-
 let rec normalise = function
   | MessageG (m, r1, r2, g_) -> MessageG (m, r1, r2, normalise g_)
   | ChoiceG (r, g_) ->
@@ -446,12 +445,12 @@ let validate_refinements_exn t =
     | CallG _ -> assert false
   in
   aux env t
-=======
+
 let add_missing_payload_field_names global_t =
   let add_missing_names namegen = function
     | PValue (None, n1) ->
         let payload_name_str =
-          "p_" ^ String.uncapitalize @@ PayloadTypeName.user n1
+          "p_" ^ String.uncapitalize @@ Expr.show_payload_type n1
         in
         let namegen, payload_name_str =
           Namegen.unique_name namegen payload_name_str
@@ -480,7 +479,7 @@ let add_missing_payload_field_names global_t =
           List.fold_map payload ~init:namegen ~f:add_missing_names
         in
         MessageG ({m with payload}, sender, recv, g)
-    | MuG (n, g) -> MuG (n, add_missing_payload_names g)
+    | MuG (n, rec_vars, g) -> MuG (n, rec_vars, add_missing_payload_names g)
     | (TVarG _ | EndG) as p -> p
     | ChoiceG (r, gs) -> ChoiceG (r, List.map gs ~f:add_missing_payload_names)
     | CallG (caller, proto_name, roles, g) ->
@@ -521,4 +520,3 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
       ~f:add_protocol all_protocols
   in
   normalise_global_t @@ add_missing_payload_field_names global_t
-
