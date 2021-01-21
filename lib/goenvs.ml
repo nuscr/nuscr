@@ -973,8 +973,7 @@ end = struct
                 (imports, None)
             | Some (PValue (_, p_type)) ->
                 (imports, Some (Expr.payload_typename_of_payload_type p_type))
-            | Some (PDelegate _) ->
-                raise (Err.Violation "Delegation not supported")
+            | Some (PDelegate _) -> Err.violation "Delegation not supported"
           in
           let chan_key = (sender, recv, payload_type) in
           if Map.mem data_chan_vars chan_key then
@@ -1360,7 +1359,7 @@ end = struct
       List.map payloads ~f:(function
         | PValue (_, payload_type) ->
             Expr.payload_typename_of_payload_type payload_type
-        | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
+        | PDelegate _ -> Err.violation "Delegation not supported")
     in
     let return_val = Some (`Payloads payload_types) in
     let callbacks = (callback, None, return_val) :: callbacks in
@@ -1382,7 +1381,7 @@ end = struct
         | PValue (param_name, payload_type) ->
             ( var_to_param_name param_name
             , Expr.payload_typename_of_payload_type payload_type )
-        | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
+        | PDelegate _ -> Err.violation "Delegation not supported")
     in
     let callbacks =
       (callback, Some (`Payloads callback_params), None) :: callbacks
