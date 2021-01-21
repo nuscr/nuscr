@@ -91,6 +91,30 @@ let ensure_unique_identifiers (global_t : global_t) =
   in
   ()
 
+let ensure_globally_unique_tvars (global_t : Gtype.global_t) =
+  let validate_protocol ~key:protocol ~data:(_, _, gtype) =
+    let rec check_unique_tvars tvars = function
+      | EndG | TVarG _ -> tvars
+      | MuG (tvar, _, g) ->
+          (* TODO: Perform renaming of tvars instead of throwing error *)
+          if Set.mem tvars tvar then
+            Err.unimpl
+              (Printf.sprintf
+                 "Protocol %s: alpha equalpha equivalence not currently \
+                  supported, recursive variables must be globally unique "
+                 (ProtocolName.user protocol)) ;
+          check_unique_tvars (Set.add tvars tvar) g
+      | CallG (_, _, _, g) -> check_unique_tvars tvars g
+      | ChoiceG (_, gtypes) ->
+          List.fold gtypes ~init:tvars ~f:check_unique_tvars
+      | MessageG (_, _, _, g) -> check_unique_tvars tvars g
+    in
+    let _ = check_unique_tvars (Set.empty (module TypeVariableName)) gtype in
+    ()
+  in
+  let _ = Map.iteri global_t ~f:validate_protocol in
+  ()
+
 (** Generate the struct field names for the channels over which to send the
     invitations to a role *)
 let gen_send_invite_chan_names protocol_lookup protocol env
@@ -1427,6 +1451,7 @@ let generate_go_code ast ~protocol ~out_dir ~go_path =
   let gen_code () =
     let global_t = global_t_of_module ast in
     ensure_unique_identifiers global_t ;
+    ensure_globally_unique_tvars global_t ;
     let local_t = Ltype.project_global_t global_t in
     gen_code root_dir protocol global_t local_t
   in
