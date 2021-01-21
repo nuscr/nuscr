@@ -464,27 +464,6 @@ let project projected_role g =
     , Set.empty (module VariableName) )
     projected_role g
 
-(* let make_unique_tvars ltype = let rec rename_tvars tvar_mapping namegen =
-   function | RecvL (msg, sender, l) -> let namegen, l = rename_tvars
-   tvar_mapping namegen l in (namegen, RecvL (msg, sender, l)) | SendL (msg,
-   recv, l) -> let namegen, l = rename_tvars tvar_mapping namegen l in
-   (namegen, SendL (msg, recv, l)) | MuL (tvar, l) -> let namegen,
-   new_tvar_str = Namegen.unique_name namegen (TypeVariableName.user tvar) in
-   let new_tvar = TypeVariableName.of_string @@ new_tvar_str in let
-   tvar_mapping = Map.update tvar_mapping tvar ~f:(fun _ -> new_tvar) in let
-   namegen, l = rename_tvars tvar_mapping namegen l in (namegen, MuL
-   (new_tvar, l)) | TVarL tvar -> (namegen, TVarL (Map.find_exn tvar_mapping
-   tvar)) | EndL as g -> (namegen, g) | ChoiceL (r, ls) -> let namegen, ls =
-   List.fold_map ls ~init:namegen ~f:(rename_tvars tvar_mapping) in (namegen,
-   ChoiceL (r, ls)) | InviteCreateL (invite_roles, create_roles, protocol, l)
-   -> let namegen, l = rename_tvars tvar_mapping namegen l in (namegen,
-   InviteCreateL (invite_roles, create_roles, protocol, l)) | AcceptL (role,
-   protocol, roles, new_roles, caller, l) -> let namegen, l = rename_tvars
-   tvar_mapping namegen l in (namegen, AcceptL (role, protocol, roles,
-   new_roles, caller, l)) in let namegen = Namegen.create () in let _, ltype
-   = rename_tvars (Map.empty (module TypeVariableName)) namegen ltype in
-   ltype *)
-
 let project_global_t (global_t : global_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
@@ -496,7 +475,6 @@ let project_global_t (global_t : global_t) =
         projected_role gtype
     in
     (* TODO: Fix make unique tvars *)
-    (* let ltype = make_unique_tvars ltype in *)
     Map.add_exn local_protocols
       ~key:(protocol_name, projected_role)
       ~data:(all_roles, ltype)
