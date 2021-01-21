@@ -151,16 +151,14 @@ let extract_choice_labels ltypes =
     | SendL ({label; _}, _, _) -> label
     | MuL (_, _, ltype) -> extract_label ltype
     | TVarL _ ->
-        raise
-          (Err.Violation
-             "Currently unfolding of recursion not supported for extracting \
-              choice labels - branches of choices should have an explit \
-              first message")
+        Err.violation
+          "Currently unfolding of recursion not supported for extracting \
+           choice labels - branches of choices should have an explit first \
+           message"
     | _ ->
-        raise
-          (Err.Violation
-             "Cannot generate code for nested choices - choices should be \
-              flattened or local type should be normalised to ensure this")
+        Err.violation
+          "Cannot generate code for nested choices - choices should be \
+           flattened or local type should be normalised to ensure this"
   in
   List.map ~f:extract_label ltypes
 
@@ -170,12 +168,11 @@ let extract_choice_label_enums msgs_env ltypes =
         MessagesEnv.get_invitation_enum msgs_env protocol roles
     | RecvL ({label; _}, _, _) -> MessagesEnv.get_message_enum msgs_env label
     | _ ->
-        raise
-          (Err.Violation
-             "Cannot extract choice msg labels: choices should be flattened \
-              and recursion should be unfolded (local type should be \
-              normalised) to ensure that all branches have an explict first \
-              message ")
+        Err.violation
+          "Cannot extract choice msg labels: choices should be flattened \
+           and recursion should be unfolded (local type should be \
+           normalised) to ensure that all branches have an explict first \
+           message "
   in
   List.map ltypes ~f:extract_enum_label
 
@@ -272,7 +269,7 @@ let gen_recv_impl env var_name_gen sender payloads recv_cb is_recv_choice_msg
           , var_name_gen
           , recv_payload_stmt :: chan_recv_stmts
           , VariableName.user payload_var :: chan_vars )
-      | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
+      | PDelegate _ -> Err.violation "Delegation not supported")
   in
   (* env.<msg>_From_<sender>(<msg>) *)
   let recv_function = FunctionName.of_string @@ CallbackName.user recv_cb in
@@ -312,7 +309,7 @@ let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
           , var_name_gen
           , recv_payload_stmt :: chan_recv_stmts
           , VariableName.user payload_var :: chan_vars )
-      | PDelegate _ -> raise (Err.Violation "Delegation not supported"))
+      | PDelegate _ -> Err.violation "Delegation not supported")
   in
   (* env.<msg>_From_<sender>(<msg>) *)
   let send_function = FunctionName.of_string @@ CallbackName.user send_cb in
