@@ -42,7 +42,7 @@ type payload_type =
       (** A type for other un-modelled payloads, e.g. custom types *)
   | PTRefined of VariableName.t * payload_type * t
       (** A refined types, [PTRefined (x, ty, e)] stands for the refined type
-          'x:ty{e}' where [e] is a predicate on [x]. *)
+          'x:ty\{e\}' where [e] is a predicate on [x]. *)
 [@@deriving sexp_of, eq, ord]
 
 let rec equal_payload_type_basic t1 t2 =
