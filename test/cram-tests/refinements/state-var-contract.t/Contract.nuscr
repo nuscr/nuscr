@@ -1,0 +1,24 @@
+(*# RefinementTypes #*)
+
+global protocol Contract(role C, role P) {
+  propose(initialPrice: int) from C to P;
+  rec Loop [currentPrice<C, P>: int = initialPrice] {
+    choice at P {
+      accept(confirmedPrice: int{confirmedPrice = currentPrice}) from P to C;
+      confirm() from C to P;
+    } or {
+      counter(counterPrice: int{counterPrice <> currentPrice}) from P to C;
+      choice at C {
+        accept(confirmedPrice: int{confirmedPrice = counterPrice}) from C to P;
+        confirm() from P to C;
+      } or {
+        counter(newCounterPrice: int{counterPrice <> newCounterPrice}) from C to P;
+        continue Loop [newCounterPrice];
+      } or {
+        reject() from C to P;
+      }
+    } or {
+      reject() from P to C;
+    }
+  }
+}
