@@ -129,3 +129,6 @@ let unimpl desc = UnImplemented desc |> raise
 let uerr e = UserError e |> raise
 
 let violation e = Violation e |> raise
+
+(** A convenient function for raising a violation with printf strings *)
+let violationf fmt = Printf.ksprintf violation fmt
