@@ -62,8 +62,8 @@ A future goal is to provide a certified implementation (extracted from Coq).
 
 With that said, nuScr is not ready for production (better use
 [Scribble](https://github.com/scribble/scribble-java)), and will not be compatible
-with the old Scribble.
-The old Scribble had been extended beyond the original MPST to model checking
+with Scribble.
+Scribble had been extended beyond the original MPST to model checking
 with automata, whereas we wish to stick to the top-down approach of original
 MPST.
 NuScr is likely to be not so user-friendly in the current form, and may remain
