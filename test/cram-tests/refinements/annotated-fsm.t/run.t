@@ -213,5 +213,5 @@ Var info should be as follows:
   State 5 has variables: {count: int}
   State 6 has variables: {count: int; total: total:int{(total)=(count)}}
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:105:2"
+          "Assert_failure lib/fstarcodegen.ml:86:2"
   [1]
