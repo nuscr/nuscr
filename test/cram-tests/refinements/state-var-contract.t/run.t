@@ -70,6 +70,14 @@ Print State Variables:
   {initialPrice: (int);
   currentPrice: (int)}
   
+  noeq type state0Choice (st: state0) =
+  | Choice0propose of int
+  noeq type state4Choice (st: state4) =
+  | Choice4confirm of unit
+  noeq type state7Choice (st: state7) =
+  | Choice7reject of unit
+  | Choice7accept of confirmedPrice:int{(confirmedPrice)=((Mkstate7?.counterPrice st))}
+  | Choice7counter of newCounterPrice:int{((Mkstate7?.counterPrice st))<>(newCounterPrice)}
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:109:2"
+          "Assert_failure lib/fstarcodegen.ml:190:2"
   [1]

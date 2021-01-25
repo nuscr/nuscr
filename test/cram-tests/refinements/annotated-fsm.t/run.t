@@ -29,6 +29,8 @@ Var info should be as follows:
   {count: (int);
   total: (total:int{(total)=(count)})}
   
+  noeq type state5Choice (st: state5) =
+  | Choice5Total of total:int{(total)=((Mkstate5?.count st))}
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:109:2"
+          "Assert_failure lib/fstarcodegen.ml:190:2"
   [1]
