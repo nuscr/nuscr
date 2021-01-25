@@ -19,6 +19,56 @@ let show_vars = function
 type var_entry = VariableName.t * Expr.payload_type * (* is_silent *) bool
 [@@deriving eq]
 
+let find_concrete_vars m =
+  let find_named_variables =
+    List.filter_map ~f:(function
+      | Gtype.PValue (Some v, ty) -> Some (v, ty, false)
+      | _ -> None)
+  in
+  let concrete_vars = find_named_variables m.Gtype.payload in
+  concrete_vars
+
+(** If any variable in [vars_to_bind] appears in [ty], bind them with a
+    getter from state [st] *)
+let bind_variables ty vars_to_bind st =
+  match ty with
+  | Expr.PTRefined (v, ty, e) ->
+      let erased_vars_to_bind, concrete_vars_to_bind =
+        List.partition_tf
+          ~f:(fun (_, _, is_silent) -> is_silent)
+          vars_to_bind
+      in
+      let bind_concrete_var var =
+        Expr.Var
+          (VariableName.of_string
+             (Printf.sprintf "(Mkstate%d?.%s st)" st (VariableName.user var)))
+      in
+      let bind_erased_var var =
+        Expr.Var
+          (VariableName.of_string
+             (Printf.sprintf "(reveal (Mkstate%d?.%s st))" st
+                (VariableName.user var)))
+      in
+      let bind_var e vars_to_bind binder =
+        let vars_to_bind =
+          Set.of_list
+            (module VariableName)
+            (List.map ~f:(fun (v, _, _) -> v) vars_to_bind)
+        in
+        let vars_needed_binding = Set.inter vars_to_bind (Expr.free_var e) in
+        let e =
+          Set.fold ~init:e
+            ~f:(fun e var ->
+              Expr.substitute ~from:var ~replace:(binder var) e)
+            vars_needed_binding
+        in
+        e
+      in
+      let e = bind_var e erased_vars_to_bind bind_erased_var in
+      let e = bind_var e concrete_vars_to_bind bind_concrete_var in
+      Expr.PTRefined (v, ty, e)
+  | ty -> ty
+
 let compute_var_map start g rec_var_info =
   let init = Map.empty (module Int) in
   let append lst ((v, _, _) as entry) =
@@ -26,11 +76,7 @@ let compute_var_map start g rec_var_info =
       | ((v_, _, _) as entry_) :: rest ->
           if VariableName.equal v v_ then
             if [%derive.eq: var_entry] entry entry_ then lst
-            else
-              raise
-              @@ Err.Violation
-                   (Printf.sprintf "Clashing varaible %s"
-                      (VariableName.user v))
+            else Err.violationf "Clashing variable %s" (VariableName.user v)
           else aux (entry_ :: acc) rest
       | [] -> List.rev (entry :: acc)
     in
@@ -57,12 +103,7 @@ let compute_var_map start g rec_var_info =
               let silent_vars =
                 List.map ~f:(fun (v, ty) -> (v, ty, true)) rannot.silent_vars
               in
-              let find_named_variables =
-                List.filter_map ~f:(function
-                  | Gtype.PValue (Some v, ty) -> Some (v, ty, false)
-                  | _ -> None)
-              in
-              let concrete_vars = find_named_variables m.Gtype.payload in
+              let concrete_vars = find_concrete_vars m in
               let vars = List.fold ~f:append ~init:vars silent_vars in
               let vars = List.fold ~f:append ~init:vars concrete_vars in
               aux acc (next_st, vars)
@@ -103,7 +144,47 @@ let generate_state_defs var_maps =
       print_endline (preamble ^ def))
     var_maps
 
+let generate_send_choices g var_map =
+  let generate_send_choice st =
+    match state_action_type g st with
+    | `Send ->
+        let collect_action (_, action, _) acc =
+          match action with
+          | SendA (_, m, _) -> (
+              let label = m.Gtype.label in
+              let concrete_vars = find_concrete_vars m in
+              match List.length concrete_vars with
+              | 0 -> (label, Expr.PTUnit) :: acc
+              | 1 ->
+                  let _, ty, _ = List.hd_exn concrete_vars in
+                  (label, ty) :: acc
+              | _ -> Err.unimpl "handling more than 1 payload" )
+          | _ ->
+              Err.violation
+                "A sending state should only have sending actions"
+        in
+        let acc = G.fold_succ_e collect_action g st [] in
+        let preamble =
+          Printf.sprintf "noeq type state%dChoice (st: state%d) =\n" st st
+        in
+        let def =
+          String.concat ~sep:"\n"
+            (List.map
+               ~f:(fun (label, ty) ->
+                 let vars_to_bind = Map.find_exn var_map st in
+                 let ty = bind_variables ty vars_to_bind st in
+                 Printf.sprintf "| Choice%d%s of %s" st
+                   (LabelName.user label)
+                   (Expr.show_payload_type ty))
+               acc)
+        in
+        print_endline (preamble ^ def)
+    | `Recv | `Terminal | `Mixed -> ()
+  in
+  G.iter_vertex generate_send_choice g
+
 let gen_code (start, g, rec_var_info) =
-  let var_maps = compute_var_map start g rec_var_info in
-  let () = generate_state_defs var_maps in
+  let var_map = compute_var_map start g rec_var_info in
+  let () = generate_state_defs var_map in
+  let () = generate_send_choices g var_map in
   assert false

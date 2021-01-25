@@ -344,3 +344,10 @@ let rec free_var = function
   | Int _ | Bool _ | String _ -> Set.empty (module VariableName)
   | Binop (_, e1, e2) -> Set.union (free_var e1) (free_var e2)
   | Unop (_, e) -> free_var e
+
+let rec substitute ~from ~replace = function
+  | Var v when VariableName.equal from v -> replace
+  | (Var _ | Int _ | Bool _ | String _) as e -> e
+  | Binop (b, e1, e2) ->
+      Binop (b, substitute ~from ~replace e1, substitute ~from ~replace e2)
+  | Unop (u, e) -> Unop (u, substitute ~from ~replace e)
