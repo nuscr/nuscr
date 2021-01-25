@@ -1,4 +1,5 @@
 open! Base
+open! Stdio
 open Names
 open Efsm
 
@@ -76,11 +77,33 @@ let compute_var_map start g rec_var_info =
   if Config.verbose () then
     Map.iteri
       ~f:(fun ~key:st ~data ->
-        Stdio.print_endline
+        print_endline
           (Printf.sprintf "State %d has variables: %s" st (show_vars data)))
       var_map ;
   var_map
 
+let generate_state_defs var_maps =
+  Map.iteri
+    ~f:(fun ~key:st ~data ->
+      let preamble = Printf.sprintf "type state%d =" st in
+      let def =
+        if List.is_empty data then " unit"
+        else
+          let content =
+            String.concat ~sep:";\n"
+              (List.map
+                 ~f:(fun (name, ty, is_silent) ->
+                   Printf.sprintf "%s: (%s%s)" (VariableName.user name)
+                     (if is_silent then "erased" else "")
+                     (Expr.show_payload_type ty))
+                 data)
+          in
+          "\n{" ^ content ^ "}\n"
+      in
+      print_endline (preamble ^ def))
+    var_maps
+
 let gen_code (start, g, rec_var_info) =
-  let _var_maps = compute_var_map start g rec_var_info in
+  let var_maps = compute_var_map start g rec_var_info in
+  let () = generate_state_defs var_maps in
   assert false
