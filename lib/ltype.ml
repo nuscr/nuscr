@@ -488,3 +488,47 @@ let project_global_t (global_t : global_t) =
         ~f:(project_role key all_roles gtype)
         all_roles)
     global_t
+
+let make_unique_tvars ltype =
+  (* TODO: Handle expressions in recursion and recursive variables *)
+  let rec rename_tvars tvar_mapping namegen = function
+    | RecvL (msg, sender, l) ->
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, RecvL (msg, sender, l))
+    | SendL (msg, recv, l) ->
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, SendL (msg, recv, l))
+    | MuL (tvar, rec_vars, l) ->
+        let namegen, new_tvar_str =
+          Namegen.unique_name namegen (TypeVariableName.user tvar)
+        in
+        let new_tvar = TypeVariableName.of_string @@ new_tvar_str in
+        let tvar_mapping =
+          Map.update tvar_mapping tvar ~f:(fun _ -> new_tvar)
+        in
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, MuL (new_tvar, rec_vars, l))
+    | TVarL (tvar, rec_exprs) ->
+        (namegen, TVarL (Map.find_exn tvar_mapping tvar, rec_exprs))
+    | EndL as g -> (namegen, g)
+    | ChoiceL (r, ls) ->
+        let namegen, ls =
+          List.fold_map ls ~init:namegen ~f:(rename_tvars tvar_mapping)
+        in
+        (namegen, ChoiceL (r, ls))
+    | InviteCreateL (invite_roles, create_roles, protocol, l) ->
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, InviteCreateL (invite_roles, create_roles, protocol, l))
+    | AcceptL (role, protocol, roles, new_roles, caller, l) ->
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, AcceptL (role, protocol, roles, new_roles, caller, l))
+    | SilentL _ -> Err.unimpl "renaming recursive variables with refinements"
+  in
+  let namegen = Namegen.create () in
+  let _, ltype =
+    rename_tvars (Map.empty (module TypeVariableName)) namegen ltype
+  in
+  ltype
+
+let ensure_unique_tvars local_t : local_t =
+  Map.map local_t ~f:(fun (roles, ltype) -> (roles, make_unique_tvars ltype))
