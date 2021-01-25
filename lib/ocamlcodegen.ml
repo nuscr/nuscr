@@ -26,7 +26,9 @@ let state_action_type (g : Efsm.t) (st : int) =
       match a with
       | SendA _ -> `Send
       | RecvA _ -> `Recv
-      | Epsilon -> failwith "Impossible"
+      | Epsilon ->
+          Err.violation
+            "Epsilon transitions should not appear after EFSM generation"
     in
     merge_state_action_type aty acc
   in
@@ -72,7 +74,7 @@ let gen_callback_module (g : G.t) : structure_item =
   let env = [%type: t] in
   let f st acc =
     match state_action_type g st with
-    | `Mixed -> failwith "Impossible"
+    | `Mixed -> Err.violation "Mixed states should not occur in an EFSM"
     | `Terminal -> acc
     | `Send ->
         let gen_send (_, a, _) acc =
@@ -87,7 +89,7 @@ let gen_callback_module (g : G.t) : structure_item =
                      , [payload_type] ))
               in
               row :: acc
-          | _ -> failwith "Impossible"
+          | _ -> Err.violation "Sending states should only have send actions"
         in
         let rows = G.fold_succ_e gen_send g st [] in
         let rows =
@@ -107,7 +109,9 @@ let gen_callback_module (g : G.t) : structure_item =
               let name = mk_receive_callback st (LabelName.user label) in
               let val_ = Val.mk (Location.mknoloc name) ty in
               val_ :: callbacks
-          | _ -> failwith "Impossible"
+          | _ ->
+              Err.violation
+                "Receiving states should only have receive actions"
         in
         G.fold_succ_e gen_recv g st acc
   in
@@ -126,7 +130,9 @@ let find_all_payloads g =
         match payloads with
         | [] -> S.add acc "unit"
         | _ -> List.fold ~f:S.add ~init:acc payloads )
-    | _ -> failwith "Impossible"
+    | _ ->
+        Err.violation
+          "Epsilon transtions should not appear after EFSM generation"
   in
   G.fold_edges_e f g (S.singleton (module String) "string") |> S.to_list
 
@@ -134,7 +140,9 @@ let find_all_roles g =
   let f (_, a, _) acc =
     match a with
     | SendA (r, _, _) | RecvA (r, _, _) -> S.add acc (RoleName.user r)
-    | _ -> failwith "Impossible"
+    | _ ->
+        Err.violation
+          "Epsilon transtions should not appear after EFSM generation"
   in
   G.fold_edges_e f g (S.empty (module String)) |> S.to_list
 
@@ -172,7 +180,9 @@ let get_transitions g st =
     | SendA (r, msg, _) | RecvA (r, msg, _) ->
         let {Gtype.label; Gtype.payload} = msg in
         (r, LabelName.user label, payload_values payload, next) :: acc
-    | _ -> failwith "Impossible"
+    | _ ->
+        Err.violation
+          "Epsilon transtions should not appear after EFSM generation"
   in
   G.fold_succ_e f g st []
 
