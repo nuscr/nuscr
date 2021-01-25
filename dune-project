@@ -45,7 +45,7 @@
   (ppx_inline_test :with-test)
   (odoc :with-doc)
   (ocamlgraph
-   (= 1.8.8))
+   (>= 1.8.8))
   (ppxlib
    (and
     (>= 0.9.0)
