@@ -42,3 +42,9 @@ val of_local_type_with_rec_var_info : Ltype.t -> state * t * rec_var_info
 
 val show : t -> string
 (** Produce a DOT representation of EFSM, which can be visualised by Graphviz *)
+
+val state_action_type : t -> state -> [`Send | `Recv | `Mixed | `Terminal]
+(** Returns whether a state in the EFSM is a sending state (with only [SendA]
+    outgoing actions), a receiving state (with only [RecvA] outgoing
+    actions), a mixed state (with a mixture of [SendA] and [RecvA] actions),
+    or a terminal state (without outgoing actions) *)

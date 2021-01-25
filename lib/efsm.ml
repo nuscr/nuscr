@@ -350,3 +350,28 @@ let of_local_type_with_rec_var_info lty =
 let of_local_type ltype =
   let start, g, _ = of_local_type_with_rec_var_info ltype in
   (start, g)
+
+let state_action_type g st =
+  let merge_state_action_type aty1 aty2 =
+    match (aty1, aty2) with
+    | `Terminal, aty2 -> aty2
+    | aty1, `Terminal -> aty1
+    | `Send, `Send -> `Send
+    | `Recv, `Recv -> `Recv
+    | `Send, `Recv -> `Mixed
+    | `Recv, `Send -> `Mixed
+    | aty1, `Mixed -> aty1
+    | `Mixed, aty2 -> aty2
+  in
+  let f (_, a, _) acc =
+    let aty =
+      match a with
+      | SendA _ -> `Send
+      | RecvA _ -> `Recv
+      | Epsilon ->
+          Err.violation
+            "Epsilon transitions should not appear after EFSM generation"
+    in
+    merge_state_action_type aty acc
+  in
+  G.fold_succ_e f g st `Terminal
