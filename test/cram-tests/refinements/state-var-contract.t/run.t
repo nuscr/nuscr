@@ -393,14 +393,14 @@ Print State Variables:
     
     }
   State 0 has variables: (empty)
-  State 1 has variables: {currentPrice: int}
-  State 4 has variables: {currentPrice: int; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(currentPrice)}}
-  State 5 has variables: {currentPrice: int; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(currentPrice)}}
-  State 7 has variables: {currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}}
-  State 9 has variables: {currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(counterPrice)}}
-  State 10 has variables: {currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(counterPrice)}}
-  State 13 has variables: {currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}}
-  State 15 has variables: {currentPrice: int}
+  State 1 has variables: {initialPrice: int; currentPrice: int}
+  State 4 has variables: {initialPrice: int; currentPrice: int; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(currentPrice)}}
+  State 5 has variables: {initialPrice: int; currentPrice: int; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(currentPrice)}}
+  State 7 has variables: {initialPrice: int; currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}}
+  State 9 has variables: {initialPrice: int; currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(counterPrice)}}
+  State 10 has variables: {initialPrice: int; currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}; confirmedPrice: confirmedPrice:int{(confirmedPrice)=(counterPrice)}}
+  State 13 has variables: {initialPrice: int; currentPrice: int; counterPrice: counterPrice:int{(counterPrice)<>(currentPrice)}}
+  State 15 has variables: {initialPrice: int; currentPrice: int}
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:105:2"
+          "Assert_failure lib/fstarcodegen.ml:86:2"
   [1]
