@@ -9,31 +9,6 @@ module S = Set
 open Names
 open Efsm
 
-let state_action_type (g : Efsm.t) (st : int) =
-  let merge_state_action_type aty1 aty2 =
-    match (aty1, aty2) with
-    | `Terminal, aty2 -> aty2
-    | aty1, `Terminal -> aty1
-    | `Send, `Send -> `Send
-    | `Recv, `Recv -> `Recv
-    | `Send, `Recv -> `Mixed
-    | `Recv, `Send -> `Mixed
-    | aty1, `Mixed -> aty1
-    | `Mixed, aty2 -> aty2
-  in
-  let f (_, a, _) acc =
-    let aty =
-      match a with
-      | SendA _ -> `Send
-      | RecvA _ -> `Recv
-      | Epsilon ->
-          Err.violation
-            "Epsilon transitions should not appear after EFSM generation"
-    in
-    merge_state_action_type aty acc
-  in
-  G.fold_succ_e f g st `Terminal
-
 let mk_lid id = Location.mknoloc (Option.value_exn (unflatten [id]))
 
 let mk_constr id = Typ.constr (mk_lid id) []
