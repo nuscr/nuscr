@@ -63,6 +63,10 @@ val project : RoleName.t -> Gtype.t -> t
 val project_global_t : Gtype.global_t -> local_t
 (** Generate the local protocols for a given global_t *)
 
+val ensure_unique_tvars : local_t -> local_t
+(** Ensure that all the local variables in each local protocol are globally
+    unique, renaming variables to resolve conflicts *)
+
 (** Mapping from local protocol ids to their unique local protocol names *)
 type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
