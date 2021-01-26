@@ -19,20 +19,26 @@ Var info should be as follows:
 6 should have rec var: count, and payload var total
 
   $ nuscr --gencode-fstar B@Counter Counter.nuscr
-  type state0 =
-  {count: (int)}
+  noeq type state0 =
+  {
+  count: (int)
+  }
   
-  type state5 =
-  {count: (int)}
+  noeq type state5 =
+  {
+  count: (int)
+  }
   
-  type state6 =
-  {count: (int);
-  total: (total:int{(total)=(count)})}
+  noeq type state6 =
+  {
+  count: (int);
+  total: (total:int{(total)=(count)})
+  }
   
   noeq type state5Choice (st: state5) =
   | Choice5Total of total:int{(total)=((Mkstate5?.count st))}
   type roles =
   | A
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:200:2"
+          "Assert_failure lib/fstarcodegen.ml:203:2"
   [1]
