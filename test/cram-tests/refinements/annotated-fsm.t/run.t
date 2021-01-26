@@ -31,6 +31,8 @@ Var info should be as follows:
   
   noeq type state5Choice (st: state5) =
   | Choice5Total of total:int{(total)=((Mkstate5?.count st))}
+  type roles =
+  | A
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:190:2"
+          "Assert_failure lib/fstarcodegen.ml:200:2"
   [1]

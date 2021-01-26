@@ -78,6 +78,8 @@ Print State Variables:
   | Choice7reject of unit
   | Choice7accept of confirmedPrice:int{(confirmedPrice)=((Mkstate7?.counterPrice st))}
   | Choice7counter of newCounterPrice:int{((Mkstate7?.counterPrice st))<>(newCounterPrice)}
+  type roles =
+  | P
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:190:2"
+          "Assert_failure lib/fstarcodegen.ml:200:2"
   [1]
