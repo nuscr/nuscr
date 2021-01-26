@@ -375,3 +375,31 @@ let state_action_type g st =
     merge_state_action_type aty acc
   in
   G.fold_succ_e f g st `Terminal
+
+let find_all_payloads g =
+  let f (_, a, _) acc =
+    match a with
+    | SendA (_, msg, _) | RecvA (_, msg, _) -> (
+        let {Gtype.payload; _} = msg in
+        let payloads = List.map ~f:Gtype.typename_of_payload payload in
+        match payloads with
+        | [] -> Set.add acc (PayloadTypeName.of_string "unit")
+        | _ -> List.fold ~f:Set.add ~init:acc payloads )
+    | _ ->
+        Err.violation
+          "Epsilon transitions should not appear after EFSM generation"
+  in
+  G.fold_edges_e f g
+    (Set.singleton
+       (module PayloadTypeName)
+       (PayloadTypeName.of_string "string"))
+
+let find_all_roles g =
+  let f (_, a, _) acc =
+    match a with
+    | SendA (r, _, _) | RecvA (r, _, _) -> Set.add acc r
+    | _ ->
+        Err.violation
+          "Epsilon transitions should not appear after EFSM generation"
+  in
+  G.fold_edges_e f g (Set.empty (module RoleName))

@@ -78,6 +78,10 @@ let of_syntax_payload (payload : Syntax.payloadt) =
              , "Refinement Types require RefinementTypes pramga to be set."
              ))
 
+let typename_of_payload = function
+  | PValue (_, ty) -> Expr.payload_typename_of_payload_type ty
+  | PDelegate _ -> Err.unimpl "delegation for code generation"
+
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, ord]
 

@@ -48,3 +48,7 @@ val state_action_type : t -> state -> [`Send | `Recv | `Mixed | `Terminal]
     outgoing actions), a receiving state (with only [RecvA] outgoing
     actions), a mixed state (with a mixture of [SendA] and [RecvA] actions),
     or a terminal state (without outgoing actions) *)
+
+val find_all_payloads : t -> Set.M(PayloadTypeName).t
+
+val find_all_roles : t -> Set.M(RoleName).t
