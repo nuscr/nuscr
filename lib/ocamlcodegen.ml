@@ -5,7 +5,6 @@ open Parsetree
 open Asttypes
 open Longident
 open! Ast_helper
-module S = Set
 open Names
 open Efsm
 
@@ -24,15 +23,10 @@ let mk_receive_callback st label = sprintf "state%dReceive%s" st label
 
 let mk_send_callback st = sprintf "state%dSend" st
 
-let payload_typename payload_type =
-  PayloadTypeName.user (Expr.payload_typename_of_payload_type payload_type)
-
-let payload_values payload =
-  let f = function
-    | Gtype.PValue (_, ty) -> payload_typename ty
-    | _ -> Err.violation "Delegation is not supported"
-  in
-  List.map ~f payload
+let payload_values payloads =
+  List.map
+    ~f:(fun p -> PayloadTypeName.user @@ Gtype.typename_of_payload p)
+    payloads
 
 let process_msg (msg : Gtype.message) =
   let {Gtype.label; Gtype.payload} = msg in
@@ -95,31 +89,6 @@ let gen_callback_module (g : G.t) : structure_item =
   let env_type = Sig.type_ Nonrecursive [Type.mk (Location.mknoloc "t")] in
   let callbacks = Mty.signature (env_type :: callbacks) in
   Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Callbacks"))
-
-let find_all_payloads g =
-  let f (_, a, _) acc =
-    match a with
-    | SendA (_, msg, _) | RecvA (_, msg, _) -> (
-        let {Gtype.payload; _} = msg in
-        let payloads = payload_values payload in
-        match payloads with
-        | [] -> S.add acc "unit"
-        | _ -> List.fold ~f:S.add ~init:acc payloads )
-    | _ ->
-        Err.violation
-          "Epsilon transtions should not appear after EFSM generation"
-  in
-  G.fold_edges_e f g (S.singleton (module String) "string") |> S.to_list
-
-let find_all_roles g =
-  let f (_, a, _) acc =
-    match a with
-    | SendA (r, _, _) | RecvA (r, _, _) -> S.add acc (RoleName.user r)
-    | _ ->
-        Err.violation
-          "Epsilon transtions should not appear after EFSM generation"
-  in
-  G.fold_edges_e f g (S.empty (module String)) |> S.to_list
 
 let gen_comms_typedef ~monad payload_types =
   let mk_monadic ty = if monad then [%type: [%t ty] M.t] else ty in
@@ -284,9 +253,11 @@ let gen_impl_module ~monad (proto : ProtocolName.t) (role : RoleName.t) start
   let module_name =
     sprintf "Impl_%s_%s" (ProtocolName.user proto) (RoleName.user role)
   in
-  let payload_types = find_all_payloads g in
+  let payload_types = find_all_payloads g |> Set.to_list in
+  let payload_types = List.map ~f:PayloadTypeName.user payload_types in
   let comms_typedef = gen_comms_typedef ~monad payload_types in
-  let roles = find_all_roles g in
+  let roles = find_all_roles g |> Set.to_list in
+  let roles = List.map ~f:RoleName.user roles in
   let role_ty = gen_role_ty roles in
   let run_expr = gen_run_expr ~monad start g in
   let run =

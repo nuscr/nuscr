@@ -13,6 +13,8 @@ type message = {label: LabelName.t; payload: payload list}
 
 val equal_pvalue_payload : payload -> payload -> bool
 
+val typename_of_payload : payload -> PayloadTypeName.t
+
 (** Recursion variable *)
 type rec_var =
   { rv_name: VariableName.t  (** Variable Name *)
