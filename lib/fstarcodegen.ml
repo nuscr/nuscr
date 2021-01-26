@@ -132,6 +132,13 @@ let generate_record ~noeq name content =
   in
   print_endline (preamble ^ def)
 
+let send_state_callback_name st = Printf.sprintf "state%dSend" st
+
+let send_state_choice_name st = Printf.sprintf "state%dChoice" st
+
+let recv_state_callback_name st label =
+  Printf.sprintf "state%dRecv%s" st (LabelName.user label)
+
 let generate_state_defs var_maps =
   Map.iteri
     ~f:(fun ~key:st ~data ->
@@ -168,7 +175,9 @@ let generate_send_choices g var_map =
         in
         let acc = G.fold_succ_e collect_action g st [] in
         let preamble =
-          Printf.sprintf "noeq type state%dChoice (st: state%d) =\n" st st
+          Printf.sprintf "noeq type %s (st: state%d) =\n"
+            (send_state_choice_name st)
+            st
         in
         let def =
           String.concat ~sep:"\n"
@@ -195,9 +204,56 @@ let generate_roles roles =
   in
   Stdio.print_endline (preamble ^ def)
 
+let generate_transition_typedefs g var_map =
+  let collect_transition st acc =
+    match state_action_type g st with
+    | `Send ->
+        let new_entry =
+          Printf.sprintf "%s: (st: state%d) -> ML (%s st)"
+            (send_state_callback_name st)
+            st
+            (send_state_choice_name st)
+        in
+        new_entry :: acc
+    | `Recv ->
+        let collect_recv_transition (_, action, _) acc =
+          match action with
+          | RecvA (_, m, _) ->
+              let label = m.Gtype.label in
+              let concrete_vars = find_concrete_vars m in
+              let recv_payload =
+                match List.length concrete_vars with
+                | 0 -> "unit"
+                | 1 ->
+                    let _, ty, _ = List.hd_exn concrete_vars in
+                    let vars_to_bind = Map.find_exn var_map st in
+                    let ty = bind_variables ty vars_to_bind st in
+                    Expr.show_payload_type ty
+                | _ -> Err.unimpl "handling more than 1 payload"
+              in
+              let new_entry =
+                Printf.sprintf "%s: (st: state%d) -> (%s) -> ML unit"
+                  (recv_state_callback_name st label)
+                  st recv_payload
+              in
+              new_entry :: acc
+          | _ ->
+              Err.violation
+                "A receiving state should have only RecvA outgoing \
+                 transitions"
+        in
+        let acc = G.fold_succ_e collect_recv_transition g st acc in
+        acc
+    | `Mixed -> Err.violation "Mixed states should not occur in the EFSM"
+    | `Terminal -> acc
+  in
+  let transitions = G.fold_vertex collect_transition g [] in
+  generate_record ~noeq:true "callbacks" (List.rev transitions)
+
 let gen_code (start, g, rec_var_info) =
   let var_map = compute_var_map start g rec_var_info in
   let () = generate_state_defs var_map in
   let () = generate_send_choices g var_map in
   let () = generate_roles (find_all_roles g) in
+  let () = generate_transition_typedefs g var_map in
   assert false

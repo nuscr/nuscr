@@ -97,6 +97,17 @@ Print State Variables:
   | Choice7counter of newCounterPrice:int{((Mkstate7?.counterPrice st))<>(newCounterPrice)}
   type roles =
   | P
+  noeq type callbacks =
+  {
+  state0Send: (st: state0) -> ML (state0Choice st);
+  state1Recvaccept: (st: state1) -> (confirmedPrice:int{(confirmedPrice)=((Mkstate1?.currentPrice st))}) -> ML unit;
+  state1Recvcounter: (st: state1) -> (counterPrice:int{(counterPrice)<>((Mkstate1?.currentPrice st))}) -> ML unit;
+  state1Recvreject: (st: state1) -> (unit) -> ML unit;
+  state4Send: (st: state4) -> ML (state4Choice st);
+  state7Send: (st: state7) -> ML (state7Choice st);
+  state9Recvconfirm: (st: state9) -> (unit) -> ML unit
+  }
+  
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:203:2"
+          "Assert_failure lib/fstarcodegen.ml:259:2"
   [1]

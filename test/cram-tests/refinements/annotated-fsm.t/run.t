@@ -39,6 +39,14 @@ Var info should be as follows:
   | Choice5Total of total:int{(total)=((Mkstate5?.count st))}
   type roles =
   | A
+  noeq type callbacks =
+  {
+  state0RecvDecr: (st: state0) -> (unit) -> ML unit;
+  state0RecvIncr: (st: state0) -> (unit) -> ML unit;
+  state0RecvResult: (st: state0) -> (unit) -> ML unit;
+  state5Send: (st: state5) -> ML (state5Choice st)
+  }
+  
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:203:2"
+          "Assert_failure lib/fstarcodegen.ml:259:2"
   [1]
