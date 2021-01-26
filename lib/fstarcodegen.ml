@@ -123,25 +123,28 @@ let compute_var_map start g rec_var_info =
       var_map ;
   var_map
 
+let generate_record ~noeq name content =
+  let noeq = if noeq then "noeq " else "" in
+  let preamble = Printf.sprintf "%stype %s =\n" noeq name in
+  let def =
+    if List.is_empty content then "unit"
+    else "{\n" ^ String.concat ~sep:";\n" content ^ "\n}\n"
+  in
+  print_endline (preamble ^ def)
+
 let generate_state_defs var_maps =
   Map.iteri
     ~f:(fun ~key:st ~data ->
-      let preamble = Printf.sprintf "type state%d =" st in
-      let def =
-        if List.is_empty data then " unit"
-        else
-          let content =
-            String.concat ~sep:";\n"
-              (List.map
-                 ~f:(fun (name, ty, is_silent) ->
-                   Printf.sprintf "%s: (%s%s)" (VariableName.user name)
-                     (if is_silent then "erased" else "")
-                     (Expr.show_payload_type ty))
-                 data)
-          in
-          "\n{" ^ content ^ "}\n"
+      let name = "state" ^ Int.to_string st in
+      let content =
+        List.map
+          ~f:(fun (name, ty, is_silent) ->
+            Printf.sprintf "%s: (%s%s)" (VariableName.user name)
+              (if is_silent then "erased" else "")
+              (Expr.show_payload_type ty))
+          data
       in
-      print_endline (preamble ^ def))
+      generate_record ~noeq:true name content)
     var_maps
 
 let generate_send_choices g var_map =
