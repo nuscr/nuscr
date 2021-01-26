@@ -29,46 +29,63 @@ Print FSM for C@Contract
     }
 Print State Variables:
   $ nuscr --gencode-fstar C@Contract Contract.nuscr
-  type state0 = unit
-  type state1 =
-  {initialPrice: (int);
-  currentPrice: (int)}
+  noeq type state0 =
+  unit
+  noeq type state1 =
+  {
+  initialPrice: (int);
+  currentPrice: (int)
+  }
   
-  type state4 =
-  {initialPrice: (int);
+  noeq type state4 =
+  {
+  initialPrice: (int);
   currentPrice: (int);
-  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(currentPrice)})}
+  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(currentPrice)})
+  }
   
-  type state5 =
-  {initialPrice: (int);
+  noeq type state5 =
+  {
+  initialPrice: (int);
   currentPrice: (int);
-  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(currentPrice)})}
+  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(currentPrice)})
+  }
   
-  type state7 =
-  {initialPrice: (int);
+  noeq type state7 =
+  {
+  initialPrice: (int);
   currentPrice: (int);
-  counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)})}
+  counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)})
+  }
   
-  type state9 =
-  {initialPrice: (int);
+  noeq type state9 =
+  {
+  initialPrice: (int);
   currentPrice: (int);
   counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)});
-  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(counterPrice)})}
+  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(counterPrice)})
+  }
   
-  type state10 =
-  {initialPrice: (int);
+  noeq type state10 =
+  {
+  initialPrice: (int);
   currentPrice: (int);
   counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)});
-  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(counterPrice)})}
+  confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(counterPrice)})
+  }
   
-  type state13 =
-  {initialPrice: (int);
+  noeq type state13 =
+  {
+  initialPrice: (int);
   currentPrice: (int);
-  counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)})}
+  counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)})
+  }
   
-  type state15 =
-  {initialPrice: (int);
-  currentPrice: (int)}
+  noeq type state15 =
+  {
+  initialPrice: (int);
+  currentPrice: (int)
+  }
   
   noeq type state0Choice (st: state0) =
   | Choice0propose of int
@@ -81,5 +98,5 @@ Print State Variables:
   type roles =
   | P
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:200:2"
+          "Assert_failure lib/fstarcodegen.ml:203:2"
   [1]
