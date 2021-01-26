@@ -183,8 +183,18 @@ let generate_send_choices g var_map =
   in
   G.iter_vertex generate_send_choice g
 
+let generate_roles roles =
+  let preamble = "type roles =\n" in
+  let roles = Set.to_list roles in
+  let def =
+    String.concat ~sep:"\n"
+      (List.map ~f:(fun r -> "| " ^ RoleName.user r) roles)
+  in
+  Stdio.print_endline (preamble ^ def)
+
 let gen_code (start, g, rec_var_info) =
   let var_map = compute_var_map start g rec_var_info in
   let () = generate_state_defs var_map in
   let () = generate_send_choices g var_map in
+  let () = generate_roles (find_all_roles g) in
   assert false
