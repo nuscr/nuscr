@@ -60,10 +60,17 @@ Var info should be as follows:
   let run (comms: roles -> comms) (callbacks: callbacks) : ML unit =
   
   let rec runState0 (st: state0): ML unit =
-  assert false (* TODO recv state *)
-   and runState5 (st: state5): ML unit =
-  assert false (* TODO send state *)
-   and runState6 (st: state6): ML unit =
+  let conn = comms A in
+  match conn.recv_string () with
+  | "Decr" -> assert false (* TODO *)
+  | "Incr" -> assert false (* TODO *)
+  | "Result" -> assert false (* TODO *)
+  | _ -> unexpected "Unexpected label"
+  and runState5 (st: state5): ML unit =
+  let conn = comms A in
+  match callbacks.state5Send st with
+  | Choice5Total _ -> assert false (* TODO *)
+  and runState6 (st: state6): ML unit =
   ()
   in
   
@@ -75,5 +82,5 @@ Var info should be as follows:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:363:2"
+          "Assert_failure lib/fstarcodegen.ml:415:2"
   [1]
