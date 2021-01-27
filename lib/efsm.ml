@@ -356,18 +356,18 @@ let state_action_type g st =
     match (aty1, aty2) with
     | `Terminal, aty2 -> aty2
     | aty1, `Terminal -> aty1
-    | `Send, `Send -> `Send
-    | `Recv, `Recv -> `Recv
-    | `Send, `Recv -> `Mixed
-    | `Recv, `Send -> `Mixed
+    | `Send r1, `Send r2 -> if RoleName.equal r1 r2 then `Send r1 else `Mixed
+    | `Recv r1, `Recv r2 -> if RoleName.equal r1 r2 then `Recv r1 else `Mixed
+    | `Send _, `Recv _ -> `Mixed
+    | `Recv _, `Send _ -> `Mixed
     | aty1, `Mixed -> aty1
     | `Mixed, aty2 -> aty2
   in
   let f (_, a, _) acc =
     let aty =
       match a with
-      | SendA _ -> `Send
-      | RecvA _ -> `Recv
+      | SendA (r, _, _) -> `Send r
+      | RecvA (r, _, _) -> `Recv r
       | Epsilon ->
           Err.violation
             "Epsilon transitions should not appear after EFSM generation"

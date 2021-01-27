@@ -175,7 +175,7 @@ let generate_state_defs var_maps =
 let generate_send_choices g var_map =
   let generate_send_choice st =
     match state_action_type g st with
-    | `Send ->
+    | `Send _ ->
         let collect_action (_, action, _) acc =
           match action with
           | SendA (_, m, _) -> (
@@ -209,7 +209,7 @@ let generate_send_choices g var_map =
                acc)
         in
         print_endline (preamble ^ def)
-    | `Recv | `Terminal | `Mixed -> ()
+    | `Recv _ | `Terminal | `Mixed -> ()
   in
   G.iter_vertex generate_send_choice g
 
@@ -225,7 +225,7 @@ let generate_roles roles =
 let generate_transition_typedefs g var_map =
   let collect_transition st acc =
     match state_action_type g st with
-    | `Send ->
+    | `Send _ ->
         let new_entry =
           Printf.sprintf "%s: (st: %s) -> ML (%s st)"
             (FstarNames.send_state_callback_name st)
@@ -233,7 +233,7 @@ let generate_transition_typedefs g var_map =
             (FstarNames.send_state_choice_name st)
         in
         new_entry :: acc
-    | `Recv ->
+    | `Recv _ ->
         let collect_recv_transition (_, action, _) acc =
           match action with
           | RecvA (_, m, _) ->
@@ -307,8 +307,8 @@ let generate_run_fns start g _var_map rec_var_info =
         match state_action_type g st with
         | `Terminal -> "()"
         | `Mixed -> Err.violation "An EFSM should not have a mixed state"
-        | `Send -> "assert false (* TODO send state *)"
-        | `Recv -> "assert false (* TODO recv state *)"
+        | `Send _ -> "assert false (* TODO send state *)"
+        | `Recv _ -> "assert false (* TODO recv state *)"
       in
       (preamble ^ body) :: acc
     in
