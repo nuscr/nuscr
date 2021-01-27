@@ -291,12 +291,29 @@ let generate_comms payload_types =
   in
   generate_record ~noeq:true FstarNames.communication_record_name content
 
-let generate_run_fns start _g _var_map rec_var_info =
+let generate_run_fns start g _var_map rec_var_info =
   let preamble =
     Printf.sprintf "let run (comms: %s) (callbacks: %s) : ML unit =\n"
       FstarNames.communication_record_name FstarNames.callback_record_name
   in
-  let run_state_fns = (* TODO *) [] in
+  let run_state_fns =
+    let run_state_fn st acc =
+      let preamble =
+        Printf.sprintf "%s (st: %s): ML unit =\n"
+          (FstarNames.run_state_fn_name st)
+          (FstarNames.state_record_name st)
+      in
+      let body =
+        match state_action_type g st with
+        | `Terminal -> "()"
+        | `Mixed -> Err.violation "An EFSM should not have a mixed state"
+        | `Send -> "assert false (* TODO send state *)"
+        | `Recv -> "assert false (* TODO recv state *)"
+      in
+      (preamble ^ body) :: acc
+    in
+    List.rev (G.fold_vertex run_state_fn g [])
+  in
   let run_fns =
     "let rec " ^ String.concat ~sep:"\n and " run_state_fns ^ "\nin\n"
   in
