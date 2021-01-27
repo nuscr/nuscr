@@ -277,14 +277,14 @@ let generate_comms payload_types =
       ~f:(fun ty ->
         let ty = PayloadTypeName.user ty in
         let send_ty =
-          Printf.sprintf "%s: %s -> %s -> ML unit"
+          Printf.sprintf "%s: %s -> ML unit"
             (FstarNames.send_payload_fn_name ty)
-            FstarNames.role_variant_name ty
+            ty
         in
         let recv_ty =
-          Printf.sprintf "%s: %s -> unit -> ML %s"
+          Printf.sprintf "%s: unit -> ML %s"
             (FstarNames.recv_payload_fn_name ty)
-            FstarNames.role_variant_name ty
+            ty
         in
         [send_ty; recv_ty])
       payload_types
@@ -293,8 +293,9 @@ let generate_comms payload_types =
 
 let generate_run_fns start g _var_map rec_var_info =
   let preamble =
-    Printf.sprintf "let run (comms: %s) (callbacks: %s) : ML unit =\n"
-      FstarNames.communication_record_name FstarNames.callback_record_name
+    Printf.sprintf "let run (comms: %s -> %s) (callbacks: %s) : ML unit =\n"
+      FstarNames.role_variant_name FstarNames.communication_record_name
+      FstarNames.callback_record_name
   in
   let run_state_fns =
     let run_state_fn st acc =

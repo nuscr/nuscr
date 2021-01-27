@@ -49,15 +49,15 @@ Var info should be as follows:
   
   noeq type comms =
   {
-  send_int: roles -> int -> ML unit;
-  recv_int: roles -> unit -> ML int;
-  send_string: roles -> string -> ML unit;
-  recv_string: roles -> unit -> ML string;
-  send_unit: roles -> unit -> ML unit;
-  recv_unit: roles -> unit -> ML unit
+  send_int: int -> ML unit;
+  recv_int: unit -> ML int;
+  send_string: string -> ML unit;
+  recv_string: unit -> ML string;
+  send_unit: unit -> ML unit;
+  recv_unit: unit -> ML unit
   }
   
-  let run (comms: comms) (callbacks: callbacks) : ML unit =
+  let run (comms: roles -> comms) (callbacks: callbacks) : ML unit =
   
   let rec runState0 (st: state0): ML unit =
   assert false (* TODO recv state *)
@@ -75,5 +75,5 @@ Var info should be as follows:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:362:2"
+          "Assert_failure lib/fstarcodegen.ml:363:2"
   [1]
