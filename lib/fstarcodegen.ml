@@ -123,6 +123,29 @@ let compute_var_map start g rec_var_info =
       var_map ;
   var_map
 
+module FstarNames = struct
+  let send_state_callback_name st = Printf.sprintf "state%dSend" st
+
+  let send_state_choice_name st = Printf.sprintf "state%dChoice" st
+
+  let recv_state_callback_name st label =
+    Printf.sprintf "state%dRecv%s" st (LabelName.user label)
+
+  let state_record_name st = "state" ^ Int.to_string st
+
+  let callback_record_name = "callbacks"
+
+  let communication_record_name = "comms"
+
+  let role_variant_name = "roles"
+
+  let send_payload_fn_name p = "send_" ^ p
+
+  let recv_payload_fn_name p = "recv_" ^ p
+
+  let choice_ctor_name st label = "Choice" ^ Int.to_string st ^ label
+end
+
 let generate_record ~noeq name content =
   let noeq = if noeq then "noeq " else "" in
   let preamble = Printf.sprintf "%stype %s =\n" noeq name in
@@ -132,17 +155,10 @@ let generate_record ~noeq name content =
   in
   print_endline (preamble ^ def)
 
-let send_state_callback_name st = Printf.sprintf "state%dSend" st
-
-let send_state_choice_name st = Printf.sprintf "state%dChoice" st
-
-let recv_state_callback_name st label =
-  Printf.sprintf "state%dRecv%s" st (LabelName.user label)
-
 let generate_state_defs var_maps =
   Map.iteri
     ~f:(fun ~key:st ~data ->
-      let name = "state" ^ Int.to_string st in
+      let name = FstarNames.state_record_name st in
       let content =
         List.map
           ~f:(fun (name, ty, is_silent) ->
@@ -175,9 +191,9 @@ let generate_send_choices g var_map =
         in
         let acc = G.fold_succ_e collect_action g st [] in
         let preamble =
-          Printf.sprintf "noeq type %s (st: state%d) =\n"
-            (send_state_choice_name st)
-            st
+          Printf.sprintf "noeq type %s (st: %s) =\n"
+            (FstarNames.send_state_choice_name st)
+            (FstarNames.state_record_name st)
         in
         let def =
           String.concat ~sep:"\n"
@@ -185,8 +201,8 @@ let generate_send_choices g var_map =
                ~f:(fun (label, ty) ->
                  let vars_to_bind = Map.find_exn var_map st in
                  let ty = bind_variables ty vars_to_bind st in
-                 Printf.sprintf "| Choice%d%s of %s" st
-                   (LabelName.user label)
+                 Printf.sprintf "| %s of %s"
+                   (FstarNames.choice_ctor_name st (LabelName.user label))
                    (Expr.show_payload_type ty))
                acc)
         in
@@ -196,7 +212,7 @@ let generate_send_choices g var_map =
   G.iter_vertex generate_send_choice g
 
 let generate_roles roles =
-  let preamble = "type roles =\n" in
+  let preamble = Printf.sprintf "type %s =\n" FstarNames.role_variant_name in
   let roles = Set.to_list roles in
   let def =
     String.concat ~sep:"\n"
@@ -209,10 +225,10 @@ let generate_transition_typedefs g var_map =
     match state_action_type g st with
     | `Send ->
         let new_entry =
-          Printf.sprintf "%s: (st: state%d) -> ML (%s st)"
-            (send_state_callback_name st)
-            st
-            (send_state_choice_name st)
+          Printf.sprintf "%s: (st: %s) -> ML (%s st)"
+            (FstarNames.send_state_callback_name st)
+            (FstarNames.state_record_name st)
+            (FstarNames.send_state_choice_name st)
         in
         new_entry :: acc
     | `Recv ->
@@ -232,9 +248,10 @@ let generate_transition_typedefs g var_map =
                 | _ -> Err.unimpl "handling more than 1 payload"
               in
               let new_entry =
-                Printf.sprintf "%s: (st: state%d) -> (%s) -> ML unit"
-                  (recv_state_callback_name st label)
-                  st recv_payload
+                Printf.sprintf "%s: (st: %s) -> (%s) -> ML unit"
+                  (FstarNames.recv_state_callback_name st label)
+                  (FstarNames.state_record_name st)
+                  recv_payload
               in
               new_entry :: acc
           | _ ->
@@ -248,7 +265,8 @@ let generate_transition_typedefs g var_map =
     | `Terminal -> acc
   in
   let transitions = G.fold_vertex collect_transition g [] in
-  generate_record ~noeq:true "callbacks" (List.rev transitions)
+  generate_record ~noeq:true FstarNames.callback_record_name
+    (List.rev transitions)
 
 let generate_comms payload_types =
   let payload_types = Set.to_list payload_types in
@@ -257,15 +275,19 @@ let generate_comms payload_types =
       ~f:(fun ty ->
         let ty = PayloadTypeName.user ty in
         let send_ty =
-          Printf.sprintf "send_%s: role -> %s -> ML unit" ty ty
+          Printf.sprintf "%s: %s -> %s -> ML unit"
+            (FstarNames.send_payload_fn_name ty)
+            FstarNames.role_variant_name ty
         in
         let recv_ty =
-          Printf.sprintf "recv_%s: role -> unit -> ML %s" ty ty
+          Printf.sprintf "%s: %s -> unit -> ML %s"
+            (FstarNames.recv_payload_fn_name ty)
+            FstarNames.role_variant_name ty
         in
         [send_ty; recv_ty])
       payload_types
   in
-  generate_record ~noeq:true "comms" content
+  generate_record ~noeq:true FstarNames.communication_record_name content
 
 let gen_code (start, g, rec_var_info) =
   let var_map = compute_var_map start g rec_var_info in
