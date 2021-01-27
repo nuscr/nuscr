@@ -144,6 +144,8 @@ module FstarNames = struct
   let recv_payload_fn_name p = "recv_" ^ p
 
   let choice_ctor_name st label = "Choice" ^ Int.to_string st ^ label
+
+  let run_state_fn_name st = "runState" ^ Int.to_string st
 end
 
 let generate_record ~noeq name content =
@@ -289,6 +291,49 @@ let generate_comms payload_types =
   in
   generate_record ~noeq:true FstarNames.communication_record_name content
 
+let generate_run_fns start _g _var_map rec_var_info =
+  let preamble =
+    Printf.sprintf "let run (comms: %s) (callbacks: %s) : ML unit =\n"
+      FstarNames.communication_record_name FstarNames.callback_record_name
+  in
+  let run_state_fns = (* TODO *) [] in
+  let run_fns =
+    "let rec " ^ String.concat ~sep:"\n and " run_state_fns ^ "\nin\n"
+  in
+  let init_state_content =
+    match Map.find rec_var_info start with
+    | None -> "()"
+    | Some rvs ->
+        if List.is_empty rvs then "()"
+        else
+          let inner =
+            String.concat ~sep:";\n"
+              (List.map
+                 ~f:
+                   (fun ( is_silent
+                        , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _}
+                        ) ->
+                   let rv_name = VariableName.user rv_name in
+                   let value =
+                     if is_silent then
+                       Printf.sprintf "(assume false; hide %s)"
+                         (Expr.show (Expr.default_value rv_ty))
+                     else Expr.show rv_init_expr
+                   in
+                   Printf.sprintf "%s = %s" rv_name value)
+                 rvs)
+          in
+          "{\n" ^ inner ^ "\n}\n"
+  in
+  let init_state =
+    Printf.sprintf "let initState: %s =\n%s\nin"
+      (FstarNames.state_record_name start)
+      init_state_content
+  in
+  let run_init_state = FstarNames.run_state_fn_name start ^ " initState" in
+  print_endline
+    (String.concat ~sep:"\n" [preamble; run_fns; init_state; run_init_state])
+
 let gen_code (start, g, rec_var_info) =
   let var_map = compute_var_map start g rec_var_info in
   let () = generate_state_defs var_map in
@@ -296,4 +341,5 @@ let gen_code (start, g, rec_var_info) =
   let () = generate_roles (find_all_roles g) in
   let () = generate_transition_typedefs g var_map in
   let () = generate_comms (find_all_payloads g) in
+  let () = generate_run_fns start g var_map rec_var_info in
   assert false
