@@ -45,7 +45,7 @@ let gen_callback_module (g : G.t) : structure_item =
     match state_action_type g st with
     | `Mixed -> Err.violation "Mixed states should not occur in an EFSM"
     | `Terminal -> acc
-    | `Send ->
+    | `Send _ ->
         let gen_send (_, a, _) acc =
           match a with
           | SendA (_, msg, _) ->
@@ -69,7 +69,7 @@ let gen_callback_module (g : G.t) : structure_item =
         let ty = [%type: [%t env] -> [%t return_ty]] in
         let val_ = Val.mk (Location.mknoloc name) ty in
         val_ :: acc
-    | `Recv ->
+    | `Recv _ ->
         let gen_recv (_, a, _) callbacks =
           match a with
           | RecvA (_, msg, _) ->
@@ -138,9 +138,8 @@ let gen_run_expr ~monad start g =
       match state_action_type g st with
       | `Terminal -> if monad then [%expr M.return env] else [%expr env]
       | `Mixed -> failwith "Impossible"
-      | (`Send | `Recv) as action ->
+      | (`Send role | `Recv role) as action ->
           let transitions = get_transitions g st in
-          let role, _, _, _ = List.hd_exn transitions in
           let role = Exp.variant (RoleName.user role) None in
           let comms = [%expr router [%e role]] in
           let send_fn_name = sprintf "state%dSend" st in
@@ -172,7 +171,7 @@ let gen_run_expr ~monad start g =
           let mk_match_case (_, label, payload_ty, next) =
             let next_state = mk_run_state_ident next in
             match action with
-            | `Send ->
+            | `Send _ ->
                 let label_e = Exp.constant (Const.string label) in
                 let send_label = [%expr comms.send_string [%e label_e]] in
                 let send_payload = comm_payload `Send payload_ty in
@@ -195,7 +194,7 @@ let gen_run_expr ~monad start g =
                         [%e send_label] ;
                         [%e send_payload] ;
                         [%e next_state] env] ) }
-            | `Recv ->
+            | `Recv _ ->
                 let recv_payload = comm_payload `Recv payload_ty in
                 let recv_callback_name = mk_receive_callback st label in
                 let recv_callback = Exp.ident (mk_lid recv_callback_name) in
@@ -219,8 +218,9 @@ let gen_run_expr ~monad start g =
           in
           let e =
             match action with
-            | `Send -> Exp.match_ [%expr [%e send_callback] env] match_cases
-            | `Recv ->
+            | `Send _ ->
+                Exp.match_ [%expr [%e send_callback] env] match_cases
+            | `Recv _ ->
                 let e =
                   Exp.match_ [%expr label] (match_cases @ [impossible_case])
                 in
