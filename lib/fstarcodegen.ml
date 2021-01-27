@@ -250,10 +250,28 @@ let generate_transition_typedefs g var_map =
   let transitions = G.fold_vertex collect_transition g [] in
   generate_record ~noeq:true "callbacks" (List.rev transitions)
 
+let generate_comms payload_types =
+  let payload_types = Set.to_list payload_types in
+  let content =
+    List.concat_map
+      ~f:(fun ty ->
+        let ty = PayloadTypeName.user ty in
+        let send_ty =
+          Printf.sprintf "send_%s: role -> %s -> ML unit" ty ty
+        in
+        let recv_ty =
+          Printf.sprintf "recv_%s: role -> unit -> ML %s" ty ty
+        in
+        [send_ty; recv_ty])
+      payload_types
+  in
+  generate_record ~noeq:true "comms" content
+
 let gen_code (start, g, rec_var_info) =
   let var_map = compute_var_map start g rec_var_info in
   let () = generate_state_defs var_map in
   let () = generate_send_choices g var_map in
   let () = generate_roles (find_all_roles g) in
   let () = generate_transition_typedefs g var_map in
+  let () = generate_comms (find_all_payloads g) in
   assert false
