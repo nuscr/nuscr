@@ -108,6 +108,16 @@ Print State Variables:
   state9Recvconfirm: (st: state9) -> (unit) -> ML unit
   }
   
+  noeq type comms =
+  {
+  send_int: role -> int -> ML unit;
+  recv_int: role -> unit -> ML int;
+  send_string: role -> string -> ML unit;
+  recv_string: role -> unit -> ML string;
+  send_unit: role -> unit -> ML unit;
+  recv_unit: role -> unit -> ML unit
+  }
+  
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:259:2"
+          "Assert_failure lib/fstarcodegen.ml:277:2"
   [1]
