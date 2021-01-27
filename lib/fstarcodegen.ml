@@ -146,6 +146,8 @@ module FstarNames = struct
   let choice_ctor_name st label = "Choice" ^ Int.to_string st ^ label
 
   let run_state_fn_name st = "runState" ^ Int.to_string st
+
+  let role_variant_ctor r = RoleName.user r |> String.capitalize
 end
 
 let generate_record ~noeq name content =
@@ -218,7 +220,7 @@ let generate_roles roles =
   let roles = Set.to_list roles in
   let def =
     String.concat ~sep:"\n"
-      (List.map ~f:(fun r -> "| " ^ RoleName.user r) roles)
+      (List.map ~f:(fun r -> "| " ^ FstarNames.role_variant_ctor r) roles)
   in
   Stdio.print_endline (preamble ^ def)
 
@@ -308,15 +310,65 @@ let generate_run_fns start g _var_map rec_var_info =
         match state_action_type g st with
         | `Terminal -> "()"
         | `Mixed -> Err.violation "An EFSM should not have a mixed state"
-        | `Send _ -> "assert false (* TODO send state *)"
-        | `Recv _ -> "assert false (* TODO recv state *)"
+        | `Send r ->
+            let connect_selection =
+              Printf.sprintf "let conn = comms %s in"
+                (FstarNames.role_variant_ctor r)
+            in
+            let match_head =
+              Printf.sprintf "match callbacks.%s st with"
+                (FstarNames.send_state_callback_name st)
+            in
+            let collect_match_hand (_, action, _next) acc =
+              let entry =
+                match action with
+                | SendA (_, m, _) ->
+                    Printf.sprintf "| %s _ -> assert false (* TODO *)"
+                      (FstarNames.choice_ctor_name st
+                         (LabelName.user m.Gtype.label))
+                | _ ->
+                    Err.violation
+                      "Sending state should only have outgoing send actions"
+              in
+              entry :: acc
+            in
+            let match_hands = G.fold_succ_e collect_match_hand g st [] in
+            String.concat ~sep:"\n"
+              (connect_selection :: match_head :: List.rev match_hands)
+        | `Recv r ->
+            let connect_selection =
+              Printf.sprintf "let conn = comms %s in"
+                (FstarNames.role_variant_ctor r)
+            in
+            let match_head =
+              Printf.sprintf "match conn.%s () with"
+                (FstarNames.recv_payload_fn_name "string")
+            in
+            let collect_match_hand (_, action, _next) acc =
+              let entry =
+                match action with
+                | RecvA (_, m, _) ->
+                    Printf.sprintf "| \"%s\" -> assert false (* TODO *)"
+                      (LabelName.user m.Gtype.label)
+                | _ ->
+                    Err.violation
+                      "Receiving state should only have outgoing receive \
+                       actions"
+              in
+              entry :: acc
+            in
+            let match_hands = G.fold_succ_e collect_match_hand g st [] in
+            let catch_all = "| _ -> unexpected \"Unexpected label\"" in
+            String.concat ~sep:"\n"
+              ( connect_selection :: match_head
+              :: List.rev (catch_all :: match_hands) )
       in
       (preamble ^ body) :: acc
     in
     List.rev (G.fold_vertex run_state_fn g [])
   in
   let run_fns =
-    "let rec " ^ String.concat ~sep:"\n and " run_state_fns ^ "\nin\n"
+    "let rec " ^ String.concat ~sep:"\nand " run_state_fns ^ "\nin\n"
   in
   let init_state_content =
     match Map.find rec_var_info start with
