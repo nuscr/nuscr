@@ -59,15 +59,21 @@ Var info should be as follows:
   
   let run (comms: comms) (callbacks: callbacks) : ML unit =
   
-  let rec 
+  let rec runState0 (st: state0): ML unit =
+  assert false (* TODO recv state *)
+   and runState5 (st: state5): ML unit =
+  assert false (* TODO send state *)
+   and runState6 (st: state6): ML unit =
+  ()
   in
   
   let initState: state0 =
   {
-  count = 0}
+  count = 0
+  }
   
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:345:2"
+          "Assert_failure lib/fstarcodegen.ml:362:2"
   [1]
