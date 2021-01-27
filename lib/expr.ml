@@ -351,3 +351,13 @@ let rec substitute ~from ~replace = function
   | Binop (b, e1, e2) ->
       Binop (b, substitute ~from ~replace e1, substitute ~from ~replace e2)
   | Unop (u, e) -> Unop (u, substitute ~from ~replace e)
+
+let rec default_value = function
+  | PTInt -> Int 0
+  | PTBool -> Bool true
+  | PTString -> String ""
+  | PTUnit -> Err.unimpl "unit as an expression"
+  | PTAbstract typename ->
+      Err.violationf "No default value available for %s"
+        (PayloadTypeName.user typename)
+  | PTRefined (_, ty, _) -> default_value ty
