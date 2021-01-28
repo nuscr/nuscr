@@ -123,7 +123,10 @@ Print State Variables:
   let rec runState0 (st: state0): ML unit =
   let conn = comms P in
   match callbacks.state0Send st with
-  | Choice0propose _ -> assert false (* TODO *)
+  | Choice0propose initialPrice ->
+  let () = conn.send_string "propose" in
+  let () = conn.send_int initialPrice in
+  assert false (* TODO *)
   and runState1 (st: state1): ML unit =
   let conn = comms P in
   match conn.recv_string () with
@@ -134,15 +137,27 @@ Print State Variables:
   and runState4 (st: state4): ML unit =
   let conn = comms P in
   match callbacks.state4Send st with
-  | Choice4confirm _ -> assert false (* TODO *)
+  | Choice4confirm _unit ->
+  let () = conn.send_string "confirm" in
+  let () = conn.send_unit _unit in
+  assert false (* TODO *)
   and runState5 (st: state5): ML unit =
   ()
   and runState7 (st: state7): ML unit =
   let conn = comms P in
   match callbacks.state7Send st with
-  | Choice7counter _ -> assert false (* TODO *)
-  | Choice7accept _ -> assert false (* TODO *)
-  | Choice7reject _ -> assert false (* TODO *)
+  | Choice7counter newCounterPrice ->
+  let () = conn.send_string "counter" in
+  let () = conn.send_int newCounterPrice in
+  assert false (* TODO *)
+  | Choice7accept confirmedPrice ->
+  let () = conn.send_string "accept" in
+  let () = conn.send_int confirmedPrice in
+  assert false (* TODO *)
+  | Choice7reject _unit ->
+  let () = conn.send_string "reject" in
+  let () = conn.send_unit _unit in
+  assert false (* TODO *)
   and runState9 (st: state9): ML unit =
   let conn = comms P in
   match conn.recv_string () with
@@ -161,5 +176,5 @@ Print State Variables:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:415:2"
+          "Assert_failure lib/fstarcodegen.ml:449:2"
   [1]
