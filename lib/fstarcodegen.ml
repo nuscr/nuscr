@@ -306,6 +306,24 @@ let generate_run_fns start g _var_map rec_var_info =
           (FstarNames.run_state_fn_name st)
           (FstarNames.state_record_name st)
       in
+      let find_payload m =
+        match List.length m.Gtype.payload with
+        | 0 -> ("_unit", "unit")
+        | 1 -> (
+          match List.hd_exn m.Gtype.payload with
+          | Gtype.PValue (v, ty) ->
+              let payload =
+                Option.value ~default:"payload"
+                  (Option.map ~f:VariableName.user v)
+              in
+              let ty =
+                Expr.payload_typename_of_payload_type ty
+                |> PayloadTypeName.user
+              in
+              (payload, ty)
+          | Gtype.PDelegate _ -> Err.unimpl "delegation in code generation" )
+        | _ -> Err.unimpl "sending multiple payload items"
+      in
       let body =
         match state_action_type g st with
         | `Terminal -> "()"
@@ -323,25 +341,7 @@ let generate_run_fns start g _var_map rec_var_info =
               let entry =
                 match action with
                 | SendA (_, m, _) ->
-                    let payload, base_ty =
-                      match List.length m.Gtype.payload with
-                      | 0 -> ("_unit", "unit")
-                      | 1 -> (
-                        match List.hd_exn m.Gtype.payload with
-                        | Gtype.PValue (v, ty) ->
-                            let payload =
-                              Option.value ~default:"payload"
-                                (Option.map ~f:VariableName.user v)
-                            in
-                            let ty =
-                              Expr.payload_typename_of_payload_type ty
-                              |> PayloadTypeName.user
-                            in
-                            (payload, ty)
-                        | Gtype.PDelegate _ ->
-                            Err.unimpl "delegation in code generation" )
-                      | _ -> Err.unimpl "sending multiple payload items"
-                    in
+                    let payload, base_ty = find_payload m in
                     let match_pattern =
                       Printf.sprintf "| %s %s ->"
                         (FstarNames.choice_ctor_name st
@@ -358,7 +358,10 @@ let generate_run_fns start g _var_map rec_var_info =
                         (FstarNames.send_payload_fn_name base_ty)
                         payload
                     in
-                    [match_pattern; send_label; send_payload; "assert false (* TODO *)"]
+                    [ match_pattern
+                    ; send_label
+                    ; send_payload
+                    ; "assert false (* TODO *)" ]
                 | _ ->
                     Err.violation
                       "Sending state should only have outgoing send actions"
@@ -382,8 +385,25 @@ let generate_run_fns start g _var_map rec_var_info =
               let entry =
                 match action with
                 | RecvA (_, m, _) ->
-                    Printf.sprintf "| \"%s\" -> assert false (* TODO *)"
-                      (LabelName.user m.Gtype.label)
+                    let payload, base_ty = find_payload m in
+                    let match_pattern =
+                      Printf.sprintf "| \"%s\" ->"
+                        (LabelName.user m.Gtype.label)
+                    in
+                    let recv_payload =
+                      Printf.sprintf "let %s = conn.%s () in" payload
+                        (FstarNames.recv_payload_fn_name base_ty)
+                    in
+                    let recv_callback =
+                      Printf.sprintf "let () = callbacks.%s st %s in"
+                        (FstarNames.recv_state_callback_name st
+                           m.Gtype.label)
+                        payload
+                    in
+                    [ match_pattern
+                    ; recv_payload
+                    ; recv_callback
+                    ; "assert false (* TODO *)" ]
                 | _ ->
                     Err.violation
                       "Receiving state should only have outgoing receive \
@@ -392,10 +412,10 @@ let generate_run_fns start g _var_map rec_var_info =
               entry :: acc
             in
             let match_hands = G.fold_succ_e collect_match_hand g st [] in
-            let catch_all = "| _ -> unexpected \"Unexpected label\"" in
+            let catch_all = ["| _ -> unexpected \"Unexpected label\""] in
             String.concat ~sep:"\n"
               ( connect_selection :: match_head
-              :: List.rev (catch_all :: match_hands) )
+              :: List.concat (List.rev (catch_all :: match_hands)) )
       in
       (preamble ^ body) :: acc
     in
