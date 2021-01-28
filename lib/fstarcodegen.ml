@@ -150,7 +150,7 @@ module FstarNames = struct
   let role_variant_ctor r = RoleName.user r |> String.capitalize
 end
 
-let generate_record ~noeq name content =
+let generate_record_type ~noeq name content =
   let noeq = if noeq then "noeq " else "" in
   let preamble = Printf.sprintf "%stype %s =\n" noeq name in
   let def =
@@ -158,6 +158,13 @@ let generate_record ~noeq name content =
     else "{\n" ^ String.concat ~sep:";\n" content ^ "\n}\n"
   in
   print_endline (preamble ^ def)
+
+let generate_record_value contents =
+  let record =
+    if List.is_empty contents then "()"
+    else "{\n" ^ String.concat ~sep:"\n" contents ^ "\n}\n"
+  in
+  record
 
 let generate_state_defs var_maps =
   Map.iteri
@@ -171,7 +178,7 @@ let generate_state_defs var_maps =
               (Expr.show_payload_type ty))
           data
       in
-      generate_record ~noeq:true name content)
+      generate_record_type ~noeq:true name content)
     var_maps
 
 let generate_send_choices g var_map =
@@ -269,7 +276,7 @@ let generate_transition_typedefs g var_map =
     | `Terminal -> acc
   in
   let transitions = G.fold_vertex collect_transition g [] in
-  generate_record ~noeq:true FstarNames.callback_record_name
+  generate_record_type ~noeq:true FstarNames.callback_record_name
     (List.rev transitions)
 
 let generate_comms payload_types =
@@ -291,7 +298,8 @@ let generate_comms payload_types =
         [send_ty; recv_ty])
       payload_types
   in
-  generate_record ~noeq:true FstarNames.communication_record_name content
+  generate_record_type ~noeq:true FstarNames.communication_record_name
+    content
 
 let generate_run_fns start g _var_map rec_var_info =
   let preamble =
@@ -425,29 +433,27 @@ let generate_run_fns start g _var_map rec_var_info =
     "let rec " ^ String.concat ~sep:"\nand " run_state_fns ^ "\nin\n"
   in
   let init_state_content =
-    match Map.find rec_var_info start with
-    | None -> "()"
-    | Some rvs ->
-        if List.is_empty rvs then "()"
-        else
-          let inner =
-            String.concat ~sep:";\n"
-              (List.map
-                 ~f:
-                   (fun ( is_silent
-                        , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _}
-                        ) ->
-                   let rv_name = VariableName.user rv_name in
-                   let value =
-                     if is_silent then
-                       Printf.sprintf "(assume false; hide %s)"
-                         (Expr.show (Expr.default_value rv_ty))
-                     else Expr.show rv_init_expr
-                   in
-                   Printf.sprintf "%s = %s" rv_name value)
-                 rvs)
-          in
-          "{\n" ^ inner ^ "\n}\n"
+    let content =
+      match Map.find rec_var_info start with
+      | None -> []
+      | Some rvs ->
+          if List.is_empty rvs then []
+          else
+            List.map
+              ~f:
+                (fun ( is_silent
+                     , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _} ) ->
+                let rv_name = VariableName.user rv_name in
+                let value =
+                  if is_silent then
+                    Printf.sprintf "(assume false; hide %s)"
+                      (Expr.show (Expr.default_value rv_ty))
+                  else Expr.show rv_init_expr
+                in
+                Printf.sprintf "%s = %s" rv_name value)
+              rvs
+    in
+    generate_record_value content
   in
   let init_state =
     Printf.sprintf "let initState: %s =\n%s\nin"
