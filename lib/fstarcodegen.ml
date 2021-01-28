@@ -28,47 +28,6 @@ let find_concrete_vars m =
   let concrete_vars = find_named_variables m.Gtype.payload in
   concrete_vars
 
-(** If any variable in [vars_to_bind] appears in [ty], bind them with a
-    getter from state [st] *)
-let bind_variables ty vars_to_bind st =
-  match ty with
-  | Expr.PTRefined (v, ty, e) ->
-      let erased_vars_to_bind, concrete_vars_to_bind =
-        List.partition_tf
-          ~f:(fun (_, _, is_silent) -> is_silent)
-          vars_to_bind
-      in
-      let bind_concrete_var var =
-        Expr.Var
-          (VariableName.of_string
-             (Printf.sprintf "(Mkstate%d?.%s st)" st (VariableName.user var)))
-      in
-      let bind_erased_var var =
-        Expr.Var
-          (VariableName.of_string
-             (Printf.sprintf "(reveal (Mkstate%d?.%s st))" st
-                (VariableName.user var)))
-      in
-      let bind_var e vars_to_bind binder =
-        let vars_to_bind =
-          Set.of_list
-            (module VariableName)
-            (List.map ~f:(fun (v, _, _) -> v) vars_to_bind)
-        in
-        let vars_needed_binding = Set.inter vars_to_bind (Expr.free_var e) in
-        let e =
-          Set.fold ~init:e
-            ~f:(fun e var ->
-              Expr.substitute ~from:var ~replace:(binder var) e)
-            vars_needed_binding
-        in
-        e
-      in
-      let e = bind_var e erased_vars_to_bind bind_erased_var in
-      let e = bind_var e concrete_vars_to_bind bind_concrete_var in
-      Expr.PTRefined (v, ty, e)
-  | ty -> ty
-
 let compute_var_map start g rec_var_info =
   let init = Map.empty (module Int) in
   let append lst ((v, _, _) as entry) =
@@ -148,7 +107,49 @@ module FstarNames = struct
   let run_state_fn_name st = "runState" ^ Int.to_string st
 
   let role_variant_ctor r = RoleName.user r |> String.capitalize
+
+  let record_getter st var =
+    Printf.sprintf "(Mk%s?.%s st)" (state_record_name st)
+      (VariableName.user var)
 end
+
+(** If any variable in [vars_to_bind] appears in [ty], bind them with a
+    getter from state [st] *)
+let bind_variables ty vars_to_bind st =
+  match ty with
+  | Expr.PTRefined (v, ty, e) ->
+      let erased_vars_to_bind, concrete_vars_to_bind =
+        List.partition_tf
+          ~f:(fun (_, _, is_silent) -> is_silent)
+          vars_to_bind
+      in
+      let bind_concrete_var var =
+        Expr.Var (VariableName.of_string (FstarNames.record_getter st var))
+      in
+      let bind_erased_var var =
+        Expr.Var
+          (VariableName.of_string
+             (Printf.sprintf "(reveal %s)" (FstarNames.record_getter st var)))
+      in
+      let bind_var e vars_to_bind binder =
+        let vars_to_bind =
+          Set.of_list
+            (module VariableName)
+            (List.map ~f:(fun (v, _, _) -> v) vars_to_bind)
+        in
+        let vars_needed_binding = Set.inter vars_to_bind (Expr.free_var e) in
+        let e =
+          Set.fold ~init:e
+            ~f:(fun e var ->
+              Expr.substitute ~from:var ~replace:(binder var) e)
+            vars_needed_binding
+        in
+        e
+      in
+      let e = bind_var e erased_vars_to_bind bind_erased_var in
+      let e = bind_var e concrete_vars_to_bind bind_concrete_var in
+      Expr.PTRefined (v, ty, e)
+  | ty -> ty
 
 let generate_record_type ~noeq name content =
   let noeq = if noeq then "noeq " else "" in
