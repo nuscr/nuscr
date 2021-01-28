@@ -65,15 +65,24 @@ Var info should be as follows:
   | "Decr" ->
   let _unit = conn.recv_unit () in
   let () = callbacks.state0RecvDecr st _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState0 nextState
   | "Incr" ->
   let _unit = conn.recv_unit () in
   let () = callbacks.state0RecvIncr st _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState0 nextState
   | "Result" ->
   let _unit = conn.recv_unit () in
   let () = callbacks.state0RecvResult st _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState5 nextState
   | _ -> unexpected "Unexpected label"
   and runState5 (st: state5): ML unit =
   let conn = comms A in
@@ -81,7 +90,10 @@ Var info should be as follows:
   | Choice5Total total ->
   let () = conn.send_string "Total" in
   let () = conn.send_int total in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState6 nextState
   and runState6 (st: state6): ML unit =
   ()
   in
@@ -94,5 +106,5 @@ Var info should be as follows:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:475:2"
+          "Assert_failure lib/fstarcodegen.ml:496:2"
   [1]
