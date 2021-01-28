@@ -127,7 +127,11 @@ Print State Variables:
   let () = conn.send_string "propose" in
   let () = conn.send_int initialPrice in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= initialPrice;
+  currentPrice= initialPrice
+  }
+  
   in
   runState1 nextState
   and runState1 (st: state1): ML unit =
@@ -137,21 +141,35 @@ Print State Variables:
   let confirmedPrice = conn.recv_int () in
   let () = callbacks.state1Recvaccept st confirmedPrice in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate1?.initialPrice st);
+  currentPrice= (Mkstate1?.currentPrice st);
+  confirmedPrice= confirmedPrice
+  }
+  
   in
   runState4 nextState
   | "counter" ->
   let counterPrice = conn.recv_int () in
   let () = callbacks.state1Recvcounter st counterPrice in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate1?.initialPrice st);
+  currentPrice= (Mkstate1?.currentPrice st);
+  counterPrice= counterPrice
+  }
+  
   in
   runState7 nextState
   | "reject" ->
   let _unit = conn.recv_unit () in
   let () = callbacks.state1Recvreject st _unit in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate1?.initialPrice st);
+  currentPrice= (Mkstate1?.currentPrice st)
+  }
+  
   in
   runState15 nextState
   | _ -> unexpected "Unexpected label"
@@ -162,7 +180,12 @@ Print State Variables:
   let () = conn.send_string "confirm" in
   let () = conn.send_unit _unit in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate4?.initialPrice st);
+  currentPrice= (Mkstate4?.currentPrice st);
+  confirmedPrice= (Mkstate4?.confirmedPrice st)
+  }
+  
   in
   runState5 nextState
   and runState5 (st: state5): ML unit =
@@ -174,21 +197,36 @@ Print State Variables:
   let () = conn.send_string "counter" in
   let () = conn.send_int newCounterPrice in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate7?.initialPrice st);
+  currentPrice= newCounterPrice
+  }
+  
   in
   runState1 nextState
   | Choice7accept confirmedPrice ->
   let () = conn.send_string "accept" in
   let () = conn.send_int confirmedPrice in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate7?.initialPrice st);
+  currentPrice= (Mkstate7?.currentPrice st);
+  counterPrice= (Mkstate7?.counterPrice st);
+  confirmedPrice= confirmedPrice
+  }
+  
   in
   runState9 nextState
   | Choice7reject _unit ->
   let () = conn.send_string "reject" in
   let () = conn.send_unit _unit in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate7?.initialPrice st);
+  currentPrice= (Mkstate7?.currentPrice st);
+  counterPrice= (Mkstate7?.counterPrice st)
+  }
+  
   in
   runState13 nextState
   and runState9 (st: state9): ML unit =
@@ -198,7 +236,13 @@ Print State Variables:
   let _unit = conn.recv_unit () in
   let () = callbacks.state9Recvconfirm st _unit in
   let nextState =
-  assert false (* TODO *)
+  {
+  initialPrice= (Mkstate9?.initialPrice st);
+  currentPrice= (Mkstate9?.currentPrice st);
+  counterPrice= (Mkstate9?.counterPrice st);
+  confirmedPrice= (Mkstate9?.confirmedPrice st)
+  }
+  
   in
   runState10 nextState
   | _ -> unexpected "Unexpected label"
@@ -215,5 +259,5 @@ Print State Variables:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:497:2"
+          "Assert_failure lib/fstarcodegen.ml:573:2"
   [1]

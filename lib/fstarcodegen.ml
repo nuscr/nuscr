@@ -113,42 +113,44 @@ module FstarNames = struct
       (VariableName.user var)
 end
 
+(** If any variable in [vars_to_bind] appears in [e], bind them with a getter
+    from state [st] *)
+let bind_variables_e e vars_to_bind st =
+  let erased_vars_to_bind, concrete_vars_to_bind =
+    List.partition_tf ~f:(fun (_, _, is_silent) -> is_silent) vars_to_bind
+  in
+  let bind_concrete_var var =
+    Expr.Var (VariableName.of_string (FstarNames.record_getter st var))
+  in
+  let bind_erased_var var =
+    Expr.Var
+      (VariableName.of_string
+         (Printf.sprintf "(reveal %s)" (FstarNames.record_getter st var)))
+  in
+  let bind_var e vars_to_bind binder =
+    let vars_to_bind =
+      Set.of_list
+        (module VariableName)
+        (List.map ~f:(fun (v, _, _) -> v) vars_to_bind)
+    in
+    let vars_needed_binding = Set.inter vars_to_bind (Expr.free_var e) in
+    let e =
+      Set.fold ~init:e
+        ~f:(fun e var -> Expr.substitute ~from:var ~replace:(binder var) e)
+        vars_needed_binding
+    in
+    e
+  in
+  let e = bind_var e erased_vars_to_bind bind_erased_var in
+  let e = bind_var e concrete_vars_to_bind bind_concrete_var in
+  e
+
 (** If any variable in [vars_to_bind] appears in [ty], bind them with a
     getter from state [st] *)
-let bind_variables ty vars_to_bind st =
+let bind_variables_ty ty vars_to_bind st =
   match ty with
   | Expr.PTRefined (v, ty, e) ->
-      let erased_vars_to_bind, concrete_vars_to_bind =
-        List.partition_tf
-          ~f:(fun (_, _, is_silent) -> is_silent)
-          vars_to_bind
-      in
-      let bind_concrete_var var =
-        Expr.Var (VariableName.of_string (FstarNames.record_getter st var))
-      in
-      let bind_erased_var var =
-        Expr.Var
-          (VariableName.of_string
-             (Printf.sprintf "(reveal %s)" (FstarNames.record_getter st var)))
-      in
-      let bind_var e vars_to_bind binder =
-        let vars_to_bind =
-          Set.of_list
-            (module VariableName)
-            (List.map ~f:(fun (v, _, _) -> v) vars_to_bind)
-        in
-        let vars_needed_binding = Set.inter vars_to_bind (Expr.free_var e) in
-        let e =
-          Set.fold ~init:e
-            ~f:(fun e var ->
-              Expr.substitute ~from:var ~replace:(binder var) e)
-            vars_needed_binding
-        in
-        e
-      in
-      let e = bind_var e erased_vars_to_bind bind_erased_var in
-      let e = bind_var e concrete_vars_to_bind bind_concrete_var in
-      Expr.PTRefined (v, ty, e)
+      Expr.PTRefined (v, ty, bind_variables_e e vars_to_bind st)
   | ty -> ty
 
 let generate_record_type ~noeq name content =
@@ -163,7 +165,7 @@ let generate_record_type ~noeq name content =
 let generate_record_value contents =
   let record =
     if List.is_empty contents then "()"
-    else "{\n" ^ String.concat ~sep:"\n" contents ^ "\n}\n"
+    else "{\n" ^ String.concat ~sep:";\n" contents ^ "\n}\n"
   in
   record
 
@@ -212,7 +214,7 @@ let generate_send_choices g var_map =
             (List.map
                ~f:(fun (label, ty) ->
                  let vars_to_bind = Map.find_exn var_map st in
-                 let ty = bind_variables ty vars_to_bind st in
+                 let ty = bind_variables_ty ty vars_to_bind st in
                  Printf.sprintf "| %s of %s"
                    (FstarNames.choice_ctor_name st (LabelName.user label))
                    (Expr.show_payload_type ty))
@@ -255,7 +257,7 @@ let generate_transition_typedefs g var_map =
                 | 1 ->
                     let _, ty, _ = List.hd_exn concrete_vars in
                     let vars_to_bind = Map.find_exn var_map st in
-                    let ty = bind_variables ty vars_to_bind st in
+                    let ty = bind_variables_ty ty vars_to_bind st in
                     Expr.show_payload_type ty
                 | _ -> Err.unimpl "handling more than 1 payload"
               in
@@ -302,8 +304,82 @@ let generate_comms payload_types =
   generate_record_type ~noeq:true FstarNames.communication_record_name
     content
 
-let construct_next_state _var_map ~curr:_ ~next:_ _action _rec_var_info =
-  "assert false (* TODO *)"
+let construct_next_state var_map ~curr ~next action rec_var_info =
+  let curr_vars = Map.find_exn var_map curr in
+  let next_vars = Map.find_exn var_map next in
+  let next_rv_info = Option.value ~default:[] (Map.find rec_var_info next) in
+  let new_silent_vars, rec_var_updates =
+    match action with
+    | SendA (_, _, rannot) | RecvA (_, _, rannot) ->
+        let silent_vars = rannot.silent_vars in
+        let rec_expr_updates = rannot.rec_expr_updates in
+        let _, rec_var_updates =
+          List.fold ~init:(rec_expr_updates, [])
+            ~f:(fun (updates, acc) (is_silent, {Gtype.rv_name; _}) ->
+              if is_silent then (updates, acc)
+              else
+                match updates with
+                | [] -> ([], acc)
+                | e :: rest -> (rest, (rv_name, e) :: acc))
+            next_rv_info
+        in
+        (silent_vars, List.rev rec_var_updates)
+    | Epsilon ->
+        Err.violation
+          "Epsilon transition should not appear after EFSM generation"
+  in
+  let content =
+    List.fold ~init:[]
+      ~f:(fun acc (v, _, _) ->
+        let entry =
+          let header = VariableName.user v ^ "= " in
+          let value =
+            match
+              List.find
+                ~f:(fun (v_, _) -> VariableName.equal v v_)
+                new_silent_vars
+            with
+            | Some (_, ty) ->
+                (* We have a new silent variable *)
+                Printf.sprintf "(assume false; hide %s)"
+                  (Expr.default_value ty |> Expr.show)
+            | None -> (
+              match
+                List.find
+                  ~f:(fun (v_, _) -> VariableName.equal v v_)
+                  rec_var_updates
+              with
+              | Some (_, e) ->
+                  (* We have a recursion variable to be updated *)
+                  let e = bind_variables_e e curr_vars curr in
+                  Expr.show e
+              | None -> (
+                match
+                  List.find
+                    ~f:(fun (_, {Gtype.rv_name; _}) ->
+                      VariableName.equal v rv_name)
+                    next_rv_info
+                with
+                | Some (is_silent, {Gtype.rv_init_expr; Gtype.rv_ty; _}) ->
+                    (* We have a recursion variable to be initialised *)
+                    if is_silent then
+                      Printf.sprintf "(assume false; hide %s)"
+                        (Expr.default_value rv_ty |> Expr.show)
+                    else
+                      let e = bind_variables_e rv_init_expr curr_vars curr in
+                      Expr.show e
+                | None ->
+                    (* We have a variable that is either new, or can be
+                       retrieved from the existing state *)
+                    let e = bind_variables_e (Expr.Var v) curr_vars curr in
+                    Expr.show e ) )
+          in
+          header ^ value
+        in
+        entry :: acc)
+      next_vars
+  in
+  generate_record_value (List.rev content)
 
 let generate_run_fns start g var_map rec_var_info =
   let preamble =
