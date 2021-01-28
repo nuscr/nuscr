@@ -69,7 +69,10 @@ Var info should be as follows:
   and runState5 (st: state5): ML unit =
   let conn = comms A in
   match callbacks.state5Send st with
-  | Choice5Total _ -> assert false (* TODO *)
+  | Choice5Total total ->
+  let () = conn.send_string "Total" in
+  let () = conn.send_int total in
+  assert false (* TODO *)
   and runState6 (st: state6): ML unit =
   ()
   in
@@ -82,5 +85,5 @@ Var info should be as follows:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:415:2"
+          "Assert_failure lib/fstarcodegen.ml:449:2"
   [1]

@@ -323,9 +323,42 @@ let generate_run_fns start g _var_map rec_var_info =
               let entry =
                 match action with
                 | SendA (_, m, _) ->
-                    Printf.sprintf "| %s _ -> assert false (* TODO *)"
-                      (FstarNames.choice_ctor_name st
-                         (LabelName.user m.Gtype.label))
+                    let payload, base_ty =
+                      match List.length m.Gtype.payload with
+                      | 0 -> ("_unit", "unit")
+                      | 1 -> (
+                        match List.hd_exn m.Gtype.payload with
+                        | Gtype.PValue (v, ty) ->
+                            let payload =
+                              Option.value ~default:"payload"
+                                (Option.map ~f:VariableName.user v)
+                            in
+                            let ty =
+                              Expr.payload_typename_of_payload_type ty
+                              |> PayloadTypeName.user
+                            in
+                            (payload, ty)
+                        | Gtype.PDelegate _ ->
+                            Err.unimpl "delegation in code generation" )
+                      | _ -> Err.unimpl "sending multiple payload items"
+                    in
+                    let match_pattern =
+                      Printf.sprintf "| %s %s ->"
+                        (FstarNames.choice_ctor_name st
+                           (LabelName.user m.Gtype.label))
+                        payload
+                    in
+                    let send_label =
+                      Printf.sprintf "let () = conn.%s \"%s\" in"
+                        (FstarNames.send_payload_fn_name "string")
+                        (LabelName.user m.Gtype.label)
+                    in
+                    let send_payload =
+                      Printf.sprintf "let () = conn.%s %s in"
+                        (FstarNames.send_payload_fn_name base_ty)
+                        payload
+                    in
+                    [match_pattern; send_label; send_payload; "assert false (* TODO *)"]
                 | _ ->
                     Err.violation
                       "Sending state should only have outgoing send actions"
@@ -334,7 +367,8 @@ let generate_run_fns start g _var_map rec_var_info =
             in
             let match_hands = G.fold_succ_e collect_match_hand g st [] in
             String.concat ~sep:"\n"
-              (connect_selection :: match_head :: List.rev match_hands)
+              ( connect_selection :: match_head
+              :: List.concat (List.rev match_hands) )
         | `Recv r ->
             let connect_selection =
               Printf.sprintf "let conn = comms %s in"
