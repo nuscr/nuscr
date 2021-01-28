@@ -301,7 +301,10 @@ let generate_comms payload_types =
   generate_record_type ~noeq:true FstarNames.communication_record_name
     content
 
-let generate_run_fns start g _var_map rec_var_info =
+let construct_next_state _var_map ~curr:_ ~next:_ _action _rec_var_info =
+  "assert false (* TODO *)"
+
+let generate_run_fns start g var_map rec_var_info =
   let preamble =
     Printf.sprintf "let run (comms: %s -> %s) (callbacks: %s) : ML unit =\n"
       FstarNames.role_variant_name FstarNames.communication_record_name
@@ -345,7 +348,7 @@ let generate_run_fns start g _var_map rec_var_info =
               Printf.sprintf "match callbacks.%s st with"
                 (FstarNames.send_state_callback_name st)
             in
-            let collect_match_hand (_, action, _next) acc =
+            let collect_match_hand (_, action, next) acc =
               let entry =
                 match action with
                 | SendA (_, m, _) ->
@@ -366,10 +369,19 @@ let generate_run_fns start g _var_map rec_var_info =
                         (FstarNames.send_payload_fn_name base_ty)
                         payload
                     in
+                    let next_state = "let nextState =" in
+                    let run_next_state =
+                      Printf.sprintf "%s nextState"
+                        (FstarNames.run_state_fn_name next)
+                    in
                     [ match_pattern
                     ; send_label
                     ; send_payload
-                    ; "assert false (* TODO *)" ]
+                    ; next_state
+                    ; construct_next_state var_map ~curr:st ~next action
+                        rec_var_info
+                    ; "in"
+                    ; run_next_state ]
                 | _ ->
                     Err.violation
                       "Sending state should only have outgoing send actions"
@@ -389,7 +401,7 @@ let generate_run_fns start g _var_map rec_var_info =
               Printf.sprintf "match conn.%s () with"
                 (FstarNames.recv_payload_fn_name "string")
             in
-            let collect_match_hand (_, action, _next) acc =
+            let collect_match_hand (_, action, next) acc =
               let entry =
                 match action with
                 | RecvA (_, m, _) ->
@@ -408,10 +420,19 @@ let generate_run_fns start g _var_map rec_var_info =
                            m.Gtype.label)
                         payload
                     in
+                    let next_state = "let nextState =" in
+                    let run_next_state =
+                      Printf.sprintf "%s nextState"
+                        (FstarNames.run_state_fn_name next)
+                    in
                     [ match_pattern
                     ; recv_payload
                     ; recv_callback
-                    ; "assert false (* TODO *)" ]
+                    ; next_state
+                    ; construct_next_state var_map ~curr:st ~next action
+                        rec_var_info
+                    ; "in"
+                    ; run_next_state ]
                 | _ ->
                     Err.violation
                       "Receiving state should only have outgoing receive \
