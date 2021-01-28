@@ -130,9 +130,18 @@ Print State Variables:
   and runState1 (st: state1): ML unit =
   let conn = comms P in
   match conn.recv_string () with
-  | "accept" -> assert false (* TODO *)
-  | "counter" -> assert false (* TODO *)
-  | "reject" -> assert false (* TODO *)
+  | "accept" ->
+  let confirmedPrice = conn.recv_int () in
+  let () = callbacks.state1Recvaccept st confirmedPrice in
+  assert false (* TODO *)
+  | "counter" ->
+  let counterPrice = conn.recv_int () in
+  let () = callbacks.state1Recvcounter st counterPrice in
+  assert false (* TODO *)
+  | "reject" ->
+  let _unit = conn.recv_unit () in
+  let () = callbacks.state1Recvreject st _unit in
+  assert false (* TODO *)
   | _ -> unexpected "Unexpected label"
   and runState4 (st: state4): ML unit =
   let conn = comms P in
@@ -161,7 +170,10 @@ Print State Variables:
   and runState9 (st: state9): ML unit =
   let conn = comms P in
   match conn.recv_string () with
-  | "confirm" -> assert false (* TODO *)
+  | "confirm" ->
+  let _unit = conn.recv_unit () in
+  let () = callbacks.state9Recvconfirm st _unit in
+  assert false (* TODO *)
   | _ -> unexpected "Unexpected label"
   and runState10 (st: state10): ML unit =
   ()
@@ -176,5 +188,5 @@ Print State Variables:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:449:2"
+          "Assert_failure lib/fstarcodegen.ml:466:2"
   [1]
