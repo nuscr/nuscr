@@ -126,22 +126,34 @@ Print State Variables:
   | Choice0propose initialPrice ->
   let () = conn.send_string "propose" in
   let () = conn.send_int initialPrice in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState1 nextState
   and runState1 (st: state1): ML unit =
   let conn = comms P in
   match conn.recv_string () with
   | "accept" ->
   let confirmedPrice = conn.recv_int () in
   let () = callbacks.state1Recvaccept st confirmedPrice in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState4 nextState
   | "counter" ->
   let counterPrice = conn.recv_int () in
   let () = callbacks.state1Recvcounter st counterPrice in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState7 nextState
   | "reject" ->
   let _unit = conn.recv_unit () in
   let () = callbacks.state1Recvreject st _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState15 nextState
   | _ -> unexpected "Unexpected label"
   and runState4 (st: state4): ML unit =
   let conn = comms P in
@@ -149,7 +161,10 @@ Print State Variables:
   | Choice4confirm _unit ->
   let () = conn.send_string "confirm" in
   let () = conn.send_unit _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState5 nextState
   and runState5 (st: state5): ML unit =
   ()
   and runState7 (st: state7): ML unit =
@@ -158,22 +173,34 @@ Print State Variables:
   | Choice7counter newCounterPrice ->
   let () = conn.send_string "counter" in
   let () = conn.send_int newCounterPrice in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState1 nextState
   | Choice7accept confirmedPrice ->
   let () = conn.send_string "accept" in
   let () = conn.send_int confirmedPrice in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState9 nextState
   | Choice7reject _unit ->
   let () = conn.send_string "reject" in
   let () = conn.send_unit _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState13 nextState
   and runState9 (st: state9): ML unit =
   let conn = comms P in
   match conn.recv_string () with
   | "confirm" ->
   let _unit = conn.recv_unit () in
   let () = callbacks.state9Recvconfirm st _unit in
+  let nextState =
   assert false (* TODO *)
+  in
+  runState10 nextState
   | _ -> unexpected "Unexpected label"
   and runState10 (st: state10): ML unit =
   ()
@@ -188,5 +215,5 @@ Print State Variables:
   in
   runState0 initState
   nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:475:2"
+          "Assert_failure lib/fstarcodegen.ml:496:2"
   [1]
