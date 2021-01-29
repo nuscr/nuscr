@@ -404,7 +404,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
       in
       let find_payload m =
         match List.length m.Gtype.payload with
-        | 0 -> ("_unit", "unit")
+        | 0 -> ("_unit", "unit", None)
         | 1 -> (
           match List.hd_exn m.Gtype.payload with
           | Gtype.PValue (v, ty) ->
@@ -412,11 +412,19 @@ let generate_run_fns buffer start g var_map rec_var_info =
                 Option.value ~default:"payload"
                   (Option.map ~f:VariableName.user v)
               in
+              let curr_vars = Map.find_exn var_map st in
+              let e =
+                match ty with
+                | Expr.PTRefined (_, _, e) ->
+                    let e = bind_variables_e e curr_vars st in
+                    Some e
+                | _ -> None
+              in
               let ty =
                 Expr.payload_typename_of_payload_type ty
                 |> PayloadTypeName.user
               in
-              (payload, ty)
+              (payload, ty, e)
           | Gtype.PDelegate _ -> Err.unimpl "delegation in code generation" )
         | _ -> Err.unimpl "sending multiple payload items"
       in
@@ -437,7 +445,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
               let entry =
                 match action with
                 | SendA (_, m, _) ->
-                    let payload, base_ty = find_payload m in
+                    let payload, base_ty, _ = find_payload m in
                     let match_pattern =
                       Printf.sprintf "| %s %s ->"
                         (FstarNames.choice_ctor_name st
@@ -490,7 +498,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
               let entry =
                 match action with
                 | RecvA (_, m, _) ->
-                    let payload, base_ty = find_payload m in
+                    let payload, base_ty, e = find_payload m in
                     let match_pattern =
                       Printf.sprintf "| \"%s\" ->"
                         (LabelName.user m.Gtype.label)
@@ -498,6 +506,13 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     let recv_payload =
                       Printf.sprintf "let %s = conn.%s () in" payload
                         (FstarNames.recv_payload_fn_name base_ty)
+                    in
+                    let recv_payload =
+                      match e with
+                      | Some e ->
+                          Printf.sprintf "%s\nassume (%s);" recv_payload
+                            (Expr.show e)
+                      | None -> recv_payload
                     in
                     let recv_callback =
                       Printf.sprintf "let () = callbacks.%s st %s in"
