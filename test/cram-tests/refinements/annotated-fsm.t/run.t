@@ -9,7 +9,7 @@ Expecting recursion expressions to be correctly attached.
     0 -> 0 [label="A?Decr()[(count)-(1)]", ];
     0 -> 0 [label="A?Incr()[(count)+(1)]", ];
     0 -> 5 [label="A?Result()", ];
-    5 -> 6 [label="A!Total(total: total:int{(total)=(count)})", ];
+    5 -> 6 [label="A!Total(sum: sum:int{(sum)=(count)})", ];
     
     }
 
@@ -39,11 +39,11 @@ Var info should be as follows:
   {
   _dumState6: unit;
   count: (int);
-  total: (total:int{(total)=(count)})
+  sum: (sum:int{(sum)=(count)})
   }
   
   noeq type state5Choice (st: state5) =
-  | Choice5Total of total:int{(total)=((Mkstate5?.count st))}
+  | Choice5Total of sum:int{(sum)=((Mkstate5?.count st))}
   type roles =
   | A
   noeq type callbacks =
@@ -106,14 +106,14 @@ Var info should be as follows:
   and runState5 (st: state5): ML unit =
   let conn = comms A in
   match callbacks.state5Send st with
-  | Choice5Total total ->
+  | Choice5Total sum ->
   let () = conn.send_string "Total" in
-  let () = conn.send_int total in
+  let () = conn.send_int sum in
   let nextState =
   {
   _dumState6= ();
   count= (Mkstate5?.count st);
-  total= total
+  sum= sum
   }
   
   in
@@ -153,7 +153,7 @@ A should have some erased variables.
   {
   _dumState6: unit;
   count: (erased int);
-  total: (total:int{(total)=((reveal count))})
+  sum: (sum:int{(sum)=((reveal count))})
   }
   
   noeq type state0Choice (st: state0) =
@@ -165,7 +165,7 @@ A should have some erased variables.
   noeq type callbacks =
   {
   state0Send: (st: state0) -> ML (state0Choice st);
-  state5RecvTotal: (st: state5) -> (total:int{(total)=((reveal (Mkstate5?.count st)))}) -> ML unit
+  state5RecvTotal: (st: state5) -> (sum:int{(sum)=((reveal (Mkstate5?.count st)))}) -> ML unit
   }
   
   noeq type comms =
@@ -220,14 +220,14 @@ A should have some erased variables.
   let conn = comms B in
   match conn.recv_string () with
   | "Total" ->
-  let total = conn.recv_int () in
-  assume ((total)=((reveal (Mkstate5?.count st))));
-  let () = callbacks.state5RecvTotal st total in
+  let sum = conn.recv_int () in
+  assume ((sum)=((reveal (Mkstate5?.count st))));
+  let () = callbacks.state5RecvTotal st sum in
   let nextState =
   {
   _dumState6= ();
   count= (reveal (Mkstate5?.count st));
-  total= total
+  sum= sum
   }
   
   in
