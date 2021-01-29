@@ -577,9 +577,18 @@ let generate_run_fns buffer start g var_map rec_var_info =
   Buffer.add_string buffer
     (String.concat ~sep:"\n" [preamble; run_fns; init_state; run_init_state])
 
+let generate_preamble buffer =
+  let open_modules = ["FStar.All"; "FStar.Ghost"] in
+  Buffer.add_string buffer "module Generated\n"
+  (* TODO: Change it to ProtocolName + RoleName *) ;
+  List.iter
+    ~f:(fun m -> Buffer.add_string buffer (Printf.sprintf "open %s\n" m))
+    open_modules
+
 let gen_code (start, g, rec_var_info) =
   let buffer = Buffer.create 4096 in
   let var_map = compute_var_map start g rec_var_info in
+  let () = generate_preamble buffer in
   let () = generate_state_defs buffer var_map in
   let () = generate_send_choices buffer g var_map in
   let () = generate_roles buffer (find_all_roles g) in
