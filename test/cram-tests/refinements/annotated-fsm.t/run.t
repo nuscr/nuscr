@@ -19,6 +19,9 @@ Var info should be as follows:
 6 should have rec var: count, and payload var total
 
   $ nuscr --gencode-fstar B@Counter Counter.nuscr
+  module Generated
+  open FStar.All
+  open FStar.Ghost
   noeq type state0 =
   {
   _dumState0: unit;
