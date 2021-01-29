@@ -29,6 +29,9 @@ Print FSM for C@Contract
     }
 Print State Variables:
   $ nuscr --gencode-fstar C@Contract Contract.nuscr
+  module Generated
+  open FStar.All
+  open FStar.Ghost
   noeq type state0 =
   {
   _dumState0: unit
