@@ -175,17 +175,42 @@ let generate_state_defs buffer var_maps =
   Map.iteri
     ~f:(fun ~key:st ~data ->
       let name = FstarNames.state_record_name st in
-      let content =
+      let reveal_silent_vars silent_vars = function
+        | Expr.PTRefined (v, ty, e) ->
+            let free_vars = Expr.free_var e in
+            let silent_vars =
+              Set.of_list (module VariableName) silent_vars
+            in
+            let vars_to_reveal = Set.inter free_vars silent_vars in
+            let e =
+              Set.fold ~init:e
+                ~f:(fun e v ->
+                  Expr.substitute ~from:v
+                    ~replace:
+                      (Expr.Var
+                         (VariableName.of_string
+                            (Printf.sprintf "(reveal %s)"
+                               (VariableName.user v))))
+                    e)
+                vars_to_reveal
+            in
+            Expr.PTRefined (v, ty, e)
+        | ty -> ty
+      in
+      let content, _ =
         List.fold
           ~init:
-            [Printf.sprintf "%s: unit" (FstarNames.dum_state_field_name st)]
-          ~f:(fun acc (name, ty, is_silent) ->
+            ( [Printf.sprintf "%s: unit" (FstarNames.dum_state_field_name st)]
+            , [] )
+          ~f:(fun (acc, silent_vars) (name, ty, is_silent) ->
+            let ty = reveal_silent_vars silent_vars ty in
             let entry =
               Printf.sprintf "%s: (%s%s)" (VariableName.user name)
                 (if is_silent then "erased " else "")
                 (Expr.show_payload_type ty)
             in
-            entry :: acc)
+            ( entry :: acc
+            , if is_silent then name :: silent_vars else silent_vars ))
           data
       in
       generate_record_type buffer ~noeq:true name (List.rev content))

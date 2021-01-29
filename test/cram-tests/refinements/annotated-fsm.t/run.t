@@ -130,3 +130,118 @@ Var info should be as follows:
   
   in
   runState0 initState
+
+A should have some erased variables.
+  $ nuscr --gencode-fstar A@Counter Counter.nuscr
+  module Generated
+  open FStar.All
+  open FStar.Ghost
+  open FStar.Error
+  noeq type state0 =
+  {
+  _dumState0: unit;
+  count: (erased int)
+  }
+  
+  noeq type state5 =
+  {
+  _dumState5: unit;
+  count: (erased int)
+  }
+  
+  noeq type state6 =
+  {
+  _dumState6: unit;
+  count: (erased int);
+  total: (total:int{(total)=((reveal count))})
+  }
+  
+  noeq type state0Choice (st: state0) =
+  | Choice0Result of unit
+  | Choice0Incr of unit
+  | Choice0Decr of unit
+  type roles =
+  | B
+  noeq type callbacks =
+  {
+  state0Send: (st: state0) -> ML (state0Choice st);
+  state5RecvTotal: (st: state5) -> (total:int{(total)=((reveal (Mkstate5?.count st)))}) -> ML unit
+  }
+  
+  noeq type comms =
+  {
+  send_int: int -> ML unit;
+  recv_int: unit -> ML int;
+  send_string: string -> ML unit;
+  recv_string: unit -> ML string;
+  send_unit: unit -> ML unit;
+  recv_unit: unit -> ML unit
+  }
+  
+  let run (comms: roles -> comms) (callbacks: callbacks) : ML unit =
+  
+  let rec runState0 (st: state0): ML unit =
+  let conn = comms B in
+  match callbacks.state0Send st with
+  | Choice0Decr _unit ->
+  let () = conn.send_string "Decr" in
+  let () = conn.send_unit _unit in
+  let nextState =
+  {
+  _dumState0= ();
+  count= (assume false; hide 0)
+  }
+  
+  in
+  runState0 nextState
+  | Choice0Incr _unit ->
+  let () = conn.send_string "Incr" in
+  let () = conn.send_unit _unit in
+  let nextState =
+  {
+  _dumState0= ();
+  count= (assume false; hide 0)
+  }
+  
+  in
+  runState0 nextState
+  | Choice0Result _unit ->
+  let () = conn.send_string "Result" in
+  let () = conn.send_unit _unit in
+  let nextState =
+  {
+  _dumState5= ();
+  count= (reveal (Mkstate0?.count st))
+  }
+  
+  in
+  runState5 nextState
+  and runState5 (st: state5): ML unit =
+  let conn = comms B in
+  match conn.recv_string () with
+  | "Total" ->
+  let total = conn.recv_int () in
+  assume ((total)=((reveal (Mkstate5?.count st))));
+  let () = callbacks.state5RecvTotal st total in
+  let nextState =
+  {
+  _dumState6= ();
+  count= (reveal (Mkstate5?.count st));
+  total= total
+  }
+  
+  in
+  runState6 nextState
+  | _ -> unexpected "Unexpected label"
+  and runState6 (st: state6): ML unit =
+  ()
+  in
+  
+  let initState: state0 =
+  {
+  _dumState0= ();
+  count= (assume false; hide 0)
+  }
+  
+  in
+  runState0 initState
