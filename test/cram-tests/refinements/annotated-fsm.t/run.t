@@ -21,16 +21,19 @@ Var info should be as follows:
   $ nuscr --gencode-fstar B@Counter Counter.nuscr
   noeq type state0 =
   {
+  _dumState0: unit;
   count: (int)
   }
   
   noeq type state5 =
   {
+  _dumState5: unit;
   count: (int)
   }
   
   noeq type state6 =
   {
+  _dumState6: unit;
   count: (int);
   total: (total:int{(total)=(count)})
   }
@@ -67,6 +70,7 @@ Var info should be as follows:
   let () = callbacks.state0RecvDecr st _unit in
   let nextState =
   {
+  _dumState0= ();
   count= ((Mkstate0?.count st))-(1)
   }
   
@@ -77,6 +81,7 @@ Var info should be as follows:
   let () = callbacks.state0RecvIncr st _unit in
   let nextState =
   {
+  _dumState0= ();
   count= ((Mkstate0?.count st))+(1)
   }
   
@@ -87,6 +92,7 @@ Var info should be as follows:
   let () = callbacks.state0RecvResult st _unit in
   let nextState =
   {
+  _dumState5= ();
   count= (Mkstate0?.count st)
   }
   
@@ -101,6 +107,7 @@ Var info should be as follows:
   let () = conn.send_int total in
   let nextState =
   {
+  _dumState6= ();
   count= (Mkstate5?.count st);
   total= total
   }
@@ -113,7 +120,8 @@ Var info should be as follows:
   
   let initState: state0 =
   {
-  count = 0
+  _dumState0= ();
+  count= 0
   }
   
   in
