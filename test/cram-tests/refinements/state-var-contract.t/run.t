@@ -155,6 +155,7 @@ Print State Variables:
   match conn.recv_string () with
   | "accept" ->
   let confirmedPrice = conn.recv_int () in
+  assume ((confirmedPrice)=((Mkstate1?.currentPrice st)));
   let () = callbacks.state1Recvaccept st confirmedPrice in
   let nextState =
   {
@@ -168,6 +169,7 @@ Print State Variables:
   runState4 nextState
   | "counter" ->
   let counterPrice = conn.recv_int () in
+  assume ((counterPrice)<>((Mkstate1?.currentPrice st)));
   let () = callbacks.state1Recvcounter st counterPrice in
   let nextState =
   {
