@@ -578,7 +578,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
     (String.concat ~sep:"\n" [preamble; run_fns; init_state; run_init_state])
 
 let generate_preamble buffer =
-  let open_modules = ["FStar.All"; "FStar.Ghost"] in
+  let open_modules = ["FStar.All"; "FStar.Ghost"; "FStar.Error"] in
   Buffer.add_string buffer "module Generated\n"
   (* TODO: Change it to ProtocolName + RoleName *) ;
   List.iter

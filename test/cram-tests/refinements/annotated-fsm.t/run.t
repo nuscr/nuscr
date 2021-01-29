@@ -22,6 +22,7 @@ Var info should be as follows:
   module Generated
   open FStar.All
   open FStar.Ghost
+  open FStar.Error
   noeq type state0 =
   {
   _dumState0: unit;
