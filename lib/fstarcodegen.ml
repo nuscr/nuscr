@@ -182,7 +182,7 @@ let generate_state_defs buffer var_maps =
           ~f:(fun acc (name, ty, is_silent) ->
             let entry =
               Printf.sprintf "%s: (%s%s)" (VariableName.user name)
-                (if is_silent then "erased" else "")
+                (if is_silent then "erased " else "")
                 (Expr.show_payload_type ty)
             in
             entry :: acc)
