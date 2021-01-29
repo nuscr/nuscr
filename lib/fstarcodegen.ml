@@ -111,6 +111,8 @@ module FstarNames = struct
   let record_getter st var =
     Printf.sprintf "(Mk%s?.%s st)" (state_record_name st)
       (VariableName.user var)
+
+  let dum_state_field_name st = Printf.sprintf "_dumState%d" st
 end
 
 (** If any variable in [vars_to_bind] appears in [e], bind them with a getter
@@ -174,14 +176,19 @@ let generate_state_defs buffer var_maps =
     ~f:(fun ~key:st ~data ->
       let name = FstarNames.state_record_name st in
       let content =
-        List.map
-          ~f:(fun (name, ty, is_silent) ->
-            Printf.sprintf "%s: (%s%s)" (VariableName.user name)
-              (if is_silent then "erased" else "")
-              (Expr.show_payload_type ty))
+        List.fold
+          ~init:
+            [Printf.sprintf "%s: unit" (FstarNames.dum_state_field_name st)]
+          ~f:(fun acc (name, ty, is_silent) ->
+            let entry =
+              Printf.sprintf "%s: (%s%s)" (VariableName.user name)
+                (if is_silent then "erased" else "")
+                (Expr.show_payload_type ty)
+            in
+            entry :: acc)
           data
       in
-      generate_record_type buffer ~noeq:true name content)
+      generate_record_type buffer ~noeq:true name (List.rev content))
     var_maps
 
 let generate_send_choices buffer g var_map =
@@ -329,7 +336,8 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
           "Epsilon transition should not appear after EFSM generation"
   in
   let content =
-    List.fold ~init:[]
+    List.fold
+      ~init:[Printf.sprintf "%s= ()" (FstarNames.dum_state_field_name next)]
       ~f:(fun acc (v, _, _) ->
         let entry =
           let header = VariableName.user v ^ "= " in
@@ -532,24 +540,31 @@ let generate_run_fns buffer start g var_map rec_var_info =
   in
   let init_state_content =
     let content =
-      match Map.find rec_var_info start with
-      | None -> []
-      | Some rvs ->
-          if List.is_empty rvs then []
-          else
-            List.map
-              ~f:
-                (fun ( is_silent
-                     , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _} ) ->
-                let rv_name = VariableName.user rv_name in
-                let value =
-                  if is_silent then
-                    Printf.sprintf "(assume false; hide %s)"
-                      (Expr.show (Expr.default_value rv_ty))
-                  else Expr.show rv_init_expr
-                in
-                Printf.sprintf "%s = %s" rv_name value)
-              rvs
+      let dum_state =
+        Printf.sprintf "%s= ()" (FstarNames.dum_state_field_name start)
+      in
+      let vars =
+        match Map.find rec_var_info start with
+        | None -> []
+        | Some rvs ->
+            if List.is_empty rvs then []
+            else
+              List.map
+                ~f:
+                  (fun ( is_silent
+                       , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _}
+                       ) ->
+                  let rv_name = VariableName.user rv_name in
+                  let value =
+                    if is_silent then
+                      Printf.sprintf "(assume false; hide %s)"
+                        (Expr.show (Expr.default_value rv_ty))
+                    else Expr.show rv_init_expr
+                  in
+                  Printf.sprintf "%s= %s" rv_name value)
+                rvs
+      in
+      dum_state :: vars
     in
     generate_record_value content
   in

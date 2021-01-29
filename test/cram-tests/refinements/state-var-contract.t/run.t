@@ -30,15 +30,20 @@ Print FSM for C@Contract
 Print State Variables:
   $ nuscr --gencode-fstar C@Contract Contract.nuscr
   noeq type state0 =
-  unit
+  {
+  _dumState0: unit
+  }
+  
   noeq type state1 =
   {
+  _dumState1: unit;
   initialPrice: (int);
   currentPrice: (int)
   }
   
   noeq type state4 =
   {
+  _dumState4: unit;
   initialPrice: (int);
   currentPrice: (int);
   confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(currentPrice)})
@@ -46,6 +51,7 @@ Print State Variables:
   
   noeq type state5 =
   {
+  _dumState5: unit;
   initialPrice: (int);
   currentPrice: (int);
   confirmedPrice: (confirmedPrice:int{(confirmedPrice)=(currentPrice)})
@@ -53,6 +59,7 @@ Print State Variables:
   
   noeq type state7 =
   {
+  _dumState7: unit;
   initialPrice: (int);
   currentPrice: (int);
   counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)})
@@ -60,6 +67,7 @@ Print State Variables:
   
   noeq type state9 =
   {
+  _dumState9: unit;
   initialPrice: (int);
   currentPrice: (int);
   counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)});
@@ -68,6 +76,7 @@ Print State Variables:
   
   noeq type state10 =
   {
+  _dumState10: unit;
   initialPrice: (int);
   currentPrice: (int);
   counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)});
@@ -76,6 +85,7 @@ Print State Variables:
   
   noeq type state13 =
   {
+  _dumState13: unit;
   initialPrice: (int);
   currentPrice: (int);
   counterPrice: (counterPrice:int{(counterPrice)<>(currentPrice)})
@@ -83,6 +93,7 @@ Print State Variables:
   
   noeq type state15 =
   {
+  _dumState15: unit;
   initialPrice: (int);
   currentPrice: (int)
   }
@@ -128,6 +139,7 @@ Print State Variables:
   let () = conn.send_int initialPrice in
   let nextState =
   {
+  _dumState1= ();
   initialPrice= initialPrice;
   currentPrice= initialPrice
   }
@@ -142,6 +154,7 @@ Print State Variables:
   let () = callbacks.state1Recvaccept st confirmedPrice in
   let nextState =
   {
+  _dumState4= ();
   initialPrice= (Mkstate1?.initialPrice st);
   currentPrice= (Mkstate1?.currentPrice st);
   confirmedPrice= confirmedPrice
@@ -154,6 +167,7 @@ Print State Variables:
   let () = callbacks.state1Recvcounter st counterPrice in
   let nextState =
   {
+  _dumState7= ();
   initialPrice= (Mkstate1?.initialPrice st);
   currentPrice= (Mkstate1?.currentPrice st);
   counterPrice= counterPrice
@@ -166,6 +180,7 @@ Print State Variables:
   let () = callbacks.state1Recvreject st _unit in
   let nextState =
   {
+  _dumState15= ();
   initialPrice= (Mkstate1?.initialPrice st);
   currentPrice= (Mkstate1?.currentPrice st)
   }
@@ -181,6 +196,7 @@ Print State Variables:
   let () = conn.send_unit _unit in
   let nextState =
   {
+  _dumState5= ();
   initialPrice= (Mkstate4?.initialPrice st);
   currentPrice= (Mkstate4?.currentPrice st);
   confirmedPrice= (Mkstate4?.confirmedPrice st)
@@ -198,6 +214,7 @@ Print State Variables:
   let () = conn.send_int newCounterPrice in
   let nextState =
   {
+  _dumState1= ();
   initialPrice= (Mkstate7?.initialPrice st);
   currentPrice= newCounterPrice
   }
@@ -209,6 +226,7 @@ Print State Variables:
   let () = conn.send_int confirmedPrice in
   let nextState =
   {
+  _dumState9= ();
   initialPrice= (Mkstate7?.initialPrice st);
   currentPrice= (Mkstate7?.currentPrice st);
   counterPrice= (Mkstate7?.counterPrice st);
@@ -222,6 +240,7 @@ Print State Variables:
   let () = conn.send_unit _unit in
   let nextState =
   {
+  _dumState13= ();
   initialPrice= (Mkstate7?.initialPrice st);
   currentPrice= (Mkstate7?.currentPrice st);
   counterPrice= (Mkstate7?.counterPrice st)
@@ -237,6 +256,7 @@ Print State Variables:
   let () = callbacks.state9Recvconfirm st _unit in
   let nextState =
   {
+  _dumState10= ();
   initialPrice= (Mkstate9?.initialPrice st);
   currentPrice= (Mkstate9?.currentPrice st);
   counterPrice= (Mkstate9?.counterPrice st);
@@ -255,6 +275,9 @@ Print State Variables:
   in
   
   let initState: state0 =
-  ()
+  {
+  _dumState0= ()
+  }
+  
   in
   runState0 initState
