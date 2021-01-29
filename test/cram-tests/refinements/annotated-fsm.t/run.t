@@ -118,6 +118,3 @@ Var info should be as follows:
   
   in
   runState0 initState
-  nuscr: Reported problem:
-          "Assert_failure lib/fstarcodegen.ml:573:2"
-  [1]
