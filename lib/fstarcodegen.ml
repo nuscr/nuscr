@@ -153,14 +153,14 @@ let bind_variables_ty ty vars_to_bind st =
       Expr.PTRefined (v, ty, bind_variables_e e vars_to_bind st)
   | ty -> ty
 
-let generate_record_type ~noeq name content =
+let generate_record_type buffer ~noeq name content =
   let noeq = if noeq then "noeq " else "" in
   let preamble = Printf.sprintf "%stype %s =\n" noeq name in
   let def =
     if List.is_empty content then "unit"
     else "{\n" ^ String.concat ~sep:";\n" content ^ "\n}\n"
   in
-  print_endline (preamble ^ def)
+  Buffer.add_string buffer (preamble ^ def ^ "\n")
 
 let generate_record_value contents =
   let record =
@@ -169,7 +169,7 @@ let generate_record_value contents =
   in
   record
 
-let generate_state_defs var_maps =
+let generate_state_defs buffer var_maps =
   Map.iteri
     ~f:(fun ~key:st ~data ->
       let name = FstarNames.state_record_name st in
@@ -181,10 +181,10 @@ let generate_state_defs var_maps =
               (Expr.show_payload_type ty))
           data
       in
-      generate_record_type ~noeq:true name content)
+      generate_record_type buffer ~noeq:true name content)
     var_maps
 
-let generate_send_choices g var_map =
+let generate_send_choices buffer g var_map =
   let generate_send_choice st =
     match state_action_type g st with
     | `Send _ ->
@@ -220,21 +220,21 @@ let generate_send_choices g var_map =
                    (Expr.show_payload_type ty))
                acc)
         in
-        print_endline (preamble ^ def)
+        Buffer.add_string buffer (preamble ^ def ^ "\n")
     | `Recv _ | `Terminal | `Mixed -> ()
   in
   G.iter_vertex generate_send_choice g
 
-let generate_roles roles =
+let generate_roles buffer roles =
   let preamble = Printf.sprintf "type %s =\n" FstarNames.role_variant_name in
   let roles = Set.to_list roles in
   let def =
     String.concat ~sep:"\n"
       (List.map ~f:(fun r -> "| " ^ FstarNames.role_variant_ctor r) roles)
   in
-  Stdio.print_endline (preamble ^ def)
+  Buffer.add_string buffer (preamble ^ def ^ "\n")
 
-let generate_transition_typedefs g var_map =
+let generate_transition_typedefs buffer g var_map =
   let collect_transition st acc =
     match state_action_type g st with
     | `Send _ ->
@@ -279,10 +279,10 @@ let generate_transition_typedefs g var_map =
     | `Terminal -> acc
   in
   let transitions = G.fold_vertex collect_transition g [] in
-  generate_record_type ~noeq:true FstarNames.callback_record_name
+  generate_record_type buffer ~noeq:true FstarNames.callback_record_name
     (List.rev transitions)
 
-let generate_comms payload_types =
+let generate_comms buffer payload_types =
   let payload_types = Set.to_list payload_types in
   let content =
     List.concat_map
@@ -301,7 +301,7 @@ let generate_comms payload_types =
         [send_ty; recv_ty])
       payload_types
   in
-  generate_record_type ~noeq:true FstarNames.communication_record_name
+  generate_record_type buffer ~noeq:true FstarNames.communication_record_name
     content
 
 let construct_next_state var_map ~curr ~next action rec_var_info =
@@ -381,7 +381,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
   in
   generate_record_value (List.rev content)
 
-let generate_run_fns start g var_map rec_var_info =
+let generate_run_fns buffer start g var_map rec_var_info =
   let preamble =
     Printf.sprintf "let run (comms: %s -> %s) (callbacks: %s) : ML unit =\n"
       FstarNames.role_variant_name FstarNames.communication_record_name
@@ -559,15 +559,16 @@ let generate_run_fns start g var_map rec_var_info =
       init_state_content
   in
   let run_init_state = FstarNames.run_state_fn_name start ^ " initState" in
-  print_endline
+  Buffer.add_string buffer
     (String.concat ~sep:"\n" [preamble; run_fns; init_state; run_init_state])
 
 let gen_code (start, g, rec_var_info) =
+  let buffer = Buffer.create 4096 in
   let var_map = compute_var_map start g rec_var_info in
-  let () = generate_state_defs var_map in
-  let () = generate_send_choices g var_map in
-  let () = generate_roles (find_all_roles g) in
-  let () = generate_transition_typedefs g var_map in
-  let () = generate_comms (find_all_payloads g) in
-  let () = generate_run_fns start g var_map rec_var_info in
-  assert false
+  let () = generate_state_defs buffer var_map in
+  let () = generate_send_choices buffer g var_map in
+  let () = generate_roles buffer (find_all_roles g) in
+  let () = generate_transition_typedefs buffer g var_map in
+  let () = generate_comms buffer (find_all_payloads g) in
+  let () = generate_run_fns buffer start g var_map rec_var_info in
+  Buffer.contents buffer
