@@ -475,7 +475,7 @@ let validate_refinements_exn t =
         let tenv, rvenv, role_knowledge = env in
         (* Unbound TypeVariable should not be possible, because it was
            previously validated *)
-        let rec_vars = Map.find_exn rvenv tvar in
+        let rec_vars = Option.value ~default:[] @@ Map.find rvenv tvar in
         match
           List.iter2
             ~f:(fun {rv_ty; rv_roles; _} rec_expr ->
