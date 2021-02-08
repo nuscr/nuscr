@@ -1,0 +1,11 @@
+(*# RefinementTypes #*)
+
+global protocol Merge(role A, role B, role C) {
+    choice at A {
+        One(x:int) from A to B;
+        One() from B to C;
+    } or {
+        Two(y:int) from A to B;
+        Two() from B to C;
+    }
+}
