@@ -2,12 +2,16 @@ type t =
   { solver_show_queries: bool
   ; nested_protocol_enabled: bool
   ; refinement_type_enabled: bool
+  ; sender_validate_refinements: bool
+  ; receiver_validate_refinements: bool
   ; verbose: bool }
 
 let default =
   { solver_show_queries= false
   ; nested_protocol_enabled= false
   ; refinement_type_enabled= false
+  ; sender_validate_refinements= false
+  ; receiver_validate_refinements= false
   ; verbose= false }
 
 let config = ref default
@@ -26,6 +30,16 @@ let refinement_type_enabled () = !config.refinement_type_enabled
 
 let set_refinement_type refinement_type_enabled =
   config := {!config with refinement_type_enabled}
+
+let sender_validate_refinements () = !config.sender_validate_refinements
+
+let set_sender_validate_refinements sender_validate_refinements =
+  config := {!config with sender_validate_refinements}
+
+let receiver_validate_refinements () = !config.receiver_validate_refinements
+
+let set_receiver_validate_refinements receiver_validate_refinements =
+  config := {!config with receiver_validate_refinements}
 
 let verbose () = !config.verbose
 
