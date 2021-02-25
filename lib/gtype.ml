@@ -390,17 +390,54 @@ let normalise_global_t (global_t : global_t) =
     ~f:normalise_protocol global_t
 
 let validate_refinements_exn t =
-  let env = (Expr.new_typing_env, Map.empty (module TypeVariableName)) in
+  let env =
+    ( Expr.new_typing_env
+    , Map.empty (module TypeVariableName)
+    , Map.empty (module RoleName) )
+  in
+  let knowledge_add role_knowledge role variable =
+    Map.update role_knowledge role ~f:(function
+      | None -> Set.singleton (module VariableName) variable
+      | Some s -> Set.add s variable)
+  in
+  let ensure_knowledge role_knowledge role e =
+    let known_vars =
+      Option.value
+        ~default:(Set.empty (module VariableName))
+        (Map.find role_knowledge role)
+    in
+    let free_vars = Expr.free_var e in
+    let unknown_vars = Set.diff free_vars known_vars in
+    if Set.is_empty unknown_vars then ()
+    else uerr (UnknownVariableValue (role, Set.choose_exn unknown_vars))
+  in
   let rec aux env = function
     | EndG -> ()
-    | MessageG (m, _, _, g) ->
+    | MessageG (m, role_send, role_recv, g) ->
         let payloads = m.payload in
-        let f (tenv, rvenv) = function
+        let f (tenv, rvenv, role_knowledge) = function
           | PValue (v_opt, p_type) ->
               if Expr.is_well_formed_type tenv p_type then
                 match v_opt with
-                | Some v -> (Expr.env_append tenv v p_type, rvenv)
-                | None -> (tenv, rvenv)
+                | Some v ->
+                    let tenv = Expr.env_append tenv v p_type in
+                    let role_knowledge =
+                      knowledge_add role_knowledge role_recv v
+                    in
+                    let role_knowledge =
+                      knowledge_add role_knowledge role_send v
+                    in
+                    let () =
+                      match p_type with
+                      | Expr.PTRefined (_, _, e) ->
+                          if Config.sender_validate_refinements () then
+                            ensure_knowledge role_knowledge role_send e ;
+                          if Config.receiver_validate_refinements () then
+                            ensure_knowledge role_knowledge role_recv e
+                      | _ -> ()
+                    in
+                    (tenv, rvenv, role_knowledge)
+                | None -> (tenv, rvenv, role_knowledge)
               else
                 uerr (IllFormedPayloadType (Expr.show_payload_type p_type))
           | PDelegate _ -> unimpl "Delegation as payload"
@@ -409,11 +446,18 @@ let validate_refinements_exn t =
         aux env g
     | ChoiceG (_, gs) -> List.iter ~f:(aux env) gs
     | MuG (tvar, rec_vars, g) ->
-        let f (tenv, rvenv) {rv_name; rv_ty; rv_init_expr; _} =
+        let f (tenv, rvenv, role_knowledge)
+            {rv_name; rv_ty; rv_init_expr; rv_roles} =
           if Expr.is_well_formed_type tenv rv_ty then
             if Expr.check_type tenv rv_init_expr rv_ty then
-              ( Expr.env_append tenv rv_name rv_ty
-              , Map.add_exn ~key:tvar ~data:rec_vars rvenv )
+              let tenv = Expr.env_append tenv rv_name rv_ty in
+              let rvenv = Map.add_exn ~key:tvar ~data:rec_vars rvenv in
+              let role_knowledge =
+                List.fold ~init:role_knowledge
+                  ~f:(fun acc role -> knowledge_add acc role rv_name)
+                  rv_roles
+              in
+              (tenv, rvenv, role_knowledge)
             else
               uerr
                 (TypeError
@@ -423,14 +467,18 @@ let validate_refinements_exn t =
         let env = List.fold ~init:env ~f rec_vars in
         aux env g
     | TVarG (tvar, rec_exprs, _) -> (
-        let tenv, rvenv = env in
+        let tenv, rvenv, role_knowledge = env in
         (* Unbound TypeVariable should not be possible, because it was
            previously validated *)
         let rec_vars = Map.find_exn rvenv tvar in
         match
           List.iter2
-            ~f:(fun {rv_ty; _} rec_expr ->
-              if Expr.check_type tenv rec_expr rv_ty then ()
+            ~f:(fun {rv_ty; rv_roles; _} rec_expr ->
+              if Expr.check_type tenv rec_expr rv_ty then
+                List.iter
+                  ~f:(fun role ->
+                    ensure_knowledge role_knowledge role rec_expr)
+                  rv_roles
               else
                 uerr
                   (TypeError
