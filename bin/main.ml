@@ -41,6 +41,10 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
           in
           Config.set_nested_protocol true
       | Syntax.RefinementTypes, _ -> Config.set_refinement_type true
+      | Syntax.SenderValidateRefinements, _ ->
+          Config.set_sender_validate_refinements true
+      | Syntax.ReceiverValidateRefinements, _ ->
+          Config.set_receiver_validate_refinements true
     in
     List.iter ~f:process_global_pragma pragmas
   in
