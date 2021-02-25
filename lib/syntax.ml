@@ -10,7 +10,13 @@ open Loc
 
 (* association list of pragmas *)
 
-type pragma = NestedProtocols | ShowPragmas | PrintUsage | RefinementTypes
+type pragma =
+  | NestedProtocols
+  | ShowPragmas
+  | PrintUsage
+  | RefinementTypes
+  | SenderValidateRefinements
+  | ReceiverValidateRefinements
 [@@deriving show]
 
 let pragma_of_string str : pragma =
@@ -19,6 +25,8 @@ let pragma_of_string str : pragma =
   | "PrintUsage" -> PrintUsage
   | "NestedProtocols" -> NestedProtocols
   | "RefinementTypes" -> RefinementTypes
+  | "SenderValidateRefinements" -> SenderValidateRefinements
+  | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (pragma * string option) list [@@deriving show]

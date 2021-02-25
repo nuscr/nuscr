@@ -68,6 +68,10 @@ let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
     | ShowPragmas, _ -> ()
     | NestedProtocols, _ -> Nuscrlib.Config.set_nested_protocol true
     | RefinementTypes, _ -> Nuscrlib.Config.set_refinement_type true
+    | SenderValidateRefinements, _ ->
+        Nuscrlib.Config.set_sender_validate_refinements true
+    | ReceiverValidateRefinements, _ ->
+        Nuscrlib.Config.set_receiver_validate_refinements true
   in
   Nuscrlib.Config.reset () ;
   List.iter ~f:process_global_pragma pragmas
