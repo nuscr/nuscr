@@ -19,6 +19,18 @@ val refinement_type_enabled : unit -> bool
 val set_refinement_type : bool -> unit
 (** Set refinement_type *)
 
+val sender_validate_refinements : unit -> bool
+(** When refinement types are enabled, senders should validate refinements *)
+
+val set_sender_validate_refinements : bool -> unit
+(** Set sender_validate_refinements *)
+
+val receiver_validate_refinements : unit -> bool
+(** When refinement types are enabled, receivers should validate refinements *)
+
+val set_receiver_validate_refinements : bool -> unit
+(** Set receiver_validate_refinements *)
+
 val verbose : unit -> bool
 (** Whether to produce verbose outputs *)
 
