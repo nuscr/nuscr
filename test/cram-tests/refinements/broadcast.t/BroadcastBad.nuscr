@@ -1,0 +1,6 @@
+(*# RefinementTypes, ReceiverValidateRefinements #*)
+
+global protocol BroadcastBad (role A, role B, role C) {
+    Data(x: int) from A to B;
+    Data(y: int{x = y}) from A to C;
+}
