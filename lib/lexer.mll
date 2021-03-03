@@ -3,10 +3,6 @@
   open Parser
 
   exception LexError of string
-
-  (* State for the pragma lexer to distinguish btw reading a pragma and
-     skipping the program *)
-  let in_pragma = ref false
 }
 
 (* some definitions of character classes *)
@@ -16,7 +12,7 @@ let prime = '\''
 let letter = ['a'-'z' 'A'-'Z']
 
 (* nuScr extension: add primes to symbols *)
-let symbol = ['{' '}' '(' ')' '[' ']' ':' '/' '\\' '.' '#''&' '?' '!' '_' '\'' '|' ',' '=' '>' '<' '+' '-' '*']
+(* let symbol = ['{' '}' '(' ')' '[' ']' ':' '/' '\\' '.' '#' '&' '?' '!' '_' '\'' '|' ',' '=' '>' '<' '+' '-' '*'] *)
 let digit = ['0'-'9']
 
 (* in scribble it can be empty, not here *)
@@ -27,8 +23,6 @@ let digit = ['0'-'9']
    the primes cannot come up first (it is a bit weird that digits can
    come first in identifiers *)
 let identifier = (letter|underscore|digit)(letter|digit|underscore|prime)*
-
-let pragmas = "(*#"[^'#']*"#*)"
 
 (* let ext_identifier = '\"' (letter|digit|symbol)* '\"' *)
 
@@ -42,12 +36,8 @@ let ext_identifier = '\"' [^'\"' '\n']* '\"'
    and a Boolean flag (false if eof was reached). *)
 
 rule line_comment = parse
-| '\n' {  new_line lexbuf ; token lexbuf }
+| '\n' { new_line lexbuf ; token lexbuf }
 | _ { line_comment lexbuf }
-
-and ignore_pragma = parse
-| "#*)" { token lexbuf }
-| _ { ignore_pragma lexbuf }
 
 (* nuScr extension, nestable ml style comments *)
 and ml_style_block n = parse
@@ -64,14 +54,15 @@ and c_style_block = parse
 
 and token = parse
 (* whitespace *)
-| ('\t'|' ')+ { token lexbuf}
-| ('\n'|'\r') { new_line lexbuf ; token lexbuf}
+| ('\t'|' ')+ { token lexbuf }
+| ('\n'|'\r') { new_line lexbuf ; token lexbuf }
 
 (* comments and pragmas *)
 | "//" { line_comment lexbuf }
+| "(*#" { PRAGMA_START }
+| "#*)" { PRAGMA_END }
 | "(*)" { line_comment lexbuf }  (* nuScr extension: ml-style line comments *)
 | "/*" { c_style_block lexbuf }
-| pragmas as str { PRAGMA_STR str }
 | "(*" { ml_style_block 1 lexbuf }
 
 | ['0'-'9']+ as i { INT (int_of_string i) }
