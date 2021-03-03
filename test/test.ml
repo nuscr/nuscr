@@ -62,19 +62,8 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
 exception ExpectFail
 
 let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
-  let process_global_pragma ((k : Nuscrlib.Syntax.pragma), v) =
-    match (k, v) with
-    | PrintUsage, _ -> ()
-    | ShowPragmas, _ -> ()
-    | NestedProtocols, _ -> Nuscrlib.Config.set_nested_protocol true
-    | RefinementTypes, _ -> Nuscrlib.Config.set_refinement_type true
-    | SenderValidateRefinements, _ ->
-        Nuscrlib.Config.set_sender_validate_refinements true
-    | ReceiverValidateRefinements, _ ->
-        Nuscrlib.Config.set_receiver_validate_refinements true
-  in
   Nuscrlib.Config.reset () ;
-  List.iter ~f:process_global_pragma pragmas
+  Nuscrlib.Config.load_from_pragmas pragmas
 
 let process_files fns =
   let buffer = Buffer.create 1024 in

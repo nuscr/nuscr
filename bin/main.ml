@@ -30,28 +30,13 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     show_solver_queries =
   Config.set_solver_show_queries show_solver_queries ;
   Config.set_verbose verbose ;
-  let process_pragmas (pragmas : Syntax.pragmas) : unit =
-    let process_global_pragma (k, v) =
-      match (k, v) with
-      | Syntax.PrintUsage, _ -> ()
-      | Syntax.ShowPragmas, _ -> Syntax.show_pragmas pragmas |> print_endline
-      | Syntax.NestedProtocols, _ ->
-          let () =
-            if Option.is_some fsm then
-              Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
-          in
-          Config.set_nested_protocol true
-      | Syntax.RefinementTypes, _ -> Config.set_refinement_type true
-      | Syntax.SenderValidateRefinements, _ ->
-          Config.set_sender_validate_refinements true
-      | Syntax.ReceiverValidateRefinements, _ ->
-          Config.set_receiver_validate_refinements true
-    in
-    List.iter ~f:process_global_pragma pragmas
-  in
   try
     let ast = process_file file Lib.parse in
-    process_pragmas ast.pragmas ;
+    Config.load_from_pragmas ast.pragmas ;
+    if Option.is_some fsm && Config.nested_protocol_enabled () then
+      Err.uerr
+        (Err.IncompatibleFlag
+           ("fsm", Syntax.show_pragma Syntax.NestedProtocols)) ;
     Lib.validate_exn ast ;
     let () =
       if enumerate then
