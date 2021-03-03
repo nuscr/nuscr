@@ -39,3 +39,6 @@ val set_verbose : bool -> unit
 
 val reset : unit -> unit
 (** Reset all configuration to default *)
+
+val load_from_pragmas : Syntax.pragmas -> unit
+(** Load config from pragmas *)
