@@ -351,6 +351,7 @@ let rec project' env (projected_role : RoleName.t) =
             if is_silent then Set.add acc rv_name else acc)
           rec_exprs
       in
+      (* FIXME: This breaks when there are shadowed type variables *)
       let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv, svars) in
       match project' env projected_role g_type with
       | TVarL _ | EndL -> EndL
