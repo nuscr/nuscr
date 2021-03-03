@@ -1,3 +1,5 @@
+open! Base
+
 type t =
   { solver_show_queries: bool
   ; nested_protocol_enabled: bool
@@ -46,3 +48,40 @@ let verbose () = !config.verbose
 let set_verbose verbose = config := {!config with verbose}
 
 let reset () = config := default
+
+let validate_config () =
+  if
+    !config.sender_validate_refinements
+    && not !config.refinement_type_enabled
+  then
+    Err.uerr
+      (Err.PragmaNotSet
+         ( Syntax.show_pragma Syntax.RefinementTypes
+         , "This is required by SenderValidateRefinements" )) ;
+  if
+    !config.receiver_validate_refinements
+    && not !config.refinement_type_enabled
+  then
+    Err.uerr
+      (Err.PragmaNotSet
+         ( Syntax.show_pragma Syntax.RefinementTypes
+         , "This is required by ReceiverValidateRefinements" )) ;
+  if !config.refinement_type_enabled && !config.nested_protocol_enabled then
+    Err.uerr
+      (Err.IncompatibleFlag
+         ( Syntax.show_pragma Syntax.RefinementTypes
+         , Syntax.show_pragma Syntax.NestedProtocols ))
+
+let load_from_pragmas pragmas =
+  let process_global_pragma (k, v) =
+    match (k, v) with
+    | Syntax.NestedProtocols, _ -> set_nested_protocol true
+    | Syntax.RefinementTypes, _ -> set_refinement_type true
+    | Syntax.SenderValidateRefinements, _ ->
+        set_sender_validate_refinements true
+    | Syntax.ReceiverValidateRefinements, _ ->
+        set_receiver_validate_refinements true
+    | Syntax.ShowPragmas, _ | Syntax.PrintUsage, _ -> ()
+  in
+  List.iter ~f:process_global_pragma pragmas ;
+  validate_config ()
