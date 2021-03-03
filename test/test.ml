@@ -7,16 +7,16 @@ let dirs = ["examples"]
 (* files to not test *)
 let avoid =
   [ (* review these files *)
-    "examples/from-scribble-java/tmp/Test.scr"
-  ; "examples/from-scribble-java/tmp/Test2.scr"
-  ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.scr"
-  ; "examples/consensus/ClockTR.scr"
-  ; "examples/consensus/ClockAnnotTR.scr"
-  ; "examples/consensus/ClockAnnotRec.scr"
-  ; "examples/from-scribble-java/test/test5/Test5.scr"
-  ; "examples/from-scribble-java/test/test8/Test8.scr"
-  ; "examples/from-scribble-java/test/foo/Foo.scr"
-  ; "examples/from-scribble-java/demo/fase17/overview/P1.scr" ]
+    "examples/from-scribble-java/tmp/Test.nuscr"
+  ; "examples/from-scribble-java/tmp/Test2.nuscr"
+  ; "examples/from-scribble-java/demo/supplierinfo/SupplierInfoExper.nuscr"
+  ; "examples/consensus/ClockTR.nuscr"
+  ; "examples/consensus/ClockAnnotTR.nuscr"
+  ; "examples/consensus/ClockAnnotRec.nuscr"
+  ; "examples/from-scribble-java/test/test5/Test5.nuscr"
+  ; "examples/from-scribble-java/test/test8/Test8.nuscr"
+  ; "examples/from-scribble-java/test/foo/Foo.nuscr"
+  ; "examples/from-scribble-java/demo/fase17/overview/P1.nuscr" ]
 
 let get_files (dir : string) : string list =
   let rec loop res = function
@@ -33,7 +33,7 @@ let get_files (dir : string) : string list =
 
 let get_scribble_files (dir : string) : string list =
   let fs = get_files dir in
-  List.filter ~f:(fun f -> Caml.Filename.check_suffix f ".scr") fs
+  List.filter ~f:(fun f -> Caml.Filename.check_suffix f ".nuscr") fs
 
 let get_scribble_test_files (dir : string) (avoid : string list) :
     string list =
