@@ -66,7 +66,8 @@
 %token NEW_KW
 
 (* pragmas *)
-%token <string>PRAGMA_STR
+%token PRAGMA_START
+%token PRAGMA_END
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
@@ -79,14 +80,15 @@
 %}
 %%
 
+let pragma_value :=
+  | COLON ; v = IDENT ; { v }
+
+let pragma_decl :=
+  | k = IDENT ; v = pragma_value? ; { Syntax.pragma_of_string k , v }
+
 (* pragmas *)
 let pragmas :=
-  | ps = PRAGMA_STR* ; {
-      List.map (fun pragma ->
-        Pragma.parse_pragmas_string pragma
-      ) ps
-      |> List.concat
-  }
+  | PRAGMA_START; ps = separated_list(COMMA, pragma_decl) ; PRAGMA_END ; { ps }
 
 (* document -- should use toke lexer *)
 
@@ -96,15 +98,15 @@ let doc :=
 
 
 let scr_module :=
+  pgs = pragmas? ; (* Pragma must be at the beginning of a file *)
   md = module_decl? ;
-  pgs = pragmas ;
   ts = payload_type_decl* ;
   nps = nested_protocol_decl*;
   ps = protocol_decl* ;
   EOI ;
     {
       { decl = md
-      ; pragmas = pgs
+      ; pragmas = Option.value ~default:[] pgs
       ; types = ts
       ; nested_protocols = nps
       ; protocols = ps }
