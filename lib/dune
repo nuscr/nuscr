@@ -9,9 +9,9 @@
     ppxlib.metaquot)))
 
 (ocamllex
- (modules lexer pragmalexer))
+ (modules lexer))
 
 (menhir
- (modules parser pragmaparser)
+ (modules parser)
  (flags
   ("--explain" "-la" "2")))
