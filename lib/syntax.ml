@@ -50,7 +50,7 @@ type expr =
 
 and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
-and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
+and unop = Neg | Not | StrLen [@@deriving eq, ord, show, sexp_of]
 
 let show_binop = function
   | Add -> "+"
@@ -64,7 +64,7 @@ let show_binop = function
   | And -> "&&"
   | Or -> "||"
 
-let show_unop = function Neg -> "-" | Not -> "not "
+let show_unop = function Neg -> "-" | Not -> "not " | StrLen -> "len"
 
 type ty = Simple of name | Refined of name * name * expr
 [@@deriving eq, ord, show, sexp_of]
