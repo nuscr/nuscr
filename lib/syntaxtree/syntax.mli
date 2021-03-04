@@ -13,7 +13,7 @@ module type EXPRS_SIG = sig
 
   and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
-  and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
+  and unop = Neg | Not | StrLen [@@deriving eq, ord, show, sexp_of]
 end
 
 include EXPRS_SIG

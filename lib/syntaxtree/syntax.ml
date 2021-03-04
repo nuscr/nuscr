@@ -14,7 +14,7 @@ module type EXPRS_SIG = sig
 
   and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
-  and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
+  and unop = Neg | Not | StrLen [@@deriving eq, ord, show, sexp_of]
 end
 
 module Exprs : EXPRS_SIG = struct
@@ -28,7 +28,7 @@ module Exprs : EXPRS_SIG = struct
 
   and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
-  and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
+  and unop = Neg | Not | StrLen [@@deriving eq, ord, show, sexp_of]
 
   let show_binop = function
     | Add -> "+"
@@ -42,7 +42,7 @@ module Exprs : EXPRS_SIG = struct
     | And -> "&&"
     | Or -> "||"
 
-  let show_unop = function Neg -> "-" | Not -> "not "
+  let show_unop = function Neg -> "-" | Not -> "not " | StrLen -> "len"
 end
 
 include Exprs

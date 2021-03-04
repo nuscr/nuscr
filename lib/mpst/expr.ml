@@ -125,6 +125,9 @@ let rec typecheck_basic env expr ty =
         | Not ->
             typecheck_basic env e PTBool
             && equal_payload_type_basic ty PTBool
+        | StrLen ->
+            typecheck_basic env e PTString
+            && equal_payload_type_basic ty PTInt
       in
       typecheck_unop env e unop
   | Binop (binop, e1, e2) ->
@@ -172,7 +175,10 @@ let sexp_of_binop = function
   | And -> Sexp.Atom "and"
   | Or -> Sexp.Atom "or"
 
-let sexp_of_unop = function Neg -> Sexp.Atom "-" | Not -> Sexp.Atom "not"
+let sexp_of_unop = function
+  | Neg -> Sexp.Atom "-"
+  | Not -> Sexp.Atom "not"
+  | StrLen -> Sexp.Atom "str.len"
 
 let rec sexp_of_expr = function
   | Var v -> Sexp.Atom (VariableName.user v)
@@ -346,6 +352,10 @@ let infer_type env = function
       | Not ->
           if typecheck_basic env e_ PTBool then
             Some (PTRefined (var, PTBool, Binop (Eq, Var var, e)))
+          else None
+      | Syntax.StrLen ->
+          if typecheck_basic env e_ PTInt then
+            Some (PTRefined (var, PTInt, Binop (Eq, Var var, e)))
           else None )
 
 let check_type env expr ty =
