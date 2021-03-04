@@ -30,6 +30,7 @@
 %token LTEQ
 %token GTEQ
 
+%token LEN_KW
 %token NOT_KW
 %token TRUE_KW
 %token FALSE_KW
@@ -377,6 +378,8 @@ atomic_expr:
   | TRUE_KW { Bool true }
   | FALSE_KW { Bool false }
   | LPAR e = expr RPAR { e }
+  | LEN_KW LPAR e = expr RPAR
+    { Unop (StrLen, e) }
 
 expr_0:
   | e1 = expr_0 b = op_0 e2 = expr_1

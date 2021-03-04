@@ -119,6 +119,7 @@ and token = parse
 | "do" { DO_KW }
 | "calls" { CALLS_KW }
 | "new" { NEW_KW }
+| "len" { LEN_KW }
 
 
 (* other *)
