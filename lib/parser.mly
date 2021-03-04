@@ -31,6 +31,7 @@
 %token LTEQ
 %token GTEQ
 
+%token LEN_KW
 %token NOT_KW
 %token TRUE_KW
 %token FALSE_KW
@@ -368,6 +369,8 @@ expr:
   | LPAR e = expr RPAR { e }
   | e1 = expr b = binop e2 = expr
     { Binop (b, e1, e2) }
+  | LEN_KW LPAR e = expr RPAR
+    { Unop (StrLen, e) }
   | NOT_KW e = expr %prec TILDE
     { Unop (Not, e) }
   | MINUS e = expr %prec UMINUS
