@@ -68,7 +68,7 @@ let init _ =
   W.make_combobox "examples"
     (List.map
        (fun (name, value) -> (name, fun () -> Interface.Code.set value))
-       Examples.list) ;
+       Examples.list ) ;
   Js._false
 
 (* This calls our init function when the page is loaded. *)

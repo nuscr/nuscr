@@ -183,7 +183,7 @@ let callbacks_env_interface env_name callbacks =
           List.map payloads ~f:(fun (payload_name, payload_type) ->
               var_type_decl
                 (ParameterName.user payload_name)
-                (PayloadTypeName.user payload_type))
+                (PayloadTypeName.user payload_type) )
     in
     let return_type =
       match return_val with

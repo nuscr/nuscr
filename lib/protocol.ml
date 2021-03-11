@@ -46,7 +46,7 @@ let instantiate (protocol : raw_global_protocol)
   let replacement_map =
     List.fold
       ~f:(fun acc (ori, rep) ->
-        Map.add_exn acc ~key:(Name.user ori) ~data:rep)
+        Map.add_exn acc ~key:(Name.user ori) ~data:rep )
       ~init:(Map.empty (module String))
       replacement_map
   in
@@ -66,7 +66,8 @@ let mk_protocol_map scr_module =
     | `Duplicate ->
         let _, old_loc, _ = Map.find_exn acc (Name.user p.name) in
         uerr
-          (RedefinedProtocol (Names.ProtocolName.of_name p.name, loc, old_loc))
+          (RedefinedProtocol (Names.ProtocolName.of_name p.name, loc, old_loc)
+          )
   in
   let protocols =
     List.fold ~f ~init:(Map.empty (module String)) scr_module.protocols
@@ -128,13 +129,13 @@ let expand_global_protocol (scr_module : scr_module)
           let protocol_to_expand, _, arity =
             match protocol_to_expand with
             | Some p -> p
-            | None ->
-                uerr (UnboundProtocol (Names.ProtocolName.of_name name))
+            | None -> uerr (UnboundProtocol (Names.ProtocolName.of_name name))
           in
           if List.length roles <> arity then
             uerr
               (ArityMismatch
-                 (Names.ProtocolName.of_name name, arity, List.length roles)) ;
+                 (Names.ProtocolName.of_name name, arity, List.length roles)
+              ) ;
           List.iter ~f:check_role roles ;
           let known = Map.add_exn known ~key:(name, roles) ~data:false in
           let known, interactions =
@@ -214,7 +215,8 @@ let validate_calls_in_protocols (scr_module : scr_module) =
         if arity <> List.length roles then
           uerr
             (ArityMismatch
-               (Names.ProtocolName.of_name proto, arity, List.length roles)) ;
+               (Names.ProtocolName.of_name proto, arity, List.length roles)
+            ) ;
         if arity <> Set.length (Set.of_list (module Name) roles) then
           uerr (DuplicateRoleArgs (Names.ProtocolName.of_name proto))
       in
@@ -244,8 +246,8 @@ let validate_calls_in_protocols (scr_module : scr_module) =
               List.iter
                 ~f:
                   (validate_interaction protocol_roles global_table
-                     nested_table)
-                is)
+                     nested_table )
+                is )
             iss
       | _ -> ()
     in
@@ -274,13 +276,11 @@ let validate_calls_in_protocols (scr_module : scr_module) =
   in
   List.iter
     ~f:
-      (validate_protocol_calls prefix global_symbol_table
-         nested_symbol_table)
+      (validate_protocol_calls prefix global_symbol_table nested_symbol_table)
     scr_module.protocols ;
   List.iter
     ~f:
-      (validate_protocol_calls prefix global_symbol_table
-         nested_symbol_table)
+      (validate_protocol_calls prefix global_symbol_table nested_symbol_table)
     scr_module.nested_protocols
 
 (* Rename only nested protocols so they have unique ids. Global protocols and
@@ -291,8 +291,8 @@ let rename_nested_protocols (scr_module : scr_module) =
     N.rename name (Map.find_exn known name_str)
   in
   let update_known_protocols prefix uids known protocols =
-    let update_protocol_info (uids, known)
-        (global_protocol : global_protocol) =
+    let update_protocol_info (uids, known) (global_protocol : global_protocol)
+        =
       let proto = global_protocol.value in
       let {name; _} = proto in
       let name_str = N.user name in

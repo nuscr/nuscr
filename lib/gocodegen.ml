@@ -41,7 +41,7 @@ let ensure_unique_identifiers (global_t : global_t) =
           if Set.mem fields field_str then
             Err.uerr
               (Err.DuplicatePayloadField
-                 (label, VariableName.of_string field_str)) ;
+                 (label, VariableName.of_string field_str) ) ;
           Set.add fields field_str
       | PDelegate _ -> Err.violation "Delegation not supported"
     in
@@ -243,7 +243,7 @@ let gen_recv_impl env var_name_gen sender payloads recv_cb is_recv_choice_msg
           , var_name_gen
           , recv_payload_stmt :: chan_recv_stmts
           , VariableName.user payload_var :: chan_vars )
-      | PDelegate _ -> Err.violation "Delegation not supported")
+      | PDelegate _ -> Err.violation "Delegation not supported" )
   in
   (* env.<msg>_From_<sender>(<msg>) *)
   let recv_function = FunctionName.of_string @@ CallbackName.user recv_cb in
@@ -283,7 +283,7 @@ let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
           , var_name_gen
           , recv_payload_stmt :: chan_recv_stmts
           , VariableName.user payload_var :: chan_vars )
-      | PDelegate _ -> Err.violation "Delegation not supported")
+      | PDelegate _ -> Err.violation "Delegation not supported" )
   in
   (* env.<msg>_From_<sender>(<msg>) *)
   let send_function = FunctionName.of_string @@ CallbackName.user send_cb in
@@ -326,7 +326,7 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
             send_value_over_channel role_chan label_chan
               (pkg_enum_access msgs_pkg invite_enum)
           in
-          (env, send_label_stmt))
+          (env, send_label_stmt) )
   in
   let role_channels, invite_channels = List.unzip invite_channels in
   (* <protocol>_rolechan := <protocol>_RoleSetupChan{<role1>_Chan:
@@ -393,8 +393,9 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
   ( env
   , var_name_gen
   , setup_callback_call
-    :: ( send_invite_label_stmts
-       @ [role_struct_assign; invite_struct_assign; protocol_setup_call] ) )
+    ::
+    ( send_invite_label_stmts
+    @ [role_struct_assign; invite_struct_assign; protocol_setup_call] ) )
 
 (** Generate implementation of choice local type when the current role is
     making the choice*)
@@ -484,8 +485,10 @@ let gen_invitations_file envs imports setup_role_chan setup_invite_chan =
     List.map ~f:LTypeCodeGenEnv.gen_invite_channel_struct envs
   in
   join_non_empty_lines ~sep:"\n\n"
-    ( pkg_stmt :: imports_str :: setup_role_chan :: setup_invite_chan
-    :: channel_structs )
+    (pkg_stmt
+     ::
+     imports_str :: setup_role_chan :: setup_invite_chan :: channel_structs
+    )
 
 (** Generate source file containing the result struct declarations for a
     protocol *)
@@ -733,7 +736,7 @@ let gen_start_role_functions imports indent init_protocol_interface
     List.map roles
       ~f:
         (gen_start_role_function sync_pkg channels_pkg invitations_pkg
-           callbacks_pkg roles_pkg)
+           callbacks_pkg roles_pkg )
   in
   (imports, join_non_empty_lines ~sep:"\n\n" start_functions)
 
@@ -1152,7 +1155,7 @@ let show_codegen_result
     let files =
       Map.mapi files ~f:(fun ~key ~data:impl ->
           let file_path = gen_file_path key in
-          show_file file_path impl)
+          show_file file_path impl )
     in
     String.concat ~sep:"\n\n" (Map.data files)
   in
@@ -1201,7 +1204,7 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
   let messages_env =
     Map.fold global_t ~init:messages_env
       ~f:(fun ~key:_ ~data:(_, _, gtype) msgs_env ->
-        gen_message_label_enums msgs_env gtype)
+        gen_message_label_enums msgs_env gtype )
   in
   let gen_protocol_role_implementation ~key:protocol ~data result =
     let (roles, new_roles), _, _ = data in
@@ -1249,7 +1252,7 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
                   ~data:callbacks_file }
           in
           let protocol_env = LTypeCodeGenEnv.get_protocol_env env in
-          ((result, protocol_env), env))
+          ((result, protocol_env), env) )
         (roles @ new_roles)
     in
     let pkg = PackageName.of_string @@ protocol_pkg_name protocol in
@@ -1333,7 +1336,7 @@ let generate_go_impl
         let protocol_pkg_path = pkg_path [pkg_name; protocol_pkg] in
         create_dir protocol_pkg_path ;
         let file_path = gen_file_path protocol_pkg_path file_name in
-        write_file file_path impl)
+        write_file file_path impl )
   in
   let write_single_file_pkg pkg file_name impl =
     create_pkg pkg ;
@@ -1356,7 +1359,7 @@ let generate_go_impl
         let file_path =
           gen_file_path (PackageName.user pkg_invitations) file_name
         in
-        write_file file_path impl)
+        write_file file_path impl )
   in
   let write_entry_point () =
     write_single_file_pkg pkg_protocol
@@ -1370,7 +1373,7 @@ let generate_go_impl
         let file_path =
           gen_file_path (PackageName.user pkg_callbacks) file_name
         in
-        write_file file_path impl)
+        write_file file_path impl )
   in
   let write_roles () =
     create_pkg pkg_roles ;
@@ -1385,7 +1388,7 @@ let generate_go_impl
           let file_path =
             gen_file_path (PackageName.user pkg_roles) file_name
           in
-          write_file file_path impl ; file_name_gen)
+          write_file file_path impl ; file_name_gen )
     in
     let _ =
       Map.fold protocol_setup ~init:file_name_gen
@@ -1397,7 +1400,7 @@ let generate_go_impl
           let file_path =
             gen_file_path (PackageName.user pkg_roles) file_name
           in
-          write_file file_path impl ; file_name_gen)
+          write_file file_path impl ; file_name_gen )
     in
     ()
   in
@@ -1416,7 +1419,7 @@ let generate_go_code ast ~protocol ~out_dir ~go_path =
   let protocol_pkg = protocol_pkg_name protocol in
   let is_global_protocol () =
     List.exists ast.protocols ~f:(fun {Loc.loc= _; value= proto} ->
-        String.equal (Name.Name.user proto.name) (ProtocolName.user protocol))
+        String.equal (Name.Name.user proto.name) (ProtocolName.user protocol) )
   in
   let root_dir =
     RootDirName.of_string @@ Printf.sprintf "%s/%s" out_dir protocol_pkg
@@ -1444,7 +1447,7 @@ let generate_go_code ast ~protocol ~out_dir ~go_path =
          (Printf.sprintf
             "Global protocol '%s' is not defined. Implementation entrypoint \
              must be a global protocol"
-            (ProtocolName.user protocol))) ;
+            (ProtocolName.user protocol) ) ) ;
   let result = gen_code () in
   if Option.is_some go_path then write_code_to_files result ;
   show_codegen_result result protocol root_dir

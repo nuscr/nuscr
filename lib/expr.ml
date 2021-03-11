@@ -131,7 +131,7 @@ let rec typecheck_basic env expr ty =
             equal_payload_type_basic ty PTBool
             && List.exists
                  ~f:(fun t ->
-                   typecheck_basic env e1 t && typecheck_basic env e2 t)
+                   typecheck_basic env e1 t && typecheck_basic env e2 t )
                  [PTInt; PTBool; PTString]
       in
       typecheck_binop env e1 e2 binop
@@ -191,7 +191,7 @@ let rec smt_sort_of_type = function
   | PTAbstract n ->
       Err.unimpl
         (Printf.sprintf "Type %s is currently not supported for SMT encoding"
-           (PayloadTypeName.user n))
+           (PayloadTypeName.user n) )
   | PTRefined (_, t, _) -> smt_sort_of_type t
 
 let add_const var ty env =
@@ -226,7 +226,7 @@ let encode_env env =
             env
         | _ -> env
       in
-      env)
+      env )
     env
 
 let check_sat {declare_consts; asserts} =
@@ -234,12 +234,12 @@ let check_sat {declare_consts; asserts} =
   Map.iteri
     ~f:(fun ~key:var ~data:sort ->
       Buffer.add_string buffer
-        (Printf.sprintf "(declare-const %s %s)\n" var sort))
+        (Printf.sprintf "(declare-const %s %s)\n" var sort) )
     declare_consts ;
   List.iter
     ~f:(fun sexp ->
       Buffer.add_string buffer
-        (Printf.sprintf "(assert %s)\n" (Sexp.to_string sexp)))
+        (Printf.sprintf "(assert %s)\n" (Sexp.to_string sexp)) )
     asserts ;
   Buffer.add_string buffer "(check-sat)" ;
   let script = Buffer.contents buffer in
@@ -318,7 +318,7 @@ let infer_type env = function
           if
             List.exists
               ~f:(fun t ->
-                typecheck_basic env e1 t && typecheck_basic env e2 t)
+                typecheck_basic env e1 t && typecheck_basic env e2 t )
               [PTInt; PTBool; PTString]
           then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
           else None )

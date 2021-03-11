@@ -55,7 +55,7 @@ let gen_callback_module (g : G.t) : structure_item =
                   (Rtag
                      ( Location.mknoloc (LabelName.user label)
                      , true
-                     , [payload_type] ))
+                     , [payload_type] ) )
               in
               row :: acc
           | _ -> Err.violation "Sending states should only have send actions"
@@ -181,7 +181,7 @@ let gen_run_expr ~monad start g =
                       ; Pat.variant label
                           (Some
                              ( if List.is_empty payload_ty then [%pat? ()]
-                             else [%pat? payload] )) ]
+                             else [%pat? payload] ) ) ]
                 ; pc_guard= None
                 ; pc_rhs=
                     ( if monad then
@@ -273,30 +273,31 @@ let gen_impl_module ~monad (proto : ProtocolName.t) (role : RoleName.t) start
   in
   let inner_structure =
     if monad then
-      Mod.functor_ (Location.mknoloc "M")
-        (Some (Mty.ident (mk_lid "Monad")))
+      Mod.functor_
+        (Named (Location.mknoloc (Some "M"), Mty.ident (mk_lid "Monad")))
         inner_structure
     else inner_structure
   in
   let module_ =
-    Mod.functor_ (Location.mknoloc "CB")
-      (Some (Mty.ident (mk_lid "Callbacks")))
+    Mod.functor_
+      (Named (Location.mknoloc (Some "CB"), Mty.ident (mk_lid "Callbacks")))
       inner_structure
   in
-  Str.module_ (Mb.mk (Location.mknoloc module_name) module_)
+  Str.module_ (Mb.mk (Location.mknoloc (Some module_name)) module_)
 
 let monad_signature =
   let monad_type =
     Sig.type_ Nonrecursive
-      [Type.mk ~params:[(Typ.var "a", Invariant)] (Location.mknoloc "t")]
+      [ Type.mk
+          ~params:[(Typ.var "a", (NoVariance, NoInjectivity))]
+          (Location.mknoloc "t") ]
   in
   let return =
     Sig.value (Val.mk (Location.mknoloc "return") [%type: 'a -> 'a t])
   in
   let bind =
     Sig.value
-      (Val.mk (Location.mknoloc "bind")
-         [%type: 'a t -> ('a -> 'b t) -> 'b t])
+      (Val.mk (Location.mknoloc "bind") [%type: 'a t -> ('a -> 'b t) -> 'b t])
   in
   let callbacks = Mty.signature [monad_type; return; bind] in
   Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Monad"))

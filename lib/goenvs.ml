@@ -355,7 +355,7 @@ end = struct
        , protocol
        , chan_fields
        , imports ) as env :
-        t) (role, payload, is_send) =
+        t ) (role, payload, is_send) =
     let chan_id = (role, payload, is_send) in
     match Map.find chan_fields chan_id with
     | Some channel_field_and_type -> (env, channel_field_and_type)
@@ -716,7 +716,7 @@ end = struct
     let struct_name, chan_fields = Map.find_exn role_channels protocol in
     let chan_decls =
       List.map chan_fields ~f:(fun (chan_field, chan_struct) ->
-          role_chan_field_decl (chan_field, (channels_pkg, chan_struct)))
+          role_chan_field_decl (chan_field, (channels_pkg, chan_struct)) )
     in
     struct_decl (InviteChannelStructName.user struct_name) chan_decls
 
@@ -844,7 +844,7 @@ end = struct
           let chan_env =
             ChannelEnv.create role entrypoint_protocol protocol imports
           in
-          Map.add_exn acc ~key:role ~data:chan_env)
+          Map.add_exn acc ~key:role ~data:chan_env )
     in
     {env with channel_envs}
 
@@ -856,14 +856,14 @@ end = struct
             lookup_local_protocol protocol_lookup protocol role
           in
           let chan_env = InviteEnv.create local_protocol imports in
-          Map.add_exn acc ~key:role ~data:chan_env)
+          Map.add_exn acc ~key:role ~data:chan_env )
     in
     {env with invite_envs}
 
   let init_setup_channels ({setup_channels; _} as env) roles =
     let setup_channels =
       List.fold roles ~init:setup_channels ~f:(fun acc role ->
-          Map.add_exn acc ~key:role ~data:(Map.empty (module ChannelName)))
+          Map.add_exn acc ~key:role ~data:(Map.empty (module ChannelName)) )
     in
     {env with setup_channels}
 
@@ -871,7 +871,7 @@ end = struct
     let setup_invite_channels =
       List.fold roles ~init:setup_invite_channels ~f:(fun acc role ->
           Map.add_exn acc ~key:role
-            ~data:(Map.empty (module InviteChannelName)))
+            ~data:(Map.empty (module InviteChannelName)) )
     in
     {env with setup_invite_channels}
 
@@ -1004,7 +1004,7 @@ end = struct
                 chan_vars
               ; data_chan_vars
               ; channel_envs
-              ; setup_channels } ))
+              ; setup_channels } ) )
     in
     (protocol, imports, var_name_gen, setup_env)
 
@@ -1128,8 +1128,8 @@ end = struct
       in
       let chan_vars =
         (role_chan_var_name, chan_type role_chan_type_str)
-        :: (invite_chan_var_name, chan_type invite_chan_type_str)
-        :: chan_vars
+        ::
+        (invite_chan_var_name, chan_type invite_chan_type_str) :: chan_vars
       in
       let invite_chan_vars =
         Map.add_exn invite_chan_vars ~key:invite_key
@@ -1149,7 +1149,7 @@ end = struct
     List.fold ~init:env
       ~f:(fun env (role, new_role) ->
         generate_invite_channel_vars env caller role new_role call_protocol
-          protocol_lookup)
+          protocol_lookup )
       zipped_roles
 
   let rec generate_channel_vars global_t protocol_lookup (env : t) = function
@@ -1178,7 +1178,7 @@ end = struct
       Map.fold chan_fields ~init:([], [])
         ~f:(fun ~key:field ~data:value (fields, values) ->
           ( ChannelName.user field :: fields
-          , VariableName.user value :: values ))
+          , VariableName.user value :: values ) )
     in
     let role_chan_var = new_role_chan_setup_var role in
     let var_name_gen, role_chan_var =
@@ -1207,7 +1207,7 @@ end = struct
       Map.fold chan_fields ~init:([], [])
         ~f:(fun ~key:field ~data:value (fields, values) ->
           ( InviteChannelName.user field :: fields
-          , VariableName.user value :: values ))
+          , VariableName.user value :: values ) )
     in
     let invite_chan_var = new_invite_chan_setup_var role in
     let var_name_gen, invite_chan_var =
@@ -1274,7 +1274,7 @@ end = struct
         ~init:(var_name_gen, Map.empty (module RoleName), [])
         ~f:
           (gen_invite_channel_struct_assign invite_envs indent
-             invitations_pkg)
+             invitations_pkg )
         setup_invite_channels
     in
     let invite_chan_assignmets =
@@ -1359,7 +1359,7 @@ end = struct
       List.map payloads ~f:(function
         | PValue (_, payload_type) ->
             Expr.payload_typename_of_payload_type payload_type
-        | PDelegate _ -> Err.violation "Delegation not supported")
+        | PDelegate _ -> Err.violation "Delegation not supported" )
     in
     let return_val = Some (`Payloads payload_types) in
     let callbacks = (callback, None, return_val) :: callbacks in
@@ -1381,7 +1381,7 @@ end = struct
         | PValue (param_name, payload_type) ->
             ( var_to_param_name param_name
             , Expr.payload_typename_of_payload_type payload_type )
-        | PDelegate _ -> Err.violation "Delegation not supported")
+        | PDelegate _ -> Err.violation "Delegation not supported" )
     in
     let callbacks =
       (callback, Some (`Payloads callback_params), None) :: callbacks

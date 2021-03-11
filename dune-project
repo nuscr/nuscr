@@ -34,7 +34,7 @@
     :build
     (>= 20190924)))
   (ppx_deriving
-   (>= 4.4))
+   (>= 5.2))
   dune
   (base
    (>= v0.12.0))
@@ -47,9 +47,7 @@
   (ocamlgraph
    (>= 1.8.8))
   (ppxlib
-   (and
-    (>= 0.9.0)
-    (< 0.14.0)))
+   (>= 0.22.0))
   (cmdliner
    (>= 1.0.4))
   (process

@@ -57,7 +57,7 @@ let validate_config () =
     Err.uerr
       (Err.PragmaNotSet
          ( Syntax.show_pragma Syntax.RefinementTypes
-         , "This is required by SenderValidateRefinements" )) ;
+         , "This is required by SenderValidateRefinements" ) ) ;
   if
     !config.receiver_validate_refinements
     && not !config.refinement_type_enabled
@@ -65,12 +65,12 @@ let validate_config () =
     Err.uerr
       (Err.PragmaNotSet
          ( Syntax.show_pragma Syntax.RefinementTypes
-         , "This is required by ReceiverValidateRefinements" )) ;
+         , "This is required by ReceiverValidateRefinements" ) ) ;
   if !config.refinement_type_enabled && !config.nested_protocol_enabled then
     Err.uerr
       (Err.IncompatibleFlag
          ( Syntax.show_pragma Syntax.RefinementTypes
-         , Syntax.show_pragma Syntax.NestedProtocols ))
+         , Syntax.show_pragma Syntax.NestedProtocols ) )
 
 let load_from_pragmas pragmas =
   let process_global_pragma (k, v) =
