@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ocaml/opam:ubuntu-20.10-ocaml-4.11
+      - image: ocaml/opam
         auth:
           username: nuscrbot
           password: $DOCKERHUB_PASSWORD

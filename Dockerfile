@@ -1,4 +1,4 @@
-FROM ocaml/opam:ubuntu-20.10-ocaml-4.11
+FROM ocaml/opam
 
 RUN sudo apt-get update \
   && sudo apt-get install m4 -y \
