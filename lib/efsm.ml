@@ -18,8 +18,8 @@ let show_refinement_actions_annot {silent_vars; rec_expr_updates} =
           (List.map
              ~f:(fun (v, t) ->
                sprintf "%s: %s" (VariableName.user v)
-                 (Expr.show_payload_type t))
-             silent_vars)
+                 (Expr.show_payload_type t) )
+             silent_vars )
       in
       "<" ^ svars_s ^ ">"
   in
@@ -221,7 +221,7 @@ let merge_state ~from_state ~to_state g =
         let dest = subst dest in
         match label with
         | Epsilon -> g
-        | label -> G.add_edge_e g (ori, label, dest))
+        | label -> G.add_edge_e g (ori, label, dest) )
       g from_state g
   in
   let g =
@@ -231,7 +231,7 @@ let merge_state ~from_state ~to_state g =
         let dest = subst dest in
         match label with
         | Epsilon -> g
-        | label -> G.add_edge_e g (ori, label, dest))
+        | label -> G.add_edge_e g (ori, label, dest) )
       g from_state g
   in
   let g = G.remove_vertex g from_state in
@@ -327,7 +327,7 @@ let of_local_type_with_rec_var_info lty =
               ~f:(fun (x, y) ->
                 let x = subst x in
                 let y = subst y in
-                (x, y))
+                (x, y) )
               rest
           in
           let rec_var_info =
@@ -339,7 +339,7 @@ let of_local_type_with_rec_var_info lty =
                     | None -> rv
                     | Some _ ->
                         Err.unimpl
-                          "Multiple recursions with variables in choices")
+                          "Multiple recursions with variables in choices" )
                   rec_var_info to_state
           in
           aux (start, g, rec_var_info) rest
@@ -392,7 +392,7 @@ let find_all_payloads g =
   G.fold_edges_e f g
     (Set.singleton
        (module PayloadTypeName)
-       (PayloadTypeName.of_string "string"))
+       (PayloadTypeName.of_string "string") )
 
 let find_all_roles g =
   let f (_, a, _) acc =

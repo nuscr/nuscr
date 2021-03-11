@@ -23,7 +23,7 @@ let find_concrete_vars m =
   let find_named_variables =
     List.filter_map ~f:(function
       | Gtype.PValue (Some v, ty) -> Some (v, ty, false)
-      | _ -> None)
+      | _ -> None )
   in
   let concrete_vars = find_named_variables m.Gtype.payload in
   concrete_vars
@@ -51,7 +51,7 @@ let compute_var_map start g rec_var_info =
         let rec_vars =
           List.map
             ~f:(fun (is_silent, {Gtype.rv_name; Gtype.rv_ty; _}) ->
-              (rv_name, rv_ty, is_silent))
+              (rv_name, rv_ty, is_silent) )
             rec_vars
         in
         let vars = List.fold ~f:append ~init:vars rec_vars in
@@ -78,7 +78,8 @@ let compute_var_map start g rec_var_info =
     Map.iteri
       ~f:(fun ~key:st ~data ->
         print_endline
-          (Printf.sprintf "State %d has variables: %s" st (show_vars data)))
+          (Printf.sprintf "State %d has variables: %s" st (show_vars data))
+        )
       var_map ;
   var_map
 
@@ -127,7 +128,7 @@ let bind_variables_e e vars_to_bind st =
   let bind_erased_var var =
     Expr.Var
       (VariableName.of_string
-         (Printf.sprintf "(reveal %s)" (FstarNames.record_getter st var)))
+         (Printf.sprintf "(reveal %s)" (FstarNames.record_getter st var)) )
   in
   let bind_var e vars_to_bind binder =
     let vars_to_bind =
@@ -190,8 +191,8 @@ let generate_state_defs buffer var_maps =
                       (Expr.Var
                          (VariableName.of_string
                             (Printf.sprintf "(reveal %s)"
-                               (VariableName.user v))))
-                    e)
+                               (VariableName.user v) ) ) )
+                    e )
                 vars_to_reveal
             in
             Expr.PTRefined (v, ty, e)
@@ -210,10 +211,10 @@ let generate_state_defs buffer var_maps =
                 (Expr.show_payload_type ty)
             in
             ( entry :: acc
-            , if is_silent then name :: silent_vars else silent_vars ))
+            , if is_silent then name :: silent_vars else silent_vars ) )
           data
       in
-      generate_record_type buffer ~noeq:true name (List.rev content))
+      generate_record_type buffer ~noeq:true name (List.rev content) )
     var_maps
 
 let generate_send_choices buffer g var_map =
@@ -249,8 +250,8 @@ let generate_send_choices buffer g var_map =
                  let ty = bind_variables_ty ty vars_to_bind st in
                  Printf.sprintf "| %s of %s"
                    (FstarNames.choice_ctor_name st (LabelName.user label))
-                   (Expr.show_payload_type ty))
-               acc)
+                   (Expr.show_payload_type ty) )
+               acc )
         in
         Buffer.add_string buffer (preamble ^ def ^ "\n")
     | `Recv _ | `Terminal | `Mixed -> ()
@@ -330,7 +331,7 @@ let generate_comms buffer payload_types =
             (FstarNames.recv_payload_fn_name ty)
             ty
         in
-        [send_ty; recv_ty])
+        [send_ty; recv_ty] )
       payload_types
   in
   generate_record_type buffer ~noeq:true FstarNames.communication_record_name
@@ -352,7 +353,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
               else
                 match updates with
                 | [] -> ([], acc)
-                | e :: rest -> (rest, (rv_name, e) :: acc))
+                | e :: rest -> (rest, (rv_name, e) :: acc) )
             next_rv_info
         in
         (silent_vars, List.rev rec_var_updates)
@@ -390,7 +391,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
                 match
                   List.find
                     ~f:(fun (_, {Gtype.rv_name; _}) ->
-                      VariableName.equal v rv_name)
+                      VariableName.equal v rv_name )
                     next_rv_info
                 with
                 | Some (is_silent, {Gtype.rv_init_expr; Gtype.rv_ty; _}) ->
@@ -409,7 +410,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
           in
           header ^ value
         in
-        entry :: acc)
+        entry :: acc )
       next_vars
   in
   generate_record_value (List.rev content)
@@ -474,7 +475,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     let match_pattern =
                       Printf.sprintf "| %s %s ->"
                         (FstarNames.choice_ctor_name st
-                           (LabelName.user m.Gtype.label))
+                           (LabelName.user m.Gtype.label) )
                         payload
                     in
                     let send_label =
@@ -508,8 +509,8 @@ let generate_run_fns buffer start g var_map rec_var_info =
             in
             let match_hands = G.fold_succ_e collect_match_hand g st [] in
             String.concat ~sep:"\n"
-              ( connect_selection :: match_head
-              :: List.concat (List.rev match_hands) )
+              (connect_selection
+               :: match_head :: List.concat (List.rev match_hands) )
         | `Recv r ->
             let connect_selection =
               Printf.sprintf "let conn = comms %s in"
@@ -541,8 +542,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     in
                     let recv_callback =
                       Printf.sprintf "let () = callbacks.%s st %s in"
-                        (FstarNames.recv_state_callback_name st
-                           m.Gtype.label)
+                        (FstarNames.recv_state_callback_name st m.Gtype.label)
                         payload
                     in
                     let next_state = "let nextState =" in
@@ -568,8 +568,10 @@ let generate_run_fns buffer start g var_map rec_var_info =
             let match_hands = G.fold_succ_e collect_match_hand g st [] in
             let catch_all = ["| _ -> unexpected \"Unexpected label\""] in
             String.concat ~sep:"\n"
-              ( connect_selection :: match_head
-              :: List.concat (List.rev (catch_all :: match_hands)) )
+              (connect_selection
+               ::
+               match_head
+               :: List.concat (List.rev (catch_all :: match_hands)) )
       in
       (preamble ^ body) :: acc
     in
@@ -590,10 +592,9 @@ let generate_run_fns buffer start g var_map rec_var_info =
             if List.is_empty rvs then []
             else
               List.map
-                ~f:
-                  (fun ( is_silent
-                       , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _}
-                       ) ->
+                ~f:(fun ( is_silent
+                        , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _}
+                        ) ->
                   let rv_name = VariableName.user rv_name in
                   let value =
                     if is_silent then
@@ -601,7 +602,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                         (Expr.show (Expr.default_value rv_ty))
                     else Expr.show rv_init_expr
                   in
-                  Printf.sprintf "%s= %s" rv_name value)
+                  Printf.sprintf "%s= %s" rv_name value )
                 rvs
       in
       dum_state :: vars

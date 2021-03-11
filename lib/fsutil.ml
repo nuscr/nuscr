@@ -6,7 +6,7 @@ open Err
 
 let write_file file_name content =
   Out_channel.with_file file_name ~f:(fun file ->
-      Out_channel.output_string file content)
+      Out_channel.output_string file content )
 
 let create_dir dir_path =
   let _ = Unix.umask 0o000 in
@@ -15,7 +15,7 @@ let create_dir dir_path =
     uerr
       (FileSysErr
          (sprintf "Unable to create new directory: %s in path: %s" dir_path
-            (Unix.getcwd ())))
+            (Unix.getcwd ()) ) )
 
 let create_pkg pkg_name = create_dir (PackageName.user pkg_name)
 
