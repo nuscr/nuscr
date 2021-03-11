@@ -74,7 +74,7 @@ let build_symbol_table (prefix : string) (protocols : global_protocol list)
           (RedefinedProtocol
              ( Names.ProtocolName.of_name protocol.value.name
              , protocol.loc
-             , proto_sig.loc ))
+             , proto_sig.loc ) )
   in
   let table =
     List.fold ~init:(Map.empty (module String)) ~f:add_proto_decl protocols

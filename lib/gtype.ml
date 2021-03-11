@@ -76,7 +76,7 @@ let of_syntax_payload (payload : Syntax.payloadt) =
           (PragmaNotSet
              ( show_pragma RefinementTypes
              , "Refinement Types require RefinementTypes pramga to be set."
-             ))
+             ) )
 
 let typename_of_payload = function
   | PValue (_, ty) -> Expr.payload_typename_of_payload_type ty
@@ -260,7 +260,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             lazy
               (conv_interactions free_names
                  ((rname, lazy_cont) :: lazy_conts)
-                 interactions)
+                 interactions )
           in
           let rec_vars =
             if Config.refinement_type_enabled () then
@@ -286,7 +286,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             lazy
               ( Lazy.force
                   (List.Assoc.find_exn ~equal:TypeVariableName.equal
-                     lazy_conts name)
+                     lazy_conts name )
               |> fst )
           in
           assert_empty rest ;
@@ -352,7 +352,7 @@ let rec substitute g tvar g_sub =
           match
             List.map2
               ~f:(fun rec_var rec_expr ->
-                {rec_var with rv_init_expr= rec_expr})
+                {rec_var with rv_init_expr= rec_expr} )
               rec_vars rec_exprs
           with
           | Base.List.Or_unequal_lengths.Ok rec_vars -> rec_vars
@@ -403,7 +403,7 @@ let validate_refinements_exn t =
   let knowledge_add role_knowledge role variable =
     Map.update role_knowledge role ~f:(function
       | None -> Set.singleton (module VariableName) variable
-      | Some s -> Set.add s variable)
+      | Some s -> Set.add s variable )
   in
   let ensure_knowledge role_knowledge role e =
     let known_vars =
@@ -443,8 +443,7 @@ let validate_refinements_exn t =
                     in
                     (tenv, rvenv, role_knowledge)
                 | None -> (tenv, rvenv, role_knowledge)
-              else
-                uerr (IllFormedPayloadType (Expr.show_payload_type p_type))
+              else uerr (IllFormedPayloadType (Expr.show_payload_type p_type))
           | PDelegate _ -> unimpl "Delegation as payload"
         in
         let env = List.fold ~init:env ~f payloads in
@@ -466,7 +465,7 @@ let validate_refinements_exn t =
             else
               uerr
                 (TypeError
-                   (Expr.show rv_init_expr, Expr.show_payload_type rv_ty))
+                   (Expr.show rv_init_expr, Expr.show_payload_type rv_ty) )
           else uerr (IllFormedPayloadType (Expr.show_payload_type rv_ty))
         in
         let env = List.fold ~init:env ~f rec_vars in
@@ -482,12 +481,12 @@ let validate_refinements_exn t =
               if Expr.check_type tenv rec_expr rv_ty then
                 List.iter
                   ~f:(fun role ->
-                    ensure_knowledge role_knowledge role rec_expr)
+                    ensure_knowledge role_knowledge role rec_expr )
                   rv_roles
               else
                 uerr
                   (TypeError
-                     (Expr.show rec_expr, Expr.show_payload_type rv_ty)))
+                     (Expr.show rec_expr, Expr.show_payload_type rv_ty) ) )
             rec_vars rec_exprs
         with
         | Base.List.Or_unequal_lengths.Ok () -> ()
@@ -540,7 +539,7 @@ let add_missing_payload_field_names global_t =
         CallG (caller, proto_name, roles, g)
   in
   Map.map global_t ~f:(fun (roles, nested_protocols, gtype) ->
-      (roles, nested_protocols, add_missing_payload_names gtype))
+      (roles, nested_protocols, add_missing_payload_names gtype) )
 
 let global_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in

@@ -49,7 +49,7 @@ let validate_protocols_exn (ast : scr_module) : unit =
   let l_types =
     List.map
       ~f:(fun (g, roles) ->
-        List.map ~f:(fun r -> Ltype.project (RoleName.of_name r) g) roles)
+        List.map ~f:(fun r -> Ltype.project (RoleName.of_name r) g) roles )
       g_types
   in
   show
@@ -58,7 +58,8 @@ let validate_protocols_exn (ast : scr_module) : unit =
   let efsmss = List.map ~f:(List.map ~f:Efsm.of_local_type) l_types in
   show
     ~f:(fun efsms ->
-      String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms))
+      String.concat ~sep:"\n" (List.map ~f:(fun (_, g) -> Efsm.show g) efsms)
+      )
     efsmss
 
 let validate_nested_protocols (ast : scr_module) =
@@ -98,7 +99,7 @@ let enumerate_nested_protocols (ast : scr_module) :
   let global_t = Gtype.global_t_of_module ast in
   let enumerated =
     Map.mapi global_t ~f:(fun ~key:protocol ~data:((roles, roles'), _, _) ->
-        List.map (roles @ roles') ~f:(fun role -> (protocol, role)))
+        List.map (roles @ roles') ~f:(fun role -> (protocol, role)) )
   in
   List.concat @@ Map.data enumerated
 
@@ -111,7 +112,7 @@ let project_protocol_role ast ~protocol ~role : Ltype.t =
     match
       List.find
         ~f:(fun gt ->
-          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol)
+          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol )
         ast.protocols
     with
     | Some gp -> gp
@@ -148,7 +149,7 @@ let generate_sexp ast ~protocol =
     match
       List.find
         ~f:(fun gt ->
-          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol)
+          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol )
         ast.protocols
     with
     | Some gp -> gp

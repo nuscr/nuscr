@@ -11,7 +11,7 @@ let parse_role_protocol_exn rp =
   | _ ->
       Err.UserError
         (InvalidCommandLineParam
-           "Role and protocol have to be for the form role@protocol")
+           "Role and protocol have to be for the form role@protocol" )
       |> raise
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
@@ -36,45 +36,45 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     if Option.is_some fsm && Config.nested_protocol_enabled () then
       Err.uerr
         (Err.IncompatibleFlag
-           ("fsm", Syntax.show_pragma Syntax.NestedProtocols)) ;
+           ("fsm", Syntax.show_pragma Syntax.NestedProtocols) ) ;
     Lib.validate_exn ast ;
     let () =
       if enumerate then
         Lib.enumerate ast
         |> List.map ~f:(fun (n, r) ->
-               RoleName.user r ^ "@" ^ ProtocolName.user n)
+               RoleName.user r ^ "@" ^ ProtocolName.user n )
         |> String.concat ~sep:"\n" |> print_endline
     in
     let () =
       gen_output ast
         (fun ast protocol role ->
-          Lib.project_role ast ~protocol ~role |> Ltype.show)
+          Lib.project_role ast ~protocol ~role |> Ltype.show )
         project
     in
     let () =
       gen_output ast
         (fun ast protocol role ->
-          Lib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show)
+          Lib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
         fsm
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
           Lib.generate_ocaml_code ~monad:false ast ~protocol ~role
-          |> print_endline)
+          |> print_endline )
         gencode_ocaml
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
           Lib.generate_ocaml_code ~monad:true ast ~protocol ~role
-          |> print_endline)
+          |> print_endline )
         gencode_monadic_ocaml
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
-          Lib.generate_fstar_code ast ~protocol ~role |> print_endline)
+          Lib.generate_fstar_code ast ~protocol ~role |> print_endline )
         gencode_fstar
     in
     let () =
@@ -91,15 +91,15 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
                 (Err.MissingFlag
                    ( "out-dir"
                    , "This flag must be set in order to generate go \
-                      implementation" ))
-              |> raise)
+                      implementation" ) )
+              |> raise )
         gencode_go
     in
     let () =
       Option.iter
         ~f:(fun protocol ->
           let protocol = ProtocolName.of_string protocol in
-          Lib.generate_sexp ast ~protocol |> print_endline)
+          Lib.generate_sexp ast ~protocol |> print_endline )
         sexp_global_type
     in
     `Ok ()
@@ -119,8 +119,7 @@ let role_proto =
     | [role; protocol] ->
         Ok (RoleName.of_string role, ProtocolName.of_string protocol)
     | _ ->
-        Error
-          (`Msg "Role and protocol have to be for the form role@protocol")
+        Error (`Msg "Role and protocol have to be for the form role@protocol")
   in
   let print fmt (r, p) =
     Caml.Format.pp_print_string fmt (RoleName.user r) ;

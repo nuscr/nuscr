@@ -78,8 +78,8 @@ let show =
                 (List.map
                    ~f:(fun (is_silent, rv) ->
                      let prefix = if is_silent then "(silent) " else "" in
-                     prefix ^ Gtype.show_rec_var rv)
-                   rec_vars)
+                     prefix ^ Gtype.show_rec_var rv )
+                   rec_vars )
             ^ "] "
         in
         sprintf "%srec %s %s{\n%s%s}\n" current_indent
@@ -232,7 +232,7 @@ let rec merge projected_role lty1 lty2 =
                      , roles
                      , new_roles
                      , caller
-                     , merge projected_role lty lty_ ))
+                     , merge projected_role lty lty_ ) )
             | _ ->
                 violation "Merge receive must be merging receive local types"
             )
@@ -341,14 +341,14 @@ let rec project' env (projected_role : RoleName.t) =
         List.map
           ~f:(fun ({rv_roles; _} as rec_expr) ->
             ( not @@ List.mem ~equal:RoleName.equal rv_roles projected_role
-            , rec_expr ))
+            , rec_expr ) )
           rec_exprs
       in
       let penv, rvenv, svars = env in
       let svars =
         List.fold ~init:svars
           ~f:(fun acc (is_silent, {rv_name; _}) ->
-            if is_silent then Set.add acc rv_name else acc)
+            if is_silent then Set.add acc rv_name else acc )
           rec_exprs
       in
       (* FIXME: This breaks when there are shadowed type variables *)
@@ -367,7 +367,7 @@ let rec project' env (projected_role : RoleName.t) =
           let named_payloads =
             List.rev_filter_map
               ~f:(function
-                | PValue (Some var, t) -> Some (var, t) | _ -> None)
+                | PValue (Some var, t) -> Some (var, t) | _ -> None )
               m.payload
           in
           if
@@ -487,7 +487,7 @@ let project_global_t (global_t : global_t) =
       let all_roles = roles @ new_roles in
       List.fold ~init:local_protocols
         ~f:(project_role key all_roles gtype)
-        all_roles)
+        all_roles )
     global_t
 
 let make_unique_tvars ltype =
