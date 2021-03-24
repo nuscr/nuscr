@@ -107,7 +107,7 @@ let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
   if Config.nested_protocol_enabled () then enumerate_nested_protocols ast
   else enumerate_protocols ast
 
-let project_protocol_role ast ~protocol ~role : Ltype.t =
+let get_global_type ast ~protocol : Gtype.t =
   let gp =
     match
       List.find
@@ -118,9 +118,10 @@ let project_protocol_role ast ~protocol ~role : Ltype.t =
     | Some gp -> gp
     | None -> uerr (ProtocolNotFound protocol)
   in
-  let gp = Protocol.expand_global_protocol ast gp in
-  let gt = Gtype.of_protocol gp in
-  Ltype.project role gt
+  Protocol.expand_global_protocol ast gp |> Gtype.of_protocol
+
+let project_protocol_role ast ~protocol ~role : Ltype.t =
+  get_global_type ast ~protocol |> Ltype.project role
 
 let project_nested_protocol ast ~protocol ~role : Ltype.t =
   let global_t = Gtype.global_t_of_module ast in
