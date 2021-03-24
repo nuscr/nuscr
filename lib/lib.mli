@@ -22,13 +22,16 @@ val validate_exn : Syntax.scr_module -> unit
 (** {1 Other operations} *)
 
 val enumerate : Syntax.scr_module -> (ProtocolName.t * RoleName.t) list
-(** [enumerate module] enumrates the roles occurring in [module]. The output
+(** [enumerate module] enumerates the roles occurring in [module]. The output
     is a list of pair [(protocol, role-name)]. *)
 
 val project_role :
   Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> Ltype.t
 (** [project_role module protocol role] computes the local type for role
     [role] in the protocol [protocol]. *)
+
+val get_global_type : Syntax.scr_module -> protocol:ProtocolName.t -> Gtype.t
+(** [get_global_type module] gets the corresponding global type for a module *)
 
 val generate_fsm :
      Syntax.scr_module
