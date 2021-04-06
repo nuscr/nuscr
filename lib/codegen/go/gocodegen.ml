@@ -1380,7 +1380,7 @@ let gen_code root_dir gen_protocol (global_t : Gtype.nested_t)
   let initial_result = init_result messages_file in
   Map.fold ~init:initial_result ~f:gen_protocol_role_implementation global_t
 
-let generate_go_impl
+let write_go_impl
     { messages
     ; channels
     ; invite_channels
@@ -1492,38 +1492,40 @@ let generate_go_impl
   write_callbacks () ;
   write_roles ()
 
+let exists_protocol ast ~protocol =
+  List.exists ast.protocols ~f:(fun lp ->
+      let lp_name = ProtocolName.user Loc.(lp.value.name) in
+      let p_name = ProtocolName.user protocol in
+      String.equal lp_name p_name )
+
+let generate_from_scr ast protocol root_dir =
+  let global_t = nested_t_of_module ast in
+  ensure_unique_identifiers global_t ;
+  let local_t = Ltype.project_nested_t global_t in
+  let local_t = Ltype.ensure_unique_tvars local_t in
+  gen_code root_dir protocol global_t local_t
+
+let write_code_to_files result go_path out_dir protocol =
+  let project_root =
+    RootDirName.of_string @@ Printf.sprintf "%s/%s" go_path out_dir
+  in
+  let protocol_root_pkg = PackageName.protocol_pkg_name protocol in
+  write_go_impl result project_root protocol_root_pkg protocol
+
 let generate_go_code ast ~protocol ~out_dir ~go_path =
-  let protocol_pkg = PackageName.protocol_pkg_name protocol in
-  let is_global_protocol () =
-    List.exists ast.protocols ~f:(fun {Loc.loc= _; value= proto} ->
-        ProtocolName.equal proto.name protocol )
-  in
-  let root_dir =
-    RootDirName.of_string
-    @@ Printf.sprintf "%s/%s" out_dir (PackageName.user protocol_pkg)
-  in
-  let gen_code () =
-    let global_t = nested_t_of_module ast in
-    ensure_unique_identifiers global_t ;
-    let local_t = Ltype.project_nested_t global_t in
-    let local_t = Ltype.ensure_unique_tvars local_t in
-    gen_code root_dir protocol global_t local_t
-  in
-  let write_code_to_files result =
-    let project_root =
-      RootDirName.of_string
-      @@ Printf.sprintf "%s/%s" (Option.value_exn go_path) out_dir
-    in
-    let protocol_root_pkg = PackageName.protocol_pkg_name protocol in
-    generate_go_impl result project_root protocol_root_pkg protocol
-  in
-  if not (is_global_protocol ()) then
+  if not (exists_protocol ast ~protocol) then
     Err.uerr
       (Err.InvalidCommandLineParam
          (Printf.sprintf
             "Global protocol '%s' is not defined. Implementation entrypoint \
              must be a global protocol"
             (ProtocolName.user protocol) ) ) ;
-  let result = gen_code () in
-  if Option.is_some go_path then write_code_to_files result ;
+  let protocol_pkg = PackageName.protocol_pkg_name protocol in
+  let root_dir =
+    RootDirName.of_string
+    @@ Printf.sprintf "%s/%s" out_dir (PackageName.user protocol_pkg)
+  in
+  let result = generate_from_scr ast protocol root_dir in
+  if Option.is_some go_path then
+    write_code_to_files result (Option.value_exn go_path) out_dir protocol ;
   show_codegen_result result protocol root_dir
