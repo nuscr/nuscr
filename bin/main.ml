@@ -30,12 +30,11 @@ type args =
   { filename: string
   ; enumerate: bool
   ; go_path: string option
-  ; out_dir: string option
   ; verbose: bool
   ; show_solver_queries: bool }
 
-let mk_args filename enumerate go_path out_dir verbose show_solver_queries =
-  {filename; enumerate; go_path; out_dir; verbose; show_solver_queries}
+let mk_args filename enumerate go_path verbose show_solver_queries =
+  {filename; enumerate; go_path; verbose; show_solver_queries}
 
 let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
 
@@ -45,14 +44,6 @@ let go_path =
      root) [Only applicable for Go Codegen]"
   in
   Arg.(value & opt (some dir) None & info ["go-path"] ~doc ~docv:"DIR")
-
-let out_dir =
-  let doc =
-    "Path to the project directory inside which the code is to be \
-     generated, relative to Go source directory [Only applicable for Go \
-     Codegen]"
-  in
-  Arg.(value & opt (some string) None & info ["out-dir"] ~doc ~docv:"DIR")
 
 let verbose =
   let doc = "Print extra information" in
@@ -83,6 +74,7 @@ type global_action_verb =
   | ShowGlobalTypeTex
   | ShowGlobalTypeSexp
   | ShowGlobalTypeProtobuf
+  | GencodeGo
 
 type local_action_verb =
   | Project
@@ -91,11 +83,12 @@ type local_action_verb =
   | ProjectProtobuf
   | Fsm
   | GencodeFstar
-  | GencodeGo
   | GencodeOcaml
   | GencodeOcamlMonadic
 
-type global_action = global_action_verb * string (* protocol *)
+type global_action =
+  global_action_verb
+  * string (* protocol, or out_dir in the case of GencodeGo *)
 
 type local_action =
   local_action_verb * string * string (* protocol and role *)
@@ -110,8 +103,8 @@ let main args global_actions local_actions =
     Nuscrlib.validate_exn ast ;
     let () =
       List.iter
-        ~f:(fun (verb, protocol) ->
-          let protocol = ProtocolName.of_string protocol in
+        ~f:(fun (verb, arg) ->
+          let protocol = ProtocolName.of_string arg in
           match verb with
           | ShowGlobalType ->
               let gtype = Nuscrlib.get_global_type ~protocol ast in
@@ -130,7 +123,13 @@ let main args global_actions local_actions =
           | ShowGlobalTypeSexp ->
               Nuscrlib.generate_sexp ast ~protocol |> print_endline
           | ShowGlobalTypeProtobuf ->
-              Nuscrlib.get_global_type_protobuf ~protocol ast |> print_string )
+              Nuscrlib.get_global_type_protobuf ~protocol ast |> print_string
+          | GencodeGo ->
+              let impl =
+                Nuscrlib.generate_go_code ast ~out_dir:arg
+                  ~go_path:args.go_path
+              in
+              print_endline impl )
         global_actions
     in
     let () =
@@ -161,21 +160,6 @@ let main args global_actions local_actions =
           | GencodeFstar ->
               Nuscrlib.generate_fstar_code ast ~protocol ~role
               |> print_endline
-          | GencodeGo -> (
-            match args.out_dir with
-            | Some out_dir ->
-                let impl =
-                  Nuscrlib.generate_go_code ast ~protocol ~out_dir
-                    ~go_path:args.go_path
-                in
-                print_endline impl
-            | None ->
-                Err.UserError
-                  (Err.MissingFlag
-                     ( "out-dir"
-                     , "This flag must be set in order to generate go \
-                        implementation" ) )
-                |> raise )
           | GencodeOcaml ->
               Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
               |> print_endline
@@ -296,15 +280,13 @@ let gencode_monadic_ocaml =
 
 let gencode_go =
   let doc =
-    "Generate Go code for specified protocol and role. \
-     <role_name>@<protocol_name>"
+    "Generate go code into the specified path, relative to Go source \
+     directory."
   in
-  Arg.(
-    value & opt_all role_proto []
-    & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO" )
+  Arg.(value & opt (some string) None & info ["gencode-go"] ~doc ~docv:"DIR")
 
 let mk_local_actions project project_mpstk project_tex project_protobuf fsm
-    gencode_fstar gencode_go gencode_ocaml gencode_ocaml_monadic =
+    gencode_fstar gencode_ocaml gencode_ocaml_monadic =
   let project = List.map ~f:(fun (r, p) -> (Project, r, p)) project in
   let project_mpstk =
     List.map ~f:(fun (r, p) -> (ProjectMpstk, r, p)) project_mpstk
@@ -318,9 +300,6 @@ let mk_local_actions project project_mpstk project_tex project_protobuf fsm
   let fsm = List.map ~f:(fun (r, p) -> (Fsm, r, p)) fsm in
   let gencode_fstar =
     List.map ~f:(fun (r, p) -> (GencodeFstar, r, p)) gencode_fstar
-  in
-  let gencode_go =
-    List.map ~f:(fun (r, p) -> (GencodeGo, r, p)) gencode_go
   in
   let gencode_ocaml =
     List.map ~f:(fun (r, p) -> (GencodeOcaml, r, p)) gencode_ocaml
@@ -337,7 +316,6 @@ let mk_local_actions project project_mpstk project_tex project_protobuf fsm
     ; project_protobuf
     ; fsm
     ; gencode_fstar
-    ; gencode_go
     ; gencode_ocaml
     ; gencode_ocaml_monadic ]
 
@@ -382,7 +360,8 @@ let show_global_type_protobuf =
     & info ["show-global-type-protobuf"] ~doc ~docv:"PROTO" )
 
 let mk_global_actions show_global_type show_global_type_mpstk
-    show_global_type_tex show_global_type_sexp show_global_type_protobuf =
+    show_global_type_tex show_global_type_sexp show_global_type_protobuf
+    gencode_go =
   let show_global_type =
     List.map ~f:(fun p -> (ShowGlobalType, p)) show_global_type
   in
@@ -400,12 +379,17 @@ let mk_global_actions show_global_type show_global_type_mpstk
       ~f:(fun p -> (ShowGlobalTypeProtobuf, p))
       show_global_type_protobuf
   in
+  let gencode_go =
+    Option.map ~f:(fun out_dir -> (GencodeGo, out_dir)) gencode_go
+    |> Option.to_list
+  in
   List.concat
     [ show_global_type
     ; show_global_type_mpstk
     ; show_global_type_tex
     ; show_global_type_sexp
-    ; show_global_type_protobuf ]
+    ; show_global_type_protobuf
+    ; gencode_go ]
 
 let cmd =
   let doc =
@@ -425,18 +409,19 @@ let cmd =
   let info = Cmd.info "nuscr" ~version:"%%VERSION%%" ~doc ~man in
   let args =
     Term.(
-      const mk_args $ file $ enumerate $ go_path $ out_dir $ verbose
+      const mk_args $ file $ enumerate $ go_path $ verbose
       $ show_solver_queries )
   in
   let global_actions =
     Term.(
       const mk_global_actions $ show_global_type $ show_global_type_mpstk
-      $ show_global_type_tex $ sexp_global_type $ show_global_type_protobuf )
+      $ show_global_type_tex $ sexp_global_type $ show_global_type_protobuf
+      $ gencode_go )
   in
   let local_actions =
     Term.(
       const mk_local_actions $ project $ project_mpstk $ project_tex
-      $ project_protobuf $ fsm $ gencode_fstar $ gencode_go $ gencode_ocaml
+      $ project_protobuf $ fsm $ gencode_fstar $ gencode_ocaml
       $ gencode_monadic_ocaml )
   in
   let term =

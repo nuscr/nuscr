@@ -4,7 +4,6 @@ open Goenvs
 open Goimpl
 open Gtype
 open Message
-open Syntax
 open Fsutil
 open Names
 open! Gonames
@@ -1492,12 +1491,6 @@ let write_go_impl
   write_callbacks () ;
   write_roles ()
 
-let exists_protocol ast ~protocol =
-  List.exists ast.protocols ~f:(fun lp ->
-      let lp_name = ProtocolName.user Loc.(lp.value.name) in
-      let p_name = ProtocolName.user protocol in
-      String.equal lp_name p_name )
-
 let generate_from_scr ast protocol root_dir =
   let global_t = nested_t_of_module ast in
   ensure_unique_identifiers global_t ;
@@ -1512,14 +1505,19 @@ let write_code_to_files result go_path out_dir protocol =
   let protocol_root_pkg = PackageName.protocol_pkg_name protocol in
   write_go_impl result project_root protocol_root_pkg protocol
 
-let generate_go_code ast ~protocol ~out_dir ~go_path =
-  if not (exists_protocol ast ~protocol) then
-    Err.uerr
-      (Err.InvalidCommandLineParam
-         (Printf.sprintf
-            "Global protocol '%s' is not defined. Implementation entrypoint \
-             must be a global protocol"
-            (ProtocolName.user protocol) ) ) ;
+let error_no_global_protocol () =
+  Err.uerr
+    (Err.InvalidCommandLineParam
+       "Cannot find entrypoint global protocol in input file." )
+
+let find_global_protocol ast =
+  let open Syntax in
+  match List.rev ast.protocols with
+  | [] -> error_no_global_protocol ()
+  | x :: _ -> x.Loc.value.name
+
+let generate_go_code ast ~out_dir ~go_path =
+  let protocol = find_global_protocol ast in
   let protocol_pkg = PackageName.protocol_pkg_name protocol in
   let root_dir =
     RootDirName.of_string
