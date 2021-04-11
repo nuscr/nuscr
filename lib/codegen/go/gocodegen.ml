@@ -1266,12 +1266,16 @@ end
 module Namegen = Namegen.Make (VariableName)
 
 module GoGenM = struct
-  type ctx = {channels: (VariableName.t * goType) Map.M(RolePair).t}
+  type ctx =
+    { channels: (VariableName.t * goType) Map.M(RolePair).t
+    ; ctx_vars: VariableName.t Map.M(LocalProtocolId).t
+    ; curr_fn: LocalProtocolId.t option }
 
   type state =
     { namegen: Namegen.t
     ; lp_fns: LocalProtocolName.t Map.M(LocalProtocolId).t
     ; msg_iface: goType Map.M(ProtocolName).t
+    ; ctx_type: goType Map.M(LocalProtocolId).t
     ; lp_ctx: ctx }
   (* type 'a t = state -> state * 'a *)
 
@@ -1279,7 +1283,11 @@ module GoGenM = struct
     { namegen= Namegen.create ()
     ; lp_fns= Map.empty (module LocalProtocolId)
     ; msg_iface= Map.empty (module ProtocolName)
-    ; lp_ctx= {channels= Map.empty (module RolePair)} }
+    ; ctx_type= Map.empty (module LocalProtocolId)
+    ; lp_ctx=
+        { channels= Map.empty (module RolePair)
+        ; ctx_vars= Map.empty (module LocalProtocolId)
+        ; curr_fn= None } }
 
   let get (st : state) = (st, st)
 
@@ -1368,7 +1376,8 @@ let get_chan ~proto ~src ~dst =
       let* iface = find_iface_type ~proto in
       let ty = GoChan iface in
       let ctx' =
-        { GoGenM.channels=
+        { ctx with
+          GoGenM.channels=
             Map.add_exn chans ~key:(proto, src, dst) ~data:(ch, ty) }
       in
       let* st = GoGenM.get in
@@ -1585,21 +1594,69 @@ let rec decl_channels ~proto lty =
   | [] -> pure []
   | (_, t) :: _ -> pure [(List.map ~f:fst chs, t)]
 
+let enter_decl ~proto ~role =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  GoGenM.put
+    { st with
+      GoGenM.lp_ctx=
+        {ctx with GoGenM.curr_fn= Some (LocalProtocolId.create proto role)}
+    }
+
+let get_ctx_type ~proto ~role =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  match Map.find st.GoGenM.ctx_type (LocalProtocolId.create proto role) with
+  | Some ty -> pure ty
+  | None ->
+      let* ctx_ty =
+        fresh ("Ctx_" ^ ProtocolName.user proto ^ "_" ^ RoleName.user role)
+      in
+      let ctx_ty = GoTyVar ctx_ty in
+      let* st = GoGenM.get in
+      let st =
+        { st with
+          GoGenM.ctx_type=
+            Map.add_exn st.GoGenM.ctx_type
+              ~key:(LocalProtocolId.create proto role)
+              ~data:ctx_ty }
+      in
+      let* _ = GoGenM.put st in
+      pure ctx_ty
+
+let new_ctx ~proto ~role =
+  let open GoGenM.Syntax in
+  let* ctx_ty = get_ctx_type ~proto ~role in
+  let* ctx_var = fresh "ctx" in
+  let* st = GoGenM.get in
+  let lp_ctx = st.GoGenM.lp_ctx in
+  let lp_ctx =
+    { lp_ctx with
+      GoGenM.ctx_vars=
+        Map.add_exn lp_ctx.GoGenM.ctx_vars
+          ~key:(LocalProtocolId.create proto role)
+          ~data:ctx_var }
+  in
+  let st = {st with GoGenM.lp_ctx} in
+  let* _ = GoGenM.put st in
+  pure (ctx_var, ctx_ty)
+
 let gen_decl_body ~proto ~role lty =
   let open GoGenM.Syntax in
   let* _ = GoGenM.cleanup in
+  let* _ = enter_decl ~proto ~role in
   let chans = required_channels ~role lty in
   let* chs = decl_channels ~proto chans in
-  (* let* ctx, ctx_ty = new_ctx ~proto ~role in *)
-  (* let* ch, ch_ty = new_session ~proto ~role in *)
+  let* ctx_var, ctx_ty = new_ctx ~proto ~role in
   let* clty = gen_local ~proto ~role lty in
   let* _ = GoGenM.cleanup in
-  pure (chs, clty)
+  pure (([ctx_var], ctx_ty) :: chs, ctx_ty, clty)
 
 let gen_local_func ~key ~data:(_roles, lty) cgen =
   let open GoGenM.Syntax in
   let* acc = cgen in
-  let* args, clty =
+  let* args, r_ty, clty =
     gen_decl_body
       ~proto:(LocalProtocolId.get_protocol key)
       ~role:(LocalProtocolId.get_role key)
@@ -1610,7 +1667,7 @@ let gen_local_func ~key ~data:(_roles, lty) cgen =
     FunctionName.of_string @@ LocalProtocolName.to_capitalize_string lpn
   in
   (* Generate return type for [key] in callbacks/key *)
-  let fdecl = GoFunc (fnm, args, None, clty) in
+  let fdecl = GoFunc (fnm, args, Some r_ty, clty) in
   (* let function_impl = function_decl impl_function params return_type impl
      in *)
   (* (env, function_impl) *)
