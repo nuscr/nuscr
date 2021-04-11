@@ -244,6 +244,10 @@ let project_protobuf =
     value & opt_all role_proto []
     & info ["project-protobuf"] ~doc ~docv:"ROLE@PROTO" )
 
+let project_all =
+  let doc = "Project the all local types for the input file." in
+  Arg.(value & flag & info ["P"; "project-all"] ~doc)
+
 let fsm =
   let doc =
     "Project the CFSM for the specified protocol and role. \

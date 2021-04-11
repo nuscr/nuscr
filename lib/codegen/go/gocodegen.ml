@@ -1253,6 +1253,375 @@ let show_codegen_result
     ; impl_files
     ; entry_point_file ]
 
+module RolePair = struct
+  module T = struct
+    type t = ProtocolName.t * RoleName.t * RoleName.t
+    [@@deriving sexp_of, ord]
+  end
+
+  include T
+  include Comparable.Make (T)
+end
+
+module Namegen = Namegen.Make (VariableName)
+
+module GoGenM = struct
+  type ctx = {channels: (VariableName.t * goType) Map.M(RolePair).t}
+
+  type state =
+    { namegen: Namegen.t
+    ; lp_fns: LocalProtocolName.t Map.M(LocalProtocolId).t
+    ; msg_iface: goType Map.M(ProtocolName).t
+    ; lp_ctx: ctx }
+  (* type 'a t = state -> state * 'a *)
+
+  let init =
+    { namegen= Namegen.create ()
+    ; lp_fns= Map.empty (module LocalProtocolId)
+    ; msg_iface= Map.empty (module ProtocolName)
+    ; lp_ctx= {channels= Map.empty (module RolePair)} }
+
+  let get (st : state) = (st, st)
+
+  let put st _ = (st, ())
+
+  let map f m st =
+    let st', x = m st in
+    (st', f x)
+
+  let bind m k (st : state) =
+    let st', x = m st in
+    k x st'
+
+  (* let product m1 m2 st = let (st', x) = m1 st in let (st'', y) = m2 st' in
+     (st'', (x, y)) *)
+
+  (* let run m st = m st *)
+  let eval m (st : state) = snd (m st)
+
+  (* TODO: clean up local state for current definition *)
+  let cleanup st = (st, ())
+
+  module Syntax = struct
+    (* let ( let+ ) x f = map f x *)
+    (* let ( and+ ) m1 m2 = product m1 m2 *)
+    let ( let* ) x f = bind x f
+
+    let pure x = function st -> (st, x)
+  end
+end
+
+let fresh nm =
+  let nm = VariableName.of_string nm in
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ng, nm' = Namegen.unique_name st.GoGenM.namegen nm in
+  let* _ = GoGenM.put {st with GoGenM.namegen= ng} in
+  pure nm'
+
+let find_lp_name ~id =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  pure (Map.find st.GoGenM.lp_fns id)
+
+let put_lp_name ~key ~data =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  GoGenM.put {st with GoGenM.lp_fns= Map.add_exn st.GoGenM.lp_fns ~key ~data}
+
+let get_lp_name ~id =
+  let open GoGenM.Syntax in
+  let pn = LocalProtocolId.get_protocol id |> ProtocolName.user in
+  let rn = LocalProtocolId.get_role id |> RoleName.user in
+  let nm = Printf.sprintf "%s_%s" pn rn in
+  let* lp = find_lp_name ~id in
+  match lp with
+  | None ->
+      let* nm = fresh nm in
+      let nm = LocalProtocolName.of_string (VariableName.user nm) in
+      let* _ = put_lp_name ~key:id ~data:nm in
+      pure nm
+  | Some fn -> pure fn
+
+let find_iface_type ~proto =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  match Map.find st.GoGenM.msg_iface proto with
+  | None ->
+      let* nm = fresh ("Msg" ^ ProtocolName.user proto) in
+      let ifaces =
+        Map.add_exn st.GoGenM.msg_iface ~key:proto ~data:(GoTyVar nm)
+      in
+      let* st = GoGenM.get in
+      let* _ = GoGenM.put {st with GoGenM.msg_iface= ifaces} in
+      pure (GoTyVar nm)
+  | Some t -> pure t
+
+let get_chan ~proto ~src ~dst =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  let chans = ctx.GoGenM.channels in
+  match Map.find chans (proto, src, dst) with
+  | None ->
+      let* ch = fresh ("ch" ^ RoleName.user src ^ RoleName.user dst) in
+      let* iface = find_iface_type ~proto in
+      let ty = GoChan iface in
+      let ctx' =
+        { GoGenM.channels=
+            Map.add_exn chans ~key:(proto, src, dst) ~data:(ch, ty) }
+      in
+      let* st = GoGenM.get in
+      let* _ = GoGenM.put {st with GoGenM.lp_ctx= ctx'} in
+      pure (ch, ty)
+  | Some res -> pure res
+
+let mk_sr_callback cb_ty lbl from =
+  let open GoGenM.Syntax in
+  pure
+    (FunctionName.of_string
+       (cb_ty ^ "_" ^ LabelName.user lbl ^ "_" ^ RoleName.user from ^ "_TODO") )
+
+let mk_ch_callback cb_ty from =
+  let open GoGenM.Syntax in
+  pure (FunctionName.of_string (cb_ty ^ "_" ^ RoleName.user from ^ "_TODO"))
+
+let mk_end_callback =
+  let open GoGenM.Syntax in
+  pure "End"
+
+let get_label _ = "TODO_Label"
+
+let get_protocol_call_label _ _ _ =
+  let open GoGenM.Syntax in
+  pure "TODO_Call_Label"
+
+let get_acc_callback _ _ _ =
+  let open GoGenM.Syntax in
+  pure "TODO_accept_callback"
+
+let get_post_acc_callback _ _ _ =
+  let open GoGenM.Syntax in
+  pure "TODO_post_accept_callback"
+
+let get_proto_call _ _ =
+  let open GoGenM.Syntax in
+  pure (FunctionName.of_string "TODO_call_protocol")
+
+let mk_channels _ =
+  let open GoGenM.Syntax in
+  pure (VariableName.of_string "TODO_newchans", [])
+
+(** Input: role, local type; Output: list of unique pairs of roles that
+    require a channel in this local type *)
+let rec required_channels ~role lty =
+  let rec go = function
+    | RecvL (_, src, cont) -> (role, src) :: go cont
+    | SendL (_, dst, cont) -> (dst, role) :: go cont
+    | ChoiceL (_, alts) ->
+        List.fold ~init:[] ~f:List.append (List.map ~f:go alts)
+    | TVarL _ -> []
+    | MuL (_, _, k) -> go k
+    | EndL -> []
+    | InviteCreateL (dsts, _, _, k) ->
+        List.map ~f:(fun dst -> (dst, role)) dsts @ go k
+    | AcceptL (src, _, _, _, _, k) -> (role, src) :: go k
+    | SilentL _ -> assert false
+  in
+  let cmp_pair (p1, q1) (p2, q2) =
+    let cmp_fst = RoleName.compare p1 p2 in
+    if cmp_fst = 0 then RoleName.compare q1 q2 else cmp_fst
+  in
+  List.dedup_and_sort ~compare:cmp_pair (go lty)
+
+let gen_local ~proto ~role lty =
+  let open GoGenM.Syntax in
+  let rec go pre go_impl lty =
+    match lty with
+    | RecvL ({label; _}, from, cont) ->
+        let* var, k =
+          match pre with
+          | Some var -> pure (var, [])
+          | None ->
+              let* chan, _ = get_chan ~proto ~src:role ~dst:from in
+              let* var = fresh "x" in
+              let recv_stmt =
+                GoAssign
+                  ( var
+                  , GoAssert
+                      ( GoRecv (GoVar chan)
+                      , VariableName.of_string
+                          (LabelName.to_capitalize_string label) ) )
+              in
+              pure (var, [recv_stmt])
+        in
+        let* cb_nm = mk_sr_callback "Recv" label from in
+        let recv_callback = GoExpr (GoCall (cb_nm, [GoVar var])) in
+        go None ((recv_callback :: k) @ go_impl) cont
+    | SendL ({label; _}, dst, cont) ->
+        let* var, k =
+          match pre with
+          | Some var -> pure (var, [])
+          | None ->
+              let* cb_nm = mk_sr_callback "Send" label dst in
+              let* var = fresh "x" in
+              let send_callback = GoAssign (var, GoCall (cb_nm, [])) in
+              pure (var, [send_callback])
+        in
+        let* chan, _ = get_chan ~proto ~src:dst ~dst:role in
+        let send_stmt = GoSend (GoVar chan, GoVar var) in
+        go None ((send_stmt :: k) @ go_impl) cont
+    | ChoiceL (who, alts) ->
+        if RoleName.equal role who then
+          let* cb_nm = mk_ch_callback "Choice" who in
+          let* var_x = fresh "x" in
+          let* var_v = fresh "v" in
+          let* conts = go_alt var_v alts in
+          let choice_stmt =
+            GoSwitch (GoAssign (var_v, GoTypeOf (GoVar var_x)), conts)
+          and callback = GoAssign (var_x, GoCall (cb_nm, [])) in
+          pure ([choice_stmt; callback] @ go_impl)
+        else
+          let* chan, _ = get_chan ~proto ~src:role ~dst:who in
+          let* var = fresh "x" in
+          let recv_stmt = GoAssign (var, GoRecv (GoVar chan)) in
+          let* var_v = fresh "v" in
+          let* conts = go_alt var_v alts in
+          let choice_stmt =
+            GoSwitch (GoAssign (var_v, GoTypeOf (GoVar var)), conts)
+          in
+          pure ([choice_stmt; recv_stmt] @ go_impl)
+    | TVarL (jump_to, _exprs) ->
+        let rv = LabelName.of_string (TypeVariableName.user jump_to) in
+        pure (GoContinue (Some rv) :: go_impl)
+    | MuL (var, _rvars, cont) ->
+        let* body = go pre [] cont in
+        let rv = LabelName.of_string (TypeVariableName.user var) in
+        pure (GoFor (GoSeq (List.rev body)) :: GoLabel rv :: go_impl)
+    | EndL ->
+        let* cb_nm = mk_end_callback in
+        pure (GoReturn (GoCall (FunctionName.of_string cb_nm, [])) :: go_impl)
+    | InviteCreateL (roles, new_roles, proto, cont) ->
+        let* lbl = get_protocol_call_label roles new_roles proto in
+        let* invitations = go_invite [] lbl proto roles in
+        let* new_goroutines = go_create [] proto new_roles in
+        go None (new_goroutines @ invitations @ go_impl) cont
+    | AcceptL (from, proto, roles, new_roles, who, cont) ->
+        (* What is the label for this protocol call? *)
+        let* lbl = get_protocol_call_label roles new_roles proto in
+        (* Get channel from sender and receive protocol channels *)
+        let* chan, _ = get_chan ~proto ~src:role ~dst:from in
+        let* var = fresh "x" in
+        let recv_stmt =
+          GoAssign
+            (var, GoAssert (GoRecv (GoVar chan), VariableName.of_string lbl))
+        in
+        (* get accept callback (from this role's context to who's context *)
+        let* cb_nm = get_acc_callback from who proto in
+        let* ctx = fresh "ctx" in
+        let callback =
+          GoAssign (ctx, GoCall (FunctionName.of_string cb_nm, []))
+        in
+        (* get actual protocol call *)
+        let* call_proto = get_proto_call who proto in
+        let* ctx' = fresh "ctx" in
+        let call_stmt =
+          GoAssign (ctx', GoCall (call_proto, [GoVar ctx; GoVar var]))
+        in
+        let* cb_nm = get_post_acc_callback from who proto in
+        let callback' =
+          GoExpr (GoCall (FunctionName.of_string cb_nm, [GoVar ctx']))
+        in
+        go None
+          (callback' :: call_stmt :: callback :: recv_stmt :: go_impl)
+          cont
+    | SilentL _ -> assert false
+  and go_alt var = function
+    | [] -> pure []
+    | x :: xs ->
+        let* cont = go (Some var) [] x in
+        let* alts = go_alt var xs in
+        pure
+          ( ( GoVar (VariableName.of_string (get_label x))
+            , GoSeq (List.rev cont) )
+          :: alts )
+  and go_invite acc lbl next_proto = function
+    | [] -> pure acc
+    | r :: rs ->
+        let* ch_name, chans = mk_channels next_proto in
+        let* chan, _ = get_chan ~proto ~src:role ~dst:r in
+        let go_inv = GoSend (GoVar chan, GoVar ch_name) in
+        go_invite ((go_inv :: chans) @ acc) lbl next_proto rs
+  and go_create acc next_proto = function
+    | [] -> pure acc
+    | r :: rs ->
+        let* ch_name, chans = mk_channels next_proto in
+        let* cb_nm = get_acc_callback role r proto in
+        let* ctx = fresh "ctx" in
+        let callback =
+          GoAssign (ctx, GoCall (FunctionName.of_string cb_nm, []))
+        in
+        (* get actual protocol call *)
+        let* call_proto = get_proto_call r next_proto in
+        let call_stmt =
+          GoSpawn (GoCall (call_proto, [GoVar ctx; GoVar ch_name]))
+        in
+        go_create ((call_stmt :: callback :: chans) @ acc) next_proto rs
+  in
+  GoGenM.map (fun l -> GoSeq (List.rev l)) (go None [] lty)
+
+let rec decl_channels ~proto lty =
+  let open GoGenM.Syntax in
+  let rec go lty =
+    match lty with
+    | [] -> pure []
+    | (f, t) :: rs ->
+        let* ch = get_chan ~proto ~src:f ~dst:t in
+        let* chs = go rs in
+        pure (ch :: chs)
+  in
+  let* chs = go lty in
+  match chs with
+  | [] -> pure []
+  | (_, t) :: _ -> pure [(List.map ~f:fst chs, t)]
+
+let gen_decl_body ~proto ~role lty =
+  let open GoGenM.Syntax in
+  let* _ = GoGenM.cleanup in
+  let chans = required_channels ~role lty in
+  let* chs = decl_channels ~proto chans in
+  (* let* ctx, ctx_ty = new_ctx ~proto ~role in *)
+  (* let* ch, ch_ty = new_session ~proto ~role in *)
+  let* clty = gen_local ~proto ~role lty in
+  let* _ = GoGenM.cleanup in
+  pure (chs, clty)
+
+let gen_local_func ~key ~data:(_roles, lty) cgen =
+  let open GoGenM.Syntax in
+  let* acc = cgen in
+  let* args, clty =
+    gen_decl_body
+      ~proto:(LocalProtocolId.get_protocol key)
+      ~role:(LocalProtocolId.get_role key)
+      lty
+  in
+  let* lpn = get_lp_name ~id:key in
+  let fnm =
+    FunctionName.of_string @@ LocalProtocolName.to_capitalize_string lpn
+  in
+  (* Generate return type for [key] in callbacks/key *)
+  let fdecl = GoFunc (fnm, args, None, clty) in
+  (* let function_impl = function_decl impl_function params return_type impl
+     in *)
+  (* (env, function_impl) *)
+  pure (fdecl :: acc)
+
+let gen_code_alt _root_dir _gen_protocol _global_t local_t =
+  let genf =
+    Map.fold local_t ~init:(GoGenM.Syntax.pure []) ~f:gen_local_func
+  in
+  ppr_prog (GoGenM.eval genf GoGenM.init)
+
 (** Generate all the elements of the implementation of a Scribble module and
     the entry point protocol *)
 let gen_code root_dir gen_protocol (global_t : Gtype.nested_t)
@@ -1379,131 +1748,64 @@ let gen_code root_dir gen_protocol (global_t : Gtype.nested_t)
   let initial_result = init_result messages_file in
   Map.fold ~init:initial_result ~f:gen_protocol_role_implementation global_t
 
-let write_go_impl
-    { messages
-    ; channels
-    ; invite_channels
-    ; results
-    ; impl
-    ; callbacks
-    ; protocol_setup
-    ; entry_point } project_root root_pkg first_protocol =
-  let write_protocol_pkgs protocol_impls pkg_name file_name =
-    create_pkg pkg_name ;
-    Map.iteri protocol_impls ~f:(fun ~key:protocol ~data:impl ->
-        let protocol_pkg = PackageName.protocol_pkg_name protocol in
-        let protocol_pkg_path = pkg_path [pkg_name; protocol_pkg] in
-        create_dir protocol_pkg_path ;
-        let file_name = FileName.user file_name in
-        let file_path = gen_file_path protocol_pkg_path file_name in
-        write_file file_path impl )
-  in
-  let write_single_file_pkg pkg file_name impl =
-    create_pkg pkg ;
-    let file_path =
-      gen_file_path (PackageName.user pkg) (FileName.user file_name)
-    in
-    write_file file_path impl
-  in
-  let write_messages () =
-    write_single_file_pkg PackageName.pkg_messages
-      FileName.messages_file_name messages
-  in
-  let write_results () =
-    write_protocol_pkgs results PackageName.pkg_results
-      FileName.results_file_name
-  in
-  let write_channels () =
-    write_protocol_pkgs channels PackageName.pkg_channels
-      FileName.channels_file_name
-  in
-  let write_invite_channels () =
-    create_pkg PackageName.pkg_invitations ;
-    Map.iteri invite_channels ~f:(fun ~key:protocol ~data:impl ->
-        let file_name = FileName.invitations_file_name protocol in
-        let file_name = FileName.user file_name in
-        let file_path =
-          gen_file_path
-            (PackageName.user PackageName.pkg_invitations)
-            file_name
-        in
-        write_file file_path impl )
-  in
-  let write_entry_point () =
-    write_single_file_pkg PackageName.pkg_protocol
-      (FileName.protocol_file_name first_protocol)
-      entry_point
-  in
-  let write_callbacks () =
-    create_pkg PackageName.pkg_callbacks ;
-    Map.iteri callbacks ~f:(fun ~key:local_protocol ~data:impl ->
-        let file_name = FileName.callbacks_file_name local_protocol in
-        let file_name = FileName.user file_name in
-        let file_path =
-          gen_file_path
-            (PackageName.user PackageName.pkg_callbacks)
-            file_name
-        in
-        write_file file_path impl )
-  in
-  let write_roles () =
-    create_pkg PackageName.pkg_roles ;
-    let module Namegen = Namegen.Make (FileName) in
-    let file_name_gen = Namegen.create () in
-    let file_name_gen =
-      Map.fold impl ~init:file_name_gen
-        ~f:(fun ~key:local_protocol ~data:impl file_name_gen ->
-          let file_name = FileName.role_impl_file_name local_protocol in
-          let file_name_gen, file_name =
-            Namegen.unique_name file_name_gen file_name
-          in
-          let file_path =
-            gen_file_path
-              (PackageName.user PackageName.pkg_roles)
-              (FileName.user file_name)
-          in
-          write_file file_path impl ; file_name_gen )
-    in
-    let _ =
-      Map.fold protocol_setup ~init:file_name_gen
-        ~f:(fun ~key:protocol ~data:impl file_name_gen ->
-          let file_name = FileName.protocol_setup_file_name protocol in
-          let file_name_gen, file_name =
-            Namegen.unique_name file_name_gen file_name
-          in
-          let file_path =
-            gen_file_path
-              (PackageName.user PackageName.pkg_roles)
-              (FileName.user file_name)
-          in
-          write_file file_path impl ; file_name_gen )
-    in
-    ()
-  in
-  change_dir (RootDirName.user project_root) ;
-  create_pkg root_pkg ;
-  change_dir (PackageName.user root_pkg) ;
-  write_messages () ;
-  write_results () ;
-  write_channels () ;
-  write_invite_channels () ;
-  write_entry_point () ;
-  write_callbacks () ;
-  write_roles ()
+(* let write_go_impl { messages ; channels ; invite_channels ; results ; impl
+   ; callbacks ; protocol_setup ; entry_point } project_root root_pkg
+   first_protocol = let write_protocol_pkgs protocol_impls pkg_name file_name
+   = create_pkg pkg_name ; Map.iteri protocol_impls ~f:(fun ~key:protocol
+   ~data:impl -> let protocol_pkg = PackageName.protocol_pkg_name protocol in
+   let protocol_pkg_path = pkg_path [pkg_name; protocol_pkg] in create_dir
+   protocol_pkg_path ; let file_name = FileName.user file_name in let
+   file_path = gen_file_path protocol_pkg_path file_name in write_file
+   file_path impl ) in let write_single_file_pkg pkg file_name impl =
+   create_pkg pkg ; let file_path = gen_file_path (PackageName.user pkg)
+   (FileName.user file_name) in write_file file_path impl in let
+   write_messages () = write_single_file_pkg PackageName.pkg_messages
+   FileName.messages_file_name messages in let write_results () =
+   write_protocol_pkgs results PackageName.pkg_results
+   FileName.results_file_name in let write_channels () = write_protocol_pkgs
+   channels PackageName.pkg_channels FileName.channels_file_name in let
+   write_invite_channels () = create_pkg PackageName.pkg_invitations ;
+   Map.iteri invite_channels ~f:(fun ~key:protocol ~data:impl -> let
+   file_name = FileName.invitations_file_name protocol in let file_name =
+   FileName.user file_name in let file_path = gen_file_path (PackageName.user
+   PackageName.pkg_invitations) file_name in write_file file_path impl ) in
+   let write_entry_point () = write_single_file_pkg PackageName.pkg_protocol
+   (FileName.protocol_file_name first_protocol) entry_point in let
+   write_callbacks () = create_pkg PackageName.pkg_callbacks ; Map.iteri
+   callbacks ~f:(fun ~key:local_protocol ~data:impl -> let file_name =
+   FileName.callbacks_file_name local_protocol in let file_name =
+   FileName.user file_name in let file_path = gen_file_path (PackageName.user
+   PackageName.pkg_callbacks) file_name in write_file file_path impl ) in let
+   write_roles () = create_pkg PackageName.pkg_roles ; let module Namegen =
+   Namegen.Make (FileName) in let file_name_gen = Namegen.create () in let
+   file_name_gen = Map.fold impl ~init:file_name_gen ~f:(fun
+   ~key:local_protocol ~data:impl file_name_gen -> let file_name =
+   FileName.role_impl_file_name local_protocol in let file_name_gen,
+   file_name = Namegen.unique_name file_name_gen file_name in let file_path =
+   gen_file_path (PackageName.user PackageName.pkg_roles) (FileName.user
+   file_name) in write_file file_path impl ; file_name_gen ) in let _ =
+   Map.fold protocol_setup ~init:file_name_gen ~f:(fun ~key:protocol
+   ~data:impl file_name_gen -> let file_name =
+   FileName.protocol_setup_file_name protocol in let file_name_gen, file_name
+   = Namegen.unique_name file_name_gen file_name in let file_path =
+   gen_file_path (PackageName.user PackageName.pkg_roles) (FileName.user
+   file_name) in write_file file_path impl ; file_name_gen ) in () in
+   change_dir (RootDirName.user project_root) ; create_pkg root_pkg ;
+   change_dir (PackageName.user root_pkg) ; write_messages () ; write_results
+   () ; write_channels () ; write_invite_channels () ; write_entry_point () ;
+   write_callbacks () ; write_roles () *)
 
 let generate_from_scr ast protocol root_dir =
   let global_t = nested_t_of_module ast in
   ensure_unique_identifiers global_t ;
   let local_t = Ltype.project_nested_t global_t in
   let local_t = Ltype.ensure_unique_tvars local_t in
-  gen_code root_dir protocol global_t local_t
+  gen_code_alt root_dir protocol global_t local_t
 
-let write_code_to_files result go_path out_dir protocol =
-  let project_root =
-    RootDirName.of_string @@ Printf.sprintf "%s/%s" go_path out_dir
-  in
-  let protocol_root_pkg = PackageName.protocol_pkg_name protocol in
-  write_go_impl result project_root protocol_root_pkg protocol
+(* let write_code_to_files result go_path out_dir protocol = let project_root
+   = RootDirName.of_string @@ Printf.sprintf "%s/%s" go_path out_dir in let
+   protocol_root_pkg = PackageName.protocol_pkg_name protocol in
+   write_go_impl result project_root protocol_root_pkg protocol *)
 
 let error_no_global_protocol () =
   Err.uerr
@@ -1516,14 +1818,14 @@ let find_global_protocol ast =
   | [] -> error_no_global_protocol ()
   | x :: _ -> x.Loc.value.name
 
-let generate_go_code ast ~out_dir ~go_path =
+let generate_go_code ast ~out_dir ~go_path:_ =
   let protocol = find_global_protocol ast in
   let protocol_pkg = PackageName.protocol_pkg_name protocol in
   let root_dir =
     RootDirName.of_string
     @@ Printf.sprintf "%s/%s" out_dir (PackageName.user protocol_pkg)
   in
-  let result = generate_from_scr ast protocol root_dir in
-  if Option.is_some go_path then
-    write_code_to_files result (Option.value_exn go_path) out_dir protocol ;
-  show_codegen_result result protocol root_dir
+  generate_from_scr ast protocol root_dir
+(* if Option.is_some go_path then write_code_to_files result
+   (Option.value_exn go_path) out_dir protocol; *)
+(* show_codegen_result result protocol root_dir *)

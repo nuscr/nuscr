@@ -300,6 +300,8 @@ let new_chan_var_assignment (chan_var, chan_type) =
 
 let gen_case_stmt case_str = sprintf "case %s:" case_str
 
+let expr_type_assertion expr ty = sprintf "(%s).(%s)" expr ty
+
 (* SWITCH STATEMENT *)
 let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent
     default_impl =
@@ -365,3 +367,100 @@ let recursion_loop loop_body indent =
   sprintf "%sfor {\n%s\n%s}" indent loop_body indent
 
 let recursion_impl label loop = sprintf "%s\n%s" label loop
+
+type goExpr =
+  | GoRecv of goExpr
+  | GoVar of VariableName.t
+  | GoAssert of goExpr * VariableName.t
+  | GoCall of FunctionName.t * goExpr list
+  | GoTypeOf of goExpr
+
+and goStmt =
+  | GoAssign of VariableName.t * goExpr
+  | GoSend of goExpr * goExpr
+  | GoSeq of goStmt list
+  | GoExpr of goExpr
+  | GoReturn of goExpr
+  | GoSwitch of goStmt * (goExpr * goStmt) list
+  | GoLabel of LabelName.t
+  | GoFor of goStmt
+  | GoContinue of LabelName.t option
+  | GoSpawn of goExpr
+
+and goType = GoTyVar of VariableName.t | GoChan of goType
+
+and goTyDecl = GoSyn of goType
+
+and goDecl =
+  | GoFunc of
+      FunctionName.t
+      * (VariableName.t list * goType) list
+      * goType option
+      * goStmt
+  | GoTyDecl of string * goTyDecl
+
+let rec ppr_expr = function
+  | GoRecv e -> Printf.sprintf "<- %s" (ppr_expr e)
+  | GoVar v -> VariableName.user v
+  | GoAssert (e, t) ->
+      Printf.sprintf "(%s).(%s)" (ppr_expr e) (VariableName.user t)
+  | GoCall (fn, exprs) ->
+      Printf.sprintf "%s(%s)" (FunctionName.user fn)
+        (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
+  | GoTypeOf e -> Printf.sprintf "%s.(type)" (ppr_expr e)
+
+and ppr_alt ~indent_level (e, s) =
+  Printf.sprintf "%scase %s:\n%s" indent_level (ppr_expr e)
+    (ppr_stmt ~indent_level:("\t" ^ indent_level) s)
+
+and ppr_alts ~indent_level alts =
+  String.concat ~sep:"\n" (List.map ~f:(ppr_alt ~indent_level) alts)
+
+and ppr_stmt ~indent_level = function
+  | GoReturn e -> Printf.sprintf "%sreturn %s" indent_level (ppr_expr e)
+  | GoExpr e -> Printf.sprintf "%s%s" indent_level (ppr_expr e)
+  | GoSpawn e -> Printf.sprintf "%sgo %s" indent_level (ppr_expr e)
+  | GoAssign (v, e) ->
+      Printf.sprintf "%s%s := %s" indent_level (VariableName.user v)
+        (ppr_expr e)
+  | GoSend (c, e) ->
+      Printf.sprintf "%s%s <- %s" indent_level (ppr_expr c) (ppr_expr e)
+  | GoSeq stmts ->
+      String.concat ~sep:"\n" (List.map ~f:(ppr_stmt ~indent_level) stmts)
+  | GoSwitch (s, alts) ->
+      Printf.sprintf "%sswitch %s {\n%s\n%s}" indent_level
+        (ppr_stmt ~indent_level:"" s)
+        (ppr_alts ~indent_level alts)
+        indent_level
+  | GoFor body ->
+      Printf.sprintf "%sfor {\n%s\n%s}" indent_level
+        (ppr_stmt ~indent_level:("\t" ^ indent_level) body)
+        indent_level
+  | GoLabel lbl -> Printf.sprintf "%s%s:" indent_level (LabelName.user lbl)
+  | GoContinue lbl -> (
+    match lbl with
+    | None -> Printf.sprintf "%scontinue" indent_level
+    | Some l ->
+        Printf.sprintf "%scontinue %s" indent_level (LabelName.user l) )
+
+and ppr_ty = function
+  | GoTyVar v -> VariableName.user v
+  | GoChan t -> Printf.sprintf "chan %s" (ppr_ty t)
+
+and ppr_fn_args args =
+  String.concat ~sep:", "
+    (List.map
+       ~f:(fun (a, t) ->
+         String.concat ~sep:", " (List.map ~f:VariableName.user a)
+         ^ " " ^ ppr_ty t )
+       args )
+
+and ppr_decl = function
+  | GoFunc (nm, args, rt, body) ->
+      Printf.sprintf "func %s(%s) %s {\n%s\n}" (FunctionName.user nm)
+        (ppr_fn_args args)
+        (match rt with Some rt -> ppr_ty rt | None -> "")
+        (ppr_stmt ~indent_level:"\t" body)
+  | GoTyDecl (_nm, _ty_d) -> "TODO"
+
+and ppr_prog decls = String.concat ~sep:"\n\n" (List.map ~f:ppr_decl decls)

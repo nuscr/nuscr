@@ -156,3 +156,36 @@ val join_non_empty_lines : ?sep:string -> string list -> string
 val incr_indent : string -> string
 
 val indent_line : string -> string -> string
+
+type goExpr =
+  | GoRecv of goExpr
+  | GoVar of VariableName.t
+  | GoAssert of goExpr * VariableName.t
+  | GoCall of FunctionName.t * goExpr list
+  | GoTypeOf of goExpr
+
+and goStmt =
+  | GoAssign of VariableName.t * goExpr
+  | GoSend of goExpr * goExpr
+  | GoSeq of goStmt list
+  | GoExpr of goExpr
+  | GoReturn of goExpr
+  | GoSwitch of goStmt * (goExpr * goStmt) list
+  | GoLabel of LabelName.t
+  | GoFor of goStmt
+  | GoContinue of LabelName.t option
+  | GoSpawn of goExpr
+
+and goType = GoTyVar of VariableName.t | GoChan of goType
+
+and goTyDecl = GoSyn of goType
+
+and goDecl =
+  | GoFunc of
+      FunctionName.t
+      * (VariableName.t list * goType) list
+      * goType option
+      * goStmt
+  | GoTyDecl of string * goTyDecl
+
+val ppr_prog : goDecl list -> string

@@ -1,7 +1,7 @@
 (env
  (_
   (flags
-   (:standard -w +A-39-4-42))))
+   (:standard -w +A-39-4-42-32))))
 
 (include_subdirs unqualified)
 

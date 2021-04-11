@@ -247,3 +247,7 @@ val todo_panic_msg : string
 val invalid_choice_panic_msg : string
 
 val pkg_path : PackageName.t list -> string
+
+module LocalProtocolName : sig
+  include ExtendedTaggedName with type t = LocalProtocolName.t
+end
