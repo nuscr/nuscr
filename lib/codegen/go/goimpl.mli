@@ -162,6 +162,7 @@ type goExpr =
   | GoVar of VariableName.t
   | GoAssert of goExpr * VariableName.t
   | GoCall of FunctionName.t * goExpr list
+  | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
 
 and goStmt =
@@ -176,9 +177,13 @@ and goStmt =
   | GoContinue of LabelName.t option
   | GoSpawn of goExpr
 
-and goType = GoTyVar of VariableName.t | GoChan of goType
+and goType =
+  | GoTyVar of VariableName.t
+  | GoChan of goType
+  | GoPtr of goType
+  | GoFunTy of (VariableName.t list * goType) list * goType
 
-and goTyDecl = GoSyn of goType
+and goTyDecl = GoSyn of goType | GoStruct of (VariableName.t * goType) list
 
 and goDecl =
   | GoFunc of

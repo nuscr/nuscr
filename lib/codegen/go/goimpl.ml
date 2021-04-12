@@ -373,6 +373,7 @@ type goExpr =
   | GoVar of VariableName.t
   | GoAssert of goExpr * VariableName.t
   | GoCall of FunctionName.t * goExpr list
+  | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
 
 and goStmt =
@@ -387,9 +388,13 @@ and goStmt =
   | GoContinue of LabelName.t option
   | GoSpawn of goExpr
 
-and goType = GoTyVar of VariableName.t | GoChan of goType
+and goType =
+  | GoTyVar of VariableName.t
+  | GoChan of goType
+  | GoPtr of goType
+  | GoFunTy of (VariableName.t list * goType) list * goType
 
-and goTyDecl = GoSyn of goType
+and goTyDecl = GoSyn of goType | GoStruct of (VariableName.t * goType) list
 
 and goDecl =
   | GoFunc of
@@ -406,6 +411,10 @@ let rec ppr_expr = function
       Printf.sprintf "(%s).(%s)" (ppr_expr e) (VariableName.user t)
   | GoCall (fn, exprs) ->
       Printf.sprintf "%s(%s)" (FunctionName.user fn)
+        (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
+  | GoMCall (vn, fn, exprs) ->
+      Printf.sprintf "%s.%s(%s)" (VariableName.user vn)
+        (FunctionName.user fn)
         (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
   | GoTypeOf e -> Printf.sprintf "%s.(type)" (ppr_expr e)
 
@@ -446,6 +455,9 @@ and ppr_stmt ~indent_level = function
 and ppr_ty = function
   | GoTyVar v -> VariableName.user v
   | GoChan t -> Printf.sprintf "chan %s" (ppr_ty t)
+  | GoPtr t -> Printf.sprintf "*%s" (ppr_ty t)
+  | GoFunTy (args, ret) ->
+      Printf.sprintf "func(%s) %s" (ppr_fn_args args) (ppr_ty ret)
 
 and ppr_fn_args args =
   String.concat ~sep:", "
@@ -461,6 +473,16 @@ and ppr_decl = function
         (ppr_fn_args args)
         (match rt with Some rt -> ppr_ty rt | None -> "")
         (ppr_stmt ~indent_level:"\t" body)
-  | GoTyDecl (_nm, _ty_d) -> "TODO"
+  | GoTyDecl (nm, GoSyn ty) -> Printf.sprintf "type %s = %s" nm (ppr_ty ty)
+  | GoTyDecl (nm, GoStruct flds) ->
+      Printf.sprintf "type %s struct {\n%s\n}" nm
+        (ppr_fields ~indent:"\t" flds)
+
+and ppr_fields ~indent flds =
+  String.concat ~sep:"\n"
+    (List.map
+       ~f:(fun (v, ty) ->
+         Printf.sprintf "%s%s %s" indent (VariableName.user v) (ppr_ty ty) )
+       flds )
 
 and ppr_prog decls = String.concat ~sep:"\n\n" (List.map ~f:ppr_decl decls)
