@@ -375,6 +375,8 @@ type goExpr =
   | GoCall of FunctionName.t * goExpr list
   | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
+  | GoMake of goType * int
+  | GoStructLit of VariableName.t * goExpr list
 
 and goStmt =
   | GoAssign of VariableName.t * goExpr
@@ -417,6 +419,10 @@ let rec ppr_expr = function
         (FunctionName.user fn)
         (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
   | GoTypeOf e -> Printf.sprintf "%s.(type)" (ppr_expr e)
+  | GoMake (t, i) -> Printf.sprintf "make(%s,%d)" (ppr_ty t) i
+  | GoStructLit (s, flds) ->
+      Printf.sprintf "%s{%s}" (VariableName.user s)
+        (String.concat ~sep:", " (List.map ~f:ppr_expr flds))
 
 and ppr_alt ~indent_level (e, s) =
   Printf.sprintf "%scase %s:\n%s" indent_level (ppr_expr e)

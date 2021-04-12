@@ -25,35 +25,52 @@ end
 
 module Namegen = Namegen.Make (VariableName)
 
+module ProtocolCall = struct
+  module T = struct
+    (* Who, Protocol, roles, new roles *)
+    type t = RoleName.t * ProtocolName.t * RoleName.t list * RoleName.t list
+    [@@deriving sexp_of, ord]
+  end
+
+  include T
+  include Comparable.Make (T)
+end
+
 module GoGenM = struct
   type ctx =
     { channels: (VariableName.t * goType) Map.M(RolePair).t
+    ; new_channels: (VariableName.t * goType) Map.M(RolePair).t
     ; ctx_vars: VariableName.t Map.M(LocalProtocolId).t
     ; curr_fn: LocalProtocolId.t option }
 
   type state =
     { namegen: Namegen.t
+    ; role_args: (RoleName.t list * RoleName.t list) Map.M(ProtocolName).t
     ; lp_fns: LocalProtocolName.t Map.M(LocalProtocolId).t
     ; msg_iface: goType Map.M(ProtocolName).t
     ; req_chans: (RoleName.t * RoleName.t) list Map.M(LocalProtocolId).t
     ; ctx_type: goType Map.M(LocalProtocolId).t
     ; proto_lbls: goTyDecl Map.M(ProtoLblPair).t
+    ; call_lbls: LabelName.t Map.M(ProtocolCall).t
     ; callbacks: (FunctionName.t * goType) list Map.M(LocalProtocolId).t
     ; lp_ctx: ctx }
   (* type 'a t = state -> state * 'a *)
 
   let init_lp_ctx =
     { channels= Map.empty (module RolePair)
+    ; new_channels= Map.empty (module RolePair)
     ; ctx_vars= Map.empty (module LocalProtocolId)
     ; curr_fn= None }
 
   let init =
     { namegen= Namegen.create ()
+    ; role_args= Map.empty (module ProtocolName)
     ; lp_fns= Map.empty (module LocalProtocolId)
     ; msg_iface= Map.empty (module ProtocolName)
     ; req_chans= Map.empty (module LocalProtocolId)
     ; ctx_type= Map.empty (module LocalProtocolId)
     ; proto_lbls= Map.empty (module ProtoLblPair)
+    ; call_lbls= Map.empty (module ProtocolCall)
     ; callbacks= Map.empty (module LocalProtocolId)
     ; lp_ctx= init_lp_ctx }
 
@@ -76,7 +93,7 @@ module GoGenM = struct
   let eval m (st : state) = snd (m st)
 
   (* TODO: clean up local state for current definition *)
-  let cleanup st = (st, ())
+  let cleanup st = ({st with lp_ctx= init_lp_ctx}, ())
 
   module Syntax = struct
     (* let ( let+ ) x f = map f x *)

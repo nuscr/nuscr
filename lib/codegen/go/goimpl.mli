@@ -164,6 +164,8 @@ type goExpr =
   | GoCall of FunctionName.t * goExpr list
   | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
+  | GoMake of goType * int
+  | GoStructLit of VariableName.t * goExpr list
 
 and goStmt =
   | GoAssign of VariableName.t * goExpr

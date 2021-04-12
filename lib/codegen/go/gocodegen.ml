@@ -1,6 +1,7 @@
 open! Base
 open Ltype
 open Goimpl
+open Goenvs
 open Gtype
 open Message
 open Fsutil
@@ -96,106 +97,7 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
   in
   ()
 
-module RolePair = struct
-  module T = struct
-    type t = ProtocolName.t * RoleName.t * RoleName.t
-    [@@deriving sexp_of, ord]
-  end
-
-  include T
-  include Comparable.Make (T)
-end
-
-module Namegen = Namegen.Make (VariableName)
-
-module ProtoLblPair = struct
-  module T = struct
-    type t = ProtocolName.t * LabelName.t [@@deriving sexp_of, ord]
-  end
-
-  include T
-  include Comparable.Make (T)
-end
-
-module GoGenM = struct
-  type ctx =
-    { channels: (VariableName.t * goType) Map.M(RolePair).t
-    ; ctx_vars: VariableName.t Map.M(LocalProtocolId).t
-    ; curr_fn: LocalProtocolId.t option }
-
-  type state =
-    { namegen: Namegen.t
-    ; lp_fns: LocalProtocolName.t Map.M(LocalProtocolId).t
-    ; msg_iface: goType Map.M(ProtocolName).t
-    ; req_chans: (RoleName.t * RoleName.t) list Map.M(LocalProtocolId).t
-    ; ctx_type: goType Map.M(LocalProtocolId).t
-    ; proto_lbls: goTyDecl Map.M(ProtoLblPair).t
-    ; callbacks: (FunctionName.t * goType) list Map.M(LocalProtocolId).t
-    ; lp_ctx: ctx }
-  (* type 'a t = state -> state * 'a *)
-
-  let init_lp_ctx =
-    { channels= Map.empty (module RolePair)
-    ; ctx_vars= Map.empty (module LocalProtocolId)
-    ; curr_fn= None }
-
-  let init =
-    { namegen= Namegen.create ()
-    ; lp_fns= Map.empty (module LocalProtocolId)
-    ; msg_iface= Map.empty (module ProtocolName)
-    ; req_chans= Map.empty (module LocalProtocolId)
-    ; ctx_type= Map.empty (module LocalProtocolId)
-    ; proto_lbls= Map.empty (module ProtoLblPair)
-    ; callbacks= Map.empty (module LocalProtocolId)
-    ; lp_ctx= init_lp_ctx }
-
-  let get (st : state) = (st, st)
-
-  let put st _ = (st, ())
-
-  let map f m st =
-    let st', x = m st in
-    (st', f x)
-
-  let bind m k (st : state) =
-    let st', x = m st in
-    k x st'
-
-  (* let product m1 m2 st = let (st', x) = m1 st in let (st'', y) = m2 st' in
-     (st'', (x, y)) *)
-
-  (* let run m st = m st *)
-  let eval m (st : state) = snd (m st)
-
-  (* TODO: clean up local state for current definition *)
-  let cleanup st = (st, ())
-
-  module Syntax = struct
-    (* let ( let+ ) x f = map f x *)
-    (* let ( and+ ) m1 m2 = product m1 m2 *)
-    let ( let* ) x f = bind x f
-
-    let pure x = function st -> (st, x)
-  end
-end
-
-let fresh nm =
-  let nm = VariableName.of_string nm in
-  let open GoGenM.Syntax in
-  let* st = GoGenM.get in
-  let ng, nm' = Namegen.unique_name st.GoGenM.namegen nm in
-  let* _ = GoGenM.put {st with GoGenM.namegen= ng} in
-  pure nm'
-
-let find_lp_name ~id =
-  let open GoGenM.Syntax in
-  let* st = GoGenM.get in
-  pure (Map.find st.GoGenM.lp_fns id)
-
-let put_lp_name ~key ~data =
-  let open GoGenM.Syntax in
-  let* st = GoGenM.get in
-  GoGenM.put {st with GoGenM.lp_fns= Map.add_exn st.GoGenM.lp_fns ~key ~data}
+let buffer_size = 1
 
 let get_lp_name ~id =
   let open GoGenM.Syntax in
@@ -232,7 +134,9 @@ let get_chan ~proto ~src ~dst =
   let chans = ctx.GoGenM.channels in
   match Map.find chans (proto, src, dst) with
   | None ->
-      let* ch = fresh ("ch" ^ RoleName.user src ^ RoleName.user dst) in
+      let* ch =
+        fresh ("ch_" ^ RoleName.user src ^ "_" ^ RoleName.user dst)
+      in
       let* iface = find_iface_type ~proto in
       let ty = GoChan iface in
       let ctx' =
@@ -242,8 +146,39 @@ let get_chan ~proto ~src ~dst =
       in
       let* st = GoGenM.get in
       let* _ = GoGenM.put {st with GoGenM.lp_ctx= ctx'} in
-      pure (ch, ty)
-  | Some res -> pure res
+      pure (true, (ch, ty))
+  | Some (ch, ty) -> pure (false, (ch, ty))
+
+let get_new_chan ~proto ~src ~dst =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  let chans = ctx.GoGenM.new_channels in
+  match Map.find chans (proto, src, dst) with
+  | None ->
+      let* ch =
+        fresh ("ch_" ^ RoleName.user src ^ "_" ^ RoleName.user dst)
+      in
+      let* iface = find_iface_type ~proto in
+      let ty = GoChan iface in
+      let ctx' =
+        { ctx with
+          GoGenM.new_channels=
+            Map.add_exn chans ~key:(proto, src, dst) ~data:(ch, ty) }
+      in
+      let* st = GoGenM.get in
+      let* _ = GoGenM.put {st with GoGenM.lp_ctx= ctx'} in
+      pure (true, (ch, ty))
+  | Some res -> pure (false, res)
+
+let reset_new_chans =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  GoGenM.put
+    { st with
+      GoGenM.lp_ctx=
+        {ctx with GoGenM.new_channels= Map.empty (module RolePair)} }
 
 (* Assumes context has been declared *)
 let get_ctx_var ~proto ~role =
@@ -278,9 +213,26 @@ let mk_end_callback =
 
 let get_label _ = "TODO_Label"
 
-let get_protocol_call_label _ _ _ =
-  let open GoGenM.Syntax in
-  pure "TODO_Call_Label"
+let get_protocol_call_label r nr c = function
+  | who -> (
+      let open GoGenM.Syntax in
+      let* st = GoGenM.get in
+      match Map.find st.GoGenM.call_lbls (who, c, r, nr) with
+      | Some l -> pure l
+      | None ->
+          let lbl =
+            LabelName.of_string
+              ("Call_" ^ RoleName.user who ^ "_" ^ ProtocolName.user c)
+          in
+          let* st = GoGenM.get in
+          let st =
+            { st with
+              GoGenM.call_lbls=
+                Map.add_exn st.GoGenM.call_lbls ~key:(who, c, r, nr)
+                  ~data:lbl }
+          in
+          let* _ = GoGenM.put st in
+          pure lbl )
 
 let get_acc_callback _ _ _ =
   let open GoGenM.Syntax in
@@ -296,9 +248,40 @@ let get_proto_call r p =
   let* lpn = get_lp_name ~id:key in
   pure (FunctionName.of_string @@ LocalProtocolName.to_capitalize_string lpn)
 
-let mk_channels _ =
+let get_protocol_args proto =
   let open GoGenM.Syntax in
-  pure (VariableName.of_string "TODO_newchans", [])
+  let* st = GoGenM.get in
+  pure (Map.find_exn st.GoGenM.role_args proto)
+
+let mk_channels proto role =
+  let open GoGenM.Syntax in
+  let* _, nrs = get_protocol_args proto in
+  let rec mk_chs acc is = function
+    | [] -> pure (List.rev acc, List.rev is)
+    | (f, t) :: cs ->
+        if
+          List.mem ~equal:RoleName.equal nrs f
+          || List.mem ~equal:RoleName.equal nrs f
+        then
+          let* is_new, c = get_new_chan ~proto ~src:f ~dst:t in
+          if is_new then
+            mk_chs (c :: acc)
+              (GoAssign (fst c, GoMake (snd c, buffer_size)) :: is)
+              cs
+          else mk_chs (c :: acc) is cs
+        else
+          let* is_new, c = get_chan ~proto ~src:f ~dst:t in
+          if is_new then
+            mk_chs (c :: acc)
+              (GoAssign (fst c, GoMake (snd c, buffer_size)) :: is)
+              cs
+          else mk_chs (c :: acc) is cs
+  in
+  let* st = GoGenM.get in
+  let cs =
+    Map.find_exn st.GoGenM.req_chans (LocalProtocolId.create proto role)
+  in
+  mk_chs [] [] cs
 
 (** Input: role, local type; Output: list of unique pairs of roles that
     require a channel in this local type *)
@@ -344,13 +327,21 @@ let mk_type_decl pl =
         (List.foldi xs ~init:[] ~f:(fun i acc x ->
              (fldname_of_payload ~i x, typename_of_payload x) :: acc ) )
 
-let record_label_name ~proto lbl ty =
+let chan_struct pl = match pl with [x] -> GoSyn (snd x) | xs -> GoStruct xs
+
+let init_chan_struct lbl = function
+  | [x] -> GoVar x
+  | xs ->
+      GoStructLit
+        ( VariableName.of_string (LabelName.user lbl)
+        , List.map ~f:(fun x -> GoVar x) xs )
+
+let record_label_name ~proto lbl ty_d =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
   match Map.find st.GoGenM.proto_lbls (proto, lbl) with
   | Some _ -> pure ()
   | None ->
-      let ty_d = mk_type_decl ty in
       let proto_lbls =
         Map.add_exn st.GoGenM.proto_lbls ~key:(proto, lbl) ~data:ty_d
       in
@@ -367,8 +358,8 @@ let gen_local ~proto ~role lty =
           | Some var -> pure (var, [])
           | None ->
               let* var = fresh "x" in
-              let* chan, _ = get_chan ~proto ~src:role ~dst:from in
-              let* _ = record_label_name ~proto label ty in
+              let* _, (chan, _) = get_chan ~proto ~src:role ~dst:from in
+              let* _ = record_label_name ~proto label (mk_type_decl ty) in
               let lbl =
                 VariableName.of_string (LabelName.to_capitalize_string label)
               in
@@ -389,7 +380,7 @@ let gen_local ~proto ~role lty =
               let send_callback = GoAssign (var, cb_nm []) in
               pure (var, [send_callback])
         in
-        let* chan, _ = get_chan ~proto ~src:dst ~dst:role in
+        let* _, (chan, _) = get_chan ~proto ~src:dst ~dst:role in
         let send_stmt = GoSend (GoVar chan, GoVar var) in
         go None ((send_stmt :: k) @ go_impl) cont
     | ChoiceL (who, alts) ->
@@ -403,7 +394,7 @@ let gen_local ~proto ~role lty =
           and callback = GoAssign (var_x, GoCall (cb_nm, [])) in
           pure ([choice_stmt; callback] @ go_impl)
         else
-          let* chan, _ = get_chan ~proto ~src:role ~dst:who in
+          let* _, (chan, _) = get_chan ~proto ~src:role ~dst:who in
           let* var = fresh "x" in
           let recv_stmt = GoAssign (var, GoRecv (GoVar chan)) in
           let* var_v = fresh "v" in
@@ -421,21 +412,29 @@ let gen_local ~proto ~role lty =
         pure (GoFor (GoSeq (List.rev body)) :: GoLabel rv :: go_impl)
     | EndL ->
         let* cb_nm = mk_end_callback in
-        pure (GoReturn (GoCall (FunctionName.of_string cb_nm, [])) :: go_impl)
+        let* ctx = get_ctx_var ~proto ~role in
+        pure
+          ( GoExpr (GoMCall (ctx, FunctionName.of_string cb_nm, []))
+          :: go_impl )
     | InviteCreateL (roles, new_roles, proto, cont) ->
-        let* lbl = get_protocol_call_label roles new_roles proto in
-        let* invitations = go_invite [] lbl proto roles in
+        let fn_lbl = get_protocol_call_label roles new_roles proto in
+        let* rns, _ = get_protocol_args proto in
+        let* invitations = go_invite [] fn_lbl proto rns roles in
         let* new_goroutines = go_create [] proto new_roles in
+        let* _ = reset_new_chans in
         go None (new_goroutines @ invitations @ go_impl) cont
-    | AcceptL (from, proto, roles, new_roles, who, cont) ->
+    | AcceptL (who, new_proto, roles, new_roles, from, cont) ->
         (* What is the label for this protocol call? *)
-        let* lbl = get_protocol_call_label roles new_roles proto in
+        let* lbl = get_protocol_call_label roles new_roles new_proto who in
         (* Get channel from sender and receive protocol channels *)
-        let* chan, _ = get_chan ~proto ~src:role ~dst:from in
+        let* _, (chan, _) = get_chan ~proto ~src:role ~dst:from in
         let* var = fresh "x" in
         let recv_stmt =
           GoAssign
-            (var, GoAssert (GoRecv (GoVar chan), VariableName.of_string lbl))
+            ( var
+            , GoAssert
+                ( GoRecv (GoVar chan)
+                , VariableName.of_string (LabelName.user lbl) ) )
         in
         (* get accept callback (from this role's context to who's context *)
         let* cb_nm = get_acc_callback from who proto in
@@ -444,14 +443,13 @@ let gen_local ~proto ~role lty =
           GoAssign (ctx, GoCall (FunctionName.of_string cb_nm, []))
         in
         (* get actual protocol call *)
-        let* call_proto = get_proto_call who proto in
-        let* ctx' = fresh "ctx" in
+        let* call_proto = get_proto_call who new_proto in
         let call_stmt =
-          GoAssign (ctx', GoCall (call_proto, [GoVar ctx; GoVar var]))
+          GoExpr (GoCall (call_proto, [GoVar ctx; GoVar var]))
         in
         let* cb_nm = get_post_acc_callback from who proto in
         let callback' =
-          GoExpr (GoCall (FunctionName.of_string cb_nm, [GoVar ctx']))
+          GoExpr (GoCall (FunctionName.of_string cb_nm, [GoVar ctx]))
         in
         go None
           (callback' :: call_stmt :: callback :: recv_stmt :: go_impl)
@@ -466,17 +464,25 @@ let gen_local ~proto ~role lty =
           ( ( GoVar (VariableName.of_string (get_label x))
             , GoSeq (List.rev cont) )
           :: alts )
-  and go_invite acc lbl next_proto = function
-    | [] -> pure acc
-    | r :: rs ->
-        let* ch_name, chans = mk_channels next_proto in
-        let* chan, _ = get_chan ~proto ~src:role ~dst:r in
-        let go_inv = GoSend (GoVar chan, GoVar ch_name) in
-        go_invite ((go_inv :: chans) @ acc) lbl next_proto rs
+  and go_invite acc fn_lbl next_proto rns roles =
+    match (rns, roles) with
+    | [], [] -> pure acc
+    | ra :: ras, r :: rs ->
+        let* ch_tys, chans = mk_channels next_proto ra in
+        let* lbl = fn_lbl ra in
+        let* _ = record_label_name ~proto lbl (chan_struct ch_tys) in
+        let* _, (chan, _) = get_chan ~proto ~src:role ~dst:r in
+        let go_inv =
+          GoSend (GoVar chan, init_chan_struct lbl (List.map ~f:fst ch_tys))
+        in
+        go_invite ((go_inv :: chans) @ acc) fn_lbl next_proto ras rs
+    | _, _ ->
+        Err.violation ~here:[%here]
+          ("Partial call to protocol '" ^ ProtocolName.user next_proto ^ "'")
   and go_create acc next_proto = function
     | [] -> pure acc
     | r :: rs ->
-        let* ch_name, chans = mk_channels next_proto in
+        let* ch_name, chans = mk_channels next_proto r in
         let* cb_nm = get_acc_callback role r proto in
         let* ctx = fresh "ctx" in
         let callback =
@@ -485,7 +491,11 @@ let gen_local ~proto ~role lty =
         (* get actual protocol call *)
         let* call_proto = get_proto_call r next_proto in
         let call_stmt =
-          GoSpawn (GoCall (call_proto, [GoVar ctx; GoVar ch_name]))
+          GoSpawn
+            (GoCall
+               ( call_proto
+               , GoVar ctx :: List.map ~f:(fun x -> GoVar (fst x)) ch_name )
+            )
         in
         go_create ((call_stmt :: callback :: chans) @ acc) next_proto rs
   in
@@ -497,7 +507,7 @@ let rec decl_channels ~proto lty =
     match lty with
     | [] -> pure []
     | (f, t) :: rs ->
-        let* ch = get_chan ~proto ~src:f ~dst:t in
+        let* _, ch = get_chan ~proto ~src:f ~dst:t in
         let* chs = go rs in
         pure (ch :: chs)
   in
@@ -525,7 +535,7 @@ let get_ctx_type ~proto ~role =
       let* ctx_ty =
         fresh ("Ctx_" ^ ProtocolName.user proto ^ "_" ^ RoleName.user role)
       in
-      let ctx_ty = GoTyVar ctx_ty in
+      let ctx_ty = GoPtr (GoTyVar ctx_ty) in
       let* st = GoGenM.get in
       let st =
         { st with
@@ -569,12 +579,12 @@ let gen_decl_body ~proto ~role lty =
   let* ctx_var, ctx_ty = new_ctx ~proto ~role in
   let* clty = gen_local ~proto ~role lty in
   let* _ = GoGenM.cleanup in
-  pure (([ctx_var], ctx_ty) :: chs, ctx_ty, clty)
+  pure (([ctx_var], ctx_ty) :: chs, clty)
 
 let gen_local_func ~key ~data:(_roles, lty) cgen =
   let open GoGenM.Syntax in
   let* acc = cgen in
-  let* args, r_ty, clty =
+  let* args, clty =
     gen_decl_body
       ~proto:(LocalProtocolId.get_protocol key)
       ~role:(LocalProtocolId.get_role key)
@@ -585,7 +595,7 @@ let gen_local_func ~key ~data:(_roles, lty) cgen =
     FunctionName.of_string @@ LocalProtocolName.to_capitalize_string lpn
   in
   (* Generate return type for [key] in callbacks/key *)
-  let fdecl = GoFunc (fnm, args, Some r_ty, clty) in
+  let fdecl = GoFunc (fnm, args, None, clty) in
   (* let function_impl = function_decl impl_function params return_type impl
      in *)
   (* (env, function_impl) *)
@@ -601,9 +611,19 @@ let reg_req_chans ~key ~data:(_roles, lty) acc =
     { st with
       GoGenM.req_chans= Map.add_exn st.GoGenM.req_chans ~key ~data:chans }
 
-let gen_code_alt _root_dir _gen_protocol _global_t local_t =
+let reg_role_args ~key ~data:{static_roles= rs; dynamic_roles= n_rs; _} acc =
+  let open GoGenM.Syntax in
+  let* _ = acc in
+  let* st = GoGenM.get in
+  GoGenM.put
+    { st with
+      GoGenM.role_args= Map.add_exn st.GoGenM.role_args ~key ~data:(rs, n_rs)
+    }
+
+let gen_code_alt _root_dir _gen_protocol global_t local_t =
   let open GoGenM.Syntax in
   let genf =
+    let* _ = Map.fold global_t ~init:(pure ()) ~f:reg_role_args in
     let* _ = Map.fold local_t ~init:(pure ()) ~f:reg_req_chans in
     Map.fold local_t ~init:(pure []) ~f:gen_local_func
   in
