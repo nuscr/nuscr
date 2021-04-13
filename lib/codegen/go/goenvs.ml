@@ -51,6 +51,8 @@ module GoGenM = struct
     ; ctx_type: VariableName.t Map.M(LocalProtocolId).t
     ; proto_lbls: goTyDecl Map.M(ProtoLblPair).t
     ; call_lbls: LabelName.t Map.M(ProtocolCall).t
+    ; choice_iface: LabelName.t list Map.M(VariableName).t
+    ; invite_lbls: LabelName.t Map.M(ProtocolCall).t
     ; callbacks: (FunctionName.t * goType) list Map.M(LocalProtocolId).t
     ; lp_ctx: ctx }
   (* type 'a t = state -> state * 'a *)
@@ -70,6 +72,8 @@ module GoGenM = struct
     ; ctx_type= Map.empty (module LocalProtocolId)
     ; proto_lbls= Map.empty (module ProtoLblPair)
     ; call_lbls= Map.empty (module ProtocolCall)
+    ; invite_lbls= Map.empty (module ProtocolCall)
+    ; choice_iface= Map.empty (module VariableName)
     ; callbacks= Map.empty (module LocalProtocolId)
     ; lp_ctx= init_lp_ctx }
 

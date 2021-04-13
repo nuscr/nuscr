@@ -378,13 +378,14 @@ type goExpr =
   | GoTypeOf of goExpr
   | GoMake of goType * int
   | GoStructLit of VariableName.t * goExpr list
+  | GoStructProj of goExpr * VariableName.t
 
 and goStmt =
   | GoAssign of VariableName.t * goExpr
   | GoSend of goExpr * goExpr
   | GoSeq of goStmt list
   | GoExpr of goExpr
-  | GoReturn of goExpr
+  | GoReturn of goExpr option
   | GoSwitch of goStmt * (goExpr * goStmt) list
   | GoLabel of LabelName.t
   | GoFor of goStmt
@@ -429,6 +430,8 @@ let rec ppr_expr = function
   | GoStructLit (s, flds) ->
       Printf.sprintf "%s{%s}" (VariableName.user s)
         (String.concat ~sep:", " (List.map ~f:ppr_expr flds))
+  | GoStructProj (s, flds) ->
+      Printf.sprintf "(%s).%s" (ppr_expr s) (VariableName.user flds)
 
 and ppr_alt ~indent_level (e, s) =
   Printf.sprintf "%scase %s:\n%s" indent_level (ppr_expr e)
@@ -438,7 +441,9 @@ and ppr_alts ~indent_level alts =
   String.concat ~sep:"\n" (List.map ~f:(ppr_alt ~indent_level) alts)
 
 and ppr_stmt ~indent_level = function
-  | GoReturn e -> Printf.sprintf "%sreturn %s" indent_level (ppr_expr e)
+  | GoReturn (Some e) ->
+      Printf.sprintf "%sreturn %s" indent_level (ppr_expr e)
+  | GoReturn None -> Printf.sprintf "%sreturn" indent_level
   | GoExpr e -> Printf.sprintf "%s%s" indent_level (ppr_expr e)
   | GoSpawn e -> Printf.sprintf "%sgo %s" indent_level (ppr_expr e)
   | GoAssign (v, e) ->

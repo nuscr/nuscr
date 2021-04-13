@@ -167,13 +167,14 @@ type goExpr =
   | GoTypeOf of goExpr
   | GoMake of goType * int
   | GoStructLit of VariableName.t * goExpr list
+  | GoStructProj of goExpr * VariableName.t
 
 and goStmt =
   | GoAssign of VariableName.t * goExpr
   | GoSend of goExpr * goExpr
   | GoSeq of goStmt list
   | GoExpr of goExpr
-  | GoReturn of goExpr
+  | GoReturn of goExpr option
   | GoSwitch of goStmt * (goExpr * goStmt) list
   | GoLabel of LabelName.t
   | GoFor of goStmt
