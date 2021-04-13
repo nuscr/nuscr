@@ -160,7 +160,8 @@ val indent_line : string -> string -> string
 type goExpr =
   | GoRecv of goExpr
   | GoVar of VariableName.t
-  | GoAssert of goExpr * VariableName.t
+  | GoAssert of goExpr * goType
+  | GoCast of goType * goExpr
   | GoCall of FunctionName.t * goExpr list
   | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
@@ -183,16 +184,21 @@ and goType =
   | GoTyVar of VariableName.t
   | GoChan of goType
   | GoPtr of goType
-  | GoFunTy of (VariableName.t list * goType) list * goType
+  | GoFunTy of (VariableName.t list * goType) list * goType option
 
-and goTyDecl = GoSyn of goType | GoStruct of (VariableName.t * goType) list
+and goTyDecl =
+  | GoSyn of goType
+  | GoTyDef of goType
+  | GoStruct of (VariableName.t * goType) list
 
 and goDecl =
   | GoFunc of
-      FunctionName.t
+      (VariableName.t * goType) option
+      * FunctionName.t
       * (VariableName.t list * goType) list
       * goType option
       * goStmt
   | GoTyDecl of string * goTyDecl
+  | GoIfaceDecl of VariableName.t * (FunctionName.t * goType) list
 
 val ppr_prog : goDecl list -> string

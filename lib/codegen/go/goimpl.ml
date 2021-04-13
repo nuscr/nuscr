@@ -371,7 +371,8 @@ let recursion_impl label loop = sprintf "%s\n%s" label loop
 type goExpr =
   | GoRecv of goExpr
   | GoVar of VariableName.t
-  | GoAssert of goExpr * VariableName.t
+  | GoAssert of goExpr * goType
+  | GoCast of goType * goExpr
   | GoCall of FunctionName.t * goExpr list
   | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
@@ -394,23 +395,28 @@ and goType =
   | GoTyVar of VariableName.t
   | GoChan of goType
   | GoPtr of goType
-  | GoFunTy of (VariableName.t list * goType) list * goType
+  | GoFunTy of (VariableName.t list * goType) list * goType option
 
-and goTyDecl = GoSyn of goType | GoStruct of (VariableName.t * goType) list
+and goTyDecl =
+  | GoSyn of goType
+  | GoTyDef of goType
+  | GoStruct of (VariableName.t * goType) list
 
 and goDecl =
   | GoFunc of
-      FunctionName.t
+      (VariableName.t * goType) option
+      * FunctionName.t
       * (VariableName.t list * goType) list
       * goType option
       * goStmt
   | GoTyDecl of string * goTyDecl
+  | GoIfaceDecl of VariableName.t * (FunctionName.t * goType) list
 
 let rec ppr_expr = function
   | GoRecv e -> Printf.sprintf "<- %s" (ppr_expr e)
   | GoVar v -> VariableName.user v
-  | GoAssert (e, t) ->
-      Printf.sprintf "(%s).(%s)" (ppr_expr e) (VariableName.user t)
+  | GoAssert (e, t) -> Printf.sprintf "(%s).(%s)" (ppr_expr e) (ppr_ty t)
+  | GoCast (t, e) -> Printf.sprintf "%s(%s)" (ppr_ty t) (ppr_expr e)
   | GoCall (fn, exprs) ->
       Printf.sprintf "%s(%s)" (FunctionName.user fn)
         (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
@@ -462,7 +468,8 @@ and ppr_ty = function
   | GoTyVar v -> VariableName.user v
   | GoChan t -> Printf.sprintf "chan %s" (ppr_ty t)
   | GoPtr t -> Printf.sprintf "*%s" (ppr_ty t)
-  | GoFunTy (args, ret) ->
+  | GoFunTy (args, None) -> Printf.sprintf "func(%s)" (ppr_fn_args args)
+  | GoFunTy (args, Some ret) ->
       Printf.sprintf "func(%s) %s" (ppr_fn_args args) (ppr_ty ret)
 
 and ppr_fn_args args =
@@ -474,15 +481,25 @@ and ppr_fn_args args =
        args )
 
 and ppr_decl = function
-  | GoFunc (nm, args, rt, body) ->
+  | GoFunc (None, nm, args, rt, body) ->
       Printf.sprintf "func %s(%s) %s {\n%s\n}" (FunctionName.user nm)
         (ppr_fn_args args)
         (match rt with Some rt -> ppr_ty rt | None -> "")
         (ppr_stmt ~indent_level:"\t" body)
+  | GoFunc (Some (arg, ty), nm, args, rt, body) ->
+      Printf.sprintf "func (%s %s) %s(%s) %s {\n%s\n}"
+        (VariableName.user arg) (ppr_ty ty) (FunctionName.user nm)
+        (ppr_fn_args args)
+        (match rt with Some rt -> ppr_ty rt | None -> "")
+        (ppr_stmt ~indent_level:"\t" body)
   | GoTyDecl (nm, GoSyn ty) -> Printf.sprintf "type %s = %s" nm (ppr_ty ty)
+  | GoTyDecl (nm, GoTyDef ty) -> Printf.sprintf "type %s %s" nm (ppr_ty ty)
   | GoTyDecl (nm, GoStruct flds) ->
       Printf.sprintf "type %s struct {\n%s\n}" nm
         (ppr_fields ~indent:"\t" flds)
+  | GoIfaceDecl (nm, flds) ->
+      Printf.sprintf "type %s interface {\n%s\n}" (VariableName.user nm)
+        (ppr_if_fields ~indent:"\t" flds)
 
 and ppr_fields ~indent flds =
   String.concat ~sep:"\n"
@@ -490,5 +507,20 @@ and ppr_fields ~indent flds =
        ~f:(fun (v, ty) ->
          Printf.sprintf "%s%s %s" indent (VariableName.user v) (ppr_ty ty) )
        flds )
+
+and ppr_if_fields ~indent flds =
+  String.concat ~sep:"\n"
+    (List.map
+       ~f:(fun (v, ty) ->
+         Printf.sprintf "%s%s" indent (ppr_if_ty (FunctionName.user v) ty) )
+       flds )
+
+and ppr_if_ty str = function
+  | GoFunTy (args, None) -> Printf.sprintf "%s(%s)" str (ppr_fn_args args)
+  | GoFunTy (args, Some rt) ->
+      Printf.sprintf "%s(%s) %s" str (ppr_fn_args args) (ppr_ty rt)
+  | _ ->
+      Err.violation ~here:[%here]
+        "Panic! Interface has a member that is not of function type"
 
 and ppr_prog decls = String.concat ~sep:"\n\n" (List.map ~f:ppr_decl decls)

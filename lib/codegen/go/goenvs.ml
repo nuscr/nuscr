@@ -28,8 +28,7 @@ module Namegen = Namegen.Make (VariableName)
 module ProtocolCall = struct
   module T = struct
     (* Who, Protocol, roles, new roles *)
-    type t = RoleName.t * ProtocolName.t * RoleName.t list * RoleName.t list
-    [@@deriving sexp_of, ord]
+    type t = RoleName.t * ProtocolName.t [@@deriving sexp_of, ord]
   end
 
   include T
@@ -47,9 +46,9 @@ module GoGenM = struct
     { namegen: Namegen.t
     ; role_args: (RoleName.t list * RoleName.t list) Map.M(ProtocolName).t
     ; lp_fns: LocalProtocolName.t Map.M(LocalProtocolId).t
-    ; msg_iface: goType Map.M(ProtocolName).t
+    ; msg_iface: VariableName.t Map.M(ProtocolName).t
     ; req_chans: (RoleName.t * RoleName.t) list Map.M(LocalProtocolId).t
-    ; ctx_type: goType Map.M(LocalProtocolId).t
+    ; ctx_type: VariableName.t Map.M(LocalProtocolId).t
     ; proto_lbls: goTyDecl Map.M(ProtoLblPair).t
     ; call_lbls: LabelName.t Map.M(ProtocolCall).t
     ; callbacks: (FunctionName.t * goType) list Map.M(LocalProtocolId).t

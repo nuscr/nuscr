@@ -381,7 +381,7 @@ let rec normalise = function
 let normalise_nested_t (nested_t : nested_t) =
   let normalise_protocol ~key ~data acc =
     let {gtype; _} = data in
-    Map.add_exn acc ~key ~data:{data with gtype= normalise gtype}
+    Map.add_exn acc ~key ~data:{data with gtype (* unfold *)}
   in
   Map.fold
     ~init:(Map.empty (module ProtocolName))
