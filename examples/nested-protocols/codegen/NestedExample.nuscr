@@ -1,0 +1,10 @@
+(*# NestedProtocols #*)
+
+nested protocol P1(role A; new role B) {
+  m1(int) from A to B;
+  B calls P1(B);
+}
+
+global protocol Main(role A) {
+    A calls P1(A);
+}
