@@ -341,7 +341,7 @@ module InterfaceName = struct
 end
 
 module FunctionName = struct
-  include Make ()
+  include ExtendName (Make ())
 
   (* WAIT GROUP METHODS *)
   let wait_group_add = of_string "Add"

@@ -4,7 +4,6 @@ nested protocol P1(role A; new role B) {
   rec X {
     choice at A {
         m1(int) from A to B;
-        m1(int) from A to B;
         continue X;
     } or {
         A calls P1(B);

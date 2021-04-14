@@ -42,10 +42,13 @@ module GoGenM = struct
     ; ctx_vars: VariableName.t Map.M(LocalProtocolId).t
     ; curr_fn: LocalProtocolId.t option }
 
+  (* TODO: refactor this state, adding layers of "global", "local to function
+     definition", etc. E.g. tail_rec should be separate from role_args *)
   type state =
     { namegen: Namegen.t
+    ; tail_rec: bool
     ; role_args: (RoleName.t list * RoleName.t list) Map.M(ProtocolName).t
-    ; lp_fns: LocalProtocolName.t Map.M(LocalProtocolId).t
+    ; lp_fns: FunctionName.t Map.M(LocalProtocolId).t
     ; msg_iface: VariableName.t Map.M(ProtocolName).t
     ; req_chans: (RoleName.t * RoleName.t) list Map.M(LocalProtocolId).t
     ; ctx_type: VariableName.t Map.M(LocalProtocolId).t
@@ -65,6 +68,7 @@ module GoGenM = struct
 
   let init =
     { namegen= Namegen.create ()
+    ; tail_rec= false
     ; role_args= Map.empty (module ProtocolName)
     ; lp_fns= Map.empty (module LocalProtocolId)
     ; msg_iface= Map.empty (module ProtocolName)
@@ -96,7 +100,7 @@ module GoGenM = struct
   let eval m (st : state) = snd (m st)
 
   (* TODO: clean up local state for current definition *)
-  let cleanup st = ({st with lp_ctx= init_lp_ctx}, ())
+  let cleanup st = ({st with lp_ctx= init_lp_ctx; tail_rec= false}, ())
 
   module Syntax = struct
     (* let ( let+ ) x f = map f x *)
@@ -124,3 +128,5 @@ let put_lp_name ~key ~data =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
   GoGenM.put {st with GoGenM.lp_fns= Map.add_exn st.GoGenM.lp_fns ~key ~data}
+
+let put_tail_rec st = ({st with GoGenM.tail_rec= true}, ())

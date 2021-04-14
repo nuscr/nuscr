@@ -371,28 +371,36 @@ let recursion_impl label loop = sprintf "%s\n%s" label loop
 type goExpr =
   | GoRecv of goExpr
   | GoVar of VariableName.t
+  | GoFnVar of FunctionName.t (* FIXME: hack due to multiple namespaces *)
   | GoAssert of goExpr * goType
   | GoCast of goType * goExpr
-  | GoCall of FunctionName.t * goExpr list
+  | GoCall of goExpr * goExpr list
   | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
   | GoMake of goType * int
   | GoStructLit of VariableName.t * goExpr list
+  | GoIntLit of int
   | GoStructProj of goExpr * VariableName.t
+  | GoAbs of (VariableName.t list * goType) list * goType option * goStmt
 
 and goStmt =
+  | GoVarDecl of VariableName.t * goType
+  | GoAssignNew of VariableName.t * goExpr
   | GoAssign of VariableName.t * goExpr
   | GoSend of goExpr * goExpr
   | GoSeq of goStmt list
   | GoExpr of goExpr
+  | GoDefer of goExpr
   | GoReturn of goExpr option
   | GoSwitch of goStmt * (goExpr * goStmt) list
   | GoLabel of LabelName.t
   | GoFor of goStmt
   | GoContinue of LabelName.t option
+  | GoGoto of LabelName.t
   | GoSpawn of goExpr
 
 and goType =
+  | GoWaitGroup
   | GoTyVar of VariableName.t
   | GoChan of goType
   | GoPtr of goType
@@ -413,28 +421,41 @@ and goDecl =
   | GoTyDecl of string * goTyDecl
   | GoIfaceDecl of VariableName.t * (FunctionName.t * goType) list
 
-let rec ppr_expr = function
-  | GoRecv e -> Printf.sprintf "<- %s" (ppr_expr e)
+let rec ppr_expr ~indent_level = function
+  | GoRecv e -> Printf.sprintf "<- %s" (ppr_expr ~indent_level e)
   | GoVar v -> VariableName.user v
-  | GoAssert (e, t) -> Printf.sprintf "(%s).(%s)" (ppr_expr e) (ppr_ty t)
-  | GoCast (t, e) -> Printf.sprintf "%s(%s)" (ppr_ty t) (ppr_expr e)
+  | GoFnVar v -> FunctionName.user v
+  | GoAssert (e, t) ->
+      Printf.sprintf "(%s).(%s)" (ppr_expr ~indent_level e) (ppr_ty t)
+  | GoCast (t, e) ->
+      Printf.sprintf "%s(%s)" (ppr_ty t) (ppr_expr ~indent_level e)
   | GoCall (fn, exprs) ->
-      Printf.sprintf "%s(%s)" (FunctionName.user fn)
-        (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
+      Printf.sprintf "%s(%s)"
+        (ppr_expr ~indent_level fn)
+        (String.concat ~sep:"," (List.map ~f:(ppr_expr ~indent_level) exprs))
   | GoMCall (vn, fn, exprs) ->
       Printf.sprintf "%s.%s(%s)" (VariableName.user vn)
         (FunctionName.user fn)
-        (String.concat ~sep:"," (List.map ~f:ppr_expr exprs))
-  | GoTypeOf e -> Printf.sprintf "%s.(type)" (ppr_expr e)
+        (String.concat ~sep:"," (List.map ~f:(ppr_expr ~indent_level) exprs))
+  | GoTypeOf e -> Printf.sprintf "%s.(type)" (ppr_expr ~indent_level e)
   | GoMake (t, i) -> Printf.sprintf "make(%s,%d)" (ppr_ty t) i
   | GoStructLit (s, flds) ->
       Printf.sprintf "%s{%s}" (VariableName.user s)
-        (String.concat ~sep:", " (List.map ~f:ppr_expr flds))
+        (String.concat ~sep:", " (List.map ~f:(ppr_expr ~indent_level) flds))
+  | GoIntLit i -> Printf.sprintf "%d" i
   | GoStructProj (s, flds) ->
-      Printf.sprintf "(%s).%s" (ppr_expr s) (VariableName.user flds)
+      Printf.sprintf "(%s).%s"
+        (ppr_expr ~indent_level s)
+        (VariableName.user flds)
+  | GoAbs (args, rt, body) ->
+      Printf.sprintf "func (%s)%s{\n%s\n%s}" (ppr_fn_args args)
+        (match rt with Some rt -> ppr_ty rt | None -> " ")
+        (ppr_stmt ~indent_level:("\t" ^ indent_level) body)
+        indent_level
 
 and ppr_alt ~indent_level (e, s) =
-  Printf.sprintf "%scase %s:\n%s" indent_level (ppr_expr e)
+  Printf.sprintf "%scase %s:\n%s" indent_level
+    (ppr_expr ~indent_level e)
     (ppr_stmt ~indent_level:("\t" ^ indent_level) s)
 
 and ppr_alts ~indent_level alts =
@@ -442,15 +463,26 @@ and ppr_alts ~indent_level alts =
 
 and ppr_stmt ~indent_level = function
   | GoReturn (Some e) ->
-      Printf.sprintf "%sreturn %s" indent_level (ppr_expr e)
+      Printf.sprintf "%sreturn %s" indent_level (ppr_expr ~indent_level e)
   | GoReturn None -> Printf.sprintf "%sreturn" indent_level
-  | GoExpr e -> Printf.sprintf "%s%s" indent_level (ppr_expr e)
-  | GoSpawn e -> Printf.sprintf "%sgo %s" indent_level (ppr_expr e)
+  | GoExpr e -> Printf.sprintf "%s%s" indent_level (ppr_expr ~indent_level e)
+  | GoDefer e ->
+      Printf.sprintf "%sdefer %s" indent_level (ppr_expr ~indent_level e)
+  | GoSpawn e ->
+      Printf.sprintf "%sgo %s" indent_level (ppr_expr ~indent_level e)
   | GoAssign (v, e) ->
+      Printf.sprintf "%s%s = %s" indent_level (VariableName.user v)
+        (ppr_expr ~indent_level e)
+  | GoAssignNew (v, e) ->
       Printf.sprintf "%s%s := %s" indent_level (VariableName.user v)
-        (ppr_expr e)
+        (ppr_expr ~indent_level e)
+  | GoVarDecl (v, t) ->
+      Printf.sprintf "%svar %s %s" indent_level (VariableName.user v)
+        (ppr_ty t)
   | GoSend (c, e) ->
-      Printf.sprintf "%s%s <- %s" indent_level (ppr_expr c) (ppr_expr e)
+      Printf.sprintf "%s%s <- %s" indent_level
+        (ppr_expr ~indent_level c)
+        (ppr_expr ~indent_level e)
   | GoSeq stmts ->
       String.concat ~sep:"\n" (List.map ~f:(ppr_stmt ~indent_level) stmts)
   | GoSwitch (s, alts) ->
@@ -468,11 +500,14 @@ and ppr_stmt ~indent_level = function
     | None -> Printf.sprintf "%scontinue" indent_level
     | Some l ->
         Printf.sprintf "%scontinue %s" indent_level (LabelName.user l) )
+  | GoGoto lbl ->
+      Printf.sprintf "%sgoto %s" indent_level (LabelName.user lbl)
 
 and ppr_ty = function
   | GoTyVar v -> VariableName.user v
   | GoChan t -> Printf.sprintf "chan %s" (ppr_ty t)
   | GoPtr t -> Printf.sprintf "*%s" (ppr_ty t)
+  | GoWaitGroup -> Printf.sprintf "sync.WaitGroup"
   | GoFunTy (args, None) -> Printf.sprintf "func(%s)" (ppr_fn_args args)
   | GoFunTy (args, Some ret) ->
       Printf.sprintf "func(%s) %s" (ppr_fn_args args) (ppr_ty ret)

@@ -158,7 +158,7 @@ module EnumTypeName : sig
 end
 
 module FunctionName : sig
-  include TaggedName
+  include ExtendedTaggedName
 
   val protocol_setup_function_name : ProtocolName.t -> t
 

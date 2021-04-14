@@ -160,28 +160,36 @@ val indent_line : string -> string -> string
 type goExpr =
   | GoRecv of goExpr
   | GoVar of VariableName.t
+  | GoFnVar of FunctionName.t (* FIXME: hack due to multiple namespaces *)
   | GoAssert of goExpr * goType
   | GoCast of goType * goExpr
-  | GoCall of FunctionName.t * goExpr list
+  | GoCall of goExpr * goExpr list
   | GoMCall of VariableName.t * FunctionName.t * goExpr list
   | GoTypeOf of goExpr
   | GoMake of goType * int
   | GoStructLit of VariableName.t * goExpr list
+  | GoIntLit of int
   | GoStructProj of goExpr * VariableName.t
+  | GoAbs of (VariableName.t list * goType) list * goType option * goStmt
 
 and goStmt =
+  | GoVarDecl of VariableName.t * goType
+  | GoAssignNew of VariableName.t * goExpr
   | GoAssign of VariableName.t * goExpr
   | GoSend of goExpr * goExpr
   | GoSeq of goStmt list
   | GoExpr of goExpr
+  | GoDefer of goExpr
   | GoReturn of goExpr option
   | GoSwitch of goStmt * (goExpr * goStmt) list
   | GoLabel of LabelName.t
   | GoFor of goStmt
   | GoContinue of LabelName.t option
+  | GoGoto of LabelName.t
   | GoSpawn of goExpr
 
 and goType =
+  | GoWaitGroup
   | GoTyVar of VariableName.t
   | GoChan of goType
   | GoPtr of goType
