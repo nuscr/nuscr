@@ -868,7 +868,8 @@ let mk_choice_decls =
 let gen_entrypoint proto wg =
   (* get_ctx_type ~proto ~role *)
   let open GoGenM.Syntax in
-  let* nm = fresh (ProtocolName.user proto ^ "_Start") in
+  (* let* nm = fresh (ProtocolName.user proto ^ "_Start") in *)
+  let* nm = fresh "Start" in
   let nm = FunctionName.of_string (VariableName.user nm) in
   let* st = GoGenM.get in
   let rs, nrs = Map.find_exn st.GoGenM.role_args proto in
@@ -884,7 +885,9 @@ let gen_entrypoint proto wg =
         in
         let r_call =
           GoCall
-            (GoFnVar lp_fn, List.map ~f:(fun x -> GoVar x) (ctx :: wg :: chs))
+            ( GoFnVar lp_fn
+            , GoVar ctx :: GoAddr (GoVar wg)
+              :: List.map ~f:(fun x -> GoVar x) chs )
         in
         let nr =
           if is_dyn then GoSpawn r_call
@@ -917,9 +920,8 @@ let gen_entrypoint proto wg =
        , nm
        , args @ nargs
        , None
-       , GoSeq
-           ((GoVarDecl (wg, GoPtr GoWaitGroup) :: stmts) @ nstmts @ [wait])
-       ) )
+       , GoSeq ((GoVarDecl (wg, GoWaitGroup) :: stmts) @ nstmts @ [wait]) )
+    )
 
 let gen_code_alt _root_dir gen_protocol global_t local_t =
   let open GoGenM.Syntax in

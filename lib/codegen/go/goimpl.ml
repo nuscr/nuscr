@@ -370,6 +370,7 @@ let recursion_impl label loop = sprintf "%s\n%s" label loop
 
 type goExpr =
   | GoRecv of goExpr
+  | GoAddr of goExpr
   | GoVar of VariableName.t
   | GoFnVar of FunctionName.t (* FIXME: hack due to multiple namespaces *)
   | GoAssert of goExpr * goType
@@ -423,6 +424,7 @@ and goDecl =
 
 let rec ppr_expr ~indent_level = function
   | GoRecv e -> Printf.sprintf "<- %s" (ppr_expr ~indent_level e)
+  | GoAddr e -> Printf.sprintf "&%s" (ppr_expr ~indent_level e)
   | GoVar v -> VariableName.user v
   | GoFnVar v -> FunctionName.user v
   | GoAssert (e, t) ->

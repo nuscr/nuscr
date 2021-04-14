@@ -159,6 +159,7 @@ val indent_line : string -> string -> string
 
 type goExpr =
   | GoRecv of goExpr
+  | GoAddr of goExpr
   | GoVar of VariableName.t
   | GoFnVar of FunctionName.t (* FIXME: hack due to multiple namespaces *)
   | GoAssert of goExpr * goType
