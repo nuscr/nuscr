@@ -752,6 +752,7 @@ let gen_decl_body ~proto ~role ~wg lty =
   let open GoGenM.Syntax in
   let* _ = GoGenM.cleanup in
   let* _ = enter_decl ~proto ~role in
+  let* _ = find_iface_type ~proto in
   let* chans = get_req_chans ~proto ~role in
   let* chs = decl_channels ~proto chans in
   let* ctx_var, ctx_ty = new_ctx ~proto ~role in
@@ -766,6 +767,11 @@ let gen_decl_body ~proto ~role ~wg lty =
 let gen_local_func ~wg ~key ~data:(_roles, lty) cgen =
   let open GoGenM.Syntax in
   let* acc = cgen in
+  let* st = GoGenM.get in
+  let st =
+    {st with GoGenM.callbacks= Map.add_exn st.GoGenM.callbacks ~key ~data:[]}
+  in
+  let* _ = GoGenM.put st in
   let* is_tail_rec, args, clty =
     gen_decl_body ~wg
       ~proto:(LocalProtocolId.get_protocol key)
