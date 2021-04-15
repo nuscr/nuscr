@@ -40,6 +40,9 @@ type t =
       (** [CallG (caller, protocol, participants, t)] - [caller] calls
           [protocol], inviting [participants] to carry out the roles in
           [protocol] (dynamic roles in nested protocols are not included) *)
+  | ParG of t list
+              (** [ParG (brs) = splits [brs] and continues as all the
+                 branches simultaneously *)
 [@@deriving sexp_of]
 
 (** Mapping of protocol name to the roles ('static' participants, dynamic

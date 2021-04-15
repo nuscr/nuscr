@@ -65,6 +65,11 @@
 %token CALLS_KW
 %token NEW_KW
 
+(* keywords for parallel global types *)
+%token PAR_KW
+%token AND_KW
+
+
 (* pragmas *)
 %token PRAGMA_START
 %token PRAGMA_END
@@ -247,6 +252,7 @@ let raw_global_interaction ==
   | global_choice
   | global_do
   | global_calls
+  | global_par
 let global_do ==
   DO_KW ; nm = name ; nra = non_role_args? ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
@@ -277,6 +283,10 @@ let global_choice ==
 let global_continue ==
   | CONTINUE_KW ; n = name ; LSQUARE; exprs = separated_list(COMMA, expr); RSQUARE; SEMICOLON ; { Continue(n, exprs) }
   | CONTINUE_KW ; n = name ; SEMICOLON ; { Continue(n, []) }
+
+let global_par ==
+  PAR_KW ; g = global_protocol_block ; AND_KW ;
+    gs = separated_nonempty_list (AND_KW, global_protocol_block) ; { Par (g::gs) }
 
 let global_recursion ==
   | REC_KW ; n = name ; LSQUARE ;
