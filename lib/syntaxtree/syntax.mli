@@ -83,6 +83,8 @@ and raw_global_interaction =
   (* caller * protocol * roles *)
   | Calls of
       RoleName.t * ProtocolName.t * RoleName.t list * annotation option
+  (* continues as all the global_interactions *)
+  | Par of global_interaction list list
 [@@deriving show {with_path= false}]
 
 type protocol_mods = Aux | AuxExplicit | Explicit

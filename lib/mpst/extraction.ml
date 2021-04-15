@@ -24,6 +24,7 @@ let rec swap_role swap_role_f {value; loc} =
     | Do (proto, roles, ann) -> Do (proto, List.map ~f:swap_role_f roles, ann)
     | Calls (caller, proto, roles, ann) ->
         Calls (swap_role_f caller, proto, List.map ~f:swap_role_f roles, ann)
+    | Par gs -> Par (List.map ~f:(List.map ~f:(swap_role swap_role_f)) gs)
   in
   {value; loc}
 
@@ -311,6 +312,13 @@ let rename_nested_protocols (scr_module : scr_module) =
                 , List.map
                     ~f:(List.map ~f:(update_interaction known))
                     interactions_list ) }
+      | Par interactions ->
+          { i with
+            Loc.value=
+              Par
+                (List.map
+                   ~f:(List.map ~f:(update_interaction known))
+                   interactions ) }
       | Do _ | MessageTransfer _ | Continue _ -> i
     in
     let proto = protocol.value in

@@ -541,6 +541,7 @@ let rec project' env (projected_role : RoleName.t) =
       | _ when is_caller -> gen_invitecreatel next
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
+  | ParG _ -> Err.unimpl ~here:[%here] "The projection of (par)"
 
 let project projected_role g = project' new_project_env projected_role g
 

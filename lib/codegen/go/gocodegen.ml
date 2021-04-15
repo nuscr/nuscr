@@ -78,6 +78,7 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
       | MessageG (msg, _, _, g) ->
           let messages = add_consistent_msg messages msg in
           validate_protocol_msgs messages g
+      | ParG _ -> Err.unimpl ~here:[%here] "(par) the Go code generator"
     in
     let protocol_names = add_unique_protocol_name protocol_names key in
     let {static_roles; dynamic_roles; gtype; _} = data in
@@ -977,6 +978,7 @@ let rec gen_message_label_enums msgs_env = function
   | MessageG ({label; _}, _, _, g) ->
       let msgs_env = MessagesEnv.add_message_enum msgs_env label in
       gen_message_label_enums msgs_env g
+  | ParG _ -> Err.unimpl ~here:[%here] "(par) in the Go code generator"
 
 (** Generate implementation of a role from its local type *)
 let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t

@@ -115,6 +115,7 @@ type t =
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
+  | ParG of t list
 [@@deriving sexp_of]
 
 let rec evaluate_lazy_gtype = function
@@ -129,6 +130,7 @@ let rec evaluate_lazy_gtype = function
   | ChoiceG (r, gs) -> ChoiceG (r, List.map ~f:evaluate_lazy_gtype gs)
   | EndG -> EndG
   | CallG (r, p, rs, g) -> CallG (r, p, rs, evaluate_lazy_gtype g)
+  | ParG gs -> ParG (List.map ~f:evaluate_lazy_gtype gs)
 
 type nested_global_info =
   { static_roles: RoleName.t list
@@ -187,6 +189,15 @@ let show =
           (ProtocolName.user proto_name)
           (String.concat ~sep:", " (List.map ~f:RoleName.user roles))
           (show_global_type_internal indent g)
+    | ParG gs ->
+        let pre = sprintf "%spar {\n" current_indent in
+        let intermission = sprintf "%s} and {\n" current_indent in
+        let post = sprintf "%s}\n" current_indent in
+        let choices =
+          List.map ~f:(show_global_type_internal (indent + 1)) gs
+        in
+        let gs = String.concat ~sep:intermission choices in
+        pre ^ gs ^ post
   in
   show_global_type_internal 0
 
@@ -343,7 +354,15 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
               {env with unguarded_tvs= Set.empty (module TypeVariableName)}
               rest
           in
-          (CallG (caller, proto, roles, cont), free_names) )
+          (CallG (caller, proto, roles, cont), free_names)
+      | Par interactions_list ->
+          assert_empty rest ;
+          let conts =
+            List.map ~f:(conv_interactions env) interactions_list
+          in
+          ( ParG (List.map ~f:fst conts)
+          , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
+          ) )
   in
   let gtype, free_names = conv_interactions init_conv_env interactions in
   match Set.choose free_names with
@@ -390,6 +409,7 @@ let rec substitute g tvar g_sub =
       ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, substitute g_ tvar g_sub)
+  | ParG g_ -> ParG (List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
 
 let rec unfold = function
   | MuG (tvar, _, g_) as g -> substitute g_ tvar g
@@ -404,6 +424,7 @@ let rec normalise = function
   | MuG (tvar, rec_vars, g_) -> unfold (MuG (tvar, rec_vars, normalise g_))
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
+  | ParG g_ -> ParG (List.map ~f:normalise g_)
 
 let normalise_nested_t (nested_t : nested_t) =
   let normalise_protocol ~key ~data acc =
@@ -482,7 +503,7 @@ let validate_refinements_exn t =
       | MuG (_, _, g) -> gather_first_message g
       | TVarG (_, _, g) -> gather_first_message (Lazy.force g)
       | EndG -> []
-      | CallG _ -> (* Not supported *) []
+      | CallG _ | ParG _ -> (* Not supported *) []
     in
     let first_messages = List.concat_map ~f:gather_first_message gs in
     let encoded =
@@ -577,6 +598,7 @@ let validate_refinements_exn t =
               "Error message for mismatched number of recursion variable \
                declaration and expressions" )
     | CallG _ -> assert false
+    | ParG _ -> unimpl ~here:[%here] "(par) with refinments"
   in
   aux env t
 
@@ -628,6 +650,7 @@ let add_missing_payload_field_names nested_t =
     | CallG (caller, proto_name, roles, g) ->
         let g = add_missing_payload_names g in
         CallG (caller, proto_name, roles, g)
+    | ParG gs -> ParG (List.map gs ~f:add_missing_payload_names)
   in
   Map.map nested_t ~f:(fun ({gtype; _} as nested) ->
       {nested with gtype= add_missing_payload_names gtype} )
