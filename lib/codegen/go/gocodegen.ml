@@ -273,9 +273,9 @@ let typename_of_payload = function
   | PDelegate _ -> Err.violation ~here:[%here] "Delegation not supported"
 
 let fldname_of_payload ~i = function
-  | PValue (None, _) -> VariableName.of_string (Printf.sprintf "p%d" i)
+  | PValue (None, _) -> VariableName.of_string (Printf.sprintf "P%d" i)
   | PValue (Some x, _) ->
-      VariableName.of_string (String.uncapitalize (VariableName.user x))
+      VariableName.of_string (String.capitalize (VariableName.user x))
   | PDelegate _ -> Err.violation ~here:[%here] "Delegation not supported"
 
 let mk_type_decl pl =
@@ -337,7 +337,7 @@ let mk_channels proto role =
         let fld_name = chan_fld_name f t in
         if
           List.mem ~equal:RoleName.equal nrs f
-          || List.mem ~equal:RoleName.equal nrs f
+          || List.mem ~equal:RoleName.equal nrs t
         then
           let* is_new, (c, ty) = get_new_chan ~proto ~src:f ~dst:t in
           if is_new then
