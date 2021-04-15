@@ -120,7 +120,6 @@ type t =
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
-  | ParG of t list
 [@@deriving sexp_of]
 
 type global_t =
@@ -176,17 +175,6 @@ let show =
           (ProtocolName.user proto_name)
           (String.concat ~sep:", " (List.map ~f:RoleName.user roles))
           (show_global_type_internal indent g)
-    | ParG gs ->
-       let pre =
-         sprintf "%spar {\n" current_indent
-       in
-       let intermission = sprintf "%s} and {\n" current_indent in
-       let post = sprintf "%s}\n" current_indent in
-       let choices =
-         List.map ~f:(show_global_type_internal (indent + 1)) gs
-       in
-       let gs = String.concat ~sep:intermission choices in
-       pre ^ gs ^ post
   in
   show_global_type_internal 0
 
@@ -331,17 +319,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             conv_interactions free_names lazy_conts rest
           in
           ( CallG (caller_role, ProtocolName.of_name proto, role_names, cont)
-          , free_names )
-      | Par interactions_list ->
-          assert_empty rest ;
-          let conts =
-            List.map
-              ~f:(conv_interactions free_names lazy_conts)
-              interactions_list
-          in
-          ( ParG (List.map ~f:fst conts)
-          , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
-          ))
+          , free_names ) )
   in
   let gtype, free_names =
     conv_interactions
@@ -392,8 +370,6 @@ let rec substitute g tvar g_sub =
       ChoiceG (r, List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, substitute g_ tvar g_sub)
-  | ParG g_ ->
-     ParG (List.map ~f:(fun g__ -> substitute g__ tvar g_sub) g_)
 
 let rec unfold = function
   | MuG (tvar, _, g_) as g -> substitute g_ tvar g
@@ -408,9 +384,6 @@ let rec normalise = function
   | MuG (tvar, rec_vars, g_) -> unfold (MuG (tvar, rec_vars, normalise g_))
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
-  | ParG g_ ->
-     ParG (List.map ~f:normalise g_)
-
 
 let normalise_global_t (global_t : global_t) =
   let normalise_protocol ~key ~data acc =
@@ -522,7 +495,6 @@ let validate_refinements_exn t =
               "Error message for mismatched number of recursion variable \
                declaration and expressions" )
     | CallG _ -> assert false
-    | ParG _ -> unimpl "(par) with refinments"
   in
   aux env t
 
@@ -565,8 +537,6 @@ let add_missing_payload_field_names global_t =
     | CallG (caller, proto_name, roles, g) ->
         let g = add_missing_payload_names g in
         CallG (caller, proto_name, roles, g)
-    | ParG gs ->
-       ParG (List.map gs ~f:add_missing_payload_names)
   in
   Map.map global_t ~f:(fun (roles, nested_protocols, gtype) ->
       (roles, nested_protocols, add_missing_payload_names gtype) )

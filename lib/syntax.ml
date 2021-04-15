@@ -154,8 +154,6 @@ and raw_global_interaction =
   | Do of name * message list * name list * annotation option
   (* caller * protocol * non role args * roles *)
   | Calls of name * name * message list * name list * annotation option
-  (* continues as all the global_interactions *)
-  | Par of (global_interaction list) list
 [@@deriving show {with_path= false}]
 
 type protocol_mods = Aux | AuxExplicit | Explicit

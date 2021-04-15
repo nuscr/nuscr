@@ -109,6 +109,7 @@ and token = parse
 | "connect" { RESERVED }
 | "disconnect" { RESERVED }
 | "wrap" { RESERVED }
+| "and" { RESERVED }
 | "from" { FROM_KW }
 | "to" { TO_KW }
 | "choice" { CHOICE_KW }
@@ -119,8 +120,6 @@ and token = parse
 | "do" { DO_KW }
 | "calls" { CALLS_KW }
 | "new" { NEW_KW }
-| "par" { PAR_KW }
-| "and" { AND_KW }
 
 
 (* other *)
