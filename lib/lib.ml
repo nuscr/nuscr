@@ -110,6 +110,7 @@ let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
   else enumerate_protocols ast
 
 let get_global_type ast ~protocol : Gtype.t =
+  Pragma.load_from_pragmas ast.pragmas ;
   let gp =
     match
       List.find
