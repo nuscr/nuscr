@@ -346,9 +346,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           else
             uerr
               (PragmaNotSet
-                 ( show_pragma RefinementTypes
-                 , "Refinement Types require RefinementTypes pramga to be \
-                    set." ) ) )
+                 ( show_pragma ParTypes
+                 , "Par types require ParTypes pramga to be set." ) ) )
   in
   let gtype, free_names =
     conv_interactions
