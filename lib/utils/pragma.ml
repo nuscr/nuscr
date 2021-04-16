@@ -9,6 +9,8 @@ type t =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | ParTypes
+  | ConvertToGlobalTypesOnly
 [@@deriving show]
 
 let pragma_of_string str : t =
@@ -21,6 +23,8 @@ let pragma_of_string str : t =
   | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
   | "ValidateRefinementSatisfiability" -> ValidateRefinementSatisfiability
   | "ValidateRefinementProgress" -> ValidateRefinementProgress
+  | "ParTypes" -> ParTypes
+  | "ConvertToGlobalTypesOnly" -> ConvertToGlobalTypesOnly
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (t * string option) list [@@deriving show]
@@ -33,6 +37,8 @@ type config =
   ; receiver_validate_refinements: bool
   ; validate_refinement_satisfiability: bool
   ; validate_refinement_progress: bool
+  ; par_type: bool
+  ; convert_to_global_types_only: bool
   ; verbose: bool }
 
 let default =
@@ -43,6 +49,8 @@ let default =
   ; receiver_validate_refinements= false
   ; validate_refinement_satisfiability= false
   ; validate_refinement_progress= false
+  ; par_type= false
+  ; convert_to_global_types_only= false
   ; verbose= false }
 
 let config = ref default
@@ -83,6 +91,15 @@ let validate_refinement_progress () = !config.validate_refinement_progress
 
 let set_validate_refinement_progress validate_refinement_progress =
   config := {!config with validate_refinement_progress}
+
+let set_par_type par_type = config := {!config with par_type}
+
+let par_type_enabled () = !config.par_type
+
+let set_convert_to_global_types_only convert_to_global_types_only =
+  config := {!config with convert_to_global_types_only}
+
+let convert_to_global_types_only () = !config.convert_to_global_types_only
 
 let verbose () = !config.verbose
 
@@ -130,6 +147,8 @@ let load_from_pragmas pragmas =
     | ValidateRefinementSatisfiability, _ ->
         set_validate_refinement_satisfiability true
     | ValidateRefinementProgress, _ -> set_validate_refinement_progress true
+    | ParTypes, _ -> set_par_type true
+    | ConvertToGlobalTypesOnly, _ -> set_convert_to_global_types_only true
     | ShowPragmas, _ | PrintUsage, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas ;

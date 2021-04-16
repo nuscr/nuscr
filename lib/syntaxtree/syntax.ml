@@ -8,6 +8,33 @@ open Loc
  * and raw_ast =
  *   | Con of string *)
 
+(* association list of pragmas *)
+
+type pragma =
+  | NestedProtocols
+  | ShowPragmas
+  | PrintUsage
+  | RefinementTypes
+  | SenderValidateRefinements
+  | ReceiverValidateRefinements
+  | ParTypes
+  | ConvertToGlobalTypesOnly
+[@@deriving show]
+
+let pragma_of_string str : pragma =
+  match str with
+  | "ShowPragmas" -> ShowPragmas
+  | "PrintUsage" -> PrintUsage
+  | "NestedProtocols" -> NestedProtocols
+  | "RefinementTypes" -> RefinementTypes
+  | "SenderValidateRefinements" -> SenderValidateRefinements
+  | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
+  | "ParTypes" -> ParTypes
+  | "ConvertToGlobalTypesOnly" -> ConvertToGlobalTypesOnly
+  | prg -> Err.UnknownPragma prg |> Err.uerr
+
+type pragmas = (pragma * string option) list [@@deriving show]
+
 (* a simple name *)
 module N = Name.Name
 

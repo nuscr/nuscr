@@ -338,9 +338,17 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
               ~f:(conv_interactions free_names lazy_conts)
               interactions_list
           in
-          ( ParG (List.map ~f:fst conts)
-          , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
-          ) )
+          if Pragma.par_type_enabled () then
+            ( ParG (List.map ~f:fst conts)
+            , Set.union_list
+                (module TypeVariableName)
+                (List.map ~f:snd conts) )
+          else
+            uerr
+              (PragmaNotSet
+                 ( show_pragma RefinementTypes
+                 , "Refinement Types require RefinementTypes pramga to be \
+                    set." ) ) )
   in
   let gtype, free_names =
     conv_interactions
