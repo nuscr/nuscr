@@ -45,118 +45,121 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     if Option.is_some fsm && Pragma.nested_protocol_enabled () then
       Err.uerr
         (Err.IncompatibleFlag ("fsm", Pragma.show Pragma.NestedProtocols)) ;
-    Nuscrlib.validate_exn ast ;
-    let () =
-      if enumerate then
-        Nuscrlib.enumerate ast
-        |> List.map ~f:(fun (n, r) ->
-               RoleName.user r ^ "@" ^ ProtocolName.user n )
-        |> String.concat ~sep:"\n" |> print_endline
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          Nuscrlib.project_role ast ~protocol ~role |> Ltype.show )
-        project
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          let ltype = Nuscrlib.project_role ast ~protocol ~role in
-          let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
-          Nuscrlib.LiteratureSyntax.show_ltype_mpstk ltype )
-        project_mpstk
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          let ltype = Nuscrlib.project_role ast ~protocol ~role in
-          let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
-          Nuscrlib.LiteratureSyntax.show_ltype_tex ltype )
-        project_tex
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          Nuscrlib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
-        fsm
-    in
-    let () =
-      Option.iter
-        ~f:(fun (role, protocol) ->
-          Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
-          |> print_endline )
-        gencode_ocaml
-    in
-    let () =
-      Option.iter
-        ~f:(fun (role, protocol) ->
-          Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
-          |> print_endline )
-        gencode_monadic_ocaml
-    in
-    let () =
-      Option.iter
-        ~f:(fun (role, protocol) ->
-          Nuscrlib.generate_fstar_code ast ~protocol ~role |> print_endline
-          )
-        gencode_fstar
-    in
-    let () =
-      Option.iter
-        ~f:(fun (_role, protocol) ->
-          match out_dir with
-          | Some out_dir ->
-              let impl =
-                Nuscrlib.generate_go_code ast ~protocol ~out_dir ~go_path
-              in
-              print_endline impl
-          | None ->
-              Err.UserError
-                (Err.MissingFlag
-                   ( "out-dir"
-                   , "This flag must be set in order to generate go \
-                      implementation" ) )
-              |> raise )
-        gencode_go
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          Nuscrlib.generate_sexp ast ~protocol |> print_endline )
-        sexp_global_type
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          let gtype = Nuscrlib.get_global_type ~protocol ast in
-          Nuscrlib.Gtype.show gtype |> print_endline )
-        show_global_type
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          let gtype =
-            Nuscrlib.get_global_type_literature_syntax ~protocol ast
-          in
-          Nuscrlib.LiteratureSyntax.show_gtype_mpstk gtype |> print_endline
-          )
-        show_global_type_mpstk
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          let gtype =
-            Nuscrlib.get_global_type_literature_syntax ~protocol ast
-          in
-          Nuscrlib.LiteratureSyntax.show_gtype_tex gtype |> print_endline )
-        show_global_type_tex
-    in
-    `Ok ()
+    if Pragma.convert_to_global_types_only () then `Ok ()
+    else (
+      Nuscrlib.validate_exn ast ;
+      let () =
+        if enumerate then
+          Nuscrlib.enumerate ast
+          |> List.map ~f:(fun (n, r) ->
+                 RoleName.user r ^ "@" ^ ProtocolName.user n )
+          |> String.concat ~sep:"\n" |> print_endline
+      in
+      let () =
+        gen_output ast
+          (fun ast protocol role ->
+            Nuscrlib.project_role ast ~protocol ~role |> Ltype.show )
+          project
+      in
+      let () =
+        gen_output ast
+          (fun ast protocol role ->
+            let ltype = Nuscrlib.project_role ast ~protocol ~role in
+            let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
+            Nuscrlib.LiteratureSyntax.show_ltype_mpstk ltype )
+          project_mpstk
+      in
+      let () =
+        gen_output ast
+          (fun ast protocol role ->
+            let ltype = Nuscrlib.project_role ast ~protocol ~role in
+            let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
+            Nuscrlib.LiteratureSyntax.show_ltype_tex ltype )
+          project_tex
+      in
+      let () =
+        gen_output ast
+          (fun ast protocol role ->
+            Nuscrlib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
+          fsm
+      in
+      let () =
+        Option.iter
+          ~f:(fun (role, protocol) ->
+            Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
+            |> print_endline )
+          gencode_ocaml
+      in
+      let () =
+        Option.iter
+          ~f:(fun (role, protocol) ->
+            Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
+            |> print_endline )
+          gencode_monadic_ocaml
+      in
+      let () =
+        Option.iter
+          ~f:(fun (role, protocol) ->
+            Nuscrlib.generate_fstar_code ast ~protocol ~role |> print_endline
+            )
+          gencode_fstar
+      in
+      let () =
+        Option.iter
+          ~f:(fun (_role, protocol) ->
+            match out_dir with
+            | Some out_dir ->
+                let impl =
+                  Nuscrlib.generate_go_code ast ~protocol ~out_dir ~go_path
+                in
+                print_endline impl
+            | None ->
+                Err.UserError
+                  (Err.MissingFlag
+                     ( "out-dir"
+                     , "This flag must be set in order to generate go \
+                        implementation" ) )
+                |> raise )
+          gencode_go
+      in
+      let () =
+        Option.iter
+          ~f:(fun protocol ->
+            let protocol = ProtocolName.of_string protocol in
+            Nuscrlib.generate_sexp ast ~protocol |> print_endline )
+          sexp_global_type
+      in
+      let () =
+        Option.iter
+          ~f:(fun protocol ->
+            let protocol = ProtocolName.of_string protocol in
+            let gtype = Nuscrlib.get_global_type ~protocol ast in
+            Nuscrlib.Gtype.show gtype |> print_endline )
+          show_global_type
+      in
+      let () =
+        Option.iter
+          ~f:(fun protocol ->
+            let protocol = ProtocolName.of_string protocol in
+            let gtype =
+              Nuscrlib.get_global_type_literature_syntax ~protocol ast
+            in
+            Nuscrlib.LiteratureSyntax.show_gtype_mpstk gtype |> print_endline
+            )
+          show_global_type_mpstk
+      in
+      let () =
+        Option.iter
+          ~f:(fun protocol ->
+            let protocol = ProtocolName.of_string protocol in
+            let gtype =
+              Nuscrlib.get_global_type_literature_syntax ~protocol ast
+            in
+            Nuscrlib.LiteratureSyntax.show_gtype_tex gtype |> print_endline
+            )
+          show_global_type_tex
+      in
+      `Ok () )
   with
   | Err.UserError msg ->
       `Error (false, "User error: " ^ Err.show_user_error msg)

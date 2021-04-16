@@ -1,3 +1,4 @@
+(*# ConvertToGlobalTypesOnly, ParTypes #*)
 (* parallel streams (full-duplex communication) *)
 
 protocol ParOne(role A, role B, role C) {

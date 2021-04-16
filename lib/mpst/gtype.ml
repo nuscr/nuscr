@@ -360,9 +360,16 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           let conts =
             List.map ~f:(conv_interactions env) interactions_list
           in
-          ( ParG (List.map ~f:fst conts)
-          , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
-          ) )
+          if Pragma.par_type_enabled () then
+            ( ParG (List.map ~f:fst conts)
+            , Set.union_list
+                (module TypeVariableName)
+                (List.map ~f:snd conts) )
+          else
+            uerr
+              (PragmaNotSet
+                 ( Pragma.show Pragma.ParTypes
+                 , "Par types require ParTypes pramga to be set." ) ) )
   in
   let gtype, free_names = conv_interactions init_conv_env interactions in
   match Set.choose free_names with

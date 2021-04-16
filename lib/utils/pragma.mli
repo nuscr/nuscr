@@ -10,6 +10,8 @@ type t =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | ParTypes
+  | ConvertToGlobalTypesOnly
 [@@deriving show]
 
 val pragma_of_string : string -> t
@@ -57,6 +59,19 @@ val validate_refinement_progress : unit -> bool
 
 val set_validate_refinement_progress : bool -> unit
 (** Set validate_refinement_progress *)
+
+val set_par_type : bool -> unit
+(** Set par_type *)
+
+val par_type_enabled : unit -> bool
+(** activates the par_type support *)
+
+val set_convert_to_global_types_only : bool -> unit
+(** Set convert_to_global_types_only *)
+
+val convert_to_global_types_only : unit -> bool
+(** when active, do not validate or manipulate the types in the command line
+    (probably, the file is intended for use from the libary only). *)
 
 val verbose : unit -> bool
 (** Whether to produce verbose outputs *)
