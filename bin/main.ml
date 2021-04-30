@@ -222,7 +222,7 @@ let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
 
 let show_solver_queries =
   let doc = "Print solver queries (With RefinementTypes pragma)" in
-  Arg.(value & flag & info ["show_solver_queries"] ~doc)
+  Arg.(value & flag & info ["show-solver-queries"] ~doc)
 
 let cmd =
   let doc =
