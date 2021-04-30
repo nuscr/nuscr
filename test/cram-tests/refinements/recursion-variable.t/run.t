@@ -1,5 +1,5 @@
 The protocol with recursion variable should be well-formed.
-  $ nuscr Recursion.nuscr --project A@Recursion1 --show_solver_queries
+  $ nuscr Recursion.nuscr --project A@Recursion1 --show-solver-queries
   (declare-const count Int)
   (declare-const freshvar$2 Int)
   (assert (not(>= count 0)))
@@ -25,7 +25,7 @@ The protocol with recursion variable should be well-formed.
 
 
 
-  $ nuscr Recursion.nuscr --project A@Recursion2 --show_solver_queries
+  $ nuscr Recursion.nuscr --project A@Recursion2 --show-solver-queries
   (declare-const count Int)
   (declare-const freshvar$2 Int)
   (assert (not(>= count 0)))
