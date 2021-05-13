@@ -1,0 +1,5 @@
+(*# RefinementTypes #*)
+
+global protocol Unsat(role A, role B) {
+    Hello(x: int{false}) from A to B;
+}
