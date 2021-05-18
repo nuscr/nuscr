@@ -7,6 +7,5 @@ enabled.
 
 Nuscr should report an error if ValidateRefinementSatisfiability is enabled.
   $ nuscr Unsatisfiable.nuscr --project A@Unsat
-  Hello(x: x:int{false}) to B;
-  end
-  
+  nuscr: User error: Refinements cannot be satisfied
+  [1]
