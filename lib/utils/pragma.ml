@@ -7,6 +7,7 @@ type pragma =
   | RefinementTypes
   | SenderValidateRefinements
   | ReceiverValidateRefinements
+  | ValidateRefinementSatisfiability
 [@@deriving show]
 
 let pragma_of_string str : pragma =
@@ -17,6 +18,7 @@ let pragma_of_string str : pragma =
   | "RefinementTypes" -> RefinementTypes
   | "SenderValidateRefinements" -> SenderValidateRefinements
   | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
+  | "ValidateRefinementSatisfiability" -> ValidateRefinementSatisfiability
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (pragma * string option) list [@@deriving show]
@@ -27,6 +29,7 @@ type t =
   ; refinement_type_enabled: bool
   ; sender_validate_refinements: bool
   ; receiver_validate_refinements: bool
+  ; validate_refinement_satisfiability: bool
   ; verbose: bool }
 
 let default =
@@ -35,6 +38,7 @@ let default =
   ; refinement_type_enabled= false
   ; sender_validate_refinements= false
   ; receiver_validate_refinements= false
+  ; validate_refinement_satisfiability= false
   ; verbose= false }
 
 let config = ref default
@@ -64,6 +68,13 @@ let receiver_validate_refinements () = !config.receiver_validate_refinements
 let set_receiver_validate_refinements receiver_validate_refinements =
   config := {!config with receiver_validate_refinements}
 
+let validate_refinement_satisfiability () =
+  !config.validate_refinement_satisfiability
+
+let set_validate_refinement_satisfiability validate_refinement_satisfiability
+    =
+  config := {!config with validate_refinement_satisfiability}
+
 let verbose () = !config.verbose
 
 let set_verbose verbose = config := {!config with verbose}
@@ -87,6 +98,14 @@ let validate_config () =
       (Err.PragmaNotSet
          ( show_pragma RefinementTypes
          , "This is required by ReceiverValidateRefinements" ) ) ;
+  if
+    !config.validate_refinement_satisfiability
+    && not !config.refinement_type_enabled
+  then
+    Err.uerr
+      (Err.PragmaNotSet
+         ( show_pragma RefinementTypes
+         , "This is required by ValidateRefinementSatisfiabiltiy" ) ) ;
   if !config.refinement_type_enabled && !config.nested_protocol_enabled then
     Err.uerr
       (Err.IncompatibleFlag
@@ -100,6 +119,8 @@ let load_from_pragmas pragmas =
     | SenderValidateRefinements, _ -> set_sender_validate_refinements true
     | ReceiverValidateRefinements, _ ->
         set_receiver_validate_refinements true
+    | ValidateRefinementSatisfiability, _ ->
+        set_validate_refinement_satisfiability true
     | ShowPragmas, _ | PrintUsage, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas ;
