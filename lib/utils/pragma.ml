@@ -8,6 +8,7 @@ type pragma =
   | SenderValidateRefinements
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
+  | ValidateRefinementProgress
 [@@deriving show]
 
 let pragma_of_string str : pragma =
@@ -19,6 +20,7 @@ let pragma_of_string str : pragma =
   | "SenderValidateRefinements" -> SenderValidateRefinements
   | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
   | "ValidateRefinementSatisfiability" -> ValidateRefinementSatisfiability
+  | "ValidateRefinementProgress" -> ValidateRefinementProgress
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (pragma * string option) list [@@deriving show]
@@ -30,6 +32,7 @@ type t =
   ; sender_validate_refinements: bool
   ; receiver_validate_refinements: bool
   ; validate_refinement_satisfiability: bool
+  ; validate_refinement_progress: bool
   ; verbose: bool }
 
 let default =
@@ -39,6 +42,7 @@ let default =
   ; sender_validate_refinements= false
   ; receiver_validate_refinements= false
   ; validate_refinement_satisfiability= false
+  ; validate_refinement_progress= false
   ; verbose= false }
 
 let config = ref default
@@ -74,6 +78,11 @@ let validate_refinement_satisfiability () =
 let set_validate_refinement_satisfiability validate_refinement_satisfiability
     =
   config := {!config with validate_refinement_satisfiability}
+
+let validate_refinement_progress () = !config.validate_refinement_progress
+
+let set_validate_refinement_progress validate_refinement_progress =
+  config := {!config with validate_refinement_progress}
 
 let verbose () = !config.verbose
 
@@ -121,6 +130,7 @@ let load_from_pragmas pragmas =
         set_receiver_validate_refinements true
     | ValidateRefinementSatisfiability, _ ->
         set_validate_refinement_satisfiability true
+    | ValidateRefinementProgress, _ -> set_validate_refinement_progress true
     | ShowPragmas, _ | PrintUsage, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas ;

@@ -9,6 +9,7 @@ type pragma =
   | SenderValidateRefinements
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
+  | ValidateRefinementProgress
 [@@deriving show]
 
 val pragma_of_string : string -> pragma
@@ -50,6 +51,12 @@ val validate_refinement_satisfiability : unit -> bool
 
 val set_validate_refinement_satisfiability : bool -> unit
 (** Set validate_refinement_satisfiability *)
+
+val validate_refinement_progress : unit -> bool
+(** Validate whether a refined global type satisfies progress semantically *)
+
+val set_validate_refinement_progress : bool -> unit
+(** Set validate_refinement_progress *)
 
 val verbose : unit -> bool
 (** Whether to produce verbose outputs *)
