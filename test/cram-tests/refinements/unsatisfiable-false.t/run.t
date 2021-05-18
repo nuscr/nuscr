@@ -7,5 +7,6 @@ enabled.
 
 Nuscr should report an error if ValidateRefinementSatisfiability is enabled.
   $ nuscr Unsatisfiable.nuscr --project A@Unsat
-  nuscr: User error: Unknown pragma: ValidateRefinementSatisfiability
-  [1]
+  Hello(x: x:int{false}) to B;
+  end
+  
