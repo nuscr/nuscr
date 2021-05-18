@@ -31,6 +31,7 @@ type user_error =
   | IllFormedPayloadType of string
   | TypeError of string * string
   | UnknownVariableValue of RoleName.t * VariableName.t
+  | UnsatisfiableRefinement (* TODO: Extra Message for error reporting *)
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -115,6 +116,7 @@ let show_user_error = function
   | UnknownVariableValue (role, var) ->
       Printf.sprintf "Role %s does not know the value of the variable %s"
         (RoleName.user role) (VariableName.user var)
+  | UnsatisfiableRefinement -> "Refinements cannot be satisfied"
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a

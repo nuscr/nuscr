@@ -393,3 +393,10 @@ let rec default_value = function
       Err.violationf "No default value available for %s"
         (PayloadTypeName.user typename)
   | PTRefined (_, ty, _) -> default_value ty
+
+let ensure_satisfiable env =
+  let encoded = encode_env env in
+  match check_sat encoded with
+  | `Sat -> ()
+  | `Unsat -> Err.uerr Err.UnsatisfiableRefinement
+  | `Unknown -> Err.violation "Solver returned unknown result"
