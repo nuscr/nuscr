@@ -2,6 +2,37 @@ open! Base
 open Printf
 open Names
 
+(* Workaround for https://github.com/janestreet/sexplib/issues/34 *)
+module Sexp = struct
+  (* The Jane Street sexplib library does not distinguish between quoted
+     strings and unquoted strings, which have semantic differences in
+     SMT-LIB. Quoted strings are literals and unquoted strings are variables.*)
+
+  type t = Literal of string | Atom of string | List of t list
+
+  let to_string_buf buf =
+    let rec to_string = function
+      | Literal s ->
+          Buffer.add_char buf '\"' ;
+          Buffer.add_string buf (String.escaped s) ;
+          Buffer.add_char buf '\"'
+      | Atom s -> Buffer.add_string buf s
+      | List l ->
+          Buffer.add_char buf '(' ;
+          List.iteri
+            ~f:(fun idx s ->
+              if idx <> 0 then Buffer.add_char buf ' ' ;
+              to_string s )
+            l ;
+          Buffer.add_char buf ')'
+    in
+    to_string
+
+  let to_string s =
+    let buffer = Buffer.create 16 in
+    to_string_buf buffer s ; Buffer.contents buffer
+end
+
 (** An expression, used in RefinementType extension *)
 type t =
   | Var of VariableName.t  (** A variable *)
@@ -164,9 +195,9 @@ let sexp_of_unop = function
 
 let rec sexp_of_expr = function
   | Var v -> Sexp.Atom (VariableName.user v)
-  | Int i -> Int.sexp_of_t i
-  | Bool b -> Bool.sexp_of_t b
-  | String s -> Sexp.Atom (String.escaped s)
+  | Int i -> Sexp.Atom (Int.to_string i)
+  | Bool b -> Sexp.Atom (Bool.to_string b)
+  | String s -> Sexp.Literal s
   | Binop (binop, e1, e2) ->
       let binop = sexp_of_binop binop in
       let e1 = sexp_of_expr e1 in
