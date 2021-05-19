@@ -417,6 +417,62 @@ let validate_refinements_exn t =
     if Set.is_empty unknown_vars then ()
     else uerr (UnknownVariableValue (role, Set.choose_exn unknown_vars))
   in
+  let encode_progress_clause env payloads =
+    let e =
+      List.fold ~init:(Expr.Sexp.Atom "true")
+        ~f:
+          (fun e -> function
+            | PValue (None, _) -> e
+            | PValue (Some v, ty) ->
+                let sort = Expr.smt_sort_of_type ty in
+                let e =
+                  match ty with
+                  | Expr.PTRefined (v_, _, refinement) ->
+                      if VariableName.equal v v_ then
+                        Expr.Sexp.List
+                          [ Expr.Sexp.Atom "and"
+                          ; Expr.sexp_of_expr refinement
+                          ; e ]
+                      else
+                        Err.violationf
+                          "TODO: Handle the case where refinement and \
+                           payload variables are different"
+                  | _ -> e
+                in
+                Expr.Sexp.List
+                  [ Expr.Sexp.Atom "exists"
+                  ; Expr.Sexp.List
+                      [ Expr.Sexp.List
+                          [ Expr.Sexp.Atom (VariableName.user v)
+                          ; Expr.Sexp.Atom sort ] ]
+                  ; e ]
+            | PDelegate _ -> (* Not supported *) e )
+        payloads
+    in
+    let env =
+      Expr.add_assert_s_expr (Expr.Sexp.List [Expr.Sexp.Atom "not"; e]) env
+    in
+    env
+  in
+  let ensure_progress env gs =
+    let tyenv, _, _ = env in
+    let encoded = Expr.encode_env tyenv in
+    let rec gather_first_message = function
+      | MessageG (m, _, _, _) -> [m.payload]
+      | ChoiceG (_, gs) -> List.concat_map ~f:gather_first_message gs
+      | MuG (_, _, g) -> gather_first_message g
+      | TVarG (_, _, g) -> gather_first_message (Lazy.force g)
+      | EndG -> []
+      | CallG _ -> (* Not supported *) []
+    in
+    let first_messages = List.concat_map ~f:gather_first_message gs in
+    let encoded =
+      List.fold ~init:encoded ~f:encode_progress_clause first_messages
+    in
+    match Expr.check_sat encoded with
+    | `Unsat -> ()
+    | _ -> uerr StuckRefinement
+  in
   let rec aux env =
     ( if Pragma.validate_refinement_satisfiability () then
       let tyenv, _, _ = env in
@@ -453,7 +509,9 @@ let validate_refinements_exn t =
         in
         let env = List.fold ~init:env ~f payloads in
         aux env g
-    | ChoiceG (_, gs) -> List.iter ~f:(aux env) gs
+    | ChoiceG (_, gs) ->
+        List.iter ~f:(aux env) gs ;
+        if Pragma.validate_refinement_progress () then ensure_progress env gs
     | MuG (tvar, rec_vars, g) ->
         let f (tenv, rvenv, role_knowledge)
             {rv_name; rv_ty; rv_init_expr; rv_roles} =
