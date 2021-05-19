@@ -1,0 +1,10 @@
+(library
+ (flags
+  (:standard -w +A-39-4-42))
+ (name utils)
+ (public_name nuscr.utils)
+ (wrapped false)
+ (libraries base)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_sexp_conv
+    ppxlib.metaquot)))
