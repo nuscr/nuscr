@@ -239,8 +239,10 @@ let add_const var ty env =
   in
   {env with declare_consts}
 
-let add_assert assert_ env =
+let add_assert_expr assert_ env =
   {env with asserts= sexp_of_expr assert_ :: env.asserts}
+
+let add_assert_s_expr assert_ env = {env with asserts= assert_ :: env.asserts}
 
 let encode_env env =
   let init = empty_smt_script in
@@ -250,10 +252,10 @@ let encode_env env =
       let env =
         match data with
         | PTRefined (v, _, e) ->
-            let env = add_assert e env in
+            let env = add_assert_expr e env in
             let env =
               if VariableName.equal v key then env
-              else add_assert (Binop (Syntax.Eq, Var v, Var key)) env
+              else add_assert_expr (Binop (Syntax.Eq, Var v, Var key)) env
             in
             env
         | _ -> env
@@ -303,11 +305,11 @@ let subtype env t1 t2 =
       let env = add_const v2 t env in
       let env =
         if not (VariableName.equal v1 v2) then
-          add_assert (Binop (Syntax.Eq, Var v1, Var v2)) env
+          add_assert_expr (Binop (Syntax.Eq, Var v1, Var v2)) env
         else env
       in
-      let env = add_assert e1 env in
-      let env = add_assert (Unop (Syntax.Not, e2)) env in
+      let env = add_assert_expr e1 env in
+      let env = add_assert_expr (Unop (Syntax.Not, e2)) env in
       is_unsat env
   | _, _ -> assert false
 
