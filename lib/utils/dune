@@ -1,6 +1,4 @@
 (library
- (flags
-  (:standard -w +A-39-4-42))
  (name utils)
  (public_name nuscr.utils)
  (wrapped false)
