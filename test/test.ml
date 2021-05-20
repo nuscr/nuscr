@@ -77,9 +77,9 @@ let process_files fns =
           in
           try
             In_channel.seek in_channel 0L ;
-            let ast = Nuscrlib.Lib.parse fn in_channel in
+            let ast = Nuscrlib.parse fn in_channel in
             process_pragmas ast.pragmas ;
-            Nuscrlib.Lib.validate_exn ast ;
+            Nuscrlib.validate_exn ast ;
             if is_negative_test then raise ExpectFail
           with
           | Nuscrlib.Err.UnImplemented _ -> ()
