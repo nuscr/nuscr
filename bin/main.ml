@@ -28,15 +28,15 @@ let gen_output ast f = function
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
     show_solver_queries =
-  Config.set_solver_show_queries show_solver_queries ;
-  Config.set_verbose verbose ;
+  Pragma.set_solver_show_queries show_solver_queries ;
+  Pragma.set_verbose verbose ;
   try
     let ast = process_file file Nuscrlib.parse in
-    Config.load_from_pragmas ast.pragmas ;
-    if Option.is_some fsm && Config.nested_protocol_enabled () then
+    Pragma.load_from_pragmas ast.pragmas ;
+    if Option.is_some fsm && Pragma.nested_protocol_enabled () then
       Err.uerr
         (Err.IncompatibleFlag
-           ("fsm", Config.show_pragma Config.NestedProtocols) ) ;
+           ("fsm", Pragma.show_pragma Pragma.NestedProtocols) ) ;
     Nuscrlib.validate_exn ast ;
     let () =
       if enumerate then
