@@ -84,7 +84,7 @@ let pragma_value :=
   | COLON ; v = IDENT ; { v }
 
 let pragma_decl :=
-  | k = IDENT ; v = pragma_value? ; { Syntax.pragma_of_string k , v }
+  | k = IDENT ; v = pragma_value? ; { Config.pragma_of_string k , v }
 
 (* pragmas *)
 let pragmas :=
