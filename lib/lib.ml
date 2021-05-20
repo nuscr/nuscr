@@ -30,7 +30,7 @@ let parse_string string = parse_from_lexbuf @@ Lexing.from_string string
 let validate_protocols_exn (ast : scr_module) : unit =
   let show ~f ?(sep = "\n") xs =
     (* only show if verbose is on *)
-    if Config.verbose () then
+    if Pragma.verbose () then
       String.concat ~sep (List.map ~f xs) |> print_endline
     else ()
   in
@@ -45,7 +45,7 @@ let validate_protocols_exn (ast : scr_module) : unit =
   (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
      g_types in *)
   show ~f:(fun (g, _) -> Gtype.show g) g_types ;
-  if Config.refinement_type_enabled () then
+  if Pragma.refinement_type_enabled () then
     List.iter ~f:(fun (g, _) -> Gtype.validate_refinements_exn g) g_types ;
   let l_types =
     List.map
@@ -65,7 +65,7 @@ let validate_protocols_exn (ast : scr_module) : unit =
 
 let validate_nested_protocols (ast : scr_module) =
   let show ~f ~sep input =
-    if Config.verbose () then
+    if Pragma.verbose () then
       print_endline (Printf.sprintf "%s%s" (f input) sep)
     else ()
   in
@@ -79,7 +79,7 @@ let validate_nested_protocols (ast : scr_module) =
   ()
 
 let validate_exn (ast : scr_module) : unit =
-  if Config.nested_protocol_enabled () then validate_nested_protocols ast
+  if Pragma.nested_protocol_enabled () then validate_nested_protocols ast
   else (
     Protocol.ensure_no_nested_protocols ast ;
     validate_protocols_exn ast )
@@ -105,7 +105,7 @@ let enumerate_nested_protocols (ast : scr_module) :
   List.concat @@ Map.data enumerated
 
 let enumerate (ast : scr_module) : (ProtocolName.t * RoleName.t) list =
-  if Config.nested_protocol_enabled () then enumerate_nested_protocols ast
+  if Pragma.nested_protocol_enabled () then enumerate_nested_protocols ast
   else enumerate_protocols ast
 
 let get_global_type ast ~protocol : Gtype.t =
@@ -132,7 +132,7 @@ let project_nested_protocol ast ~protocol ~role : Ltype.t =
   l_type
 
 let project_role ast ~protocol ~role : Ltype.t =
-  if Config.nested_protocol_enabled () then
+  if Pragma.nested_protocol_enabled () then
     project_nested_protocol ast ~protocol ~role
   else project_protocol_role ast ~protocol ~role
 

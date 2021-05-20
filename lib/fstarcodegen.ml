@@ -74,7 +74,7 @@ let compute_var_map start g rec_var_info =
         acc
   in
   let var_map = aux init (start, []) in
-  if Config.verbose () then
+  if Pragma.verbose () then
     Map.iteri
       ~f:(fun ~key:st ~data ->
         print_endline

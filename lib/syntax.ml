@@ -159,7 +159,7 @@ and raw_global_protocol =
 
 type scr_module =
   { decl: mod_decl
-  ; pragmas: Config.pragmas
+  ; pragmas: Pragma.pragmas
   ; types: type_decl list
   ; nested_protocols: global_protocol list
   ; protocols: global_protocol list }
