@@ -5,15 +5,15 @@ module Pragma = struct
 end
 
 module Gtype = struct
-  include Gtype
+  include Mpst.Gtype
 end
 
 module Ltype = struct
-  include Ltype
+  include Mpst.Ltype
 end
 
 module Efsm = struct
-  include Efsm
+  include Mpst.Efsm
 end
 
 module Err = struct

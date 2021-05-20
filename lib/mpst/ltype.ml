@@ -3,6 +3,7 @@ open Printf
 open Gtype
 open Err
 open Names
+open Syntaxtree
 
 type t =
   | RecvL of Gtype.message * RoleName.t * t

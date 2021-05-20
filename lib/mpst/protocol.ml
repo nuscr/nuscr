@@ -1,5 +1,6 @@
 open! Base
-open Syntaxtree.Syntax
+open Syntaxtree
+open Syntax
 open Loc
 open Err
 open Symtable
