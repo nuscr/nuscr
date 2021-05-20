@@ -2,6 +2,7 @@
 open Names
 
 open Syntaxtree
+open Mpst
 
 (** {1 Parsing} *)
 

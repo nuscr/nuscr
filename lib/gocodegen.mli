@@ -1,4 +1,5 @@
 open! Base
+open Mpst
 open Names
 
 (** Record containing the implementation of all the components of the Go

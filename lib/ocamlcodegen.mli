@@ -3,6 +3,7 @@
 (** This module transforms a EFSM generated from local types into OCaml code. *)
 
 open Names
+open Mpst
 open! Ppxlib_ast
 
 val gen_ast :
