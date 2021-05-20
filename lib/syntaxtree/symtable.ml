@@ -1,5 +1,5 @@
 open! Base
-open Syntaxtree.Syntax
+open Syntax
 open Loc
 open Err
 

@@ -5,6 +5,7 @@ open Syntaxtree
 open Syntax
 open Err
 open Names
+open Mpst
 
 let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf.Lexing.lex_curr_p <-
