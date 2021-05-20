@@ -1,5 +1,26 @@
 open! Base
 
+type pragma =
+  | NestedProtocols
+  | ShowPragmas
+  | PrintUsage
+  | RefinementTypes
+  | SenderValidateRefinements
+  | ReceiverValidateRefinements
+[@@deriving show]
+
+let pragma_of_string str : pragma =
+  match str with
+  | "ShowPragmas" -> ShowPragmas
+  | "PrintUsage" -> PrintUsage
+  | "NestedProtocols" -> NestedProtocols
+  | "RefinementTypes" -> RefinementTypes
+  | "SenderValidateRefinements" -> SenderValidateRefinements
+  | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
+  | prg -> Err.UnknownPragma prg |> Err.uerr
+
+type pragmas = (pragma * string option) list [@@deriving show]
+
 type t =
   { solver_show_queries: bool
   ; nested_protocol_enabled: bool
@@ -56,7 +77,7 @@ let validate_config () =
   then
     Err.uerr
       (Err.PragmaNotSet
-         ( Syntax.show_pragma Syntax.RefinementTypes
+         ( show_pragma RefinementTypes
          , "This is required by SenderValidateRefinements" ) ) ;
   if
     !config.receiver_validate_refinements
@@ -64,24 +85,22 @@ let validate_config () =
   then
     Err.uerr
       (Err.PragmaNotSet
-         ( Syntax.show_pragma Syntax.RefinementTypes
+         ( show_pragma RefinementTypes
          , "This is required by ReceiverValidateRefinements" ) ) ;
   if !config.refinement_type_enabled && !config.nested_protocol_enabled then
     Err.uerr
       (Err.IncompatibleFlag
-         ( Syntax.show_pragma Syntax.RefinementTypes
-         , Syntax.show_pragma Syntax.NestedProtocols ) )
+         (show_pragma RefinementTypes, show_pragma NestedProtocols) )
 
 let load_from_pragmas pragmas =
   let process_global_pragma (k, v) =
     match (k, v) with
-    | Syntax.NestedProtocols, _ -> set_nested_protocol true
-    | Syntax.RefinementTypes, _ -> set_refinement_type true
-    | Syntax.SenderValidateRefinements, _ ->
-        set_sender_validate_refinements true
-    | Syntax.ReceiverValidateRefinements, _ ->
+    | NestedProtocols, _ -> set_nested_protocol true
+    | RefinementTypes, _ -> set_refinement_type true
+    | SenderValidateRefinements, _ -> set_sender_validate_refinements true
+    | ReceiverValidateRefinements, _ ->
         set_receiver_validate_refinements true
-    | Syntax.ShowPragmas, _ | Syntax.PrintUsage, _ -> ()
+    | ShowPragmas, _ | PrintUsage, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas ;
   validate_config ()

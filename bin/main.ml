@@ -36,7 +36,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     if Option.is_some fsm && Config.nested_protocol_enabled () then
       Err.uerr
         (Err.IncompatibleFlag
-           ("fsm", Syntax.show_pragma Syntax.NestedProtocols) ) ;
+           ("fsm", Config.show_pragma Config.NestedProtocols) ) ;
     Lib.validate_exn ast ;
     let () =
       if enumerate then
