@@ -1,6 +1,19 @@
 (** This module contains variables configuarations, to be set by pragmas or
     command line arguments, not to be changed for the duration of the program *)
 
+type pragma =
+  | NestedProtocols
+  | ShowPragmas
+  | PrintUsage
+  | RefinementTypes
+  | SenderValidateRefinements
+  | ReceiverValidateRefinements
+[@@deriving show]
+
+val pragma_of_string : string -> pragma
+
+type pragmas = (pragma * string option) list [@@deriving show]
+
 val solver_show_queries : unit -> bool
 (** Whether to display queries to SMT solvers (with RefinementTypes pragma) *)
 
@@ -40,5 +53,5 @@ val set_verbose : bool -> unit
 val reset : unit -> unit
 (** Reset all configuration to default *)
 
-val load_from_pragmas : Syntax.pragmas -> unit
+val load_from_pragmas : pragmas -> unit
 (** Load config from pragmas *)

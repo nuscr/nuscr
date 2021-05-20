@@ -10,27 +10,6 @@ open Loc
 
 (* association list of pragmas *)
 
-type pragma =
-  | NestedProtocols
-  | ShowPragmas
-  | PrintUsage
-  | RefinementTypes
-  | SenderValidateRefinements
-  | ReceiverValidateRefinements
-[@@deriving show]
-
-let pragma_of_string str : pragma =
-  match str with
-  | "ShowPragmas" -> ShowPragmas
-  | "PrintUsage" -> PrintUsage
-  | "NestedProtocols" -> NestedProtocols
-  | "RefinementTypes" -> RefinementTypes
-  | "SenderValidateRefinements" -> SenderValidateRefinements
-  | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
-  | prg -> Err.UnknownPragma prg |> Err.uerr
-
-type pragmas = (pragma * string option) list [@@deriving show]
-
 (* a simple name *)
 module N = Name.Name
 
@@ -180,7 +159,7 @@ and raw_global_protocol =
 
 type scr_module =
   { decl: mod_decl
-  ; pragmas: pragmas
+  ; pragmas: Config.pragmas
   ; types: type_decl list
   ; nested_protocols: global_protocol list
   ; protocols: global_protocol list }

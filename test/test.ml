@@ -61,7 +61,7 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
 
 exception ExpectFail
 
-let process_pragmas (pragmas : Nuscrlib.Syntax.pragmas) : unit =
+let process_pragmas (pragmas : Nuscrlib.Config.pragmas) : unit =
   Nuscrlib.Config.reset () ;
   Nuscrlib.Config.load_from_pragmas pragmas
 

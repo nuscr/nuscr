@@ -74,7 +74,7 @@ let of_syntax_payload (payload : Syntax.payloadt) =
       else
         uerr
           (PragmaNotSet
-             ( show_pragma RefinementTypes
+             ( Config.show_pragma Config.RefinementTypes
              , "Refinement Types require RefinementTypes pramga to be set."
              ) )
 
