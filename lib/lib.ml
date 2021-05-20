@@ -1,6 +1,7 @@
 open! Base
 open! Stdio
 open Loc
+open Syntaxtree
 open Syntax
 open Err
 open Names
@@ -11,7 +12,7 @@ let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
   lexbuf
 
 let parse_from_lexbuf lexbuf : scr_module =
-  try Parser.doc Lexer.token lexbuf with
+  try Syntaxtree.Parser.doc Lexer.token lexbuf with
   | Lexer.LexError msg -> uerr (LexerError msg)
   | Parser.Error ->
       let err_interval =

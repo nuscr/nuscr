@@ -3,6 +3,7 @@ open Printf
 open Loc
 open Err
 open Names
+open Syntaxtree
 
 type payload =
   | PValue of VariableName.t option * Expr.payload_type
