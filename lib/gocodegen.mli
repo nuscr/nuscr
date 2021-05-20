@@ -34,7 +34,7 @@ val ensure_unique_identifiers : Gtype.global_t -> unit
     easy to relax *)
 
 val generate_go_code :
-     Syntax.scr_module
+     Syntaxtree.Syntax.scr_module
   -> protocol:ProtocolName.t
   -> out_dir:string
   -> go_path:string option

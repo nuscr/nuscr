@@ -1,5 +1,5 @@
 open! Base
-open Syntax
+open Syntaxtree.Syntax
 open Loc
 open Err
 open Symtable
@@ -76,7 +76,7 @@ let mk_protocol_map scr_module =
 
 module ProtocolCall = struct
   module T = struct
-    type t = Syntax.name * Syntax.name list
+    type t = name * name list
 
     let compare (protocol1, roles1) (protocol2, roles2) =
       let cmp_protocol = Name.compare protocol1 protocol2 in

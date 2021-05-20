@@ -5,7 +5,7 @@ open Names
 open Goimpl
 open Gonames
 open Gtype
-open Syntax
+open Syntaxtree.Syntax
 open Fsutil
 
 (** Validate protocols to ensure Go implementation can be generated
