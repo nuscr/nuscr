@@ -1,6 +1,7 @@
 open! Base
 open Printf
 open Names
+open Syntaxtree
 
 (* Workaround for https://github.com/janestreet/sexplib/issues/34 *)
 module Sexp = struct

@@ -1,6 +1,8 @@
 (** Main entry point of the library *)
 open Names
 
+open Syntaxtree
+
 (** {1 Parsing} *)
 
 (** This section deals with parsing protocols. *)
