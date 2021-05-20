@@ -142,7 +142,7 @@ let generate_fsm ast ~protocol ~role =
   let lt = project_role ast ~protocol ~role in
   Efsm.of_local_type lt
 
-let generate_go_code = Gocodegen.generate_go_code
+let generate_go_code = Codegen.Go.generate_go_code
 
 let generate_ocaml_code ~monad ast ~protocol ~role =
   let fsm = generate_fsm ast ~protocol ~role in
