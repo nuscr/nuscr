@@ -61,9 +61,9 @@ let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : unit =
 
 exception ExpectFail
 
-let process_pragmas (pragmas : Nuscrlib.Config.pragmas) : unit =
-  Nuscrlib.Config.reset () ;
-  Nuscrlib.Config.load_from_pragmas pragmas
+let process_pragmas (pragmas : Nuscrlib.Pragma.pragmas) : unit =
+  Nuscrlib.Pragma.reset () ;
+  Nuscrlib.Pragma.load_from_pragmas pragmas
 
 let process_files fns =
   let buffer = Buffer.create 1024 in
