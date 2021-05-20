@@ -13,7 +13,7 @@ let show_protocol_role protocol role =
   Printf.sprintf "%s@%s" role protocol
 
 let project scr (name, role) =
-  let ltyp = Lib.project_role scr ~protocol:name ~role in
+  let ltyp = project_role scr ~protocol:name ~role in
   let s = Ltype.show ltyp in
   (W.get "projected")##.innerHTML
   := Js.string
@@ -22,7 +22,7 @@ let project scr (name, role) =
           s
 
 let fsm scr (name, role) =
-  let _, fsm = Lib.generate_fsm scr ~protocol:name ~role in
+  let _, fsm = generate_fsm scr ~protocol:name ~role in
   let dot = Efsm.show fsm in
   Interface.Graph.set_dot dot
 
@@ -50,13 +50,13 @@ let display_roles scr l =
 let analyse () =
   let () = Interface.Error.reset () in
   let protocol = Interface.Code.get () in
-  match Lib.parse_string protocol with
+  match parse_string protocol with
   | exception e -> Interface.Error.display_exn e
   | ast -> (
-    match Lib.validate_exn ast with
+    match validate_exn ast with
     | exception e -> Interface.Error.display_exn e
     | () ->
-        let roles_html = display_roles ast @@ Lib.enumerate ast in
+        let roles_html = display_roles ast @@ enumerate ast in
         W.(set_children (get "roles") [(roles_html :> Dom.node Js.t)]) )
 
 let init _ =

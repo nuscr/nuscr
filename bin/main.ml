@@ -31,16 +31,16 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
   Config.set_solver_show_queries show_solver_queries ;
   Config.set_verbose verbose ;
   try
-    let ast = process_file file Lib.parse in
+    let ast = process_file file Nuscrlib.parse in
     Config.load_from_pragmas ast.pragmas ;
     if Option.is_some fsm && Config.nested_protocol_enabled () then
       Err.uerr
         (Err.IncompatibleFlag
            ("fsm", Config.show_pragma Config.NestedProtocols) ) ;
-    Lib.validate_exn ast ;
+    Nuscrlib.validate_exn ast ;
     let () =
       if enumerate then
-        Lib.enumerate ast
+        Nuscrlib.enumerate ast
         |> List.map ~f:(fun (n, r) ->
                RoleName.user r ^ "@" ^ ProtocolName.user n )
         |> String.concat ~sep:"\n" |> print_endline
@@ -48,33 +48,34 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     let () =
       gen_output ast
         (fun ast protocol role ->
-          Lib.project_role ast ~protocol ~role |> Ltype.show )
+          Nuscrlib.project_role ast ~protocol ~role |> Ltype.show )
         project
     in
     let () =
       gen_output ast
         (fun ast protocol role ->
-          Lib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
+          Nuscrlib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
         fsm
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
-          Lib.generate_ocaml_code ~monad:false ast ~protocol ~role
+          Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
           |> print_endline )
         gencode_ocaml
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
-          Lib.generate_ocaml_code ~monad:true ast ~protocol ~role
+          Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
           |> print_endline )
         gencode_monadic_ocaml
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
-          Lib.generate_fstar_code ast ~protocol ~role |> print_endline )
+          Nuscrlib.generate_fstar_code ast ~protocol ~role |> print_endline
+          )
         gencode_fstar
     in
     let () =
@@ -83,7 +84,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
           match out_dir with
           | Some out_dir ->
               let impl =
-                Lib.generate_go_code ast ~protocol ~out_dir ~go_path
+                Nuscrlib.generate_go_code ast ~protocol ~out_dir ~go_path
               in
               print_endline impl
           | None ->
@@ -99,7 +100,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
       Option.iter
         ~f:(fun protocol ->
           let protocol = ProtocolName.of_string protocol in
-          Lib.generate_sexp ast ~protocol |> print_endline )
+          Nuscrlib.generate_sexp ast ~protocol |> print_endline )
         sexp_global_type
     in
     `Ok ()
