@@ -10,6 +10,7 @@ type pragma =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | ErrorHandlingCrashBranch
 [@@deriving show]
 
 val pragma_of_string : string -> pragma
@@ -57,6 +58,9 @@ val validate_refinement_progress : unit -> bool
 
 val set_validate_refinement_progress : bool -> unit
 (** Set validate_refinement_progress *)
+
+val set_error_handling_crash_branch : bool -> unit
+(** Set error_handling_crash_branch *)
 
 val verbose : unit -> bool
 (** Whether to produce verbose outputs *)
