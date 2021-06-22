@@ -1,0 +1,21 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol SimpleConsensus(role P, role A1, role L) {
+  choice at P {
+    Propose from P to A1;
+    choice at A1 {
+      Accept from A1 to P;
+      Accepted from P to L;
+    } or {
+      Reject from A1 to P;
+      Rejected from P to L;
+    } or { // A1 has crashed
+      crash from A1 to P;
+      Rejected from P to L;
+    }
+  } or { // P crashes immediately
+    crash from P to A1;
+    PH from A1 to P;
+    crash from P to L;
+  }
+}
