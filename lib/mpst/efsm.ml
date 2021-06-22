@@ -273,7 +273,21 @@ let of_local_type lty =
         let action =
           match curr_ty with
           | SendL _ -> SendA (n, m, rannot)
-          | RecvL _ -> RecvA (n, m, rannot)
+          | RecvL _ ->
+              let lab =
+                let open Gtype in
+                m.label
+              in
+              if
+                Pragma.error_handling_crash_branch ()
+                && String.equal (LabelName.user lab) "crash"
+              then
+                let open Gtype in
+                let fresh : message =
+                  {label= LabelName.of_string "#"; payload= []}
+                in
+                RecvA (n, fresh, rannot)
+              else RecvA (n, m, rannot)
           | _ -> assert false
         in
         let e = (curr, action, next) in

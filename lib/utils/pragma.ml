@@ -88,6 +88,8 @@ let validate_refinement_progress () = !config.validate_refinement_progress
 let set_validate_refinement_progress validate_refinement_progress =
   config := {!config with validate_refinement_progress}
 
+let error_handling_crash_branch () = !config.error_handling_crash_branch
+
 let set_error_handling_crash_branch error_handling_crash_branch =
   config := {!config with error_handling_crash_branch}
 
