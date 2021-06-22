@@ -59,6 +59,9 @@ val validate_refinement_progress : unit -> bool
 val set_validate_refinement_progress : bool -> unit
 (** Set validate_refinement_progress *)
 
+val error_handling_crash_branch : unit -> bool
+(** Treat 'crash' branch labels as crash detection branches. *)
+
 val set_error_handling_crash_branch : bool -> unit
 (** Set error_handling_crash_branch *)
 
