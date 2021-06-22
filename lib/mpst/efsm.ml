@@ -245,6 +245,17 @@ let merge_state ~from_state ~to_state g =
   let g = G.remove_vertex g from_state in
   g
 
+let filter z x =
+  match x with
+  | SendL (m, n, l) ->
+      let lab =
+        let open Gtype in
+        m.label
+      in
+      if String.equal (LabelName.user lab) "crash" then z
+      else SendL (m, n, l) :: z
+  | _ -> x :: z
+
 let of_local_type lty =
   let count = ref 0 in
   let fresh () =
@@ -294,6 +305,11 @@ let of_local_type lty =
         let g = G.add_edge_e g e in
         ({env with g}, curr)
     | ChoiceL (_r, ltys) ->
+        let ltys =
+          if Pragma.error_handling_crash_branch () then
+            List.fold ltys ~init:[] ~f:filter
+          else ltys
+        in
         let curr = fresh () in
         let env, nexts = List.fold_map ~f:conv_ltype_aux ~init:env ltys in
         let g = env.g in
