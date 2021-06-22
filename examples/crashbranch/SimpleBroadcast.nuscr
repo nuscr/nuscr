@@ -1,0 +1,46 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol SimpleBroadcast(role P, role Q, role R) {
+  choice at P {
+    Data(x : int) from P to Q;
+    choice at P {
+      Data(x : int) from P to R;
+      choice at R {
+        Ok(x : int) from R to Q;
+      } or {
+        crash from R to Q;
+      }
+    } or {
+      crash from P to R;
+      choice at R {
+        Req(x : int) from R to Q;
+        choice at Q {
+          Data(x : int) from Q to R;
+        } or {
+          Ko(x : int) from Q to R; // impossible but needed due to merging
+        } or {
+          crash from Q to R;
+        }
+      } or {
+        crash from R to Q;
+      }
+    }
+  } or {
+    crash from P to Q;
+    choice at P {
+      crash from P to R;
+      choice at R {
+        Req(x : int) from R to Q;
+        choice at Q {
+          Data(x : int) from Q to R; // impossible but needed due to merging
+        } or {
+          Ko(x : int) from Q to R;
+        } or {
+          crash from Q to R;
+        }
+      } or {
+        crash from R to Q;
+      }
+    }
+  }
+}

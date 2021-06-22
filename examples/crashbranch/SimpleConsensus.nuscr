@@ -1,0 +1,173 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol SimpleConsensus(role P, role A1, role A2, role L) {
+  choice at P {
+    Propose(x : int) from P to A1;
+    choice at P {
+      Propose(x : int) from P to A2;
+      choice at A1 {
+        Accept(x : int) from A1 to P;
+        choice at A2 {
+          Accept(x : int) from A2 to P;
+          choice at P {
+            Accepted(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        } or {
+          Reject(x : int) from A2 to P;
+          choice at P {
+            Accepted(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        } or {
+          crash from A2 to P;
+          choice at P {
+            Accepted(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        }
+      } or {
+        Reject(x : int) from A1 to P;
+        choice at A2 {
+          Accept(x : int) from A2 to P;
+          choice at P {
+            Accepted(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        } or {
+          Reject(x : int) from A2 to P;
+          choice at P {
+            Rejected(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        } or {
+          crash from A2 to P;
+          choice at P {
+            Rejected(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        }
+      } or {
+        crash from A1 to P;
+        choice at A2 {
+          Accept(x : int) from A2 to P;
+          choice at P {
+            Accepted(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        } or {
+          Reject(x : int) from A2 to P;
+          choice at P {
+            Rejected(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        } or {
+          crash from A2 to P;
+          choice at P {
+            Rejected(x : int) from P to L;
+          } or {
+            crash from P to L;
+          }
+        }
+      }
+    } or {
+      crash from P to A2;
+      choice at A1 {
+        PH(x : int) from A1 to P;
+        choice at A2 {
+          PH(x : int) from A2 to P;
+          choice at P {
+            crash from P to L;
+          }
+        }
+      }
+    //   {
+    //     Accept(x : int) from A1 to P;
+    //     choice at A2 {
+    //       Accept(x : int) from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     } or {
+    //       Reject(x : int) from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     } or {
+    //       crash from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     }
+    //   } or {
+    //     Reject(x : int) from A1 to P;
+    //     choice at A2 {
+    //       Accept(x : int) from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     } or {
+    //       Reject(x : int) from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     } or {
+    //       crash from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     }
+    //   } or {
+    //     crash from A1 to P;
+    //     choice at A2 {
+    //       Accept(x : int) from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     } or {
+    //       Reject(x : int) from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     } or {
+    //       crash from A2 to P;
+    //       choice at P {
+    //         crash from P to L;
+    //       }
+    //     }
+    //   }
+    }
+  } or {
+    crash from P to A1;
+    choice at P {
+      crash from P to A2;
+      choice at A1 {
+        PH(x : int) from A1 to P;
+        choice at A2 {
+          Accept(x : int) from A2 to P;
+          choice at P {
+            crash from P to L;
+          }
+        } or {
+          Reject(x : int) from A2 to P;
+          choice at P {
+            crash from P to L;
+          }
+        } or {
+          crash from A2 to P;
+          choice at P {
+            crash from P to L;
+          }
+        }
+      }
+    }
+  }
+}

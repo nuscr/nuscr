@@ -1,0 +1,75 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol SimpleConsensus(role P, role A1, role A2, role L) {
+  choice at P {
+    Propose from P to A1;
+    choice at A1 {
+      Accept from A1 to P;
+      choice at P {
+        Propose from P to A2;
+        choice at A2 {
+          Accept from A2 to P;
+          Accepted from P to L;
+        } or { // A2 crashes before sending answer
+          crash from A2 to P;
+          Accepted from P to L;
+        }
+      } or { // P crashes before proposing to A2
+        crash from P to A2;
+        choice at A2 {
+          PH from A2 to P;
+          crash from P to L;
+        } or { // A2 crashes after P has crashed
+          crash from A2 to P;
+          crash from P to L;
+        }
+      }
+    } or { // A1 crashes before sending answer
+      crash from A1 to P;
+      choice at P {
+        Propose from P to A2;
+        choice at A2 {
+          Accept from A2 to P;
+          Accepted from P to L;
+        } or { // A2 crashes before sending answer
+          crash from A2 to P;
+          Rejected from P to L;
+        }
+      } or { // P crashes before proposing to A2
+        crash from P to A2;
+        choice at A2 {
+          PH from A2 to P;
+          crash from P to L;
+        } or { // A2 crashes also
+          crash from A2 to P;
+          crash from P to L;
+        }
+      }
+    }
+  } or { // P crashes immediately
+    crash from P to A1;
+    choice at A1 {
+      PH from A1 to P;
+      crash from P to A2;
+      choice at A2 {
+        PH from A2 to P;
+        crash from P to L;
+      } or { // A2 crashes also
+        crash from A2 to P;
+        crash from P to L;
+      }
+    } or { // A1 crashes also
+      crash from A1 to P;
+      PH from A1 to P;
+      crash from P to A2;
+      choice at A2 {
+        PH from A2 to P;
+        crash from P to L;
+      } or { // A2 crashes also
+        crash from A2 to P;
+        crash from P to L;
+      }
+    }
+  }
+}
+
