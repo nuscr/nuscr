@@ -1,0 +1,78 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol SimpleBroadcast(role P, role Q, role R) {
+  choice at P {
+    Data from P to Q; // 1
+    choice at P {
+      Data from P to R; // 2
+      choice at R {
+        OK from R to Q; // 3
+      } or { // R has crashed
+        crash from R to Q;
+      }
+    } or { // P crashes between sending to Q and R
+      crash from P to R;
+      choice at R {
+        Req from R to Q; // 3
+        choice at Q {
+          Data from Q to R; // 4
+        }
+        // or { // Needed to get it past merging but should be impossible here
+        //   KO from Q to R; // Q *could* deny it out of spite...
+        // }
+        or { // Q crashes
+          crash from Q to R;
+        }
+      } or { // R crashed
+        crash from R to Q;
+      }
+    }
+  } or { // P crashed at the start
+    crash from P to Q; // 1
+    crash from P to R; // 2
+    choice at R {
+      Req from R to Q; // 3
+      choice at Q
+      // { // Needed to get it past merging but should be impossible here
+      //   Data from Q to R; // This is definitely impossible
+      // } or
+      {
+        KO from Q to R; // 4
+      } or {
+        crash from Q to R;
+      }
+    } or {
+      crash from R to Q;
+    }
+  }
+}
+
+/* 
+Without the 'impossible' choices:
+nuscr: User error: Unable to merge: choice at R {
+         Req() to Q;
+         choice at Q {
+           Data() from Q;
+           end
+         } or {
+           crash() from Q;
+           end
+         }
+       } or {
+         crash() to Q;
+         end
+       }
+        choice at R {
+         Req() to Q;
+         choice at Q {
+           KO() from Q;
+           end
+         } or {
+           crash() from Q;
+           end
+         }
+       } or {
+         crash() to Q;
+         end
+       }
+ */
