@@ -35,8 +35,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     Pragma.load_from_pragmas ast.pragmas ;
     if Option.is_some fsm && Pragma.nested_protocol_enabled () then
       Err.uerr
-        (Err.IncompatibleFlag
-           ("fsm", Pragma.show_pragma Pragma.NestedProtocols) ) ;
+        (Err.IncompatibleFlag ("fsm", Pragma.show Pragma.NestedProtocols)) ;
     Nuscrlib.validate_exn ast ;
     let () =
       if enumerate then
