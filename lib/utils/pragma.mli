@@ -1,7 +1,7 @@
 (** This module contains variables configuarations, to be set by pragmas or
     command line arguments, not to be changed for the duration of the program *)
 
-type pragma =
+type t =
   | NestedProtocols
   | ShowPragmas
   | PrintUsage
@@ -12,9 +12,9 @@ type pragma =
   | ValidateRefinementProgress
 [@@deriving show]
 
-val pragma_of_string : string -> pragma
+val pragma_of_string : string -> t
 
-type pragmas = (pragma * string option) list [@@deriving show]
+type pragmas = (t * string option) list [@@deriving show]
 
 val solver_show_queries : unit -> bool
 (** Whether to display queries to SMT solvers (with RefinementTypes pragma) *)

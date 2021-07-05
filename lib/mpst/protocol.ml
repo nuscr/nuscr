@@ -175,7 +175,7 @@ let expand_global_protocol (scr_module : scr_module)
 let ensure_no_nested_protocols (ast : scr_module) =
   let pragma_err =
     PragmaNotSet
-      ( Pragma.show_pragma Pragma.NestedProtocols
+      ( Pragma.show Pragma.NestedProtocols
       , "Nested protocols cannot be used without setting this pragma" )
   in
   let rec no_nested_protocols {loc= _; value= protocol} =
