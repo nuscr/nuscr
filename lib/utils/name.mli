@@ -9,9 +9,9 @@ module type S = sig
 
   val user : t -> string
 
-  val where : t -> Loc.source_loc
+  val where : t -> Loc.t
 
-  val create : string -> Loc.source_loc -> t
+  val create : string -> Loc.t -> t
 
   include Comparable.S with type t := t
 end
