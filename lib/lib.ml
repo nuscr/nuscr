@@ -37,7 +37,7 @@ let validate_protocols_exn (ast : scr_module) : unit =
   in
   let protocols = ast.protocols in
   let protocols =
-    List.map ~f:(Protocol.expand_global_protocol ast) protocols
+    List.map ~f:(Extraction.expand_global_protocol ast) protocols
   in
   show ~f:show_global_protocol protocols ;
   let g_types =
@@ -70,8 +70,8 @@ let validate_nested_protocols (ast : scr_module) =
       print_endline (Printf.sprintf "%s%s" (f input) sep)
     else ()
   in
-  Protocol.validate_calls_in_protocols ast ;
-  let ast = Protocol.rename_nested_protocols ast in
+  Extraction.validate_calls_in_protocols ast ;
+  let ast = Extraction.rename_nested_protocols ast in
   show ~f:show_scr_module ~sep:"\n---------\n\n" ast ;
   let global_t = Gtype.global_t_of_module ast in
   show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
@@ -82,7 +82,7 @@ let validate_nested_protocols (ast : scr_module) =
 let validate_exn (ast : scr_module) : unit =
   if Pragma.nested_protocol_enabled () then validate_nested_protocols ast
   else (
-    Protocol.ensure_no_nested_protocols ast ;
+    Extraction.ensure_no_nested_protocols ast ;
     validate_protocols_exn ast )
 
 let enumerate_protocols (ast : scr_module) :
@@ -122,7 +122,7 @@ let get_global_type ast ~protocol : Gtype.t =
     | Some gp -> gp
     | None -> uerr (ProtocolNotFound protocol)
   in
-  Protocol.expand_global_protocol ast gp |> Gtype.of_protocol
+  Extraction.expand_global_protocol ast gp |> Gtype.of_protocol
 
 let project_protocol_role ast ~protocol ~role : Ltype.t =
   get_global_type ast ~protocol |> Ltype.project role
@@ -162,7 +162,7 @@ let generate_sexp ast ~protocol =
     | Some gp -> gp
     | None -> uerr (ProtocolNotFound protocol)
   in
-  let gp = Protocol.expand_global_protocol ast gp in
+  let gp = Extraction.expand_global_protocol ast gp in
   let gtype = Gtype.of_protocol gp in
   let gtype = Gtype.normalise gtype in
   Sexp.to_string_hum (Gtype.sexp_of_t gtype)

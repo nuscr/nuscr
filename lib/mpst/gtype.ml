@@ -606,7 +606,7 @@ let add_missing_payload_field_names global_t =
 
 let global_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in
-  let scr_module = Protocol.rename_nested_protocols scr_module in
+  let scr_module = Extraction.rename_nested_protocols scr_module in
   let split_role_names (roles, new_roles) =
     let role_names = List.map ~f:RoleName.of_name roles in
     let new_role_names = List.map ~f:RoleName.of_name new_roles in
