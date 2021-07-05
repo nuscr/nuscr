@@ -1,6 +1,6 @@
 open! Base
 
-type pragma =
+type t =
   | NestedProtocols
   | ShowPragmas
   | PrintUsage
@@ -11,7 +11,7 @@ type pragma =
   | ValidateRefinementProgress
 [@@deriving show]
 
-let pragma_of_string str : pragma =
+let pragma_of_string str : t =
   match str with
   | "ShowPragmas" -> ShowPragmas
   | "PrintUsage" -> PrintUsage
@@ -23,9 +23,9 @@ let pragma_of_string str : pragma =
   | "ValidateRefinementProgress" -> ValidateRefinementProgress
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
-type pragmas = (pragma * string option) list [@@deriving show]
+type pragmas = (t * string option) list [@@deriving show]
 
-type t =
+type config =
   { solver_show_queries: bool
   ; nested_protocol_enabled: bool
   ; refinement_type_enabled: bool
@@ -97,7 +97,7 @@ let validate_config () =
   then
     Err.uerr
       (Err.PragmaNotSet
-         ( show_pragma RefinementTypes
+         ( show RefinementTypes
          , "This is required by SenderValidateRefinements" ) ) ;
   if
     !config.receiver_validate_refinements
@@ -105,7 +105,7 @@ let validate_config () =
   then
     Err.uerr
       (Err.PragmaNotSet
-         ( show_pragma RefinementTypes
+         ( show RefinementTypes
          , "This is required by ReceiverValidateRefinements" ) ) ;
   if
     !config.validate_refinement_satisfiability
@@ -113,12 +113,11 @@ let validate_config () =
   then
     Err.uerr
       (Err.PragmaNotSet
-         ( show_pragma RefinementTypes
+         ( show RefinementTypes
          , "This is required by ValidateRefinementSatisfiabiltiy" ) ) ;
   if !config.refinement_type_enabled && !config.nested_protocol_enabled then
     Err.uerr
-      (Err.IncompatibleFlag
-         (show_pragma RefinementTypes, show_pragma NestedProtocols) )
+      (Err.IncompatibleFlag (show RefinementTypes, show NestedProtocols))
 
 let load_from_pragmas pragmas =
   let process_global_pragma (k, v) =
