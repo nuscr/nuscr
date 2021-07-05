@@ -1,31 +1,28 @@
 open! Base
 open Printf
+open Lexing
 
-type source_loc = Lexing.position * Lexing.position
+type t = position * position
 
-let ghost_loc = (Lexing.dummy_pos, Lexing.dummy_pos)
+let ghost_loc = (dummy_pos, dummy_pos)
 
-let sexp_of_source_loc _ = Sexp.Atom "<opaque>"
+let sexp_of_t _ = Sexp.Atom "<opaque>"
 
 let show_position pos =
-  sprintf "%d:%d" pos.Lexing.pos_lnum
-    (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
+  sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-let show_source_loc (startp, endp) : string =
+let show (startp, endp) : string =
   sprintf "%s to %s in: %s" (show_position startp) (show_position endp)
-    startp.Lexing.pos_fname
+    startp.pos_fname
 
-let build p = p
+let pp fmt loc = Caml.Format.fprintf fmt "%s" (show loc)
 
-let equal_source_loc _ _ = true
+let create p = p
 
-let compare_source_loc _ _ = 0
+let equal _ _ = true
 
-type 'a located =
-  { loc: source_loc
-        [@printer
-          fun fmt interval -> fprintf fmt "%s" (show_source_loc interval)]
-  ; value: 'a }
-[@@deriving show, eq, ord]
+let compare _ _ = 0
+
+type 'a located = {loc: t; value: 'a} [@@deriving show, eq, ord]
 
 let sexp_of_located f v = f v.value

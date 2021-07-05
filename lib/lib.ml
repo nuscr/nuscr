@@ -1,6 +1,5 @@
 open! Base
 open! Stdio
-open Loc
 open Syntaxtree
 open Syntax
 open Err
@@ -19,7 +18,7 @@ let parse_from_lexbuf lexbuf : scr_module =
       let err_interval =
         (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
       in
-      uerr (ParserError (build err_interval))
+      uerr (ParserError (Loc.create err_interval))
   | Err.UserError e -> uerr e
   | e -> Err.violation ("Found a problem:" ^ Exn.to_string e)
 
@@ -42,7 +41,7 @@ let validate_protocols_exn (ast : scr_module) : unit =
   in
   show ~f:show_global_protocol protocols ;
   let g_types =
-    List.map ~f:(fun p -> (Gtype.of_protocol p, p.value.roles)) protocols
+    List.map ~f:(fun p -> (Gtype.of_protocol p, p.Loc.value.roles)) protocols
   in
   (* let g_types = List.map ~f:(fun (g, roles) -> (Gtype.normalise g, roles))
      g_types in *)
@@ -90,7 +89,7 @@ let enumerate_protocols (ast : scr_module) :
     (ProtocolName.t * RoleName.t) list =
   let protocols = ast.protocols in
   let roles p =
-    let {value= {name; roles; _}; _} = p in
+    let {Loc.value= {name; roles; _}; _} = p in
     List.map
       ~f:(fun role -> (ProtocolName.of_name name, RoleName.of_name role))
       roles
@@ -115,7 +114,9 @@ let get_global_type ast ~protocol : Gtype.t =
     match
       List.find
         ~f:(fun gt ->
-          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol )
+          ProtocolName.equal
+            (ProtocolName.of_name gt.Loc.value.name)
+            protocol )
         ast.protocols
     with
     | Some gp -> gp
@@ -153,7 +154,9 @@ let generate_sexp ast ~protocol =
     match
       List.find
         ~f:(fun gt ->
-          ProtocolName.equal (ProtocolName.of_name gt.value.name) protocol )
+          ProtocolName.equal
+            (ProtocolName.of_name gt.Loc.value.name)
+            protocol )
         ast.protocols
     with
     | Some gp -> gp

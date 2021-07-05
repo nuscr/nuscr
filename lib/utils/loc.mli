@@ -1,12 +1,13 @@
-type source_loc
+open! Base
 
-val ghost_loc : source_loc
+type t
 
-val sexp_of_source_loc : 'a -> Base.Sexp.t
+val ghost_loc : t
 
-val show_source_loc : source_loc -> Base.string
+val sexp_of_t : 'a -> Sexp.t
 
-val build : Lexing.position * Lexing.position -> source_loc
+val show : t -> string
 
-type 'a located = {loc: source_loc; value: 'a}
-[@@deriving show, sexp_of, eq, ord]
+val create : Lexing.position * Lexing.position -> t
+
+type 'a located = {loc: t; value: 'a} [@@deriving show, sexp_of, eq, ord]

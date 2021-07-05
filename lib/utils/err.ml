@@ -1,5 +1,4 @@
 open! Base
-open Loc
 open Names
 
 type user_error =
@@ -8,15 +7,15 @@ type user_error =
   | MissingFlag of string * string
   | PragmaNotSet of string * string
   | LexerError of string
-  | ParserError of source_loc
+  | ParserError of Loc.t
   | UnboundRecursionName of TypeVariableName.t
-  | RedefinedRecursionName of TypeVariableName.t * source_loc * source_loc
+  | RedefinedRecursionName of TypeVariableName.t * Loc.t * Loc.t
   | Uncategorised of string
   | InvalidCommandLineParam of string
   | UnboundRole of RoleName.t
   | ReflexiveMessage of RoleName.t
   | UnableToMerge of string
-  | RedefinedProtocol of ProtocolName.t * source_loc * source_loc
+  | RedefinedProtocol of ProtocolName.t * Loc.t * Loc.t
   | UnboundProtocol of ProtocolName.t
   | ArityMismatch of ProtocolName.t * int * int
   | InconsistentNestedChoice of RoleName.t * RoleName.t
@@ -47,68 +46,66 @@ let show_user_error = function
   | PragmaNotSet (prg, msg) -> "Pramga: " ^ prg ^ " is not set. " ^ msg
   | LexerError msg -> "Lexer error: " ^ msg
   | ParserError interval ->
-      "Parser error: An error occurred at " ^ show_source_loc interval
+      "Parser error: An error occurred at " ^ Loc.show interval
   | UnboundRecursionName n ->
       "Unbound name " ^ TypeVariableName.user n ^ " in `continue` at "
-      ^ show_source_loc (TypeVariableName.where n)
+      ^ Loc.show (TypeVariableName.where n)
   | RedefinedRecursionName (name, interval1, interval2) ->
       "Redefined name "
       ^ TypeVariableName.user name
-      ^ " of `rec` at " ^ show_source_loc interval1 ^ " and "
-      ^ show_source_loc interval2
+      ^ " of `rec` at " ^ Loc.show interval1 ^ " and " ^ Loc.show interval2
   | Uncategorised msg -> "Error " ^ msg
   | InvalidCommandLineParam msg -> "Invalid command line parameter: " ^ msg
   | UnboundRole r ->
-      "Unbound role " ^ RoleName.user r ^ " at " ^ show_source_loc
+      "Unbound role " ^ RoleName.user r ^ " at " ^ Loc.show
       @@ RoleName.where r
   | ReflexiveMessage r ->
-      "Reflexive message of Role " ^ RoleName.user r ^ " at "
-      ^ show_source_loc @@ RoleName.where r
+      "Reflexive message of Role " ^ RoleName.user r ^ " at " ^ Loc.show
+      @@ RoleName.where r
   | UnableToMerge s -> "Unable to merge: " ^ s
   | RedefinedProtocol (name, interval1, interval2) ->
       "Redefined protocol " ^ ProtocolName.user name ^ " at "
-      ^ show_source_loc interval1 ^ " and " ^ show_source_loc interval2
+      ^ Loc.show interval1 ^ " and " ^ Loc.show interval2
   | UnboundProtocol p ->
-      "Unbound protocol call " ^ ProtocolName.user p ^ " at "
-      ^ show_source_loc @@ ProtocolName.where p
+      "Unbound protocol call " ^ ProtocolName.user p ^ " at " ^ Loc.show
+      @@ ProtocolName.where p
   | ArityMismatch (p, expected, actual) ->
       "Protocol arity mismatch, " ^ ProtocolName.user p ^ " requires "
       ^ Int.to_string expected ^ " roles, but " ^ Int.to_string actual
       ^ " is given"
   | InconsistentNestedChoice (r1, r2) ->
       "Inconsistent nested choice, a choice at " ^ RoleName.user r1 ^ " at "
-      ^ show_source_loc (RoleName.where r1)
+      ^ Loc.show (RoleName.where r1)
       ^ " cannot be followed with a choice at " ^ RoleName.user r2 ^ " at "
-      ^ show_source_loc (RoleName.where r2)
+      ^ Loc.show (RoleName.where r2)
   | RoleMismatch (expected, actual) ->
       "Expecting role " ^ RoleName.user expected ^ ", but got "
       ^ RoleName.user actual ^ " at "
-      ^ show_source_loc (RoleName.where actual)
+      ^ Loc.show (RoleName.where actual)
   | DuplicateLabel l ->
       "Duplicate label " ^ LabelName.user l ^ " in choices at "
-      ^ show_source_loc (LabelName.where l)
+      ^ Loc.show (LabelName.where l)
   | DuplicateRoleArgs called_proto ->
       "Duplicate role arguments in call to protocol "
       ^ ProtocolName.user called_proto
       ^ " at "
-      ^ show_source_loc (ProtocolName.where called_proto)
+      ^ Loc.show (ProtocolName.where called_proto)
   | DuplicateRoleParams protocol ->
       "Duplicate role parameter in declaration of protocol "
       ^ ProtocolName.user protocol
       ^ " at "
-      ^ show_source_loc (ProtocolName.where protocol)
+      ^ Loc.show (ProtocolName.where protocol)
   | ChoiceCallRoleMismatch called_proto ->
       "Invalid call to protocol '"
       ^ ProtocolName.user called_proto
       ^ "' in choice at "
-      ^ show_source_loc (ProtocolName.where called_proto)
+      ^ Loc.show (ProtocolName.where called_proto)
       ^ "\n\
          Some role participating in call must receive first message in all \
          branches"
   | DuplicatePayloadField (label, field) ->
       "Duplicate field name '" ^ VariableName.user field ^ "' in message '"
-      ^ LabelName.user label ^ "' at " ^ show_source_loc
-      @@ LabelName.where label
+      ^ LabelName.user label ^ "' at " ^ Loc.show @@ LabelName.where label
   | FileSysErr msg -> "File System Error: " ^ msg
   | ProtocolNotFound p -> "Cannot find protocol: " ^ ProtocolName.user p
   | IllFormedPayloadType ty -> "Ill-formed payload type: " ^ ty
