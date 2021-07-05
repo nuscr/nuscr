@@ -72,7 +72,6 @@
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
 %{ open Syntax
-   open Loc
    module Name = Name.Name
 
   (* list of 'a list option *)
@@ -387,7 +386,7 @@ expr:
 
 (* utilities *)
 let located(x) ==
-  ~ = x; { { loc = build $loc; value = x } }
+  ~ = x; { { Loc.loc = Loc.create $loc; Loc.value = x } }
 
 let create(x) ==
-  ~ = x; { Name.create x (build $loc)}
+  ~ = x; { Name.create x (Loc.create $loc)}

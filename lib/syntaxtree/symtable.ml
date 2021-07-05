@@ -8,7 +8,7 @@ type protocol_decl =
   { proto_name: string
   ; all_roles: string list
   ; split_decl: string list * string list
-  ; loc: source_loc }
+  ; loc: Loc.t }
 
 let show_roles split_decl =
   let list_to_str l = String.concat ~sep:", " l in
