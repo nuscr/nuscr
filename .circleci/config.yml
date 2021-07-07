@@ -76,7 +76,7 @@ jobs:
 
   docs-deploy:
     docker:
-      - image: node:8.10.0
+      - image: node:14
     steps:
       - checkout
       - attach_workspace:
@@ -84,15 +84,15 @@ jobs:
       - run:
           name: Install and configure dependencies
           command: |
-            npm install -g --silent gh-pages@2.0.1
-            git config user.email "nuscr@no.email"
+            npm install -g --silent gh-pages@3.2.3
+            git config user.email "nuscr@nuscr.dev"
             git config user.name "NuScr"
       - add_ssh_keys:
           fingerprints:
             - "d7:04:a2:2e:53:da:b4:f7:22:fe:66:57:a1:f1:ef:c9"
       - run:
           name: Deploy docs to gh-pages branch
-          command: gh-pages --dist docs --dotfiles --message "[skip ci] change" --dist docs
+          command: gh-pages --dist docs --dotfiles --message "[skip ci] change" --dist docs -f
 
   build-docker-image:
     docker:
