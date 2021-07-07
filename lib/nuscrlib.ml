@@ -19,3 +19,8 @@ end
 module Err = struct
   include Err
 end
+
+(* Exported for usages in Pedro *)
+module Names = struct
+  include Names
+end
