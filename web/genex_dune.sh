@@ -1,12 +1,13 @@
 #! /bin/bash
 set -euo pipefail
 # Generate the examples.ml file
-EXAMPLE_DIR="../../../"
+WEB_DIR="$(realpath "$(dirname "$0")")"
+NUSCR_DIR="$(realpath "$WEB_DIR/..")"
 (echo 'let list = [';
-cat ../../../web/examplelist.txt | while read file; do
+(while read -r file; do
     echo -n "\"$file\","
     echo -n '"'
-    cat $EXAMPLE_DIR/$file | sed 's/"/\\"/g'
+    sed 's/"/\\"/g' < "$NUSCR_DIR/$file"
     echo '";';
-done;
+done) < "$WEB_DIR/examplelist.txt"
 echo ']') > examples.ml
