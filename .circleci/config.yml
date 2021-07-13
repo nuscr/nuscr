@@ -12,14 +12,14 @@ jobs:
 
       - restore_cache:
           keys:
-            - deps-v2-{{ checksum "nuscr.opam" }}
-            - deps-v2-
+            - deps-v3-{{ checksum "nuscr.opam" }}
+            - deps-v3-
 
       - run:
           name: Install m4
           command: |
             sudo apt-get update
-            sudo apt-get install m4 -y
+            sudo apt-get install m4 z3 -y
 
       - run:
           name: Pin packages
@@ -70,7 +70,7 @@ jobs:
             - docs
 
       - save_cache:
-          key: deps-v2-{{ checksum "nuscr.opam" }}
+          key: deps-v3-{{ checksum "nuscr.opam" }}
           paths:
             - ~/.opam
 

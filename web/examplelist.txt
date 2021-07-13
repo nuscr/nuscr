@@ -8,7 +8,6 @@ examples/annot/test100.nuscr
 examples/annot/test100NoAss.nuscr
 examples/annot/Nego1.nuscr
 examples/from-scribble-java/exercise/calculator/EProtocol.nuscr
-examples/from-scribble-java/scratch/scratch1/Scratch1.nuscr
 examples/from-scribble-java/test/test1/Test1.nuscr
 examples/from-scribble-java/test/test2/Test2.nuscr
 examples/from-scribble-java/test/test3/Test3.nuscr

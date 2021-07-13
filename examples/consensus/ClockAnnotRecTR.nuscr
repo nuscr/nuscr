@@ -2,6 +2,7 @@ module ClockAnnotRecTR; //A tail recursive version of ClockAnnotRec.scr
 
 type <java> "java.lang.Integer" from "rt.jar" as int;
 
+/*
 global protocol Lock(role A, role B, role C) (tsa:int, tsb:int, tsc:int) @"(0,0,0)"
 {
   REQ (ts_rab:int) from A to B; @"ts_rab > tsa"
@@ -26,3 +27,4 @@ global protocol Lock(role A, role B, role C) (tsa:int, tsb:int, tsc:int) @"(0,0,
   }
 
 }
+*/

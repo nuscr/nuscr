@@ -14,7 +14,7 @@ RUN opam pin add --no-action -y nuscr.dev -k path . \
 
 RUN eval $(opam config env) \
   && dune subst \
-  && dune build \
-  && dune install
+  && dune build -p nuscr\
+  && dune install nuscr
 
 CMD ["nuscr"]

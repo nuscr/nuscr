@@ -11,7 +11,7 @@ let parse_role_protocol_exn rp =
   | _ ->
       Err.UserError
         (InvalidCommandLineParam
-           "Role and protocol have to be for the form role@protocol")
+           "Role and protocol have to be for the form role@protocol" )
       |> raise
 
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
@@ -25,55 +25,57 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-let main file enumerate _verbose go_path out_dir project fsm gencode_ocaml
-    gencode_monadic_ocaml gencode_go sexp_global_type =
-  let process_pragmas (pragmas : Syntax.pragmas) : unit =
-    let process_global_pragma (k, v) =
-      match (k, v) with
-      | Syntax.PrintUsage, _ -> ()
-      | Syntax.ShowPragmas, _ -> Syntax.show_pragmas pragmas |> print_endline
-      | Syntax.NestedProtocols, _ ->
-          if Option.is_some fsm then
-            Err.uerr (Err.IncompatibleFlag ("fsm", Syntax.show_pragma k))
-    in
-    List.iter ~f:process_global_pragma pragmas
-  in
+let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
+    gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
+    show_solver_queries =
+  Pragma.set_solver_show_queries show_solver_queries ;
+  Pragma.set_verbose verbose ;
   try
-    let ast = process_file file Lib.parse in
-    process_pragmas ast.pragmas ;
-    (* Lib.validate_exn ast ~verbose ; *)
+    let ast = process_file file Nuscrlib.parse in
+    Pragma.load_from_pragmas ast.pragmas ;
+    if Option.is_some fsm && Pragma.nested_protocol_enabled () then
+      Err.uerr
+        (Err.IncompatibleFlag ("fsm", Pragma.show Pragma.NestedProtocols)) ;
+    Nuscrlib.validate_exn ast ;
     let () =
       if enumerate then
-        Lib.enumerate ast
+        Nuscrlib.enumerate ast
         |> List.map ~f:(fun (n, r) ->
-               RoleName.user r ^ "@" ^ ProtocolName.user n)
+               RoleName.user r ^ "@" ^ ProtocolName.user n )
         |> String.concat ~sep:"\n" |> print_endline
     in
     let () =
       gen_output ast
         (fun ast protocol role ->
-          Lib.project_role ast ~protocol ~role |> Ltype.show)
+          Nuscrlib.project_role ast ~protocol ~role |> Ltype.show )
         project
     in
     let () =
       gen_output ast
         (fun ast protocol role ->
-          Lib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show)
+          Nuscrlib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
         fsm
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
-          Lib.generate_ocaml_code ~monad:false ast ~protocol ~role
-          |> print_endline)
+          Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
+          |> print_endline )
         gencode_ocaml
     in
     let () =
       Option.iter
         ~f:(fun (role, protocol) ->
-          Lib.generate_ocaml_code ~monad:true ast ~protocol ~role
-          |> print_endline)
+          Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
+          |> print_endline )
         gencode_monadic_ocaml
+    in
+    let () =
+      Option.iter
+        ~f:(fun (role, protocol) ->
+          Nuscrlib.generate_fstar_code ast ~protocol ~role |> print_endline
+          )
+        gencode_fstar
     in
     let () =
       Option.iter
@@ -81,7 +83,7 @@ let main file enumerate _verbose go_path out_dir project fsm gencode_ocaml
           match out_dir with
           | Some out_dir ->
               let impl =
-                Lib.generate_go_code ast ~protocol ~out_dir ~go_path
+                Nuscrlib.generate_go_code ast ~protocol ~out_dir ~go_path
               in
               print_endline impl
           | None ->
@@ -89,15 +91,15 @@ let main file enumerate _verbose go_path out_dir project fsm gencode_ocaml
                 (Err.MissingFlag
                    ( "out-dir"
                    , "This flag must be set in order to generate go \
-                      implementation" ))
-              |> raise)
+                      implementation" ) )
+              |> raise )
         gencode_go
     in
     let () =
       Option.iter
         ~f:(fun protocol ->
           let protocol = ProtocolName.of_string protocol in
-          Lib.generate_sexp ast ~protocol |> print_endline)
+          Nuscrlib.generate_sexp ast ~protocol |> print_endline )
         sexp_global_type
     in
     `Ok ()
@@ -117,8 +119,7 @@ let role_proto =
     | [role; protocol] ->
         Ok (RoleName.of_string role, ProtocolName.of_string protocol)
     | _ ->
-        Error
-          (`Msg "Role and protocol have to be for the form role@protocol")
+        Error (`Msg "Role and protocol have to be for the form role@protocol")
   in
   let print fmt (r, p) =
     Caml.Format.pp_print_string fmt (RoleName.user r) ;
@@ -170,6 +171,16 @@ let gencode_ocaml =
     & opt (some role_proto) None
     & info ["gencode-ocaml"] ~doc ~docv:"ROLE@PROTO")
 
+let gencode_fstar =
+  let doc =
+    "Generate OCaml code for specified protocol and role. \
+     <role_name>@<protocol_name>"
+  in
+  Arg.(
+    value
+    & opt (some role_proto) None
+    & info ["gencode-fstar"] ~doc ~docv:"ROLE@PROTO")
+
 let gencode_monadic_ocaml =
   let doc =
     "Generate monadic OCaml code for specified protocol and role. \
@@ -209,6 +220,10 @@ let out_dir =
 
 let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
 
+let show_solver_queries =
+  let doc = "Print solver queries (With RefinementTypes pragma)" in
+  Arg.(value & flag & info ["show-solver-queries"] ~doc)
+
 let cmd =
   let doc =
     "A tool to manipulate and validate Scribble-style multiparty protocols"
@@ -228,7 +243,7 @@ let cmd =
       ret
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
-        $ sexp_global_type ))
+        $ gencode_fstar $ sexp_global_type $ show_solver_queries ))
   , Term.info "nuscr" ~version:"%%VERSION%%" ~doc ~exits:Term.default_exits
       ~man )
 

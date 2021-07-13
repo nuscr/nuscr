@@ -1,0 +1,8 @@
+(*# RefinementTypes #*)
+
+global protocol Wrong (role A, role B, role C) {
+    rec X [count<C>: int = 0] {
+        Num(curr: int{curr = count}) from A to B;
+        continue X [curr];
+    }
+}

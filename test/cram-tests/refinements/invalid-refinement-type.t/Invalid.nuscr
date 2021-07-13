@@ -1,0 +1,5 @@
+(*# RefinementTypes #*)
+
+protocol Wrong(role A, role B) {
+  Hello(x : int{42}) from A to B;
+}

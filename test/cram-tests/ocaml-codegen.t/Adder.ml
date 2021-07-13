@@ -15,18 +15,16 @@ module CB_C = struct
         num1 := num ;
         (x - 1, `add num)
 
-  let state1Send x =
+  let state3Send x =
     let num = Random.int 100 in
     num2 := num ;
     (x, `add num)
-  
-  let state3Send = state0Send
 
-  let state2Receivesum x sum =
+  let state4Receivesum x sum =
     Printf.printf "C: Sum of %d and %d is %d\n" !num1 !num2 sum ;
     x
 
-  let state4Receivebye x () =
+  let state6Receivebye x () =
     Printf.printf "C: Received Bye\n" ;
     x
 end
@@ -37,14 +35,11 @@ module CB_S = struct
   let state0Receiveadd (_, y) x = (x, y)
   let state0Receivebye env () = env
 
-  let state3Receivebye = state0Receivebye
-  let state3Receiveadd = state0Receiveadd
+  let state3Receiveadd (x, _) y = (x, y)
 
-  let state1Receiveadd (x, _) y = (x, y)
+  let state4Send (x, y) = ((0, 0), `sum (x + y))
 
-  let state2Send (x, y) = ((0, 0), `sum (x + y))
-
-  let state4Send env = (env, `bye ())
+  let state6Send env = (env, `bye ())
 end
 
 module CI = C.Impl_Adder_C (CB_C)

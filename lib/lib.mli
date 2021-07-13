@@ -1,6 +1,9 @@
 (** Main entry point of the library *)
 open Names
 
+open Syntaxtree
+open Mpst
+
 (** {1 Parsing} *)
 
 (** This section deals with parsing protocols. *)
@@ -14,21 +17,24 @@ val parse : string -> Stdio.In_channel.t -> Syntax.scr_module
 
 (** {1 Validation} *)
 
-val validate_exn : Syntax.scr_module -> verbose:bool -> unit
-(** [validate_exn module ~verbose] validates the module [module] by
-    performing standard checks. If [verbose] is set to true, output messages
-    in the process. *)
+val validate_exn : Syntax.scr_module -> unit
+(** [validate_exn module] validates the module [module] by performing
+    standard checks. If verbose is set to true in the config, debugging
+    messages will be printed *)
 
 (** {1 Other operations} *)
 
 val enumerate : Syntax.scr_module -> (ProtocolName.t * RoleName.t) list
-(** [enumerate module] enumrates the roles occurring in [module]. The output
+(** [enumerate module] enumerates the roles occurring in [module]. The output
     is a list of pair [(protocol, role-name)]. *)
 
 val project_role :
   Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> Ltype.t
 (** [project_role module protocol role] computes the local type for role
     [role] in the protocol [protocol]. *)
+
+val get_global_type : Syntax.scr_module -> protocol:ProtocolName.t -> Gtype.t
+(** [get_global_type module] gets the corresponding global type for a module *)
 
 val generate_fsm :
      Syntax.scr_module
@@ -77,3 +83,7 @@ val generate_ast :
   -> Ppxlib_ast.Parsetree.structure
 (** [generate_ast ~monad module protocol role] is similar to [generate_code],
     except it returns an AST instead of a string *)
+
+val generate_fstar_code :
+  Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
+(** Generate F* code, with support for refinement types *)

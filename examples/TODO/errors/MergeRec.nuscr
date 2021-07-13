@@ -1,0 +1,15 @@
+// This protocol should be valid, but current merging function
+// does not handle it because merging does not handle recursion
+global protocol MultipartyChoice(role C, role S, role D) {
+  m2() from C to S;
+  choice at C {
+    m() from C to D;
+    m1() from C to S;
+  } or {
+    rec SEND {
+      m1() from C to D;
+      m2() from C to S;
+      continue SEND;
+    }
+  }
+}

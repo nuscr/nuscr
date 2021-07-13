@@ -1,0 +1,24 @@
+(*# RefinementTypes #*)
+
+global protocol HigherLower(role A, role B, role C) {
+  start(n:int{0 <= n && n < 100}) from A to B;
+  limit(t0:int{0 < t0}) from A to B;
+  rec Loop [t<B>: (t: int{0 < t}) = t0] {
+    guess(x:int{0 <= x && x < 100}) from C to B;
+    choice at B {
+        higher(ignore:unit{n > x && t > 1}) from B to C;
+        higher() from B to A;
+        continue Loop [t - 1];
+    } or {
+        win(ignore:unit{n=x}) from B to C;
+        lose() from B to A;
+    } or {
+        lower(ignore:unit{n < x && t > 1}) from B to C;
+        lower() from B to A;
+        continue Loop [t - 1];
+    } or {
+        lose(ignore:unit{n<>x && t = 1}) from B to C;
+        win() from B to A;
+    }
+  }
+}

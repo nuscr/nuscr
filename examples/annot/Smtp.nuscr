@@ -60,12 +60,12 @@ aux global protocol SecureEhlo(role S, role C)
   choice at C
   {
     Ehlo2() from C to S;
-    rec X
+    rec X1
     {
       choice at S
       {
         250d1() from S to C;
-        continue X;
+        continue X1;
       }
       or
       {

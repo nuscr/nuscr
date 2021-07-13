@@ -1,0 +1,8 @@
+(library
+ (name codegen_go)
+ (public_name nuscr.codegen_go)
+ (wrapped false)
+ (libraries base nuscr.mpst)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_sexp_conv
+    ppxlib.metaquot)))

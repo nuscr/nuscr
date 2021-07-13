@@ -1,0 +1,8 @@
+(library
+ (name codegen)
+ (public_name nuscr.codegen)
+ (libraries base stdio unix nuscr.codegen_fstar nuscr.codegen_go
+   nuscr.codegen_ocaml)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_sexp_conv
+    ppxlib.metaquot)))
