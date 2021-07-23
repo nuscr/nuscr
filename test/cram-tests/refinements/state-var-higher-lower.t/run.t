@@ -13,6 +13,10 @@ Show HigherLower FSM and State variables.
          { Loc.loc = 3:42 to 3:43 in: HigherLower.nuscr; value = "B" };
          { Loc.loc = 3:50 to 3:51 in: HigherLower.nuscr; value = "C" }],
        []);
+      safe_roles =
+      [(Unsafe { Loc.loc = 3:34 to 3:35 in: HigherLower.nuscr; value = "A" });
+        (Unsafe { Loc.loc = 3:42 to 3:43 in: HigherLower.nuscr; value = "B" });
+        (Unsafe { Loc.loc = 3:50 to 3:51 in: HigherLower.nuscr; value = "C" })];
       nested_protocols = [];
       interactions =
       [{ Loc.loc = 4:3 to 4:47 in: HigherLower.nuscr;

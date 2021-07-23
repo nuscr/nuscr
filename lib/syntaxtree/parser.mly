@@ -52,7 +52,7 @@
 %token DO_KW
 %token CALLS_KW
 %token NEW_KW
-%token CRASH_KW
+%token SAFE_KW
 
 (* pragmas *)
 %token PRAGMA_START
@@ -97,13 +97,19 @@ let global_protocol_decl == located(raw_global_protocol_decl)
 
 let raw_global_protocol_decl ==
   AUX_KW?; protocol_hdr ; nm = protoname ;
-  rs = role_decls ;
+  rs0 = role_decls ;
   ann = annotation? ; body = global_protocol_body ;
   {
     let (nested_protos, ints) = body in
+    let strip = function
+      | Safe x -> x
+      | Unsafe x -> x
+    in
+    let rs = List.map strip rs0 in
     { name = nm
     ; roles = rs
     ; split_roles = (rs, [])
+    ; safe_roles = rs0
     ; nested_protocols = nested_protos
     ; interactions = ints
     ; ann = ann
@@ -121,6 +127,7 @@ let raw_nested_protocol_decl ==
     { name = nm
     ; roles = (let (rs', rs'') = rs in rs' @ rs'')
     ; split_roles = rs
+    ; safe_roles = []
     ; nested_protocols = nested_protos
     ; interactions = ints
     ; ann = ann
@@ -136,13 +143,29 @@ let nested_hdr ==
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }
 
-let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
-                         new_nms = loption(new_role_decls) ; RPAR ; { (nms, new_nms) }
+let nested_role_decls == LPAR ; nms0 = separated_nonempty_list(COMMA, role_decl) ;
+                         new_nms = loption(new_role_decls) ; RPAR ; {
+                           let strip = function
+                             | Safe x -> x
+                             | Unsafe x -> x
+                           in
+                           let nms = List.map strip nms0 in
+                           (nms, new_nms) 
+                          }
 
-let role_decl == ROLE_KW ; nm = rolename ; { nm }
+let role_decl :=
+  | SAFE_KW ; ROLE_KW ; nm = rolename ; { Safe nm }
+  | ROLE_KW ; nm = rolename ; { Unsafe nm }
 
 let new_role_decls == SEMICOLON ; NEW_KW ;
-                      nms = separated_nonempty_list(COMMA, role_decl) ; { nms }
+                      nms0 = separated_nonempty_list(COMMA, role_decl) ; {
+                        let strip = function
+                          | Safe x -> x
+                          | Unsafe x -> x
+                        in
+                        let nms = List.map strip nms0 in
+                        nms 
+                        }
 
 let global_protocol_body ==
   LCURLY ; nested_protos = nested_protocol_decl*; ints = global_interaction* ;

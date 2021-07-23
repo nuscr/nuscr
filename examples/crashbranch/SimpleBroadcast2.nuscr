@@ -17,9 +17,9 @@ global protocol SimpleBroadcast(role P, role Q, role R) {
         choice at Q {
           Data from Q to R; // 4
         }
-        // or { // Needed to get it past merging but should be impossible here
-        //   KO from Q to R; // Q *could* deny it out of spite...
-        // }
+        or { // Needed to get it past merging but should be impossible here
+          KO from Q to R; // Q *could* deny it out of spite...
+        }
         or { // Q crashes
           crash from Q to R;
         }
@@ -33,9 +33,9 @@ global protocol SimpleBroadcast(role P, role Q, role R) {
     choice at R {
       Req from R to Q; // 3
       choice at Q
-      // { // Needed to get it past merging but should be impossible here
-      //   Data from Q to R; // This is definitely impossible
-      // } or
+      { // Needed to get it past merging but should be impossible here
+        Data from Q to R; // This is definitely impossible
+      } or
       {
         KO from Q to R; // 4
       } or {

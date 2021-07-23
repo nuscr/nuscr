@@ -1,0 +1,11 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol TestOne(role A, role B, role C) {
+  choice at A {
+    Msg(x : int) from A to B;
+    Msg from B to C;
+  } or {
+    crash from A to B;
+    Msg from B to C;
+  }
+}

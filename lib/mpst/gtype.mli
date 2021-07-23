@@ -94,6 +94,10 @@ val normalise : t -> t
 val normalise_nested_t : nested_t -> nested_t
 (** Apply normalisation to all protocols in nested_t *)
 
+val validate_crashes_exn : Syntax.safe_role list -> t -> unit
+(** Ensure that all non-safe roles have crash branches, requires
+    [ErrorHandlingCrashBranch] pragma *)
+
 val validate_refinements_exn : t -> unit
 (** Validate refinements in the given global type, requires [RefinementTypes]
     pragma *)

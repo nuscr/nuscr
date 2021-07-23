@@ -473,6 +473,52 @@ let normalise_nested_t (nested_t : nested_t) =
     ~init:(Map.empty (module ProtocolName))
     ~f:normalise_protocol nested_t
 
+let rec ensure_crash_branches (n : RoleName.t) = function
+  | MessageG (_l, s, _r, k) ->
+      if RoleName.equal s n then uerr (NoCrashBranchForUnsafeRole s)
+      else ensure_crash_branches n k
+  (* Messages by themselves at the top level -- if the sender is _n, we
+     error. *)
+  | MuG (_, _, k) -> ensure_crash_branches n k
+  (* We continue on the continuation as though nothing happens *)
+  | TVarG (_, _, _) -> ()
+  | ChoiceG (r, bs) ->
+      if RoleName.equal r n then
+        (* This effectively restricts the shape of our choice branches to
+           starting exclusively with a message from r to someone else. nuScr
+           more generally allows at least rec blocks, but we'll see that as
+           an extension element. *)
+        let is_crash_msg = function
+          | MessageG (l, s, _r, _k) ->
+              RoleName.equal s n
+              && String.equal (LabelName.user l.label) "crash"
+          | _ -> false
+        in
+        let skip_to_k = function
+          | MessageG (_l, _s, _r, k) -> ensure_crash_branches n k
+          | _ ->
+              uerr
+                (Uncategorised
+                   "Expecting message at start of choice branch, found \
+                    something else. (TODO: make this more flexible but also \
+                    informative.)" )
+        in
+        if List.exists bs ~f:is_crash_msg then List.iter bs ~f:skip_to_k
+        else uerr (NoCrashBranchForUnsafeRole r)
+      else List.iter bs ~f:(ensure_crash_branches n)
+  | EndG -> ()
+  | CallG (_c, _pr, _pa, _k) ->
+      uerr
+        (Uncategorised
+           "Calls to protocols are not yet supported with crash branches." )
+
+let validate_crashes_exn rs t =
+  let iter_f = function
+    | Syntax.Safe _n -> ()
+    | Syntax.Unsafe n -> ensure_crash_branches n t
+  in
+  List.iter ~f:iter_f rs
+
 let validate_refinements_exn t =
   let env =
     ( Expr.new_typing_env

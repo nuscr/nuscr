@@ -1,0 +1,11 @@
+(*# ErrorHandlingCrashBranch #*)
+
+global protocol TestThree(role A, safe role B, safe role C) {
+  choice at A {
+    Msg(x : int) from A to B;
+    Msg from B to C;
+  } or {
+    crash from A to B;
+    Msg from B to C;
+  }
+}

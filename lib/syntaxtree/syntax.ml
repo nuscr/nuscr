@@ -52,6 +52,9 @@ type ty =
   | Refined of VariableName.t * PayloadTypeName.t * expr
 [@@deriving eq, ord, show, sexp_of]
 
+type safe_role = Safe of RoleName.t | Unsafe of RoleName.t
+[@@deriving show {with_path= false}, sexp_of]
+
 type annotation = string [@@deriving show {with_path= false}, sexp_of]
 
 type payloadt =
@@ -135,6 +138,7 @@ and raw_global_protocol =
   { name: ProtocolName.t
   ; roles: RoleName.t list
   ; split_roles: RoleName.t list * RoleName.t list
+  ; safe_roles: safe_role list
   ; nested_protocols: global_protocol list
   ; interactions: global_interaction list
   ; ann: annotation option }
