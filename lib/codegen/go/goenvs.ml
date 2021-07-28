@@ -178,9 +178,6 @@ module MessagesEnv : sig
 
   val create : ProtocolName.t -> t
 
-  (* val add_message_struct : t -> LabelName.t -> payload list -> t *
-     MessageStructName.t *)
-
   val add_message_enum : t -> LabelName.t -> t
 
   val add_invitation_enum : t -> ProtocolName.t -> RoleName.t list -> t
@@ -192,42 +189,9 @@ module MessagesEnv : sig
   val get_invitation_enum :
     t -> ProtocolName.t -> RoleName.t list -> EnumName.t
 
-  (* val generate_messages_file : t -> PackageName.t -> string *)
-
   val generate_messages_file : t -> string
 end = struct
-  (* type payload_field = VariableName.t * PayloadTypeName.t *)
-
-  (* type message_info = MessageStructName.t * payload_field list *)
-
   type t = EnumTypeName.t * Namegen.t * EnumName.t Map.M(LabelName).t
-
-  (* let gen_unnamed_payload_field_names ((name_gen, named_fields) as acc)
-     payload = match payload with | PValue (None, payload_type) -> let
-     field_name = msg_field_name_from_type payload_type in let name_gen,
-     field_name = Namegen.unique_name name_gen field_name in let
-     payload_field_info = (VariableName.of_string field_name, payload_type)
-     in (name_gen, payload_field_info :: named_fields) | _ -> acc *)
-
-  (* let gen_named_payload_field_names ((name_gen, named_fields) as acc)
-     payload = match payload with | PValue (Some name, payload_type) -> let
-     field_name = msg_field_name name in let name_gen, field_name =
-     Namegen.unique_name name_gen field_name in let payload_field_info =
-     (VariableName.of_string field_name, payload_type) in (name_gen,
-     payload_field_info :: named_fields) | _ -> acc *)
-
-  (* let add_message_struct ((name_gen, msgs) as env) label payload = match
-     Map.find msgs label with | None -> let struct_name = msg_type_name label
-     in let name_gen, struct_name = Namegen.unique_name name_gen struct_name
-     in let msg_struct_name = MessageStructName.of_string struct_name in let
-     payload_name_gen = Namegen.create () in let payload_name_gen,
-     payload_fields = List.fold ~init:(payload_name_gen, [])
-     ~f:gen_named_payload_field_names payload in let _, payload_fields =
-     List.fold ~init:(payload_name_gen, payload_fields)
-     ~f:gen_unnamed_payload_field_names payload in let msg_struct_info =
-     (msg_struct_name, payload_fields) in let msgs = Map.add_exn msgs
-     ~key:label ~data:msg_struct_info in let env = (name_gen, msgs) in (env,
-     msg_struct_name) | Some (msg_struct_name, _) -> (env, msg_struct_name) *)
 
   let add_message_enum ((enum_type, name_gen, enums) as env) label =
     if Map.mem enums label then env
@@ -262,10 +226,6 @@ end = struct
     let pkg_stmt = package_stmt pkg_messages in
     let label_enum_decl = gen_enum (enum_name, Map.data enums) in
     join_non_empty_lines ~sep:"\n\n" [pkg_stmt; label_enum_decl]
-
-  (* let pkg_stmt = package_stmt pkg in let msg_structs = List.map
-     ~f:gen_msg_struct (Map.data msgs) in join_non_empty_lines ~sep:"\n\n"
-     (pkg_stmt :: msg_structs) *)
 
   let create protocol_name =
     let namegen = Namegen.create () in
@@ -402,34 +362,6 @@ end = struct
         in
         (env, (channel_field, field_type))
 
-  (* let update_channel_entry is_send = function | None -> if is_send then
-     (true, false) else (false, true) | send, recv -> if is_send then (true,
-     recv) else (send, true)
-
-     let new_label_channel (struct_name, protocol, (label_channels,
-     payload_channels), imports) role is_send = let imports, _ =
-     ImportsEnv.import_messages imports protocol in let label_channels =
-     Map.update label_channels role ~f:(update_channel_entry is_send) in
-     (struct_name, protocol, (label_channels, payload_channels), imports)
-
-     let new_payload_channel (struct_name, protocol, (label_channels,
-     payload_channels), imports) role payload is_send = let
-     update_payload_entry =function | None -> Map.singleton (module
-     PayloadTypeName) payload (update_channel_entry is_send None) | Some
-     payload_chans -> Map.update payload ~f:(update_channel_entry is_send) in
-     let payload_channels = Map.update payload_channels role
-     ~f:(update_payload_entry) in (struct_name, ) *)
-
-  (* let chan_name = chan_struct_field_name role msg_label in let name_gen,
-     chan_name = Namegen.unique_name name_gen chan_name in let channel_name =
-     ChannelName.of_string chan_name in let msg_struct_name =
-     MessageStructName.of_string (msg_type_name msg_label) in let
-     channel_fields = (channel_name, msg_struct_name) :: channel_fields in (*
-     Add messages/protocol import if the role receives any message *) let
-     imports, _ = ImportsEnv.import_messages imports protocol in let env =
-     (name_gen, struct_name, protocol, channel_fields, imports) in (env,
-     channel_name, msg_struct_name) *)
-
   let gen_channel_struct ((_, struct_name, _, _, channel_fields, _) : t) =
     let gen_chan_field_decl ~key:_ ~data:(chan_name, chan_type) chan_fields =
       (* Get pkg name *)
@@ -462,26 +394,6 @@ module InviteEnv : sig
 
   type role_invite_channel_field =
     InviteChannelName.t * InviteChannelStructName.t
-
-  (* val add_send_role_channel : t -> RoleName.t -> LocalProtocolName.t ->
-     RoleName.t -> ProtocolName.t -> t * InviteChannelName.t *
-     ChannelStructName.t
-
-     val add_send_invite_channel : t -> RoleName.t -> LocalProtocolName.t ->
-     t * InviteChannelName.t * InviteChannelStructName.t
-
-     val send_self_role_channel : t -> RoleName.t -> LocalProtocolName.t ->
-     InviteChannelName.t * ChannelStructName.t
-
-     val send_self_invite_channel : t -> RoleName.t -> LocalProtocolName.t ->
-     InviteChannelName.t * InviteChannelStructName.t
-
-     val add_recv_role_channel : t -> RoleName.t -> LocalProtocolName.t ->
-     RoleName.t -> ProtocolName.t -> t * InviteChannelName.t *
-     ChannelStructName.t
-
-     val add_recv_invite_channel : t -> RoleName.t -> LocalProtocolName.t ->
-     t * InviteChannelName.t * InviteChannelStructName.t *)
 
   val get_or_add_send_invitation_channels :
        t
@@ -912,29 +824,6 @@ end = struct
     let setup_env = init_setup_channels setup_env roles in
     let setup_env = init_setup_invite_channels setup_env roles in
     (protocol, imports, var_name_gen, setup_env)
-
-  (* let new_channel_vars (protocol, imports, var_name_gen, ({chan_vars; _}
-     as setup_env)) sender recv label payloads = let update_channel_envs
-     imports ({channel_envs; setup_channels; _} as setup_env) role1 role2
-     chan_var = let imports, msgs_pkg = ImportsEnv.import_messages imports in
-     let channel_env = Map.find_exn channel_envs role1 in let channel_env,
-     channel_fields = ChannelEnv.get_or_add_channel channel_env role2 label
-     in let channel_envs = Map.update channel_envs role1 ~f:(fun _ ->
-     channel_env) in let role_setup_channels = Map.find_exn setup_channels
-     role1 in let role_setup_channels = Map.update role_setup_channels
-     channel_name ~f:(fun _ -> chan_var) in let setup_channels = Map.update
-     setup_channels role1 ~f:(fun _ -> role_setup_channels) in let
-     channel_type_name = chan_type (protocol_msg_access msgs_pkg msg_struct)
-     in ( imports , {setup_env with channel_envs; setup_channels} ,
-     channel_type_name ) in let msg_chan_var = new_msg_chan_var sender recv
-     label in let var_name_gen, msg_chan_var = Namegen.unique_name
-     var_name_gen msg_chan_var in let msg_chan_var_name =
-     VariableName.of_string msg_chan_var in let imports, setup_env, var_type
-     = update_channel_envs imports setup_env sender recv msg_chan_var_name in
-     let imports, setup_env, _ = update_channel_envs imports setup_env recv
-     sender msg_chan_var_name in let chan_vars = (msg_chan_var_name,
-     var_type) :: chan_vars in let setup_env = {setup_env with chan_vars} in
-     (protocol, imports, var_name_gen, setup_env) *)
 
   let create_channels_for_interaction
       (protocol, imports, var_name_gen, setup_env) sender recv payloads =
