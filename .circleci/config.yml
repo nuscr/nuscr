@@ -93,6 +93,8 @@ jobs:
       - run:
           name: Deploy docs to gh-pages branch
           command: gh-pages --dist docs --dotfiles --message "[skip ci] change" -f
+          environment:
+            CACHE_DIR: "~/.cache"
 
   build-docker-image:
     docker:
