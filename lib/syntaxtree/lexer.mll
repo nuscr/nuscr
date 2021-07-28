@@ -73,7 +73,6 @@ and token = parse
 | ':' { COLON }
 | '.' { DOT }
 | '=' { EQUAL }
-| '~' { TILDE }
 | '+' { PLUS }
 | '-' { MINUS }
 | "&&" { AMPAMP }
