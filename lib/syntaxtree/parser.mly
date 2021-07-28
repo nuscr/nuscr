@@ -25,7 +25,6 @@
 %token BARBAR
 %token EQUAL
 %token LTGT
-%token TILDE
 %token PLUS
 %token MINUS
 %token LTEQ
@@ -35,10 +34,7 @@
 %token TRUE_KW
 %token FALSE_KW
 
-%left AMPAMP BARBAR
-%left EQUAL LTGT LTEQ GTEQ LT GT
-%left PLUS MINUS
-%nonassoc UMINUS TILDE
+/* %nonassoc UMINUS TILDE */
 
 %token RESERVED
 
@@ -355,7 +351,7 @@ let raw_name ==
   | i = INT ; { string_of_int i }
 
 (* expressions *)
-expr:
+atomic_expr:
   | i = INT
     { Int i }
   | s = EXTIDENT
@@ -365,24 +361,44 @@ expr:
   | TRUE_KW { Bool true }
   | FALSE_KW { Bool false }
   | LPAR e = expr RPAR { e }
-  | e1 = expr b = binop e2 = expr
-    { Binop (b, e1, e2) }
-  | NOT_KW e = expr %prec TILDE
-    { Unop (Not, e) }
-  | MINUS e = expr %prec UMINUS
-    { Unop (Neg, e) }
 
-%inline binop:
-  | PLUS { Add }
-  | MINUS { Minus }
+expr_0:
+  | e1 = expr_0 b = op_0 e2 = expr_1
+    { Binop (b, e1, e2) }
+  | e = expr_1 { e }
+
+%inline op_0:
+  | AMPAMP { And }
+  | BARBAR { Or }
+
+expr_1:
+  | e1 = expr_1 b = op_1 e2 = expr_2
+    { Binop (b, e1, e2) }
+  | e = expr_2 { e }
+
+%inline op_1:
   | EQUAL { Eq }
   | LTGT { Neq }
   | LT { Lt }
   | GT { Gt }
   | LTEQ { Leq }
   | GTEQ { Geq }
-  | AMPAMP { And }
-  | BARBAR { Or }
+
+expr_2:
+  | e1 = expr_2 b = op_2 e2 = atomic_expr
+    { Binop (b, e1, e2) }
+  | e = atomic_expr { e }
+
+%inline op_2:
+  | PLUS { Add }
+  | MINUS { Minus }
+
+expr:
+  | e = expr_0 { e }
+  | NOT_KW e = expr
+    { Unop (Not, e) }
+  | MINUS e = expr
+    { Unop (Neg, e) }
 
 (* utilities *)
 let located(x) ==
