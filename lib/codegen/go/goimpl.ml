@@ -338,7 +338,8 @@ let gen_select_case impl case_indent =
   | [] -> failwith "Cannot have empty choice branch"
 
 let gen_select_stmt select_cases indent =
-  (* Assume each of the implementations is of the form: case <recv>:\n <impl> *)
+  (* Assume each of the implementations is of the form: case <recv>:\n
+     <impl> *)
   let select_cases_str = join_non_empty_lines select_cases in
   sprintf "%sselect {\n%s\n%s}" indent select_cases_str indent
 

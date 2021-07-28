@@ -394,9 +394,8 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
   ( env
   , var_name_gen
   , setup_callback_call
-    ::
-    ( send_invite_label_stmts
-    @ [role_struct_assign; invite_struct_assign; protocol_setup_call] ) )
+    :: ( send_invite_label_stmts
+       @ [role_struct_assign; invite_struct_assign; protocol_setup_call] ) )
 
 (** Generate implementation of choice local type when the current role is
     making the choice*)
@@ -486,10 +485,8 @@ let gen_invitations_file envs imports setup_role_chan setup_invite_chan =
     List.map ~f:LTypeCodeGenEnv.gen_invite_channel_struct envs
   in
   join_non_empty_lines ~sep:"\n\n"
-    (pkg_stmt
-     ::
-     imports_str :: setup_role_chan :: setup_invite_chan :: channel_structs
-    )
+    ( pkg_stmt :: imports_str :: setup_role_chan :: setup_invite_chan
+    :: channel_structs )
 
 (** Generate source file containing the result struct declarations for a
     protocol *)

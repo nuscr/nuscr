@@ -7,7 +7,8 @@ open Syntaxtree
 module Sexp = struct
   (* The Jane Street sexplib library does not distinguish between quoted
      strings and unquoted strings, which have semantic differences in
-     SMT-LIB. Quoted strings are literals and unquoted strings are variables.*)
+     SMT-LIB. Quoted strings are literals and unquoted strings are
+     variables.*)
 
   type t = Literal of string | Atom of string | List of t list
 

@@ -1018,8 +1018,8 @@ end = struct
       in
       let chan_vars =
         (role_chan_var_name, chan_type role_chan_type_str)
-        ::
-        (invite_chan_var_name, chan_type invite_chan_type_str) :: chan_vars
+        :: (invite_chan_var_name, chan_type invite_chan_type_str)
+        :: chan_vars
       in
       let invite_chan_vars =
         Map.add_exn invite_chan_vars ~key:invite_key
@@ -1265,7 +1265,8 @@ end = struct
       Namegen.unique_name name_gen callback_name
     in
     let callback = CallbackName.of_string callback_name in
-    (* Assumes unique, valid parameter names (preprocessing already applied) *)
+    (* Assumes unique, valid parameter names (preprocessing already
+       applied) *)
     let callback_params =
       List.map payloads ~f:(function
         | PValue (param_name, payload_type) ->
@@ -1311,7 +1312,8 @@ end = struct
   let new_protocol_result_callback
       (name_gen, choice_enums, callbacks, imports) local_protocol protocol
       role =
-    (* ResultFrom_<local_protocol>[_<uid>](result <protocol>.<role>_Result) *)
+    (* ResultFrom_<local_protocol>[_<uid>](result
+       <protocol>.<role>_Result) *)
     let callback_name = result_callback_name local_protocol in
     let name_gen, callback_name =
       Namegen.unique_name name_gen callback_name
