@@ -510,8 +510,8 @@ let generate_run_fns buffer start g var_map rec_var_info =
             in
             let match_hands = G.fold_succ_e collect_match_hand g st [] in
             String.concat ~sep:"\n"
-              (connect_selection
-               :: match_head :: List.concat (List.rev match_hands) )
+              ( connect_selection :: match_head
+              :: List.concat (List.rev match_hands) )
         | `Recv r ->
             let connect_selection =
               Printf.sprintf "let conn = comms %s in"
@@ -569,10 +569,8 @@ let generate_run_fns buffer start g var_map rec_var_info =
             let match_hands = G.fold_succ_e collect_match_hand g st [] in
             let catch_all = ["| _ -> unexpected \"Unexpected label\""] in
             String.concat ~sep:"\n"
-              (connect_selection
-               ::
-               match_head
-               :: List.concat (List.rev (catch_all :: match_hands)) )
+              ( connect_selection :: match_head
+              :: List.concat (List.rev (catch_all :: match_hands)) )
       in
       (preamble ^ body) :: acc
     in
