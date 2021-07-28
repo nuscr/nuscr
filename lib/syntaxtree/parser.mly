@@ -34,8 +34,6 @@
 %token TRUE_KW
 %token FALSE_KW
 
-/* %nonassoc UMINUS TILDE */
-
 %token RESERVED
 
 (* keywords from Scribble.g with original comments *)
