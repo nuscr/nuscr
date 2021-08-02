@@ -1,7 +1,9 @@
 (rule
  (targets examples.ml)
  (action
-  (run ./genex_dune.sh)))
+  (run ./genex_dune.sh))
+ (deps
+  (source_tree ../examples)))
 
 (executable
  (name live)

@@ -109,6 +109,7 @@ let () =
       List.map ~f:(fun dir -> get_scribble_test_files dir avoid) dirs
       |> List.concat
     in
+    print_endline ("Found " ^ Int.to_string (List.length files) ^ " tests.") ;
     let ok, err, errors = process_files files in
     let report = write_report dirs ok err errors in
     print_endline (if err = 0 then "Ok" else "Not ok\n" ^ report) ;
