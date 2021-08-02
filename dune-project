@@ -42,7 +42,6 @@
    (>= v0.12.0))
   (ppx_sexp_conv
    (>= v0.12.0))
-  (ppx_inline_test :with-test)
   (odoc :with-doc)
   (ocamlgraph
    (>= 1.8.8))
