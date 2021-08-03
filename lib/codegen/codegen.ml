@@ -1,11 +1,3 @@
-module Fstar = struct
-  include Fstarcodegen
-end
-
-module Go = struct
-  include Gocodegen
-end
-
-module Ocaml = struct
-  include Ocamlcodegen
-end
+module Fstar = Fstarcodegen
+module Go = Gocodegen
+module Ocaml = Ocamlcodegen
