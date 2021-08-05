@@ -54,8 +54,6 @@ let rec show = function
       sprintf "(%s)%s(%s)" (show e1) (Syntax.show_binop b) (show e2)
   | Unop (u, e) -> sprintf "%s(%s)" (Syntax.show_unop u) (show e)
 
-let pp_expr fmt e = Caml.Format.fprintf fmt "%s" (show e)
-
 let rec of_syntax_expr = function
   | Syntax.Var n -> Var (VariableName.of_name n)
   | Syntax.Int n -> Int n
