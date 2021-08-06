@@ -14,7 +14,7 @@ doc: "https://nuscr.dev/nuscr/docs/"
 bug-reports: "https://github.com/nuscr/nuscr/issues"
 depends: [
   "nuscr" {= version}
-  "dune" {>= "2.7"}
+  "dune" {>= "2.8"}
   "js_of_ocaml" {>= "3.5.0"}
   "js_of_ocaml-ppx" {>= "3.5.0"}
   "js_of_ocaml-tyxml" {>= "3.5.0"}

@@ -1,8 +1,12 @@
 (library
  (name codegen_ocaml)
- (public_name nuscr.codegen_ocaml)
+ (package nuscr)
  (wrapped false)
- (libraries base nuscr.mpst ppxlib)
+ (libraries base mpst ppxlib)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_sexp_conv
-    ppxlib.metaquot)))
+  (pps
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord
+   ppx_sexp_conv
+   ppxlib.metaquot)))
