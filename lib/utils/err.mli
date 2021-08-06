@@ -60,5 +60,8 @@ val uerr : user_error -> 'a
 val unimpl : string -> 'a
 (** Raise an Unimplemented error *)
 
+val violation : string -> 'a
+(** Raise a violation, with a reason *)
+
 val violationf : ('a, unit, string, 'b) format4 -> 'a
-(** Raise a violation, with the possibility of using format strings *)
+(** Raise a violation, with a reason formatted using format strings *)
