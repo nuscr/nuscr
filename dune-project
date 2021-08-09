@@ -30,9 +30,7 @@
    "A toolkit to manipulate Scribble-style multiparty protocols, based on classical multiparty session type theory. The toolkit provides means to define global protocols, project to local protocols, convert local protocols to a CFSM representation, and generate OCaml code for protocol implementations.")
  (depends
   (menhir
-   (and
-    :build
-    (>= 20190924)))
+   (>= 20190924))
   (ppx_deriving
    (>= 5.2))
   dune
