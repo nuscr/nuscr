@@ -474,8 +474,11 @@ let normalise_nested_t (nested_t : nested_t) =
     ~f:normalise_protocol nested_t
 
 let rec ensure_crash_branches (n : RoleName.t) = function
-  | MessageG (_l, s, _r, k) ->
-      if RoleName.equal s n then uerr (NoCrashBranchForUnsafeRole s)
+  | MessageG (l, s, _r, k) ->
+      if
+        RoleName.equal s n
+        && not (String.equal (LabelName.user l.label) "crash")
+      then uerr (NoCrashBranchForUnsafeRole s)
       else ensure_crash_branches n k
   (* Messages by themselves at the top level -- if the sender is _n, we
      error. *)
