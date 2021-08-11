@@ -1,7 +1,9 @@
-module type TaggedName = sig
-  include Name.S
+open! Name
 
-  val of_name : Name.Name.t -> t
+module type TaggedName = sig
+  include S
+
+  val of_name : Name.t -> t
 end
 
 module ProtocolName : TaggedName

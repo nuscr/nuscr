@@ -6,135 +6,53 @@ module type TaggedName = sig
   val of_name : Name.t -> t
 end
 
-module ProtocolName : TaggedName = struct
+module Make () : TaggedName = struct
   include Name
 
   let of_name (name : Name.t) = name
 end
 
-module PayloadTypeName : TaggedName = struct
-  include Name
+module ProtocolName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module PayloadTypeName : TaggedName = Make ()
 
-module LabelName : TaggedName = struct
-  include Name
+module LabelName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module RoleName : TaggedName = Make ()
 
-module RoleName : TaggedName = struct
-  include Name
+module VariableName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module TypeVariableName : TaggedName = Make ()
 
-module VariableName : TaggedName = struct
-  include Name
+module LocalProtocolName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module ChannelStructName : TaggedName = Make ()
 
-module TypeVariableName : TaggedName = struct
-  include Name
+module ChannelName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module InviteChannelStructName : TaggedName = Make ()
 
-module LocalProtocolName : TaggedName = struct
-  include Name
+module InviteChannelName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module CallbackName : TaggedName = Make ()
 
-module ChannelStructName : TaggedName = struct
-  include Name
+module CallbacksEnvName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
-
-module ChannelName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module InviteChannelStructName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module InviteChannelName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module CallbackName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module CallbacksEnvName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module MessageStructName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
+module MessageStructName : TaggedName = Make ()
 
 (* TODO: Is it needed? *)
-module ResultName : TaggedName = struct
-  include Name
+module ResultName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module PackageName : TaggedName = Make ()
 
-module PackageName : TaggedName = struct
-  include Name
+module ParameterName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module RootDirName : TaggedName = Make ()
 
-module ParameterName : TaggedName = struct
-  include Name
+module EnumName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
+module EnumTypeName : TaggedName = Make ()
 
-module RootDirName : TaggedName = struct
-  include Name
+module FunctionName : TaggedName = Make ()
 
-  let of_name (name : Name.t) = name
-end
-
-module EnumName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module EnumTypeName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module FunctionName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
-
-module InterfaceName : TaggedName = struct
-  include Name
-
-  let of_name (name : Name.t) = name
-end
+module InterfaceName : TaggedName = Make ()

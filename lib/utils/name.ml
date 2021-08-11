@@ -1,5 +1,4 @@
 open! Base
-module L = Loc
 
 module type S = sig
   type t [@@deriving show {with_path= false}, sexp_of]
@@ -19,21 +18,19 @@ end
 
 module Name = struct
   module M = struct
-    type t = string L.located [@@deriving show {with_path= false}, sexp_of]
+    type t = string Loc.located [@@deriving show {with_path= false}, sexp_of]
 
-    let of_string s = {L.value= s; loc= Loc.ghost_loc}
+    let of_string s = {Loc.value= s; loc= Loc.ghost_loc}
 
-    let rename n s = {n with L.value= s}
+    let rename n s = {n with Loc.value= s}
 
-    let user n = n.L.value
+    let user n = n.Loc.value
 
-    let where n = n.L.loc
+    let where n = n.Loc.loc
 
-    let create value loc : t =
-      let open Loc in
-      {value; loc}
+    let create value loc : t = {Loc.value; Loc.loc}
 
-    let compare n n' = String.compare n.L.value n'.L.value
+    let compare n n' = String.compare n.Loc.value n'.Loc.value
   end
 
   include M
