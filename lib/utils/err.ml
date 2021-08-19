@@ -73,7 +73,7 @@ let show_user_error = function
       let loc_merge = Loc.merge loc1 loc2 in
       sprintf "Reflexive message of role %s at %s" (RoleName.user r)
         (Loc.show loc_merge)
-  | UnableToMerge s -> "Unable to merge: " ^ s
+  | UnableToMerge s -> "Unable to merge: \n" ^ s
   | RedefinedProtocol (name, loc1, loc2) ->
       sprintf "Redefined protocol %s at %s and %s" (ProtocolName.user name)
         (Loc.show loc1) (Loc.show loc2)

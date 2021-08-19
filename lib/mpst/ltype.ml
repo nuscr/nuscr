@@ -318,7 +318,7 @@ let rec merge projected_role lty1 lty2 =
     | SilentL _, _ | _, SilentL _ -> merge_silent_prefix lty1 lty2
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
-    let error = show l1 ^ " " ^ show l2 in
+    let error = show l1 ^ "\nand\n\n" ^ show l2 in
     uerr @@ Err.UnableToMerge (String.strip error)
 
 (* Check whether the first message in a g choice is from choice_r to recv_r,
