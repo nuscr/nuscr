@@ -1,0 +1,14 @@
+global protocol Example3(role A, role B, role C) {
+  rec Loop {
+    Foo() from A to B;
+    choice at C {
+      Bar() from C to A;
+      Baz() from A to B;
+      continue Loop;
+    } or {
+      Qux() from C to A;
+      Dummy() from A to B;
+      continue Loop;
+    }
+  }
+}

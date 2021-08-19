@@ -7,7 +7,6 @@ Projecting on C using a coinductive equality would be possible.
     a() from A;
     continue X;
   }
-  
   $ nuscr --project C@Proto2 Proto.nuscr
   rec X {
     a() from A;
@@ -16,4 +15,3 @@ Projecting on C using a coinductive equality would be possible.
     b() from A;
     continue X;
   }
-  
