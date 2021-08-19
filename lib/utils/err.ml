@@ -80,7 +80,7 @@ let show_user_error = function
           role_opt
       in
       let role = Option.value ~default:"" role in
-      "Unable to merge: " ^ s ^ role
+      "Unable to merge:\n" ^ s ^ role
   | RedefinedProtocol (name, loc1, loc2) ->
       sprintf "Redefined protocol %s at %s and %s" (ProtocolName.user name)
         (Loc.show loc1) (Loc.show loc2)
