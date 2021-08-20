@@ -413,11 +413,13 @@ let rec project' env (projected_role : RoleName.t) =
           rec_exprs
       in
       (* FIXME: This breaks when there are shadowed type variables *)
+      let rvenv =
+        match Map.add ~key:name ~data:rec_exprs rvenv with
+        | `Ok rvenv -> rvenv
+        | `Duplicate -> rvenv
+      in
       let env =
-        { env with
-          rvenv= Map.add_exn ~key:name ~data:rec_exprs rvenv
-        ; silent_vars
-        ; unguarded_tv= Set.add unguarded_tv name }
+        {env with rvenv; silent_vars; unguarded_tv= Set.add unguarded_tv name}
       in
       match project' env projected_role g_type with
       | TVarL _ | EndL -> EndL
