@@ -316,7 +316,9 @@ let rec check_consistent_gchoice choice_r possible_roles = function
         ( "Normalised global type always has a message in choice branches\n"
         ^ Gtype.show g )
 
-let rec project' env (projected_role : RoleName.t) =
+(* env records information for refinement types *)
+(* unguarded_tv records unguarded type variables *)
+let rec project' env unguarded_tv (projected_role : RoleName.t) =
   let check_expr silent_vars e =
     let free_vars = Expr.free_var e in
     let unknown_vars = Set.inter free_vars silent_vars in
@@ -326,6 +328,9 @@ let rec project' env (projected_role : RoleName.t) =
   in
   function
   | EndG -> EndL
+  | TVarG (name, _, _) when Set.mem unguarded_tv name ->
+      (* Type variable unguarded *)
+      EndL
   | TVarG (name, rec_exprs, _) ->
       let _, rvenv, svars = env in
       let rec_expr_filter = Map.find_exn rvenv name in
@@ -354,16 +359,23 @@ let rec project' env (projected_role : RoleName.t) =
       in
       (* FIXME: This breaks when there are shadowed type variables *)
       let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv, svars) in
-      match project' env projected_role g_type with
+      let unguarded_tv = Set.add unguarded_tv name in
+      match project' env unguarded_tv projected_role g_type with
       | TVarL _ | EndL -> EndL
       | lType -> MuL (name, rec_exprs, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-      let next env = project' env projected_role g_type in
+      let next env unguarded_tv =
+        project' env unguarded_tv projected_role g_type
+      in
       match projected_role with
+      (* When projected role is involved in an interaction, reset unguarded_tv
+       * *)
       | _ when RoleName.equal projected_role send_r ->
-          SendL (m, recv_r, next env)
+          SendL (m, recv_r, next env (Set.empty (module TypeVariableName)))
       | _ when RoleName.equal projected_role recv_r ->
-          RecvL (m, send_r, next env)
+          RecvL (m, send_r, next env (Set.empty (module TypeVariableName)))
+      (* When projected role is not involved in an interaction, do not reset
+       * unguarded_tv *)
       | _ ->
           let named_payloads =
             List.rev_filter_map
@@ -374,7 +386,7 @@ let rec project' env (projected_role : RoleName.t) =
           if
             List.is_empty named_payloads
             || (not @@ Pragma.refinement_type_enabled ())
-          then next env
+          then next env unguarded_tv
           else
             let penv, rvenv, svars = env in
             let svars =
@@ -383,7 +395,7 @@ let rec project' env (projected_role : RoleName.t) =
                 named_payloads
             in
             let env = (penv, rvenv, svars) in
-            List.fold ~init:(next env)
+            List.fold ~init:(next env unguarded_tv)
               ~f:(fun acc (var, t) -> SilentL (var, t, acc))
               named_payloads )
   | ChoiceG (choice_r, g_types) -> (
@@ -417,7 +429,9 @@ let rec project' env (projected_role : RoleName.t) =
           g_types
       in
       let recv_r = Set.choose_exn possible_roles in
-      let l_types = List.map ~f:(project' env projected_role) g_types in
+      let l_types =
+        List.map ~f:(project' env unguarded_tv projected_role) g_types
+      in
       match projected_role with
       | _
         when RoleName.equal projected_role choice_r
@@ -430,7 +444,12 @@ let rec project' env (projected_role : RoleName.t) =
         | Some l -> l
         | None -> EndL ) )
   | CallG (caller, protocol, roles, g_type) -> (
-      let next = project' env projected_role g_type in
+      (* Reset unguarded_tv *)
+      let next =
+        project' env
+          (Set.empty (module TypeVariableName))
+          projected_role g_type
+      in
       let penv, _, _ = env in
       let (protocol_roles, new_protocol_roles), _, _ =
         Map.find_exn penv protocol
@@ -464,6 +483,7 @@ let project projected_role g =
     ( Map.empty (module ProtocolName)
     , Map.empty (module TypeVariableName)
     , Set.empty (module VariableName) )
+    (Set.empty (module TypeVariableName))
     projected_role g
 
 let project_global_t (global_t : global_t) =
@@ -474,6 +494,7 @@ let project_global_t (global_t : global_t) =
         ( global_t
         , Map.empty (module TypeVariableName)
         , Set.empty (module VariableName) )
+        (Set.empty (module TypeVariableName))
         projected_role gtype
     in
     (* TODO: Fix make unique tvars *)
