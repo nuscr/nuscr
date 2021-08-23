@@ -16,7 +16,7 @@ type t =
   | ChoiceL of RoleName.t * t list
       (** [ChoiceL (name, ts)] is a choice (internal or external) from [name]
           between the [ts] *)
-  | TVarL of TypeVariableName.t * Expr.t list
+  | TVarL of TypeVariableName.t * Expr.t list * t Lazy.t
       (** [TVarL (type_var, exprs)] is a type variable, scoped inside a
           recursion. [type_var] is the name of the type variable, [exprs] are
           expressions supplied into paramterised recursion, used in

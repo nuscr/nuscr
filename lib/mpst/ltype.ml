@@ -8,7 +8,7 @@ type t =
   | RecvL of Gtype.message * RoleName.t * t
   | SendL of Gtype.message * RoleName.t * t
   | ChoiceL of RoleName.t * t list
-  | TVarL of TypeVariableName.t * Expr.t list
+  | TVarL of TypeVariableName.t * Expr.t list * t Lazy.t
   | MuL of TypeVariableName.t * (bool * Gtype.rec_var) list * t
   | EndL
   | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
@@ -20,7 +20,7 @@ type t =
       * RoleName.t
       * t
   | SilentL of VariableName.t * Expr.payload_type * t
-[@@deriving sexp_of, eq]
+[@@deriving sexp_of]
 
 module LocalProtocolId = struct
   module T = struct
@@ -43,6 +43,54 @@ type nested_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
 let roles_to_string roles =
   let str_roles = List.map ~f:RoleName.user roles in
   String.concat ~sep:", " str_roles
+
+let rec equal lty1 lty2 =
+  match (lty1, lty2) with
+  | RecvL (m1, r1, lty1'), RecvL (m2, r2, lty2') ->
+      [%derive.eq: Gtype.message * RoleName.t * t] (m1, r1, lty1')
+        (m2, r2, lty2')
+  | SendL (m1, r1, lty1'), SendL (m2, r2, lty2') ->
+      [%derive.eq: Gtype.message * RoleName.t * t] (m1, r1, lty1')
+        (m2, r2, lty2')
+  | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2) ->
+      [%derive.eq: RoleName.t * t list] (r1, ltys1) (r2, ltys2)
+  | TVarL (tv1, es1, _), TVarL (tv2, es2, _) ->
+      (* Do NOT inspect the lazy continuation *)
+      [%derive.eq: TypeVariableName.t * Expr.t list] (tv1, es1) (tv2, es2)
+  | MuL (tv1, rvs1, lty1'), MuL (tv2, rvs2, lty2') ->
+      [%derive.eq: TypeVariableName.t * (bool * Gtype.rec_var) list * t]
+        (tv1, rvs1, lty1') (tv2, rvs2, lty2')
+  | EndL, EndL -> true
+  | InviteCreateL (rs1, rs1', p1, lty1'), InviteCreateL (rs2, rs2', p2, lty2')
+    ->
+      [%derive.eq: RoleName.t list * RoleName.t list * ProtocolName.t * t]
+        (rs1, rs1', p1, lty1') (rs2, rs2', p2, lty2')
+  | ( AcceptL (r1, p1, rs1, rs1', r1', lty1')
+    , AcceptL (r2, p2, rs2, rs2', r2', lty2') ) ->
+      [%derive.eq:
+        RoleName.t
+        * ProtocolName.t
+        * RoleName.t list
+        * RoleName.t list
+        * RoleName.t
+        * t]
+        (r1, p1, rs1, rs1', r1', lty1')
+        (r2, p2, rs2, rs2', r2', lty2')
+  | SilentL (v1, t1, lty1'), SilentL (v2, t2, lty2') ->
+      [%derive.eq: VariableName.t * Expr.payload_type * t] (v1, t1, lty1')
+        (v2, t2, lty2')
+  (* Enumerate constructors here, so that new additions to local types will
+   * raise a partial pattern matching warning. Otherwise, simply use a
+   * catch-all clause may cause future breakage *)
+  | RecvL _, _ -> false
+  | SendL _, _ -> false
+  | ChoiceL _, _ -> false
+  | TVarL _, _ -> false
+  | MuL _, _ -> false
+  | EndL, _ -> false
+  | InviteCreateL _, _ -> false
+  | AcceptL _, _ -> false
+  | SilentL _, _ -> false
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -74,7 +122,7 @@ let show =
           (TypeVariableName.user n) rec_vars_s
           (show_nested_type_internal (indent + 1) l)
           current_indent
-    | TVarL (n, rec_exprs) ->
+    | TVarL (n, rec_exprs, _) ->
         let rec_exprs_s =
           if List.is_empty rec_exprs then ""
           else
@@ -365,13 +413,15 @@ type project_env =
         (* Info for refinement variables *)
   ; silent_vars: Set.M(VariableName).t
         (* Info for silent variables (refinement types ) *)
-  ; unguarded_tv: Set.M(TypeVariableName).t (* Unguarded type variables *) }
+  ; unguarded_tv: Set.M(TypeVariableName).t (* Unguarded type variables *)
+  ; lazy_conts: t Lazy.t Map.M(TypeVariableName).t }
 
 let new_project_env =
   { penv= Map.empty (module ProtocolName)
   ; rvenv= Map.empty (module TypeVariableName)
   ; silent_vars= Set.empty (module VariableName)
-  ; unguarded_tv= Set.empty (module TypeVariableName) }
+  ; unguarded_tv= Set.empty (module TypeVariableName)
+  ; lazy_conts= Map.empty (module TypeVariableName) }
 
 let rec project' env (projected_role : RoleName.t) =
   let check_expr silent_vars e =
@@ -396,7 +446,7 @@ let rec project' env (projected_role : RoleName.t) =
       in
       let rec_exprs = List.filter_opt rec_exprs in
       List.iter ~f:(check_expr silent_vars) rec_exprs ;
-      TVarL (name, rec_exprs)
+      TVarL (name, rec_exprs, Map.find_exn env.lazy_conts name)
   | MuG (name, rec_exprs, g_type) -> (
       let rec_exprs =
         List.map
@@ -421,9 +471,18 @@ let rec project' env (projected_role : RoleName.t) =
       let env =
         {env with rvenv; silent_vars; unguarded_tv= Set.add unguarded_tv name}
       in
-      match project' env projected_role g_type with
+      let rec lazy_cont =
+        lazy
+          (project'
+             { env with
+               lazy_conts=
+                 Map.add_exn ~key:name ~data:lazy_cont env.lazy_conts }
+             projected_role g_type )
+      in
+      let cont = Lazy.force lazy_cont in
+      match cont with
       | TVarL _ | EndL -> EndL
-      | lType -> MuL (name, rec_exprs, lType) )
+      | l_type -> MuL (name, rec_exprs, l_type) )
   | MessageG (m, send_r, recv_r, g_type) -> (
       let next env = project' env projected_role g_type in
       match projected_role with
@@ -582,8 +641,10 @@ let make_unique_tvars ltype =
         in
         let namegen, l = rename_tvars tvar_mapping namegen l in
         (namegen, MuL (new_tvar, rec_vars, l))
-    | TVarL (tvar, rec_exprs) ->
-        (namegen, TVarL (Map.find_exn tvar_mapping tvar, rec_exprs))
+    | TVarL (tvar, rec_exprs, l') ->
+        (*_FIXME: Putting l' as the lazy continuation is probably wrong, but will
+         * also probably not cause any problems *)
+        (namegen, TVarL (Map.find_exn tvar_mapping tvar, rec_exprs, l'))
     | EndL as g -> (namegen, g)
     | ChoiceL (r, ls) ->
         let namegen, ls =
