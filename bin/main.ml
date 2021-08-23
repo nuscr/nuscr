@@ -4,6 +4,10 @@ open Nuscrlib
 open Names
 open Cmdliner
 
+let is_debug () =
+  Option.is_some (Sys.getenv "DEBUG")
+  || Option.is_some (Sys.getenv "NUSCRDEBUG")
+
 let parse_role_protocol_exn rp =
   match String.split rp ~on:'@' with
   | [role; protocol] ->
@@ -111,7 +115,8 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
       `Error
         ( false
         , "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented" )
-  | e -> `Error (false, "Reported problem:\n " ^ Exn.to_string e)
+  | e when not (is_debug ()) ->
+      `Error (false, "Reported problem:\n " ^ Exn.to_string e)
 
 let role_proto =
   let parse input =
