@@ -125,7 +125,7 @@ let rec from_ltype = function
         | Some (`Send r) -> SendL (r, conts)
         | Some (`Recv r) -> RecvL (r, conts)
         | None -> Err.violation ~here:[%here] "Choice cannot be empty" ) )
-  | Ltype.TVarL (tv, _) -> TVarL tv
+  | Ltype.TVarL (tv, _, _) -> TVarL tv
   | Ltype.MuL (tv, _, cont) -> MuL (tv, from_ltype cont)
   | Ltype.EndL -> EndL
   | Ltype.InviteCreateL _ ->

@@ -994,7 +994,7 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
           gen_end_of_protocol indent is_dynamic_role done_callback
         in
         ((env, var_name_gen), impl)
-    | TVarL (var, _) ->
+    | TVarL (var, _, _) ->
         let impl = continue_stmt var in
         ((env, var_name_gen), indent_line indent impl)
     | MuL (var, _, ltype') ->
