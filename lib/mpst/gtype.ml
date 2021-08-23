@@ -305,7 +305,9 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
           )
       | Do (protocol, _, roles, _) ->
-          (* Previously this would've been a violation *)
+          (* This case is only reachable with NestedProtocols pragma turned on
+           * *)
+          assert (Pragma.nested_protocol_enabled ()) ;
           let fst_role = RoleName.of_name @@ List.hd_exn roles in
           let role_names = List.map ~f:RoleName.of_name roles in
           let cont, free_names =
