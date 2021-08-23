@@ -260,7 +260,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           let rec lazy_cont =
             lazy
               (conv_interactions free_names
-                 ((rname, lazy_cont) :: lazy_conts)
+                 (Map.add_exn ~key:rname ~data:lazy_cont lazy_conts)
                  interactions )
           in
           let rec_vars =
@@ -284,11 +284,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             else []
           in
           let cont =
-            lazy
-              ( Lazy.force
-                  (List.Assoc.find_exn ~equal:TypeVariableName.equal
-                     lazy_conts name )
-              |> fst )
+            lazy (Lazy.force (Map.find_exn lazy_conts name) |> fst)
           in
           assert_empty rest ;
           (TVarG (name, rec_exprs, cont), Set.add free_names name)
@@ -327,7 +323,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
   let gtype, free_names =
     conv_interactions
       (Set.empty (module Names.TypeVariableName))
-      [] interactions
+      (Map.empty (module Names.TypeVariableName))
+      interactions
   in
   match Set.choose free_names with
   | Some free_name -> uerr (UnboundRecursionName free_name)
