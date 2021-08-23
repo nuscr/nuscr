@@ -364,6 +364,14 @@ let rec merge projected_role lty1 lty2 =
       ->
         merge_recv r2 (lty1 :: ltys2)
     | SilentL _, _ | _, SilentL _ -> merge_silent_prefix lty1 lty2
+    | (TVarL (tv1, es1, _) as lty1), TVarL (tv2, es2, _)
+      when [%derive.eq: TypeVariableName.t * Expr.t list] (tv1, es1)
+             (tv2, es2) ->
+        lty1
+    | TVarL (_, _, l_lazy), lty2 ->
+        merge projected_role (Lazy.force l_lazy) lty2
+    | lty1, TVarL (_, _, l_lazy) ->
+        merge projected_role lty1 (Lazy.force l_lazy)
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
     let error = show l1 ^ "\nand\n\n" ^ show l2 in

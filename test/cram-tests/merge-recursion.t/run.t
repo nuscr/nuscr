@@ -29,31 +29,14 @@ Example1 should be projectable.
 Example2 should also be projectable.
 
   $ nuscr --project A@Example2 Loop2.nuscr
-  nuscr: User error: Unable to merge: 
-         Baz() from A;
-         continue Loop;
-         
-         and
-         
-         continue Loop;
-  [1]
+  nuscr: Reported problem:
   $ nuscr --project B@Example2 Loop2.nuscr
-  nuscr: User error: Unable to merge: 
-         Baz() from A;
-         continue Loop;
-         
-         and
-         
-         continue Loop;
+  nuscr: Reported problem:
+          Lazy.Undefined
   [1]
   $ nuscr --project C@Example2 Loop2.nuscr
-  nuscr: User error: Unable to merge: 
-         Baz() from A;
-         continue Loop;
-         
-         and
-         
-         continue Loop;
+  nuscr: Reported problem:
+          Lazy.Undefined
   [1]
 
 Example3 should also be projectable.
