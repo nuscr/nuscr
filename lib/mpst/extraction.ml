@@ -77,15 +77,7 @@ let mk_protocol_map scr_module =
 
 module ProtocolCall = struct
   module T = struct
-    type t = name * name list
-
-    let compare (protocol1, roles1) (protocol2, roles2) =
-      let cmp_protocol = Name.compare protocol1 protocol2 in
-      if cmp_protocol = 0 then List.compare Name.compare roles1 roles2
-      else cmp_protocol
-
-    let sexp_of_t (protocol, roles) =
-      Sexp.List (sexp_of_name protocol :: List.map ~f:sexp_of_name roles)
+    type t = name * name list [@@deriving ord, sexp_of]
   end
 
   include T
