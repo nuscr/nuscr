@@ -368,9 +368,9 @@ let rec merge projected_role lty1 lty2 =
       when [%derive.eq: TypeVariableName.t * Expr.t list] (tv1, es1)
              (tv2, es2) ->
         lty1
-    | TVarL (_, _, l_lazy), lty2 ->
+    | TVarL (_, _, l_lazy), lty2 when Lazy.is_val l_lazy ->
         merge projected_role (Lazy.force l_lazy) lty2
-    | lty1, TVarL (_, _, l_lazy) ->
+    | lty1, TVarL (_, _, l_lazy) when Lazy.is_val l_lazy ->
         merge projected_role lty1 (Lazy.force l_lazy)
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
