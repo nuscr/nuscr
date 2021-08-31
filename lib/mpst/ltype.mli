@@ -50,27 +50,27 @@ end
 module LocalProtocolId : S
 
 (** Mapping of local protocol id to the protocol's roles and local type *)
-type local_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
+type nested_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
 
 val show : t -> string
 (** Converts a local type to a string. *)
 
-val show_local_t : local_t -> string
+val show_nested_t : nested_t -> string
 
 val project : RoleName.t -> Gtype.t -> t
 (** Project a global type into a particular role. *)
 
-val project_nested_t : Gtype.nested_t -> local_t
+val project_nested_t : Gtype.nested_t -> nested_t
 (** Generate the local protocols for a given global_t *)
 
-val ensure_unique_tvars : local_t -> local_t
+val ensure_unique_tvars : nested_t -> nested_t
 (** Ensure that all the local variables in each local protocol are globally
     unique, renaming variables to resolve conflicts *)
 
 (** Mapping from local protocol ids to their unique local protocol names *)
 type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
-val build_local_proto_name_lookup : local_t -> local_proto_name_lookup
+val build_local_proto_name_lookup : nested_t -> local_proto_name_lookup
 (** Builds a map containing the unique string representations for the unique
     local protocol ids *)
 

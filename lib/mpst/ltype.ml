@@ -51,7 +51,7 @@ module LocalProtocolId = struct
   include Comparable.Make (T)
 end
 
-type local_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
+type nested_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
 
 let roles_to_string roles =
   let str_roles = List.map ~f:RoleName.user roles in
@@ -59,17 +59,17 @@ let roles_to_string roles =
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
-  let rec show_local_type_internal indent =
+  let rec show_nested_type_internal indent =
     let current_indent = indent_here indent in
     function
     | RecvL (m, r, l) ->
         sprintf "%s%s from %s;\n%s" current_indent (show_message m)
           (RoleName.user r)
-          (show_local_type_internal indent l)
+          (show_nested_type_internal indent l)
     | SendL (m, r, l) ->
         sprintf "%s%s to %s;\n%s" current_indent (show_message m)
           (RoleName.user r)
-          (show_local_type_internal indent l)
+          (show_nested_type_internal indent l)
     | MuL (n, rec_vars, l) ->
         let rec_vars_s =
           if List.is_empty rec_vars then ""
@@ -85,7 +85,7 @@ let show =
         in
         sprintf "%srec %s %s{\n%s%s}\n" current_indent
           (TypeVariableName.user n) rec_vars_s
-          (show_local_type_internal (indent + 1) l)
+          (show_nested_type_internal (indent + 1) l)
           current_indent
     | TVarL (n, rec_exprs) ->
         let rec_exprs_s =
@@ -105,7 +105,7 @@ let show =
         let intermission = sprintf "%s} or {\n" current_indent in
         let post = sprintf "%s}\n" current_indent in
         let choices =
-          List.map ~f:(show_local_type_internal (indent + 1)) ls
+          List.map ~f:(show_nested_type_internal (indent + 1)) ls
         in
         let ls = String.concat ~sep:intermission choices in
         pre ^ ls ^ post
@@ -128,7 +128,7 @@ let show =
               (String.concat ~sep:", " str_roles)
               name_str
         in
-        let l_str = show_local_type_internal indent l in
+        let l_str = show_nested_type_internal indent l in
         invite ^ create ^ l_str
     | AcceptL (role, protocol, roles, new_roles, caller, l) ->
         let roles_str = List.map ~f:RoleName.user roles in
@@ -138,16 +138,16 @@ let show =
           (ProtocolName.user protocol)
           (Symtable.show_roles (roles_str, new_roles_str))
           (RoleName.user caller)
-          (show_local_type_internal indent l)
+          (show_nested_type_internal indent l)
     | SilentL (var, ty, l) ->
         sprintf "%s(silent) %s(%s);\n%s" current_indent
           (VariableName.user var)
           (Expr.show_payload_type ty)
-          (show_local_type_internal indent l)
+          (show_nested_type_internal indent l)
   in
-  show_local_type_internal 0
+  show_nested_type_internal 0
 
-let show_local_t (local_t : local_t) =
+let show_nested_t (nested_t : nested_t) =
   let show_local_protocol ((protocol, role), (roles, ltype)) =
     let roles_str = List.map ~f:RoleName.user roles in
     sprintf "%s@%s(%s) {\n\n%s\n}" (RoleName.user role)
@@ -155,13 +155,13 @@ let show_local_t (local_t : local_t) =
       (Symtable.show_roles (roles_str, []))
       (show ltype)
   in
-  Map.to_alist local_t
+  Map.to_alist nested_t
   |> List.map ~f:show_local_protocol
   |> String.concat ~sep:"\n\n"
 
 type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
-let build_local_proto_name_lookup (local_t : local_t) :
+let build_local_proto_name_lookup (nested_t : nested_t) :
     local_proto_name_lookup =
   let gen_unique_name ~key:(protocol, role) ~data:_
       (local_protocol_names, name_gen) =
@@ -179,7 +179,7 @@ let build_local_proto_name_lookup (local_t : local_t) :
   let local_protocol_names, _ =
     Map.fold
       ~init:(Map.empty (module LocalProtocolId), Namegen.create ())
-      ~f:gen_unique_name local_t
+      ~f:gen_unique_name nested_t
   in
   local_protocol_names
 
@@ -483,7 +483,7 @@ let project projected_role g =
     (Set.empty (module TypeVariableName))
     projected_role g
 
-let project_nested_t (nested_t : nested_t) =
+let project_nested_t (nested_t : Gtype.nested_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
     let ltype =
@@ -550,5 +550,6 @@ let make_unique_tvars ltype =
   in
   ltype
 
-let ensure_unique_tvars local_t : local_t =
-  Map.map local_t ~f:(fun (roles, ltype) -> (roles, make_unique_tvars ltype))
+let ensure_unique_tvars nested_t : nested_t =
+  Map.map nested_t ~f:(fun (roles, ltype) ->
+      (roles, make_unique_tvars ltype) )

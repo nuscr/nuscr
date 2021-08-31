@@ -556,7 +556,8 @@ module ProtocolSetupEnv : sig
 
   val gen_setup_invite_struct : t -> ProtocolName.t -> string
 
-  val create : local_proto_name_lookup -> local_t -> Gtype.nested_t -> t
+  val create :
+    local_proto_name_lookup -> Ltype.nested_t -> Gtype.nested_t -> t
 end = struct
   type role_chan_field =
     InviteChannelStructName.t

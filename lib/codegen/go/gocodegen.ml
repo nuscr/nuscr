@@ -1192,8 +1192,8 @@ let show_codegen_result
 
 (** Generate all the elements of the implementation of a Scribble module and
     the entry point protocol *)
-let gen_code root_dir gen_protocol (global_t : nested_t) (local_t : local_t)
-    =
+let gen_code root_dir gen_protocol (global_t : Gtype.nested_t)
+    (local_t : Ltype.nested_t) =
   let protocol_lookup = build_local_proto_name_lookup local_t in
   let protocol_setup_env =
     ProtocolSetupEnv.create protocol_lookup local_t global_t

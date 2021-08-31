@@ -23,7 +23,7 @@ val gen_code :
      RootDirName.t
   -> ProtocolName.t
   -> Gtype.nested_t
-  -> Ltype.local_t
+  -> Ltype.nested_t
   -> codegen_result
 (** Function which generates the Go implementation for the entry-point
     protocol and all the protocols in the Scribble module*)

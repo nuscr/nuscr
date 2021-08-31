@@ -87,7 +87,7 @@ module Toplevel = struct
     let nested_t = Gtype.nested_t_of_module ast in
     show ~f:Gtype.show_nested_t ~sep:"\n---------\n\n" nested_t ;
     let local_t = Ltype.project_nested_t nested_t in
-    show ~f:Ltype.show_local_t ~sep:"\n" local_t ;
+    show ~f:Ltype.show_nested_t ~sep:"\n" local_t ;
     ()
 
   let validate_exn (ast : scr_module) : unit =
