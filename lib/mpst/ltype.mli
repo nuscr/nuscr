@@ -34,7 +34,8 @@ type t =
       (** Used with refinement types to indicate knowledge obtained via a
           global protocol. *)
 
-module type S = sig
+(** Unique id identifying a local protocol *)
+module LocalProtocolId : sig
   type t [@@deriving show {with_path= false}, sexp_of]
 
   val create : ProtocolName.t -> RoleName.t -> t
@@ -45,9 +46,6 @@ module type S = sig
 
   include Comparable.S with type t := t
 end
-
-(** Unique id identifying a local protocol *)
-module LocalProtocolId : S
 
 (** Mapping of local protocol id to the protocol's roles and local type *)
 type nested_t = (RoleName.t list * t) Map.M(LocalProtocolId).t

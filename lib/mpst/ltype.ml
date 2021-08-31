@@ -23,18 +23,6 @@ type t =
   | SilentL of VariableName.t * Expr.payload_type * t
 [@@deriving sexp_of, eq]
 
-module type S = sig
-  type t [@@deriving show {with_path= false}, sexp_of]
-
-  val create : ProtocolName.t -> RoleName.t -> t
-
-  val get_role : t -> RoleName.t
-
-  val get_protocol : t -> ProtocolName.t
-
-  include Comparable.S with type t := t
-end
-
 module LocalProtocolId = struct
   module T = struct
     type t = ProtocolName.t * RoleName.t
