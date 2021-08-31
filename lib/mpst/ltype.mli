@@ -60,7 +60,7 @@ val show_local_t : local_t -> string
 val project : RoleName.t -> Gtype.t -> t
 (** Project a global type into a particular role. *)
 
-val project_global_t : Gtype.global_t -> local_t
+val project_nested_t : Gtype.nested_t -> local_t
 (** Generate the local protocols for a given global_t *)
 
 val ensure_unique_tvars : local_t -> local_t

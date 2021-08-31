@@ -556,7 +556,7 @@ module ProtocolSetupEnv : sig
 
   val gen_setup_invite_struct : t -> ProtocolName.t -> string
 
-  val create : local_proto_name_lookup -> local_t -> global_t -> t
+  val create : local_proto_name_lookup -> local_t -> Gtype.nested_t -> t
 end = struct
   type role_chan_field =
     InviteChannelStructName.t
@@ -674,14 +674,13 @@ end = struct
     ; setup_functions= setup_env }
 
   let create protocol_lookup local_t global_t =
-    let add_protocol_setup ~key:protocol ~data:(all_roles, _, _) setup_env =
-      let roles, _ = all_roles in
+    let add_protocol_setup ~key:protocol ~data:{static_roles; _} setup_env =
       let setup_env =
-        new_protocol_setup_channel_struct setup_env protocol roles
+        new_protocol_setup_channel_struct setup_env protocol static_roles
       in
       let setup_env =
         new_protocol_setup_invite_struct setup_env protocol_lookup protocol
-          roles
+          static_roles
       in
       new_protocol_setup_function setup_env protocol
     in
@@ -701,7 +700,7 @@ module ProtocolSetupGen : sig
     -> t
 
   val generate_setup_channels :
-       global_t
+       Gtype.nested_t
     -> local_proto_name_lookup
     -> t
     -> ImportsEnv.t
@@ -1053,9 +1052,9 @@ end = struct
         List.fold gtypes ~init:env
           ~f:(generate_channel_vars global_t protocol_lookup)
     | CallG (caller, protocol, roles, gtype) ->
-        let (new_roles, _), _, _ = Map.find_exn global_t protocol in
+        let {static_roles; _} = Map.find_exn global_t protocol in
         let env =
-          generate_invitation_vars env caller roles new_roles protocol
+          generate_invitation_vars env caller roles static_roles protocol
             protocol_lookup
         in
         generate_channel_vars global_t protocol_lookup env gtype
@@ -1121,7 +1120,7 @@ end = struct
 
   let generate_setup_channels global_t protocol_lookup env =
     let protocol, _, _, _ = env in
-    let _, _, gtype = Map.find_exn global_t protocol in
+    let {gtype; _} = Map.find_exn global_t protocol in
     let ( protocol
         , imports
         , var_name_gen

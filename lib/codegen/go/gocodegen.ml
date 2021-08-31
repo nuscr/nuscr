@@ -19,7 +19,7 @@ open Fsutil
       and have the same payload whenever they are used within the same
       protocol
     - payload field names must be unique when capitalised *)
-let ensure_unique_identifiers (global_t : global_t) =
+let ensure_unique_identifiers (global_t : Gtype.nested_t) =
   let add_unique_protocol_name protocols protocol_name =
     let name_str = protocol_pkg_name protocol_name in
     if Set.mem protocols name_str then
@@ -78,11 +78,12 @@ let ensure_unique_identifiers (global_t : global_t) =
           validate_protocol_msgs messages g
     in
     let protocol_names = add_unique_protocol_name protocol_names key in
-    let (roles, new_roles), _, gtype = data in
+    let {static_roles; dynamic_roles; gtype; _} = data in
     let _ =
       List.fold
         ~init:(Set.empty (module String))
-        ~f:add_unique_role_name (roles @ new_roles)
+        ~f:add_unique_role_name
+        (static_roles @ dynamic_roles)
     in
     let _ = validate_protocol_msgs (Map.empty (module String)) gtype in
     protocol_names
@@ -951,8 +952,8 @@ let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
         let impl = recursion_impl loop_label loop in
         ((env, var_name_gen), impl)
     | InviteCreateL (invite_roles, _, protocol', ltype') ->
-        let (new_proto_roles, _), _, _ = Map.find_exn global_t protocol' in
-        let acting_roles = List.zip_exn invite_roles new_proto_roles in
+        let {static_roles; _} = Map.find_exn global_t protocol' in
+        let acting_roles = List.zip_exn invite_roles static_roles in
         let env, invite_channels =
           List.fold_map ~init:env
             ~f:(gen_send_invite_chan_names protocol_lookup protocol')
@@ -1191,7 +1192,7 @@ let show_codegen_result
 
 (** Generate all the elements of the implementation of a Scribble module and
     the entry point protocol *)
-let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
+let gen_code root_dir gen_protocol (global_t : nested_t) (local_t : local_t)
     =
   let protocol_lookup = build_local_proto_name_lookup local_t in
   let protocol_setup_env =
@@ -1201,11 +1202,11 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
   let messages_env = MessagesEnv.create gen_protocol in
   let messages_env =
     Map.fold global_t ~init:messages_env
-      ~f:(fun ~key:_ ~data:(_, _, gtype) msgs_env ->
+      ~f:(fun ~key:_ ~data:{gtype; _} msgs_env ->
         gen_message_label_enums msgs_env gtype )
   in
   let gen_protocol_role_implementation ~key:protocol ~data result =
-    let (roles, new_roles), _, _ = data in
+    let {static_roles; dynamic_roles; _} = data in
     let protocol_env =
       { channel_imports= ImportsEnv.create root_dir
       ; invite_imports= ImportsEnv.create root_dir
@@ -1224,7 +1225,7 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
               root_dir protocol_env
           in
           let is_dynamic_role =
-            List.mem new_roles role ~equal:RoleName.equal
+            List.mem dynamic_roles role ~equal:RoleName.equal
           in
           let (env, _), protocol_impl =
             gen_role_implementation messages_env protocol_setup_env env
@@ -1234,9 +1235,6 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
           let env, impl_file =
             gen_role_impl_file env protocol_impl is_dynamic_role role
               protocol local_protocol
-          in
-          let is_dynamic_role =
-            List.mem new_roles role ~equal:RoleName.equal
           in
           let callbacks_file =
             LTypeCodeGenEnv.gen_callbacks_file env local_protocol
@@ -1251,7 +1249,7 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
           in
           let protocol_env = LTypeCodeGenEnv.get_protocol_env env in
           ((result, protocol_env), env) )
-        (roles @ new_roles)
+        (static_roles @ dynamic_roles)
     in
     let pkg = PackageName.of_string @@ protocol_pkg_name protocol in
     let invite_imports, channels_pkg =
@@ -1277,12 +1275,13 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
     let invite_channels =
       Map.add_exn result.invite_channels ~key:protocol ~data:invitations_file
     in
-    let results_file = gen_results_file pkg roles in
+    let results_file = gen_results_file pkg static_roles in
     let results =
       Map.add_exn result.results ~key:protocol ~data:results_file
     in
     let protocol_setup_gen =
-      ProtocolSetupGen.create root_dir gen_protocol (roles @ new_roles)
+      ProtocolSetupGen.create root_dir gen_protocol
+        (static_roles @ dynamic_roles)
         protocol protocol_lookup
     in
     let setup_imports, role_chan_vars, invite_chan_vars, setup_channels_impl
@@ -1294,15 +1293,16 @@ let gen_code root_dir gen_protocol (global_t : global_t) (local_t : local_t)
     let setup_file =
       gen_setup_file protocol_setup_env setup_imports indent
         setup_channels_impl role_chan_vars invite_chan_vars protocol
-        protocol_lookup (roles, new_roles)
+        protocol_lookup
+        (static_roles, dynamic_roles)
     in
     let protocol_setup =
       Map.add_exn result.protocol_setup ~key:protocol ~data:setup_file
     in
     let entry_point =
       if ProtocolName.equal gen_protocol protocol then
-        gen_entry_point_file protocol_lookup protocol roles setup_imports
-          role_chan_vars invite_chan_vars setup_channels_impl
+        gen_entry_point_file protocol_lookup protocol static_roles
+          setup_imports role_chan_vars invite_chan_vars setup_channels_impl
       else result.entry_point
     in
     { result with
@@ -1423,9 +1423,9 @@ let generate_go_code ast ~protocol ~out_dir ~go_path =
     RootDirName.of_string @@ Printf.sprintf "%s/%s" out_dir protocol_pkg
   in
   let gen_code () =
-    let global_t = global_t_of_module ast in
+    let global_t = nested_t_of_module ast in
     ensure_unique_identifiers global_t ;
-    let local_t = Ltype.project_global_t global_t in
+    let local_t = Ltype.project_nested_t global_t in
     let local_t = Ltype.ensure_unique_tvars local_t in
     gen_code root_dir protocol global_t local_t
   in

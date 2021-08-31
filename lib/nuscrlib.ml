@@ -84,9 +84,9 @@ module Toplevel = struct
     Mpst.Extraction.validate_calls_in_protocols ast ;
     let ast = Mpst.Extraction.rename_nested_protocols ast in
     show ~f:show_scr_module ~sep:"\n---------\n\n" ast ;
-    let global_t = Gtype.global_t_of_module ast in
-    show ~f:Gtype.show_global_t ~sep:"\n---------\n\n" global_t ;
-    let local_t = Ltype.project_global_t global_t in
+    let nested_t = Gtype.nested_t_of_module ast in
+    show ~f:Gtype.show_nested_t ~sep:"\n---------\n\n" nested_t ;
+    let local_t = Ltype.project_nested_t nested_t in
     show ~f:Ltype.show_local_t ~sep:"\n" local_t ;
     ()
 
@@ -109,11 +109,15 @@ module Toplevel = struct
 
   let enumerate_nested_protocols (ast : scr_module) :
       (ProtocolName.t * RoleName.t) list =
-    let global_t = Gtype.global_t_of_module ast in
+    let nested_t = Gtype.nested_t_of_module ast in
     let enumerated =
-      Map.mapi global_t
-        ~f:(fun ~key:protocol ~data:((roles, roles'), _, _) ->
-          List.map (roles @ roles') ~f:(fun role -> (protocol, role)) )
+      Map.mapi nested_t
+        ~f:(fun
+             ~key:protocol
+             ~data:{Gtype.static_roles; Gtype.dynamic_roles; _}
+           ->
+          List.map (static_roles @ dynamic_roles) ~f:(fun role ->
+              (protocol, role) ) )
     in
     List.concat @@ Map.data enumerated
 
@@ -140,8 +144,8 @@ module Toplevel = struct
     get_global_type ast ~protocol |> Ltype.project role
 
   let project_nested_protocol ast ~protocol ~role : Ltype.t =
-    let global_t = Gtype.global_t_of_module ast in
-    let local_t = Ltype.project_global_t global_t in
+    let nested_t = Gtype.nested_t_of_module ast in
+    let local_t = Ltype.project_nested_t nested_t in
     let local_protocol_id = Ltype.LocalProtocolId.create protocol role in
     let _, l_type = Map.find_exn local_t local_protocol_id in
     l_type

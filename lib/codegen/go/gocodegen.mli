@@ -22,13 +22,13 @@ val show_codegen_result :
 val gen_code :
      RootDirName.t
   -> ProtocolName.t
-  -> Gtype.global_t
+  -> Gtype.nested_t
   -> Ltype.local_t
   -> codegen_result
 (** Function which generates the Go implementation for the entry-point
     protocol and all the protocols in the Scribble module*)
 
-val ensure_unique_identifiers : Gtype.global_t -> unit
+val ensure_unique_identifiers : Gtype.nested_t -> unit
 (** Function which verifies that the Scribble module satisfies the
     constraints needed in order to be able to generate implementation. Some
     of these constraints may be too restrictive right now, but they should be

@@ -123,9 +123,13 @@ type t =
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 [@@deriving sexp_of]
 
-type global_t =
-  ((RoleName.t list * RoleName.t list) * ProtocolName.t list * t)
-  Map.M(ProtocolName).t
+type nested_global_info =
+  { static_roles: RoleName.t list
+  ; dynamic_roles: RoleName.t list
+  ; nested_protocol_names: ProtocolName.t list
+  ; gtype: t }
+
+type nested_t = nested_global_info Map.M(ProtocolName).t
 
 let show =
   let indent_here indent = String.make (indent * 2) ' ' in
@@ -190,19 +194,21 @@ let call_label caller protocol roles =
   in
   LabelName.create label_str (ProtocolName.where protocol)
 
-let show_global_t (g : global_t) =
+let show_nested_t (g : nested_t) =
   let show_aux ~key ~data acc =
-    let (roles, new_roles), nested_protocols, g_ = data in
-    let roles_str = List.map ~f:RoleName.user roles in
-    let new_roles_str = List.map ~f:RoleName.user new_roles in
-    let str_proto_names = List.map ~f:ProtocolName.user nested_protocols in
+    let {static_roles; dynamic_roles; nested_protocol_names; gtype} = data in
+    let roles_str = List.map ~f:RoleName.user static_roles in
+    let new_roles_str = List.map ~f:RoleName.user dynamic_roles in
+    let str_proto_names =
+      List.map ~f:ProtocolName.user nested_protocol_names
+    in
     let names_str = String.concat ~sep:", " str_proto_names in
     let proto_str =
       sprintf "protocol %s(%s) {\n\nNested Protocols: %s\n\n%s\n}"
         (ProtocolName.user key)
         (Symtable.show_roles (roles_str, new_roles_str))
         (if String.length names_str = 0 then "-" else names_str)
-        (show g_)
+        (show gtype)
     in
     proto_str :: acc
   in
@@ -385,14 +391,14 @@ let rec normalise = function
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
 
-let normalise_global_t (global_t : global_t) =
+let normalise_nested_t (nested_t : nested_t) =
   let normalise_protocol ~key ~data acc =
-    let all_roles, nested_protocols, g = data in
-    Map.add_exn acc ~key ~data:(all_roles, nested_protocols, normalise g)
+    let {gtype; _} = data in
+    Map.add_exn acc ~key ~data:{data with gtype= normalise gtype}
   in
   Map.fold
     ~init:(Map.empty (module ProtocolName))
-    ~f:normalise_protocol global_t
+    ~f:normalise_protocol nested_t
 
 let validate_refinements_exn t =
   let env =
@@ -560,7 +566,7 @@ let validate_refinements_exn t =
   in
   aux env t
 
-let add_missing_payload_field_names global_t =
+let add_missing_payload_field_names nested_t =
   let add_missing_names namegen = function
     | PValue (None, n1) ->
         let payload_name_str =
@@ -600,10 +606,10 @@ let add_missing_payload_field_names global_t =
         let g = add_missing_payload_names g in
         CallG (caller, proto_name, roles, g)
   in
-  Map.map global_t ~f:(fun (roles, nested_protocols, gtype) ->
-      (roles, nested_protocols, add_missing_payload_names gtype) )
+  Map.map nested_t ~f:(fun ({gtype; _} as nested) ->
+      {nested with gtype= add_missing_payload_names gtype} )
 
-let global_t_of_module (scr_module : Syntax.scr_module) =
+let nested_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in
   let scr_module = Extraction.rename_nested_protocols scr_module in
   let split_role_names (roles, new_roles) =
@@ -617,20 +623,22 @@ let global_t_of_module (scr_module : Syntax.scr_module) =
       List.fold ~init:protocols ~f:add_protocol nested_protocols
     in
     let proto_name = ProtocolName.of_name protocol.value.name in
-    let g = of_protocol protocol in
-    let roles = split_role_names protocol.value.split_roles in
+    let gtype = of_protocol protocol in
+    let static_roles, dynamic_roles =
+      split_role_names protocol.value.split_roles
+    in
     let nested_protocol_names =
       List.map
         ~f:(fun {Loc.value= {name; _}; _} -> ProtocolName.of_name name)
         nested_protocols
     in
     Map.add_exn protocols ~key:proto_name
-      ~data:(roles, nested_protocol_names, g)
+      ~data:{static_roles; dynamic_roles; nested_protocol_names; gtype}
   in
   let all_protocols = scr_module.protocols @ scr_module.nested_protocols in
-  let global_t =
+  let nested_t =
     List.fold
       ~init:(Map.empty (module ProtocolName))
       ~f:add_protocol all_protocols
   in
-  normalise_global_t @@ add_missing_payload_field_names global_t
+  normalise_nested_t @@ add_missing_payload_field_names nested_t

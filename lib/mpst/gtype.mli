@@ -46,14 +46,19 @@ type t =
 (** Mapping of protocol name to the roles ('static' participants, dynamic
     participants) participating in the protocol, the names of the nested
     protocols defined inside it and its global type*)
-type global_t =
-  ((RoleName.t list * RoleName.t list) * ProtocolName.t list * t)
-  Map.M(ProtocolName).t
+
+type nested_global_info =
+  { static_roles: RoleName.t list
+  ; dynamic_roles: RoleName.t list
+  ; nested_protocol_names: ProtocolName.t list
+  ; gtype: t }
+
+type nested_t = nested_global_info Map.M(ProtocolName).t
 
 val show : t -> string
 (** Provides a textual representation of a global type *)
 
-val show_global_t : global_t -> string
+val show_nested_t : nested_t -> string
 (** Provides a textual representation of a global type with nested protocols *)
 
 val call_label :
@@ -65,15 +70,15 @@ val of_protocol : Syntax.global_protocol -> t
 (** Turn a raw protocol (from the parser) into a global type, optional
     argument [refined] determines whether refinement types are enabled. *)
 
-val global_t_of_module : Syntax.scr_module -> global_t
-(** Turn scribble module (from the parser) into a global type *)
+val nested_t_of_module : Syntax.scr_module -> nested_t
+(** Turn scribble module (from the parser) into a nested global type *)
 
 val normalise : t -> t
 (** Normalise a global type. This mainly collapses nested choice on the same
     participant and unfolds fixpoints *)
 
-val normalise_global_t : global_t -> global_t
-(** Apply normalisation to all protocols in global_t *)
+val normalise_nested_t : nested_t -> nested_t
+(** Apply normalisation to all protocols in nested_t *)
 
 val validate_refinements_exn : t -> unit
 (** Validate refinements in the given global type, requires [RefinementTypes]

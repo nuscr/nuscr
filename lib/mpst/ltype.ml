@@ -451,20 +451,17 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
           projected_role g_type
       in
       let penv, _, _ = env in
-      let (protocol_roles, new_protocol_roles), _, _ =
-        Map.find_exn penv protocol
-      in
+      let {static_roles; dynamic_roles; _} = Map.find_exn penv protocol in
       let gen_acceptl next =
         let role_elem =
           List.findi roles ~f:(fun _ r' -> RoleName.equal projected_role r')
         in
         let idx, _ = Option.value_exn role_elem in
-        let role_in_proto = List.nth_exn protocol_roles idx in
-        AcceptL
-          (role_in_proto, protocol, roles, new_protocol_roles, caller, next)
+        let role_in_proto = List.nth_exn static_roles idx in
+        AcceptL (role_in_proto, protocol, roles, dynamic_roles, caller, next)
       in
       let gen_invitecreatel next =
-        InviteCreateL (roles, new_protocol_roles, protocol, next)
+        InviteCreateL (roles, dynamic_roles, protocol, next)
       in
       let is_caller = RoleName.equal caller projected_role in
       let is_participant =
@@ -486,12 +483,12 @@ let project projected_role g =
     (Set.empty (module TypeVariableName))
     projected_role g
 
-let project_global_t (global_t : global_t) =
+let project_nested_t (nested_t : nested_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
     let ltype =
       project'
-        ( global_t
+        ( nested_t
         , Map.empty (module TypeVariableName)
         , Set.empty (module VariableName) )
         (Set.empty (module TypeVariableName))
@@ -505,12 +502,12 @@ let project_global_t (global_t : global_t) =
   Map.fold
     ~init:(Map.empty (module LocalProtocolId))
     ~f:(fun ~key ~data local_protocols ->
-      let (roles, new_roles), _, gtype = data in
-      let all_roles = roles @ new_roles in
+      let {static_roles; dynamic_roles; gtype; _} = data in
+      let all_roles = static_roles @ dynamic_roles in
       List.fold ~init:local_protocols
         ~f:(project_role key all_roles gtype)
         all_roles )
-    global_t
+    nested_t
 
 let make_unique_tvars ltype =
   (* TODO: Handle expressions in recursion and recursive variables *)

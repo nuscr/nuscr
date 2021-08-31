@@ -192,7 +192,7 @@ module ProtocolSetupEnv : sig
   val gen_setup_invite_struct : t -> ProtocolName.t -> string
   (** Generate setup invitation struct declaration for the given protocol *)
 
-  val create : local_proto_name_lookup -> local_t -> global_t -> t
+  val create : local_proto_name_lookup -> local_t -> Gtype.nested_t -> t
   (** Create new environment with all the information about the structs *)
 end
 
@@ -210,7 +210,7 @@ module ProtocolSetupGen : sig
     -> t
 
   val generate_setup_channels :
-       global_t
+       Gtype.nested_t
     -> local_proto_name_lookup
     -> t
     -> ImportsEnv.t
