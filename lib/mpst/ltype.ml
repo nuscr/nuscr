@@ -304,9 +304,22 @@ let rec check_consistent_gchoice choice_r possible_roles = function
         ( "Normalised global type always has a message in choice branches\n"
         ^ Gtype.show g )
 
-(* env records information for refinement types *)
-(* unguarded_tv records unguarded type variables *)
-let rec project' env unguarded_tv (projected_role : RoleName.t) =
+(* Various infomation needed during projection *)
+type project_env =
+  { penv: Gtype.nested_t (* Info for nested protocols *)
+  ; rvenv: (bool * rec_var) list Map.M(TypeVariableName).t
+        (* Info for refinement variables *)
+  ; silent_vars: Set.M(VariableName).t
+        (* Info for silent variables (refinement types ) *)
+  ; unguarded_tv: Set.M(TypeVariableName).t (* Unguarded type variables *) }
+
+let new_project_env =
+  { penv= Map.empty (module ProtocolName)
+  ; rvenv= Map.empty (module TypeVariableName)
+  ; silent_vars= Set.empty (module VariableName)
+  ; unguarded_tv= Set.empty (module TypeVariableName) }
+
+let rec project' env (projected_role : RoleName.t) =
   let check_expr silent_vars e =
     let free_vars = Expr.free_var e in
     let unknown_vars = Set.inter free_vars silent_vars in
@@ -316,11 +329,11 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
   in
   function
   | EndG -> EndL
-  | TVarG (name, _, _) when Set.mem unguarded_tv name ->
+  | TVarG (name, _, _) when Set.mem env.unguarded_tv name ->
       (* Type variable unguarded *)
       EndL
   | TVarG (name, rec_exprs, _) ->
-      let _, rvenv, svars = env in
+      let {rvenv; silent_vars; _} = env in
       let rec_expr_filter = Map.find_exn rvenv name in
       let rec_exprs =
         List.map2_exn
@@ -328,7 +341,7 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
           rec_expr_filter rec_exprs
       in
       let rec_exprs = List.filter_opt rec_exprs in
-      List.iter ~f:(check_expr svars) rec_exprs ;
+      List.iter ~f:(check_expr silent_vars) rec_exprs ;
       TVarL (name, rec_exprs)
   | MuG (name, rec_exprs, g_type) -> (
       let rec_exprs =
@@ -338,30 +351,42 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
             , rec_expr ) )
           rec_exprs
       in
-      let penv, rvenv, svars = env in
-      let svars =
-        List.fold ~init:svars
+      let {rvenv; silent_vars; unguarded_tv; _} = env in
+      let silent_vars =
+        List.fold ~init:silent_vars
           ~f:(fun acc (is_silent, {rv_name; _}) ->
             if is_silent then Set.add acc rv_name else acc )
           rec_exprs
       in
       (* FIXME: This breaks when there are shadowed type variables *)
-      let env = (penv, Map.add_exn ~key:name ~data:rec_exprs rvenv, svars) in
-      let unguarded_tv = Set.add unguarded_tv name in
-      match project' env unguarded_tv projected_role g_type with
+      let env =
+        { env with
+          rvenv= Map.add_exn ~key:name ~data:rec_exprs rvenv
+        ; silent_vars
+        ; unguarded_tv= Set.add unguarded_tv name }
+      in
+      match project' env projected_role g_type with
       | TVarL _ | EndL -> EndL
       | lType -> MuL (name, rec_exprs, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-      let next env unguarded_tv =
-        project' env unguarded_tv projected_role g_type
-      in
+      let next env = project' env projected_role g_type in
       match projected_role with
       (* When projected role is involved in an interaction, reset unguarded_tv
        * *)
       | _ when RoleName.equal projected_role send_r ->
-          SendL (m, recv_r, next env (Set.empty (module TypeVariableName)))
+          SendL
+            ( m
+            , recv_r
+            , next
+                {env with unguarded_tv= Set.empty (module TypeVariableName)}
+            )
       | _ when RoleName.equal projected_role recv_r ->
-          RecvL (m, send_r, next env (Set.empty (module TypeVariableName)))
+          RecvL
+            ( m
+            , send_r
+            , next
+                {env with unguarded_tv= Set.empty (module TypeVariableName)}
+            )
       (* When projected role is not involved in an interaction, do not reset
        * unguarded_tv *)
       | _ ->
@@ -374,16 +399,16 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
           if
             List.is_empty named_payloads
             || (not @@ Pragma.refinement_type_enabled ())
-          then next env unguarded_tv
+          then next env
           else
-            let penv, rvenv, svars = env in
-            let svars =
-              List.fold ~init:svars
+            let {silent_vars; _} = env in
+            let silent_vars =
+              List.fold ~init:silent_vars
                 ~f:(fun acc (var, _) -> Set.add acc var)
                 named_payloads
             in
-            let env = (penv, rvenv, svars) in
-            List.fold ~init:(next env unguarded_tv)
+            let env = {env with silent_vars} in
+            List.fold ~init:(next env)
               ~f:(fun acc (var, t) -> SilentL (var, t, acc))
               named_payloads )
   | ChoiceG (choice_r, g_types) -> (
@@ -417,9 +442,7 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
           g_types
       in
       let recv_r = Set.choose_exn possible_roles in
-      let l_types =
-        List.map ~f:(project' env unguarded_tv projected_role) g_types
-      in
+      let l_types = List.map ~f:(project' env projected_role) g_types in
       match projected_role with
       | _
         when RoleName.equal projected_role choice_r
@@ -434,11 +457,11 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
   | CallG (caller, protocol, roles, g_type) -> (
       (* Reset unguarded_tv *)
       let next =
-        project' env
-          (Set.empty (module TypeVariableName))
+        project'
+          {env with unguarded_tv= Set.empty (module TypeVariableName)}
           projected_role g_type
       in
-      let penv, _, _ = env in
+      let {penv; _} = env in
       let {static_roles; dynamic_roles; _} = Map.find_exn penv protocol in
       let gen_acceptl next =
         let role_elem =
@@ -463,24 +486,13 @@ let rec project' env unguarded_tv (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
-let project projected_role g =
-  project'
-    ( Map.empty (module ProtocolName)
-    , Map.empty (module TypeVariableName)
-    , Set.empty (module VariableName) )
-    (Set.empty (module TypeVariableName))
-    projected_role g
+let project projected_role g = project' new_project_env projected_role g
 
 let project_nested_t (nested_t : Gtype.nested_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
     let ltype =
-      project'
-        ( nested_t
-        , Map.empty (module TypeVariableName)
-        , Set.empty (module VariableName) )
-        (Set.empty (module TypeVariableName))
-        projected_role gtype
+      project' {new_project_env with penv= nested_t} projected_role gtype
     in
     (* TODO: Fix make unique tvars *)
     Map.add_exn local_protocols
