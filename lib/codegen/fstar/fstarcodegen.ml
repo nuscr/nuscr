@@ -625,7 +625,7 @@ let generate_preamble buffer =
     ~f:(fun m -> Buffer.add_string buffer (Printf.sprintf "open %s\n" m))
     open_modules
 
-let gen_code (start, g, rec_var_info) =
+let gen_code (start, (g, rec_var_info)) =
   let buffer = Buffer.create 4096 in
   let var_map = compute_var_map start g rec_var_info in
   let () = generate_preamble buffer in

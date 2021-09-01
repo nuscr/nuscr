@@ -30,21 +30,21 @@ module G :
      and type E.label = action
      and type E.t = state * action * state
 
-(** Type of the EFSM *)
-type t = G.t
+(** Information regarding recursion variables *)
+type rec_var_info = (bool * Gtype.rec_var) list Map.M(Int).t
+
+(** Type of the EFSM, rec_var_info is only populated when refinement types
+    are enabled*)
+type t = G.t * rec_var_info
 
 val of_local_type : Ltype.t -> state * t
 (** Construct an EFSM from a local type *)
-
-type rec_var_info = (bool * Gtype.rec_var) list Map.M(Int).t
-
-val of_local_type_with_rec_var_info : Ltype.t -> state * t * rec_var_info
 
 val show : t -> string
 (** Produce a DOT representation of EFSM, which can be visualised by Graphviz *)
 
 val state_action_type :
-     t
+     G.t
   -> state
   -> [`Send of RoleName.t | `Recv of RoleName.t | `Mixed | `Terminal]
 (** Returns whether a state in the EFSM is a sending state (with only [SendA]
@@ -52,6 +52,6 @@ val state_action_type :
     actions), a mixed state (with a mixture of [SendA] and [RecvA] actions),
     or a terminal state (without outgoing actions) *)
 
-val find_all_payloads : t -> Set.M(PayloadTypeName).t
+val find_all_payloads : G.t -> Set.M(PayloadTypeName).t
 
-val find_all_roles : t -> Set.M(RoleName).t
+val find_all_roles : G.t -> Set.M(RoleName).t

@@ -48,8 +48,6 @@ let show_action = function
         (show_refinement_actions_annot rannot)
   | Epsilon -> "ε"
 
-type rec_var_info = (bool * Gtype.rec_var) list Map.M(Int).t
-
 module Label = struct
   module M = struct
     type t = action
@@ -67,33 +65,43 @@ end
 
 module G = Persistent.Digraph.ConcreteLabeled (Int) (Label)
 
-type t = G.t
+type rec_var_info = (bool * Gtype.rec_var) list Map.M(Int).t
+
+let show_rec_vars rec_vars =
+  let show_rec_var (is_silent, rec_var) =
+    let silent = if is_silent then "!silent " else "" in
+    sprintf "%s%s" silent (Gtype.show_rec_var rec_var)
+  in
+  String.concat ~sep:", " (List.map ~f:show_rec_var rec_vars)
+
+type t = G.t * rec_var_info
 
 type state = int
 
-module Display = struct
-  include G
-
-  let vertex_name = Int.to_string
-
-  let graph_attributes _ = []
-
-  let default_vertex_attributes _ = []
-
-  let vertex_attributes _ = []
-
-  let default_edge_attributes _ = []
-
-  let edge_attributes (_, a, _) = [`Label (show_action a)]
-
-  let get_subgraph _ = None
-end
-
-module DotOutput = Graphviz.Dot (Display)
-
-let show g =
+let show (g, rec_var_info) =
   let buffer = Buffer.create 4196 in
   let formatter = Caml.Format.formatter_of_buffer buffer in
+  let module Display = struct
+    include G
+
+    let vertex_name = Int.to_string
+
+    let graph_attributes _ = []
+
+    let default_vertex_attributes _ = []
+
+    let vertex_attributes st =
+      match Map.find rec_var_info st with
+      | Some [] | None -> []
+      | Some rec_vars -> [`Label (show_rec_vars rec_vars)]
+
+    let default_edge_attributes _ = []
+
+    let edge_attributes (_, a, _) = [`Label (show_action a)]
+
+    let get_subgraph _ = None
+  end in
+  let module DotOutput = Graphviz.Dot (Display) in
   DotOutput.fprint_graph formatter g ;
   Caml.Format.pp_print_flush formatter () ;
   Buffer.contents buffer
@@ -237,7 +245,7 @@ let merge_state ~from_state ~to_state g =
   let g = G.remove_vertex g from_state in
   g
 
-let of_local_type_with_rec_var_info lty =
+let of_local_type lty =
   let count = ref 0 in
   let fresh () =
     let n = !count in
@@ -314,8 +322,8 @@ let of_local_type_with_rec_var_info lty =
   let env, start = conv_ltype_aux init_conv_env lty in
   let {g; rec_var_info; _} = env in
   if not @@ List.is_empty env.states_to_merge then
-    let rec aux (start, g, rec_var_info) = function
-      | [] -> (start, g, rec_var_info)
+    let rec aux (start, (g, rec_var_info)) = function
+      | [] -> (start, (g, rec_var_info))
       | (s1, s2) :: rest ->
           let to_state = Int.min s1 s2 in
           let from_state = Int.max s1 s2 in
@@ -342,14 +350,10 @@ let of_local_type_with_rec_var_info lty =
                           "Multiple recursions with variables in choices" )
                   rec_var_info to_state
           in
-          aux (start, g, rec_var_info) rest
+          aux (start, (g, rec_var_info)) rest
     in
-    aux (start, g, rec_var_info) env.states_to_merge
-  else (start, g, rec_var_info)
-
-let of_local_type ltype =
-  let start, g, _ = of_local_type_with_rec_var_info ltype in
-  (start, g)
+    aux (start, (g, rec_var_info)) env.states_to_merge
+  else (start, (g, rec_var_info))
 
 let state_action_type g st =
   let merge_state_action_type aty1 aty2 =

@@ -189,7 +189,7 @@ module Toplevel = struct
 
   let generate_fstar_code ast ~protocol ~role =
     let lt = project_role ast ~protocol ~role in
-    let efsm = Efsm.of_local_type_with_rec_var_info lt in
+    let efsm = Efsm.of_local_type lt in
     Fstarcodegen.gen_code efsm
 end
 

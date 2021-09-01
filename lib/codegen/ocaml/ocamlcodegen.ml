@@ -304,16 +304,16 @@ let monad_signature =
   Str.modtype (Mtd.mk ~typ:callbacks (Location.mknoloc "Monad"))
 
 let gen_ast ?(monad = false) ((proto, role) : ProtocolName.t * RoleName.t)
-    (start, g) : structure =
+    (start, (g, _)) : structure =
   let callback_module_sig = gen_callback_module g in
   let impl_module = gen_impl_module ~monad proto role start g in
   let all = [callback_module_sig; impl_module] in
   if monad then monad_signature :: all else all
 
-let gen_code ?(monad = false) (proto, role) (start, g) =
+let gen_code ?(monad = false) (proto, role) e =
   let buffer = Buffer.create 4196 in
   let formatter = Caml.Format.formatter_of_buffer buffer in
-  let ast = gen_ast ~monad (proto, role) (start, g) in
+  let ast = gen_ast ~monad (proto, role) e in
   Pprintast.structure formatter ast ;
   Caml.Format.pp_print_flush formatter () ;
   Buffer.contents buffer

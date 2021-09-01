@@ -2,7 +2,7 @@ Print FSM for C@Contract
   $ nuscr --fsm C@Contract Contract.nuscr
   digraph G {
     0;
-    1;
+    1 [label="currentPrice<C, P>: int = initialPrice", ];
     4;
     5;
     7;

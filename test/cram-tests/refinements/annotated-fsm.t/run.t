@@ -1,7 +1,7 @@
 Expecting recursion expressions to be correctly attached.
   $ nuscr --fsm B@Counter Counter.nuscr
   digraph G {
-    0;
+    0 [label="count<B>: int = 0", ];
     5;
     6;
     
