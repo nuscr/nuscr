@@ -10,6 +10,7 @@ type t =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | MixedStateChoice
 [@@deriving show]
 
 val pragma_of_string : string -> t
@@ -57,6 +58,12 @@ val validate_refinement_progress : unit -> bool
 
 val set_validate_refinement_progress : bool -> unit
 (** Set validate_refinement_progress *)
+
+val mixed_state_choice_enabled : unit -> bool
+(** Whether MixedStateChoice Pragma is enabled (for flexible choices) *)
+
+val set_mixed_state_choice_enabled : bool -> unit
+(** Set whether MixedStateChoice Pragma is enabled *)
 
 val verbose : unit -> bool
 (** Whether to produce verbose outputs *)

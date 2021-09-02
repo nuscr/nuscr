@@ -9,6 +9,7 @@ type t =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | MixedStateChoice
 [@@deriving show]
 
 let pragma_of_string str : t =
@@ -21,6 +22,7 @@ let pragma_of_string str : t =
   | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
   | "ValidateRefinementSatisfiability" -> ValidateRefinementSatisfiability
   | "ValidateRefinementProgress" -> ValidateRefinementProgress
+  | "MixedStateChoice" -> MixedStateChoice
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (t * string option) list [@@deriving show]
@@ -33,6 +35,7 @@ type config =
   ; receiver_validate_refinements: bool
   ; validate_refinement_satisfiability: bool
   ; validate_refinement_progress: bool
+  ; mixed_state_choice_enabled: bool
   ; verbose: bool }
 
 let default =
@@ -43,6 +46,7 @@ let default =
   ; receiver_validate_refinements= false
   ; validate_refinement_satisfiability= false
   ; validate_refinement_progress= false
+  ; mixed_state_choice_enabled= false
   ; verbose= false }
 
 let config = ref default
@@ -83,6 +87,11 @@ let validate_refinement_progress () = !config.validate_refinement_progress
 
 let set_validate_refinement_progress validate_refinement_progress =
   config := {!config with validate_refinement_progress}
+
+let mixed_state_choice_enabled () = !config.mixed_state_choice_enabled
+
+let set_mixed_state_choice_enabled mixed_state_choice_enabled =
+  config := {!config with mixed_state_choice_enabled}
 
 let verbose () = !config.verbose
 
@@ -130,6 +139,7 @@ let load_from_pragmas pragmas =
     | ValidateRefinementSatisfiability, _ ->
         set_validate_refinement_satisfiability true
     | ValidateRefinementProgress, _ -> set_validate_refinement_progress true
+    | MixedStateChoice, _ -> set_mixed_state_choice_enabled true
     | ShowPragmas, _ | PrintUsage, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas ;
