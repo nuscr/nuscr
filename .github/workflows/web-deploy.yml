@@ -36,22 +36,22 @@ jobs:
       - name: Build docs
         run: |
             opam exec -- dune build @doc
-            mkdir -p docs/docs
-            cp -r _build/default/_doc/_html/* docs/docs
+            mkdir -p site/docs
+            cp -r _build/default/_doc/_html/* site/docs
 
       - name: Deploy live version
-        run: WHERE=../docs opam exec -- make -C web deploy
+        run: WHERE=../site opam exec -- make -C web deploy
 
       - name: Deploy docs
         run: |
             git config user.email "nuscr@nuscr.dev"
             git config user.name "NuScr"
             mkdir -p /tmp/deployment
-            cp -r docs /tmp/deployment
+            cp -r site/* /tmp/deployment
             git fetch
-            git switch -f gh-pages 
-            rsync /tmp/deployment/ .
+            git switch -f gh-pages
+            rsync -av --delete --filter='P .git' /tmp/deployment/ .
             git add -A || true
-            git commit -m "Deploy docs" || true
+            git commit --amend --reset-author --date=now -m "Deploy docs" || true
             git push
 
