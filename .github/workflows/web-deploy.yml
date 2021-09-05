@@ -23,6 +23,12 @@ jobs:
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
 
+      - name: Cache opam
+        uses: actions/cache@v2
+        with:
+          path: ~/.opam
+          key: ${{ runner.os }}-${{ matrix.ocaml-version }}-${{ hashFiles('dune-project') }}
+
       - run: opam install . --deps-only --with-doc --with-test
 
       - run: opam exec -- dune build
