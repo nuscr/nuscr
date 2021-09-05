@@ -42,6 +42,7 @@ jobs:
             git config user.name "NuScr"
             mkdir -p /tmp/deployment
             cp -r docs /tmp/deployment
+            git fetch
             git checkout gh-pages
             rsync /tmp/deployment/ .
             git add -A || true
