@@ -596,9 +596,80 @@ let validate_refinements_exn t =
   in
   aux env t
 
-let validate_mixed_state_choice_exn _ =
-  (* TODO *)
-  ()
+type mixed_state_choice_env =
+  { enabled_roles: Set.M(RoleName).t
+  ; uninformed_branch: Set.M(RoleName).t
+  ; uninformed_choice: Set.M(RoleName).t }
+
+(* Uninformed branch & uninformed choice are a bit confusing, but this is to
+   keep alignment with the paper. We omit guardedness check here since the
+   checks are probably done previously. *)
+
+let validate_mixed_state_choice_exn g =
+  let env =
+    { enabled_roles= all_roles g
+    ; uninformed_branch= Set.empty (module RoleName)
+    ; uninformed_choice= Set.empty (module RoleName) }
+  in
+  (* TODO: Implement LLU predicate *)
+  let ensure_llu _ = () in
+  let rec aux env = function
+    | MuG (_, _, g) -> aux env g
+    | EndG ->
+        if Set.is_empty env.uninformed_choice then ()
+        else
+          Err.unimplf ~here:[%here]
+            "Error message for uninformed choice for role %s"
+            (RoleName.user (Set.choose_exn env.uninformed_choice))
+    | TVarG _ ->
+        if Set.is_empty env.uninformed_branch then ()
+        else
+          Err.unimplf ~here:[%here]
+            "Error message for uninformed branch for role %s"
+            (RoleName.user (Set.choose_exn env.uninformed_branch))
+    | ChoiceG (r, gs) as g when Set.mem env.enabled_roles r ->
+        ensure_llu g ;
+        (* Better choice wf in paper *)
+        let roles = all_roles g in
+        List.iter
+          ~f:(fun g ->
+            let env =
+              { enabled_roles= Set.singleton (module RoleName) r
+              ; uninformed_branch=
+                  Set.remove
+                    (Set.union env.uninformed_branch (all_roles g))
+                    r
+              ; uninformed_choice=
+                  Set.remove (Set.union env.uninformed_choice roles) r }
+            in
+            aux env g )
+          gs
+    | CallG _ ->
+        Err.violation ~here:[%here]
+          "Nested Protocols should not appear in mixed state choices"
+    | MessageG (_, r_send, r_recv, g) when Set.mem env.enabled_roles r_send
+      ->
+        let env =
+          { enabled_roles= Set.add env.enabled_roles r_recv
+          ; uninformed_branch= Set.remove env.uninformed_branch r_recv
+          ; uninformed_choice= Set.remove env.uninformed_choice r_recv }
+        in
+        aux env g
+    | MessageG (_, _r_send, r_recv, g) when Set.mem env.enabled_roles r_recv
+      ->
+        (* r_send Not enabled *)
+        let env =
+          { env with
+            (* r_recv will not be enabled *)
+            uninformed_branch= Set.remove env.uninformed_branch r_recv
+          ; uninformed_choice= Set.remove env.uninformed_choice r_recv }
+        in
+        aux env g
+    | MessageG _ | ChoiceG _ ->
+        Err.unimpl ~here:[%here]
+          "Error message for performing action while not enabled."
+  in
+  aux env g
 
 let add_missing_payload_field_names nested_t =
   let module Namegen = Namegen.Make (PayloadTypeName) in

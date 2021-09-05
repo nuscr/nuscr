@@ -135,6 +135,9 @@ let show_user_error = function
 
 let unimpl ~here desc = UnImplemented (desc, here) |> raise
 
+(** A convenient function for raising an unimpl with printf strings *)
+let unimplf ~here fmt = Printf.ksprintf (unimpl ~here) fmt
+
 let uerr e = UserError e |> raise
 
 let violation ~here e = Violation (e, here) |> raise

@@ -61,6 +61,10 @@ val uerr : user_error -> 'a
 val unimpl : here:Lexing.position -> string -> 'a
 (** Raise an Unimplemented error *)
 
+val unimplf : here:Lexing.position -> ('a, unit, string, 'b) format4 -> 'a
+(** Raise an Unimplemented error, with a description formatted using format
+    strings *)
+
 val violation : here:Lexing.position -> string -> 'a
 (** Raise a violation, with a reason *)
 
