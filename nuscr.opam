@@ -13,6 +13,7 @@ homepage: "https://nuscr.dev/"
 doc: "https://nuscr.dev/nuscr/docs/"
 bug-reports: "https://github.com/nuscr/nuscr/issues"
 depends: [
+  "ocaml" {>= "4.08"}
   "menhir" {>= "20190924"}
   "ppx_deriving" {>= "5.2"}
   "dune" {>= "2.8"}
