@@ -130,6 +130,22 @@ let rec evaluate_lazy_gtype = function
   | EndG -> EndG
   | CallG (r, p, rs, g) -> CallG (r, p, rs, evaluate_lazy_gtype g)
 
+let rec all_roles =
+  (* Caveat: only gives correct result for closed global types *)
+  let rec aux acc = function
+    | MessageG (_, r1, r2, g') ->
+        let acc = Set.add acc r1 in
+        let acc = Set.add acc r2 in
+        aux acc g'
+    | MuG (_, _, g') -> aux acc g'
+    | TVarG _ | EndG -> acc
+    | CallG (r, _, _, g') ->
+        let acc = Set.add acc r in
+        aux acc g'
+    | ChoiceG (_, gs) -> List.fold ~init:acc ~f:aux gs
+  in
+  aux (Set.empty (module RoleName))
+
 type nested_global_info =
   { static_roles: RoleName.t list
   ; dynamic_roles: RoleName.t list
