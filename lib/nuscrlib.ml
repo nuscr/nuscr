@@ -54,6 +54,10 @@ module Toplevel = struct
     show ~f:(fun (g, _) -> Gtype.show g) g_types ;
     if Pragma.refinement_type_enabled () then
       List.iter ~f:(fun (g, _) -> Gtype.validate_refinements_exn g) g_types ;
+    if Pragma.mixed_state_choice_enabled () then
+      List.iter
+        ~f:(fun (g, _) -> Gtype.validate_mixed_state_choice_exn g)
+        g_types ;
     let l_types =
       List.map
         ~f:(fun (g, roles) -> List.map ~f:(fun r -> Ltype.project r g) roles)

@@ -101,5 +101,9 @@ val validate_refinements_exn : t -> unit
 (** Validate refinements in the given global type, requires [RefinementTypes]
     pragma *)
 
+val validate_mixed_state_choice_exn : t -> unit
+(** Validate mixed state choices in the given global type, requires
+    [MixedStateChoice] pragma *)
+
 val show_rec_var : rec_var -> string
 (** Convert rec_var to string *)

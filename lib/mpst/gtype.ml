@@ -580,6 +580,10 @@ let validate_refinements_exn t =
   in
   aux env t
 
+let validate_mixed_state_choice_exn _ =
+  (* TODO *)
+  ()
+
 let add_missing_payload_field_names nested_t =
   let module Namegen = Namegen.Make (PayloadTypeName) in
   let add_missing_names namegen = function
