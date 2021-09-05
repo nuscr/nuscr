@@ -1,0 +1,50 @@
+name: Deploy web
+
+on:
+  push:
+    branch:
+      - 'master'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        ocaml-version:
+          - 4.12.x
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - run: opam install . --deps-only --with-doc --with-test
+
+      - run: opam exec -- dune build
+
+      - name: Build docs
+        run: |
+            opam exec -- dune build @doc
+            mkdir -p docs/docs
+            cp -r _build/default/_doc/_html/* docs/docs
+
+      - name: Deploy live version
+        run: opam exec -- WHERE=../docs make -C web deploy
+
+      - name: Deploy docs
+        run: |
+            git config user.email "nuscr@nuscr.dev"
+            git config user.name "NuScr"
+            mkdir -p /tmp/deployment
+            cp -r docs /tmp/deployment
+            git checkout gh-pages
+            rsync /tmp/deployment/ .
+            git add -A || true
+            git commit -m "Deploy docs" || true
+            git push
+
