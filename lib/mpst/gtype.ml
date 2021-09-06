@@ -611,8 +611,6 @@ let validate_mixed_state_choice_exn g =
     ; uninformed_branch= Set.empty (module RoleName)
     ; uninformed_choice= Set.empty (module RoleName) }
   in
-  (* TODO: Implement LLU predicate *)
-  let ensure_llu _ = () in
   let rec aux env = function
     | MuG (_, _, g) -> aux env g
     | EndG ->
@@ -628,7 +626,7 @@ let validate_mixed_state_choice_exn g =
             "Error message for uninformed branch for role %s"
             (RoleName.user (Set.choose_exn env.uninformed_branch))
     | ChoiceG (r, gs) as g when Set.mem env.enabled_roles r ->
-        ensure_llu g ;
+        (* Local label uniqueness will be checked during projection *)
         (* Better choice wf in paper *)
         let roles = all_roles g in
         List.iter
