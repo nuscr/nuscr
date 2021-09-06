@@ -227,6 +227,15 @@ let rec_var_of_syntax_rec_var rec_var =
   ; rv_ty
   ; rv_init_expr= Expr.of_syntax_expr init }
 
+type conv_env =
+  { free_names: Set.M(TypeVariableName).t
+  ; lazy_conts:
+      (t * Set.M(TypeVariableName).t) Lazy.t Map.M(TypeVariableName).t }
+
+let init_conv_env =
+  { free_names= Set.empty (module TypeVariableName)
+  ; lazy_conts= Map.empty (module TypeVariableName) }
+
 let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
@@ -238,19 +247,16 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
     if not @@ List.mem roles r ~equal:RoleName.equal then
       uerr @@ UnboundRole r
   in
-  let rec conv_interactions free_names lazy_conts
-      (interactions : global_interaction list) =
+  let rec conv_interactions env (interactions : global_interaction list) =
     match interactions with
-    | [] -> (EndG, free_names)
+    | [] -> (EndG, env.free_names)
     | {value; _} :: rest -> (
       match value with
       | MessageTransfer {message; from_role; to_roles; _} ->
           let from_role = RoleName.of_name from_role in
           let to_roles = List.map ~f:RoleName.of_name to_roles in
           check_role from_role ;
-          let init, free_names =
-            conv_interactions free_names lazy_conts rest
-          in
+          let init, free_names = conv_interactions env rest in
           let f to_role acc =
             check_role to_role ;
             if RoleName.equal from_role to_role then
@@ -260,13 +266,15 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           (List.fold_right ~f ~init to_roles, free_names)
       | Recursion (rname, rec_vars, interactions) ->
           let rname = TypeVariableName.of_name rname in
-          if Set.mem free_names rname then
+          if Set.mem env.free_names rname then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
           let rec lazy_cont =
             lazy
-              (conv_interactions free_names
-                 (Map.add_exn ~key:rname ~data:lazy_cont lazy_conts)
+              (conv_interactions
+                 { env with
+                   lazy_conts=
+                     Map.add_exn ~key:rname ~data:lazy_cont env.lazy_conts }
                  interactions )
           in
           let rec_vars =
@@ -290,10 +298,10 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             else []
           in
           let cont =
-            lazy (Lazy.force (Map.find_exn lazy_conts name) |> fst)
+            lazy (Lazy.force (Map.find_exn env.lazy_conts name) |> fst)
           in
           assert_empty rest ;
-          (TVarG (name, rec_exprs, cont), Set.add free_names name)
+          (TVarG (name, rec_exprs, cont), Set.add env.free_names name)
       | Choice (role, interactions_list) ->
           let role = RoleName.of_name role in
           assert_empty rest ;
@@ -301,12 +309,10 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           if List.length interactions_list = 1 then
             (* Remove degenerate choice *)
             let interaction = List.hd_exn interactions_list in
-            conv_interactions free_names lazy_conts interaction
+            conv_interactions env interaction
           else
             let conts =
-              List.map
-                ~f:(conv_interactions free_names lazy_conts)
-                interactions_list
+              List.map ~f:(conv_interactions env) interactions_list
             in
             ( ChoiceG (role, List.map ~f:fst conts)
             , Set.union_list
@@ -318,26 +324,17 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           assert (Pragma.nested_protocol_enabled ()) ;
           let fst_role = RoleName.of_name @@ List.hd_exn roles in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont, free_names =
-            conv_interactions free_names lazy_conts rest
-          in
+          let cont, free_names = conv_interactions env rest in
           ( CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
           , free_names )
       | Calls (caller, proto, _, roles, _) ->
           let caller_role = RoleName.of_name caller in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont, free_names =
-            conv_interactions free_names lazy_conts rest
-          in
+          let cont, free_names = conv_interactions env rest in
           ( CallG (caller_role, ProtocolName.of_name proto, role_names, cont)
           , free_names ) )
   in
-  let gtype, free_names =
-    conv_interactions
-      (Set.empty (module Names.TypeVariableName))
-      (Map.empty (module Names.TypeVariableName))
-      interactions
-  in
+  let gtype, free_names = conv_interactions init_conv_env interactions in
   match Set.choose free_names with
   | Some free_name -> uerr (UnboundRecursionName free_name)
   | None -> gtype
