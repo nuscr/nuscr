@@ -54,9 +54,9 @@ let instantiate (protocol : raw_global_protocol)
   let swap_f r = Map.find_exn replacement_map (Name.user r) in
   List.map ~f:(swap_role swap_f) protocol.interactions
 
-let rec_var_of_protocol_roles (name, roles) =
+let rec_var_of_protocol_roles (name, roles) loc =
   let names = List.map ~f:Name.user (name :: roles) in
-  Name.of_string @@ Printf.sprintf "__%s" (String.concat ~sep:"_" names)
+  Name.create (Printf.sprintf "__%s" (String.concat ~sep:"_" names)) loc
 
 let mk_protocol_map scr_module =
   let f acc {value= p; loc} =
@@ -100,8 +100,9 @@ let expand_global_protocol (scr_module : scr_module)
         [ { loc
           ; value=
               Recursion
-                (rec_var_of_protocol_roles (name, roles), [], interactions)
-          } ]
+                ( rec_var_of_protocol_roles (name, roles) loc
+                , []
+                , interactions ) } ]
       else interactions
     in
     interactions
@@ -115,7 +116,8 @@ let expand_global_protocol (scr_module : scr_module)
       | Do (name, [], roles, _annot) when Map.mem known (name, roles) ->
           let known = Map.update known (name, roles) ~f:(fun _ -> true) in
           ( known
-          , [ { value= Continue (rec_var_of_protocol_roles (name, roles), [])
+          , [ { value=
+                  Continue (rec_var_of_protocol_roles (name, roles) loc, [])
               ; loc } ] )
       | Do (name, [], roles, _annot) ->
           let protocol_to_expand = Map.find protocols (Name.user name) in
