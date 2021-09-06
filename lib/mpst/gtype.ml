@@ -309,8 +309,9 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
                 interactions_list
             in
             ( ChoiceG (role, List.map ~f:fst conts)
-            , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
-            )
+            , Set.union_list
+                (module TypeVariableName)
+                (List.map ~f:snd conts) )
       | Do (protocol, _, roles, _) ->
           (* This case is only reachable with NestedProtocols pragma turned on
            * *)
