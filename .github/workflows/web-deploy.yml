@@ -44,7 +44,7 @@ jobs:
             cp -r _build/default/_doc/_html/* site/docs
 
       - name: Deploy live version
-        run: WHERE=../site cd nuscr && opam exec -- make -C web deploy
+        run: cd nuscr && WHERE=../site opam exec -- make -C web deploy
 
       - name: Deploy docs
         run: |
