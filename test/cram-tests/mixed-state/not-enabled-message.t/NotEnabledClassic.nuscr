@@ -1,0 +1,9 @@
+global protocol NotEnabled(role A, role B, role C) {
+  choice at A {
+    Hi from A to B;
+    Nihao from C to B;
+  } or {
+    Hola from A to B;
+    Nihao from C to B;
+  }
+}
