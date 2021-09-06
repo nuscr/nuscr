@@ -25,7 +25,7 @@ jobs:
       - name: Cache opam
         uses: actions/cache@v2
         with:
-          path: ~/.opam
+          path: _opam
           key: ${{ runner.os }}-${{ matrix.ocaml-version }}-${{ hashFiles('dune-project') }}
 
       - run: opam install . --deps-only --with-doc --with-test
