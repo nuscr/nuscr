@@ -298,14 +298,19 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           let role = RoleName.of_name role in
           assert_empty rest ;
           check_role role ;
-          let conts =
-            List.map
-              ~f:(conv_interactions free_names lazy_conts)
-              interactions_list
-          in
-          ( ChoiceG (role, List.map ~f:fst conts)
-          , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
-          )
+          if List.length interactions_list = 1 then
+            (* Remove degenerate choice *)
+            let interaction = List.hd_exn interactions_list in
+            conv_interactions free_names lazy_conts interaction
+          else
+            let conts =
+              List.map
+                ~f:(conv_interactions free_names lazy_conts)
+                interactions_list
+            in
+            ( ChoiceG (role, List.map ~f:fst conts)
+            , Set.union_list (module TypeVariableName) (List.map ~f:snd conts)
+            )
       | Do (protocol, _, roles, _) ->
           (* This case is only reachable with NestedProtocols pragma turned on
            * *)
