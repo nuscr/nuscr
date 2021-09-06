@@ -230,11 +230,13 @@ let rec_var_of_syntax_rec_var rec_var =
 type conv_env =
   { free_names: Set.M(TypeVariableName).t
   ; lazy_conts:
-      (t * Set.M(TypeVariableName).t) Lazy.t Map.M(TypeVariableName).t }
+      (t * Set.M(TypeVariableName).t) Lazy.t Map.M(TypeVariableName).t
+  ; unguarded_tvs: Set.M(TypeVariableName).t }
 
 let init_conv_env =
   { free_names= Set.empty (module TypeVariableName)
-  ; lazy_conts= Map.empty (module TypeVariableName) }
+  ; lazy_conts= Map.empty (module TypeVariableName)
+  ; unguarded_tvs= Set.empty (module TypeVariableName) }
 
 let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
@@ -256,7 +258,11 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           let from_role = RoleName.of_name from_role in
           let to_roles = List.map ~f:RoleName.of_name to_roles in
           check_role from_role ;
-          let init, free_names = conv_interactions env rest in
+          let init, free_names =
+            conv_interactions
+              {env with unguarded_tvs= Set.empty (module TypeVariableName)}
+              rest
+          in
           let f to_role acc =
             check_role to_role ;
             if RoleName.equal from_role to_role then
@@ -274,7 +280,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
               (conv_interactions
                  { env with
                    lazy_conts=
-                     Map.add_exn ~key:rname ~data:lazy_cont env.lazy_conts }
+                     Map.add_exn ~key:rname ~data:lazy_cont env.lazy_conts
+                 ; unguarded_tvs= Set.add env.unguarded_tvs rname }
                  interactions )
           in
           let rec_vars =
@@ -297,6 +304,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
               List.map ~f:Expr.of_syntax_expr rec_exprs
             else []
           in
+          if Set.mem env.unguarded_tvs name then
+            uerr (UnguardedTypeVariable name) ;
           let cont =
             lazy (Lazy.force (Map.find_exn env.lazy_conts name) |> fst)
           in
@@ -324,13 +333,21 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           assert (Pragma.nested_protocol_enabled ()) ;
           let fst_role = RoleName.of_name @@ List.hd_exn roles in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont, free_names = conv_interactions env rest in
+          let cont, free_names =
+            conv_interactions
+              {env with unguarded_tvs= Set.empty (module TypeVariableName)}
+              rest
+          in
           ( CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
           , free_names )
       | Calls (caller, proto, _, roles, _) ->
           let caller_role = RoleName.of_name caller in
           let role_names = List.map ~f:RoleName.of_name roles in
-          let cont, free_names = conv_interactions env rest in
+          let cont, free_names =
+            conv_interactions
+              {env with unguarded_tvs= Set.empty (module TypeVariableName)}
+              rest
+          in
           ( CallG (caller_role, ProtocolName.of_name proto, role_names, cont)
           , free_names ) )
   in

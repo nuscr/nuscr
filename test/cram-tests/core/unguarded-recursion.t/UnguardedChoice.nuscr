@@ -1,0 +1,9 @@
+global protocol Unguarded(role A, role B) {
+  rec X {
+    choice at A {
+      continue X;
+    } or {
+      Foo from A to B;
+    }
+  }
+}

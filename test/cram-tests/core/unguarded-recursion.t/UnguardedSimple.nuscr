@@ -1,0 +1,5 @@
+global protocol Unguarded(role A, role B) {
+  rec X {
+    continue X;
+  }
+}
