@@ -58,5 +58,5 @@ jobs:
             rsync -av --delete --filter='P .git' /tmp/deployment/ .
             git add -A || true
             git commit --amend --reset-author --date=now -m "Deploy docs" || true
-            git push
+            git push --force
 
