@@ -3,6 +3,7 @@ open! Stdio
 open Mpst
 open Names
 open Efsm
+open Syntaxtree.Syntax.RawExpr
 
 let show_vars = function
   | [] -> "(empty)"
@@ -124,10 +125,10 @@ let bind_variables_e e vars_to_bind st =
     List.partition_tf ~f:(fun (_, _, is_silent) -> is_silent) vars_to_bind
   in
   let bind_concrete_var var =
-    Expr.Var (VariableName.of_string (FstarNames.record_getter st var))
+    Var (VariableName.of_string (FstarNames.record_getter st var))
   in
   let bind_erased_var var =
-    Expr.Var
+    Var
       (VariableName.of_string
          (Printf.sprintf "(reveal %s)" (FstarNames.record_getter st var)) )
   in
@@ -189,7 +190,7 @@ let generate_state_defs buffer var_maps =
                 ~f:(fun e v ->
                   Expr.substitute ~from:v
                     ~replace:
-                      (Expr.Var
+                      (Var
                          (VariableName.of_string
                             (Printf.sprintf "(reveal %s)"
                                (VariableName.user v) ) ) )
@@ -406,7 +407,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
                 | None ->
                     (* We have a variable that is either new, or can be
                        retrieved from the existing state *)
-                    let e = bind_variables_e (Expr.Var v) curr_vars curr in
+                    let e = bind_variables_e (Var v) curr_vars curr in
                     Expr.show e ) )
           in
           header ^ value

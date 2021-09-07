@@ -2,6 +2,7 @@ open! Base
 open Printf
 open Names
 open Syntaxtree
+open Syntax.RawExpr
 
 (* Workaround for https://github.com/janestreet/sexplib/issues/34 *)
 module Sexp = struct
@@ -36,14 +37,7 @@ module Sexp = struct
 end
 
 (** An expression, used in RefinementType extension *)
-type t =
-  | Var of VariableName.t  (** A variable *)
-  | Int of int  (** An integer constant *)
-  | Bool of bool  (** An boolean constant *)
-  | String of string  (** A string literal *)
-  | Binop of Syntax.binop * t * t  (** A binary operator *)
-  | Unop of Syntax.unop * t  (** An unary operator *)
-[@@deriving sexp_of, eq, ord]
+type t = VariableName.t raw_expr [@@deriving sexp_of, eq, ord]
 
 let rec show = function
   | Var v -> VariableName.user v
@@ -51,17 +45,16 @@ let rec show = function
   | Bool b -> Bool.to_string b
   | String s -> "\"" ^ s ^ "\""
   | Binop (b, e1, e2) ->
-      sprintf "(%s)%s(%s)" (show e1) (Syntax.show_binop b) (show e2)
-  | Unop (u, e) -> sprintf "%s(%s)" (Syntax.show_unop u) (show e)
+      sprintf "(%s)%s(%s)" (show e1) (show_binop b) (show e2)
+  | Unop (u, e) -> sprintf "%s(%s)" (show_unop u) (show e)
 
 let rec of_syntax_expr = function
-  | Syntax.Var n -> Var (VariableName.of_name n)
-  | Syntax.Int n -> Int n
-  | Syntax.Bool n -> Bool n
-  | Syntax.String n -> String n
-  | Syntax.Binop (b, e1, e2) ->
-      Binop (b, of_syntax_expr e1, of_syntax_expr e2)
-  | Syntax.Unop (u, e) -> Unop (u, of_syntax_expr e)
+  | Var n -> Var (VariableName.of_name n)
+  | Int n -> Int n
+  | Bool n -> Bool n
+  | String n -> String n
+  | Binop (b, e1, e2) -> Binop (b, of_syntax_expr e1, of_syntax_expr e2)
+  | Unop (u, e) -> Unop (u, of_syntax_expr e)
 
 (** Types for expressions. Integers, booleans and strings are are modelled,
     and can be thus refined with RefinementTypes extension *)
@@ -137,28 +130,28 @@ let rec typecheck_basic env expr ty =
     | None -> false )
   | Unop (unop, e) ->
       let typecheck_unop env e = function
-        | Syntax.Neg ->
+        | Neg ->
             typecheck_basic env e PTInt && equal_payload_type_basic ty PTInt
-        | Syntax.Not ->
+        | Not ->
             typecheck_basic env e PTBool
             && equal_payload_type_basic ty PTBool
       in
       typecheck_unop env e unop
   | Binop (binop, e1, e2) ->
       let typecheck_binop env e1 e2 = function
-        | Syntax.Add | Syntax.Minus ->
+        | Add | Minus ->
             typecheck_basic env e1 PTInt
             && typecheck_basic env e2 PTInt
             && equal_payload_type_basic ty PTInt
-        | Syntax.And | Syntax.Or ->
+        | And | Or ->
             typecheck_basic env e1 PTBool
             && typecheck_basic env e2 PTBool
             && equal_payload_type_basic ty PTBool
-        | Syntax.Lt | Syntax.Gt | Syntax.Geq | Syntax.Leq ->
+        | Lt | Gt | Geq | Leq ->
             typecheck_basic env e1 PTInt
             && typecheck_basic env e2 PTInt
             && equal_payload_type_basic ty PTBool
-        | Syntax.Eq | Syntax.Neq ->
+        | Eq | Neq ->
             equal_payload_type_basic ty PTBool
             && List.exists
                  ~f:(fun t ->
@@ -178,20 +171,18 @@ let is_well_formed_type env = function
       typecheck_basic env e PTBool
 
 let sexp_of_binop = function
-  | Syntax.Add -> Sexp.Atom "+"
-  | Syntax.Minus -> Sexp.Atom "-"
-  | Syntax.Eq -> Sexp.Atom "="
-  | Syntax.Neq -> Sexp.Atom "distinct"
-  | Syntax.Lt -> Sexp.Atom "<"
-  | Syntax.Gt -> Sexp.Atom ">"
-  | Syntax.Leq -> Sexp.Atom "<="
-  | Syntax.Geq -> Sexp.Atom ">="
-  | Syntax.And -> Sexp.Atom "and"
-  | Syntax.Or -> Sexp.Atom "or"
+  | Add -> Sexp.Atom "+"
+  | Minus -> Sexp.Atom "-"
+  | Eq -> Sexp.Atom "="
+  | Neq -> Sexp.Atom "distinct"
+  | Lt -> Sexp.Atom "<"
+  | Gt -> Sexp.Atom ">"
+  | Leq -> Sexp.Atom "<="
+  | Geq -> Sexp.Atom ">="
+  | And -> Sexp.Atom "and"
+  | Or -> Sexp.Atom "or"
 
-let sexp_of_unop = function
-  | Syntax.Neg -> Sexp.Atom "-"
-  | Syntax.Not -> Sexp.Atom "not"
+let sexp_of_unop = function Neg -> Sexp.Atom "-" | Not -> Sexp.Atom "not"
 
 let rec sexp_of_expr = function
   | Var v -> Sexp.Atom (VariableName.user v)
@@ -254,7 +245,7 @@ let encode_env env =
             let env = add_assert_expr e env in
             let env =
               if VariableName.equal v key then env
-              else add_assert_expr (Binop (Syntax.Eq, Var v, Var key)) env
+              else add_assert_expr (Binop (Eq, Var v, Var key)) env
             in
             env
         | _ -> env
@@ -304,11 +295,11 @@ let subtype env t1 t2 =
       let env = add_const v2 t env in
       let env =
         if not (VariableName.equal v1 v2) then
-          add_assert_expr (Binop (Syntax.Eq, Var v1, Var v2)) env
+          add_assert_expr (Binop (Eq, Var v1, Var v2)) env
         else env
       in
       let env = add_assert_expr e1 env in
-      let env = add_assert_expr (Unop (Syntax.Not, e2)) env in
+      let env = add_assert_expr (Unop (Not, e2)) env in
       is_unsat env
   | _, _ -> assert false
 
@@ -331,40 +322,40 @@ let infer_type env = function
         | String _ -> PTString
         | _ -> assert false
       in
-      Some (PTRefined (var, t, Binop (Syntax.Eq, Var var, e)))
+      Some (PTRefined (var, t, Binop (Eq, Var var, e)))
   | Binop (b, e1, e2) as e -> (
       let var = fresh_var () in
       match b with
-      | Syntax.Add | Syntax.Minus ->
+      | Add | Minus ->
           if typecheck_basic env e1 PTInt && typecheck_basic env e2 PTInt
-          then Some (PTRefined (var, PTInt, Binop (Syntax.Eq, Var var, e)))
+          then Some (PTRefined (var, PTInt, Binop (Eq, Var var, e)))
           else None
-      | Syntax.And | Syntax.Or ->
+      | And | Or ->
           if typecheck_basic env e1 PTBool && typecheck_basic env e2 PTBool
-          then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          then Some (PTRefined (var, PTBool, Binop (Eq, Var var, e)))
           else None
-      | Syntax.Lt | Syntax.Gt | Syntax.Geq | Syntax.Leq ->
+      | Lt | Gt | Geq | Leq ->
           if typecheck_basic env e1 PTInt && typecheck_basic env e2 PTInt
-          then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          then Some (PTRefined (var, PTBool, Binop (Eq, Var var, e)))
           else None
-      | Syntax.Eq | Syntax.Neq ->
+      | Eq | Neq ->
           if
             List.exists
               ~f:(fun t ->
                 typecheck_basic env e1 t && typecheck_basic env e2 t )
               [PTInt; PTBool; PTString]
-          then Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+          then Some (PTRefined (var, PTBool, Binop (Eq, Var var, e)))
           else None )
   | Unop (u, e_) as e -> (
       let var = fresh_var () in
       match u with
-      | Syntax.Neg ->
+      | Neg ->
           if typecheck_basic env e_ PTInt then
-            Some (PTRefined (var, PTInt, Binop (Syntax.Eq, Var var, e)))
+            Some (PTRefined (var, PTInt, Binop (Eq, Var var, e)))
           else None
-      | Syntax.Not ->
+      | Not ->
           if typecheck_basic env e_ PTBool then
-            Some (PTRefined (var, PTBool, Binop (Syntax.Eq, Var var, e)))
+            Some (PTRefined (var, PTBool, Binop (Eq, Var var, e)))
           else None )
 
 let check_type env expr ty =

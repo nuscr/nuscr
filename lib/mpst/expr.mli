@@ -3,22 +3,26 @@
 open! Base
 open Names
 open Syntaxtree
+open Syntax.RawExpr
 
 (** {1 Expressions} *)
 
-(** An expression, used in RefinementType extension *)
-type t =
-  | Var of VariableName.t  (** A variable *)
-  | Int of int  (** An integer constant *)
-  | Bool of bool  (** An boolean constant *)
-  | String of string  (** A string literal *)
-  | Binop of Syntax.binop * t * t  (** A binary operator *)
-  | Unop of Syntax.unop * t  (** An unary operator *)
-[@@deriving sexp_of, eq, ord]
+(** An expression, used in RefinementType extension
+
+    {v
+ type t =
+   | Var of VariableName.t  (** A variable *)
+   | Int of int  (** An integer constant *)
+   | Bool of bool  (** An boolean constant *)
+   | String of string  (** A string literal *)
+   | Binop of binop * t * t  (** A binary operator *)
+   | Unop of unop * t  (** An unary operator *)
+    v} *)
+type t = VariableName.t raw_expr [@@deriving sexp_of, eq, ord]
 
 val show : t -> string
 
-val of_syntax_expr : Syntax.expr -> t
+val of_syntax_expr : expr -> t
 (** Convert from an expression in concrete syntax to abstract syntax *)
 
 val free_var : t -> Set.M(VariableName).t

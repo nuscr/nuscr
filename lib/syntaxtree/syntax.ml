@@ -2,12 +2,6 @@ open! Base
 open Printf
 open Loc
 
-(* type ast =
- *   raw_ast located
- *
- * and raw_ast =
- *   | Con of string *)
-
 (* a simple name *)
 module N = Name.Name
 
@@ -17,31 +11,37 @@ let equal_name = N.equal
 
 let compare_name = N.compare
 
-type expr =
-  | Var of name
-  | Int of int
-  | Bool of bool
-  | String of string
-  | Binop of binop * expr * expr
-  | Unop of unop * expr
+module RawExpr = struct
+  type 'name raw_expr =
+    | Var of 'name
+    | Int of int
+    | Bool of bool
+    | String of string
+    | Binop of binop * 'name raw_expr * 'name raw_expr
+    | Unop of unop * 'name raw_expr
 
-and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
+  and binop = Add | Minus | Eq | Neq | Lt | Gt | Leq | Geq | And | Or
 
-and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
+  and unop = Neg | Not [@@deriving eq, ord, show, sexp_of]
 
-let show_binop = function
-  | Add -> "+"
-  | Minus -> "-"
-  | Eq -> "="
-  | Neq -> "<>"
-  | Lt -> "<"
-  | Gt -> ">"
-  | Leq -> "<="
-  | Geq -> ">="
-  | And -> "&&"
-  | Or -> "||"
+  type expr = name raw_expr [@@deriving eq, ord, show, sexp_of]
 
-let show_unop = function Neg -> "-" | Not -> "not "
+  let show_binop = function
+    | Add -> "+"
+    | Minus -> "-"
+    | Eq -> "="
+    | Neq -> "<>"
+    | Lt -> "<"
+    | Gt -> ">"
+    | Leq -> "<="
+    | Geq -> ">="
+    | And -> "&&"
+    | Or -> "||"
+
+  let show_unop = function Neg -> "-" | Not -> "not "
+end
+
+include RawExpr
 
 type ty = Simple of name | Refined of name * name * expr
 [@@deriving eq, ord, show, sexp_of]
