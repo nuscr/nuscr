@@ -1,0 +1,9 @@
+(*# MixedStateChoice #*)
+
+global protocol Uninformed (role A, role B, role C) {
+  choice at A {
+    Hi from A to B;
+  } or {
+    Hello from A to C;
+  }
+}

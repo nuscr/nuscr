@@ -1,0 +1,11 @@
+(*# MixedStateChoice #*)
+
+global protocol Undirected (role A, role B, role C) {
+  choice at A {
+    Hi from A to B;
+    Hello from A to C;
+  } or {
+    Hello from A to B;
+    Hi from A to C;
+  }
+}
