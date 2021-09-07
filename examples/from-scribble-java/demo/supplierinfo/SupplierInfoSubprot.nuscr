@@ -59,7 +59,8 @@ aux global protocol Main(
       // PREPARE FILTERED SUPPLIER INFO FOR REQUESTOR
       getsuppliers() from authorisersvc to suppliersvc;
       do FilterInfo
-          <filterSupplier(usercontext, filters, supplierdetails)>
+      // type argument not supported by nuscr, commented out.
+      //    <filterSupplier(usercontext, filters, supplierdetails)>
           (authorisersvc, filtersvc);
       suppliers() from suppliersvc to authorisersvc;
       suppliers() from authorisersvc to requestor;
@@ -81,7 +82,8 @@ aux global protocol Main(
       getcontracts() from authorisersvc to contractsvc;
       suppliers() from contractsvc to authorisersvc;
       do FilterInfo
-          <filterContract(usercontext, filters, contractdetails)>
+      // type argument not supported by nuscr, commented out.
+      //    <filterContract(usercontext, filters, contractdetails)>
           //<filterSupplier(usercontext, filters, supplierdetails)>  // OK (merge)
           //<filterSupplier(usercontext, filters, contractdetails)>  // Error
           (authorisersvc, filtersvc);
@@ -95,9 +97,10 @@ aux global protocol Main(
 
 //aux global protocol FilterInfo<type details>(  // Bad non-det. payload
 aux global protocol FilterInfo
-<
-  sig Query
->
+// type argument not supported by nuscr, commented out.
+// <
+//   sig Query
+// >
 (
   role authorisersvc,
   role filtersvc

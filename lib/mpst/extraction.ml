@@ -22,15 +22,9 @@ let rec swap_role swap_role_f {value; loc} =
         Choice
           ( swap_role_f role
           , List.map ~f:(List.map ~f:(swap_role swap_role_f)) gs )
-    | Do (proto, msgs, roles, ann) ->
-        Do (proto, msgs, List.map ~f:swap_role_f roles, ann)
-    | Calls (caller, proto, msgs, roles, ann) ->
-        Calls
-          ( swap_role_f caller
-          , proto
-          , msgs
-          , List.map ~f:swap_role_f roles
-          , ann )
+    | Do (proto, roles, ann) -> Do (proto, List.map ~f:swap_role_f roles, ann)
+    | Calls (caller, proto, roles, ann) ->
+        Calls (swap_role_f caller, proto, List.map ~f:swap_role_f roles, ann)
   in
   {value; loc}
 
@@ -113,13 +107,13 @@ let expand_global_protocol (scr_module : scr_module)
        * true indicates that the protocol has been called, meaning it is recursive;
        * false otherwise *)
       match value with
-      | Do (name, [], roles, _annot) when Map.mem known (name, roles) ->
+      | Do (name, roles, _annot) when Map.mem known (name, roles) ->
           let known = Map.update known (name, roles) ~f:(fun _ -> true) in
           ( known
           , [ { value=
                   Continue (rec_var_of_protocol_roles (name, roles) loc, [])
               ; loc } ] )
-      | Do (name, [], roles, _annot) ->
+      | Do (name, roles, _annot) ->
           let protocol_to_expand = Map.find protocols (Name.user name) in
           let protocol_to_expand, _, arity =
             match protocol_to_expand with
@@ -141,7 +135,6 @@ let expand_global_protocol (scr_module : scr_module)
           in
           let known = Map.remove known (name, roles) in
           (known, interactions)
-      | Do _ -> unimpl "Do with other features"
       | Recursion (r, recvars, is) ->
           let known, is = expand_aux known is in
           (known, [{i with value= Recursion (r, recvars, is)}])
@@ -217,7 +210,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
       in
       let interaction = i.value in
       match interaction with
-      | Do (proto, [], roles, None) ->
+      | Do (proto, roles, _) ->
           let fst =
             match roles with
             | hd :: _ -> hd
@@ -226,10 +219,8 @@ let validate_calls_in_protocols (scr_module : scr_module) =
           (*Treat Do statements as nested protocol calls with no dynamic
             participants. Let the first role be the 'caller'*)
           validate_call fst proto roles global_table
-      | Do _ -> unimpl "Do with other features"
-      | Calls (caller, proto, [], roles, None) ->
+      | Calls (caller, proto, roles, _) ->
           validate_call caller proto roles nested_table
-      | Calls _ -> unimpl "Calls with other features"
       | Recursion (_, _, is) ->
           List.iter
             ~f:
@@ -310,11 +301,8 @@ let rename_nested_protocols (scr_module : scr_module) =
     let rec update_interaction known i =
       let {Loc.value= i_; _} = i in
       match i_ with
-      | Calls (caller, proto, non_role_args, roles, ann) ->
-          { i with
-            Loc.value=
-              Calls (caller, rename known proto, non_role_args, roles, ann)
-          }
+      | Calls (caller, proto, roles, ann) ->
+          {i with Loc.value= Calls (caller, rename known proto, roles, ann)}
       | Recursion (name, recvars, interactions) ->
           { i with
             Loc.value=

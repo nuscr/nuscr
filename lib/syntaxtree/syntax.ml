@@ -127,10 +127,10 @@ and raw_global_interaction =
   | Continue of name * expr list
   (* role, protocol options *)
   | Choice of name * global_interaction list list
-  (* protocol * non role args * roles *)
-  | Do of name * message list * name list * annotation option
-  (* caller * protocol * non role args * roles *)
-  | Calls of name * name * message list * name list * annotation option
+  (* protocol * roles *)
+  | Do of name * name list * annotation option
+  (* caller * protocol * roles *)
+  | Calls of name * name * name list * annotation option
 [@@deriving show {with_path= false}]
 
 type protocol_mods = Aux | AuxExplicit | Explicit

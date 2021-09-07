@@ -241,26 +241,17 @@ let raw_global_interaction ==
   | global_do
   | global_calls
 let global_do ==
-  DO_KW ; nm = name ; nra = non_role_args? ;
+  DO_KW ; nm = name ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
-  { Do (nm, loalo nra, loalo ra, ann) }
+  { Do (nm, loalo ra, ann) }
 
 let global_calls ==
-  caller = name ; CALLS_KW ; nm = name ; nra = non_role_args? ;
+  caller = name ; CALLS_KW ; nm = name ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
-  { Calls (caller, nm, loalo nra, loalo ra, ann) }
+  { Calls (caller, nm, loalo ra, ann) }
 
 let role_args ==
   LPAR ; nm = separated_nonempty_list(COMMA, name) ; RPAR ; { nm }
-
-let non_role_args ==
-  LT ; nras = separated_nonempty_list(COMMA, non_role_arg) ; GT ; { nras }
-
-(* grammatically the same as message  but may use a qualified name *)
-
-let non_role_arg ==
-  msg = message_signature ; { msg }
-  | nm = qname ; < MessageName >
 
 let global_choice ==
   CHOICE_KW ; AT_KW ; ~ = name ;
