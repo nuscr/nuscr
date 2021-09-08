@@ -1,0 +1,23 @@
+(*# MixedStateChoice #*)
+
+global protocol Streaming (role Y, role U) {
+  rec X {
+    choice at U {
+      DATA from Y to U;
+      MORE from U to Y; (*) this message makes it a bit unpleasant as a streamming protocol
+      continue X;
+    } or {
+      DONE from U to Y;
+    }
+  }
+}
+
+(* Note:
+
+While the message MORE makes the whole point of avoiding the
+synchronisation moot, it is needed to avoid Y from saturating U. This
+restriction may be lifted later, but it is needed. However, unline
+non-mixed state MPST in this case Y can start streaming immediately
+after the sesion starts.
+
+*)
