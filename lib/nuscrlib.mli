@@ -88,14 +88,9 @@ val generate_fstar_code :
   Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
 (** Generate F* code, with support for refinement types *)
 
-module Pragma : module type of Pragma
-
-module Gtype : module type of Mpst.Gtype
-
-module Ltype : module type of Mpst.Ltype
-
-module Efsm : module type of Mpst.Efsm
-
-module Err : module type of Err
-
-module Names : module type of Names
+module Pragma = Pragma
+module Gtype = Mpst.Gtype
+module Ltype = Mpst.Ltype
+module Efsm = Mpst.Efsm
+module Err = Err
+module Names = Names
