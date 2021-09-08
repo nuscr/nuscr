@@ -182,3 +182,4 @@ module Ltype = Ltype
 module Efsm = Efsm
 module Err = Err
 module Names = Names
+module Loc = Loc
