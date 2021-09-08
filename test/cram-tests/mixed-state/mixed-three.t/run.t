@@ -1,4 +1,4 @@
-The protocol is not well-formed, since only one of the participant in each
-branch is informed properly.
+The protocol is well-formed, moreover an non mixed version is shown,
+and it is explained how it differs from the mixed choice version.
 
   $ nuscr Mixed.nuscr

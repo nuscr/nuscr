@@ -1,11 +1,25 @@
 (*# MixedStateChoice #*)
 
-global protocol Streaming (role A, role B, role C) {
+
+(* mixed choice example, in each branch,the first message is from a
+different participant *)
+
+global protocol Mixed (role A, role B, role C) {
   choice at A {
     M1 from A to B ; M1F from B to C ;
   } or {
-    M2 from B to A ; M2F from A to C ; M2FF from C to B ;
+    M2 from B to A ; M2F from A to C ; M2FF from C to B ; (*) here A may choose to listen to B before doing anything
   } or {
     M3 from C to A ; M3F from A to B ; M3FF from B to C ;
+  }
+}
+
+global protocol NonMixed (role A, role B, role C) {
+  choice at A {
+    M1 from A to B ; M1F from B to C ;
+  } or {
+    M2F from A to C ; M2FF from C to B ; M2 from B to A ; (*) here, because there is no mixed state, A has to wait to learn from B
+  } or {
+    M3F from A to B ; M3FF from B to C ; M3 from C to A ;
   }
 }
