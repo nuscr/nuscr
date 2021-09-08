@@ -17,6 +17,7 @@
   syntaxtree
   mpst
   codegen)
+ (library_flags (-linkall))
  (preprocess
   (pps
    ppx_deriving.show
