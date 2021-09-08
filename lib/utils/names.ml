@@ -40,15 +40,11 @@ end
 module type TaggedName = sig
   include S
 
-  val of_untagged : UntaggedName.t -> t
-
   val of_other_name : (module S with type t = 'a) -> 'a -> t
 end
 
 module Make () : TaggedName = struct
   include UntaggedName
-
-  let of_untagged (name : UntaggedName.t) = name
 
   let of_other_name (type a) (module Other : S with type t = a) (name : a) :
       t =

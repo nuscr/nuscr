@@ -16,15 +16,8 @@ module type S = sig
   include Comparable.S with type t := t
 end
 
-(* Name is used for all identifiers in the concrete syntax tree,
- * for names in the abstract syntax tree, use the tagged names in the Names
- * module *)
-module UntaggedName : S
-
 module type TaggedName = sig
   include S
-
-  val of_untagged : UntaggedName.t -> t
 
   val of_other_name : (module S with type t = 'a) -> 'a -> t
 end
