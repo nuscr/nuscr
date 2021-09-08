@@ -1,11 +1,12 @@
 (*# MixedStateChoice #*)
 
-global protocol Streaming (role A, role B, role C) {
+global protocol Mixed (role A, role B, role C) {
+rec X {
   choice at A {
-    M1 from A to B ; M1F from B to C ;
+    M1 from A to B ; M1F from B to C ; continue X ;
   } or {
-    M2 from A to B ; (* Error: C never learns about this choice *)
+    M2 from A to B ; (* Error: C never learns about this choice and may wait for inputs forever *)
   } or {
-    M3 from A to C ; M3F from C to B ;
+    M3 from A to C ; M3F from C to B ; continue X;
   }
-}
+}}
