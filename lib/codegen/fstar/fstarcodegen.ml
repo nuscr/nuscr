@@ -1,9 +1,8 @@
 open! Base
 open! Stdio
-open Mpst
 open Names
 open Efsm
-open Syntaxtree.Syntax.RawExpr
+open Syntax.RawExpr
 
 let show_vars = function
   | [] -> "(empty)"

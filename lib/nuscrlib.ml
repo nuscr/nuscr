@@ -1,16 +1,7 @@
 open! Base
 open! Stdio
-module Pragma = Pragma
-module Gtype = Mpst.Gtype
-module Ltype = Mpst.Ltype
-module Efsm = Mpst.Efsm
-module Err = Err
-module Names = Names
 
 module Toplevel = struct
-  open Syntaxtree
-  module Parser = Syntaxtree.Parser
-  module Lexer = Syntaxtree.Lexer
   open Syntax
   open Err
   open Names
@@ -46,7 +37,7 @@ module Toplevel = struct
     in
     let protocols = ast.protocols in
     let protocols =
-      List.map ~f:(Mpst.Extraction.expand_global_protocol ast) protocols
+      List.map ~f:(Extraction.expand_global_protocol ast) protocols
     in
     show ~f:show_global_protocol protocols ;
     let g_types =
@@ -80,8 +71,8 @@ module Toplevel = struct
         print_endline (Printf.sprintf "%s%s" (f input) sep)
       else ()
     in
-    Mpst.Extraction.validate_calls_in_protocols ast ;
-    let ast = Mpst.Extraction.rename_nested_protocols ast in
+    Extraction.validate_calls_in_protocols ast ;
+    let ast = Extraction.rename_nested_protocols ast in
     show ~f:show_scr_module ~sep:"\n---------\n\n" ast ;
     let nested_t = Gtype.nested_t_of_module ast in
     show ~f:Gtype.show_nested_t ~sep:"\n---------\n\n" nested_t ;
@@ -92,7 +83,7 @@ module Toplevel = struct
   let validate_exn (ast : scr_module) : unit =
     if Pragma.nested_protocol_enabled () then validate_nested_protocols ast
     else (
-      Mpst.Extraction.ensure_no_nested_protocols ast ;
+      Extraction.ensure_no_nested_protocols ast ;
       validate_protocols_exn ast )
 
   let enumerate_protocols (ast : scr_module) :
@@ -132,7 +123,7 @@ module Toplevel = struct
       | Some gp -> gp
       | None -> uerr (ProtocolNotFound protocol)
     in
-    Mpst.Extraction.expand_global_protocol ast gp |> Gtype.of_protocol
+    Extraction.expand_global_protocol ast gp |> Gtype.of_protocol
 
   let project_protocol_role ast ~protocol ~role : Ltype.t =
     get_global_type ast ~protocol |> Ltype.project role
@@ -169,7 +160,7 @@ module Toplevel = struct
       | Some gp -> gp
       | None -> uerr (ProtocolNotFound protocol)
     in
-    let gp = Mpst.Extraction.expand_global_protocol ast gp in
+    let gp = Extraction.expand_global_protocol ast gp in
     let gtype = Gtype.of_protocol gp in
     let gtype = Gtype.normalise gtype in
     Sexp.to_string_hum (Gtype.sexp_of_t gtype)
@@ -185,3 +176,9 @@ module Toplevel = struct
 end
 
 include Toplevel
+module Pragma = Pragma
+module Gtype = Gtype
+module Ltype = Ltype
+module Efsm = Efsm
+module Err = Err
+module Names = Names

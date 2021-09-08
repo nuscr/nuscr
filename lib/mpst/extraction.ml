@@ -1,5 +1,4 @@
 open! Base
-open Syntaxtree
 open Syntax
 open Loc
 open Err

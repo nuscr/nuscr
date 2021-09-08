@@ -1,5 +1,4 @@
 open! Base
-open Mpst
 open Names
 
 (** Record containing the implementation of all the components of the Go
@@ -35,7 +34,7 @@ val ensure_unique_identifiers : Gtype.nested_t -> unit
     easy to relax *)
 
 val generate_go_code :
-     Syntaxtree.Syntax.scr_module
+     Syntax.scr_module
   -> protocol:ProtocolName.t
   -> out_dir:string
   -> go_path:string option

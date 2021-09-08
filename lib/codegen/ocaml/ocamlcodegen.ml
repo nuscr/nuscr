@@ -6,7 +6,6 @@ open Asttypes
 open Longident
 open! Ast_helper
 open Names
-open Mpst
 open Efsm
 
 let mk_lid id = Location.mknoloc (Option.value_exn (unflatten [id]))

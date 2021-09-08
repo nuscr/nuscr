@@ -1,9 +1,6 @@
 (** Main entry point of the library *)
 open Names
 
-open Syntaxtree
-open Mpst
-
 (** {1 Parsing} *)
 
 (** This section deals with parsing protocols. *)
@@ -89,8 +86,8 @@ val generate_fstar_code :
 (** Generate F* code, with support for refinement types *)
 
 module Pragma = Pragma
-module Gtype = Mpst.Gtype
-module Ltype = Mpst.Ltype
-module Efsm = Mpst.Efsm
+module Gtype = Gtype
+module Ltype = Ltype
+module Efsm = Efsm
 module Err = Err
 module Names = Names

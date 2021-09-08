@@ -1,6 +1,5 @@
 open! Base
 open Names
-open Syntaxtree
 
 (** Global types *)
 

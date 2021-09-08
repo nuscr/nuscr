@@ -1,15 +1,3 @@
-(library
- (name syntaxtree)
- (package nuscr)
- (libraries base utils)
- (preprocess
-  (pps
-   ppx_deriving.show
-   ppx_deriving.eq
-   ppx_deriving.ord
-   ppx_sexp_conv
-   ppxlib.metaquot)))
-
 (ocamllex
  (modules lexer))
 

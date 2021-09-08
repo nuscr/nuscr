@@ -1,12 +1,11 @@
 open! Base
-open Mpst
 open Ltype
 open Goenvs
 open Names
 open Goimpl
 open Gonames
 open Gtype
-open Syntaxtree.Syntax
+open Syntax
 open Fsutil
 
 (** Validate protocols to ensure Go implementation can be generated

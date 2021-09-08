@@ -1,7 +1,6 @@
 open! Base
 open Printf
 open Names
-open Syntaxtree
 open Syntax.RawExpr
 
 (* Workaround for https://github.com/janestreet/sexplib/issues/34 *)

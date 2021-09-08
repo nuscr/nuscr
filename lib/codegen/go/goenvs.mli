@@ -1,6 +1,5 @@
 open! Base
 open Names
-open Mpst
 open Gtype
 open Ltype
 

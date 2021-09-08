@@ -2,7 +2,6 @@
 
 open! Base
 open Names
-open Syntaxtree
 open Syntax.RawExpr
 
 (** {1 Expressions} *)

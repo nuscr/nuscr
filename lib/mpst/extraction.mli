@@ -1,4 +1,4 @@
-open Syntaxtree.Syntax
+open Syntax
 
 val expand_global_protocol : scr_module -> global_protocol -> global_protocol
 (** Expand `do` constructs in global protocols into `rec` and `continues` *)
