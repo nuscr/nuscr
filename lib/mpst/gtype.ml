@@ -663,9 +663,8 @@ let validate_mixed_state_choice_exn g =
           ; uninformed_choice= Set.remove env.uninformed_choice r_recv }
         in
         aux env g
-    | MessageG _ | ChoiceG _ ->
-        Err.unimpl ~here:[%here]
-          "Error message for performing action while not enabled."
+    | MessageG (_, r, _, _) | ChoiceG (r, _) ->
+        Err.uerr (Err.RoleNotEnabled r)
   in
   aux env g
 

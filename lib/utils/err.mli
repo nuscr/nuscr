@@ -34,6 +34,7 @@ type user_error =
   | UnsatisfiableRefinement (* TODO: Extra Message for error reporting *)
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
+  | RoleNotEnabled of RoleName.t
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
