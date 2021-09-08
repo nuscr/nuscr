@@ -488,6 +488,7 @@ let rec project' env (projected_role : RoleName.t) =
               Err.violation
                 "TVarL should not appear here, since we unwrapped the \
                  recursion earlier"
+          | EndL :: rest -> aux acc rest (* Temporary hack *)
           | _ -> Err.unimpl "throw an error here for bad local types"
         in
         aux (Set.empty (module LabelName)) ltys

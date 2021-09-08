@@ -11,7 +11,7 @@ global protocol Mixed (role A, role B, role C) {
     }
   }
 }
-(*
+
 global protocol MixedSome (role A, role B, role C) {
   rec X {
     choice at A {
@@ -26,4 +26,3 @@ global protocol MixedSome (role A, role B, role C) {
     }
   }
 }
-*)
