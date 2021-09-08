@@ -1,6 +1,6 @@
 (*# MixedStateChoice #*)
 
-global protocol Streaming (role Y, role U) {
+global protocol StreamingMC (role Y, role U) {
   rec X {
     choice at U {
       DATA from Y to U;
@@ -21,3 +21,20 @@ non-mixed state MPST in this case Y can start streaming immediately
 after the sesion starts.
 
 *)
+
+(* this protocol is the variant without mixed choice, it is very
+similar but it loses the "early start". This is not great feature, but
+it hints to further protocols, in which the choice is more
+conveniently mixed *)
+
+global protocol StreamingNMC (role Y, role U) {
+  rec X {
+    choice at U {
+      MORE from U to Y;
+      DATA from Y to U;
+      continue X;
+    } or {
+      DONE from U to Y;
+    }
+  }
+}
