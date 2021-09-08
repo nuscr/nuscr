@@ -156,7 +156,9 @@ let extract_choice_label_enums msgs_env ltypes =
 let gen_accept_impl env var_name_gen caller curr_role local_protocol
     role_channel role_invite_chan accept_cb result_cb is_recv_choice_msg =
   (* <local_proto>_chan := <-inviteChan.<role_chan> *)
-  let role_chan_var = new_role_chan_var local_protocol in
+  let role_chan_var =
+    VariableName.of_string (new_role_chan_var local_protocol)
+  in
   let var_name_gen, role_chan_var_name =
     new_variable var_name_gen role_chan_var
   in
@@ -164,7 +166,9 @@ let gen_accept_impl env var_name_gen caller curr_role local_protocol
     recv_from_invite_chan role_chan_var_name invite_chan role_channel
   in
   (* <local_proto>_invite_chan := <-inviteChan.<role_invite_chan> *)
-  let role_invite_chan_var = new_role_invite_chan_var local_protocol in
+  let role_invite_chan_var =
+    VariableName.of_string (new_role_invite_chan_var local_protocol)
+  in
   let var_name_gen, role_invite_chan_var_name =
     new_variable var_name_gen role_invite_chan_var
   in
@@ -173,7 +177,7 @@ let gen_accept_impl env var_name_gen caller curr_role local_protocol
       role_invite_chan
   in
   (* <local_protocol>_env := env.<accept_cb>() *)
-  let new_env_var = new_env_var local_protocol in
+  let new_env_var = VariableName.of_string (new_env_var local_protocol) in
   let var_name_gen, new_env_var_name =
     new_variable var_name_gen new_env_var
   in
@@ -186,7 +190,7 @@ let gen_accept_impl env var_name_gen caller curr_role local_protocol
   in
   (* <local_protocol>_result := <local_protocol>(wg, <local_protocol>_chan,
      <local_protocol>_inviteChan, <local_protocol>_env) *)
-  let result_var = new_result_var local_protocol in
+  let result_var = VariableName.of_string (new_result_var local_protocol) in
   let var_name_gen, result_var_name = new_variable var_name_gen result_var in
   let role_function = local_protocol_function_name local_protocol in
   let params =
@@ -344,7 +348,9 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
   let str_role_struct_fields =
     List.map ~f:InviteChannelName.user role_struct_fields
   in
-  let role_struct_var = new_role_setup_var protocol in
+  let role_struct_var =
+    VariableName.of_string (new_role_setup_var protocol)
+  in
   let var_name_gen, role_struct_var_name =
     new_variable var_name_gen role_struct_var
   in
@@ -369,7 +375,9 @@ let gen_invite_impl env var_name_gen protocol curr_role invite_enum
   let str_invite_struct_fields =
     List.map ~f:InviteChannelName.user invite_struct_fields
   in
-  let invite_struct_var = new_invite_setup_var protocol in
+  let invite_struct_var =
+    VariableName.of_string (new_invite_setup_var protocol)
+  in
   let var_name_gen, invite_struct_var_name =
     new_variable var_name_gen invite_struct_var
   in
@@ -404,7 +412,7 @@ let gen_make_choice_impl var_name_gen role callbacks_pkg choice_cb
     choice_enums choice_impls indent =
   (* choice := env.<role>_Choice() *)
   (* switch choice {case <enum_val>: <impl>} *)
-  let choice_enum_var = new_choice_enum_var role in
+  let choice_enum_var = VariableName.of_string (new_choice_enum_var role) in
   let var_name_gen, choice_enum_var_name =
     new_variable var_name_gen choice_enum_var
   in
@@ -431,7 +439,9 @@ let gen_make_choice_impl var_name_gen role callbacks_pkg choice_cb
     making the choice*)
 let gen_recv_choice_impl env var_name_gen choice_role label_msg_enums
     choice_impls msgs_pkg indent =
-  let choice_var_str = new_choice_enum_var choice_role in
+  let choice_var_str =
+    VariableName.of_string (new_choice_enum_var choice_role)
+  in
   let var_name_gen, label_msg_var =
     new_variable var_name_gen choice_var_str
   in
@@ -928,6 +938,7 @@ let rec gen_message_label_enums msgs_env = function
 let gen_role_implementation msgs_env protocol_setup_env ltype_env global_t
     protocol_lookup is_dynamic_role protocol role
     (local_proto_name : LocalProtocolName.t) ltype =
+  let module Namegen = Namegen.Make (VariableName) in
   let rec gen_implementation indent is_recv_choice_msg (env, var_name_gen)
       ltype =
     match ltype with
@@ -1375,28 +1386,37 @@ let generate_go_impl
   in
   let write_roles () =
     create_pkg pkg_roles ;
+    let module Namegen = Namegen.Make (FileName) in
     let file_name_gen = Namegen.create () in
     let file_name_gen =
       Map.fold impl ~init:file_name_gen
         ~f:(fun ~key:local_protocol ~data:impl file_name_gen ->
-          let file_name = role_impl_file_name local_protocol in
+          let file_name =
+            FileName.of_string (role_impl_file_name local_protocol)
+          in
           let file_name_gen, file_name =
             Namegen.unique_name file_name_gen file_name
           in
           let file_path =
-            gen_file_path (PackageName.user pkg_roles) file_name
+            gen_file_path
+              (PackageName.user pkg_roles)
+              (FileName.user file_name)
           in
           write_file file_path impl ; file_name_gen )
     in
     let _ =
       Map.fold protocol_setup ~init:file_name_gen
         ~f:(fun ~key:protocol ~data:impl file_name_gen ->
-          let file_name = protocol_setup_file_name protocol in
+          let file_name =
+            FileName.of_string (protocol_setup_file_name protocol)
+          in
           let file_name_gen, file_name =
             Namegen.unique_name file_name_gen file_name
           in
           let file_path =
-            gen_file_path (PackageName.user pkg_roles) file_name
+            gen_file_path
+              (PackageName.user pkg_roles)
+              (FileName.user file_name)
           in
           write_file file_path impl ; file_name_gen )
     in
@@ -1417,7 +1437,7 @@ let generate_go_code ast ~protocol ~out_dir ~go_path =
   let protocol_pkg = protocol_pkg_name protocol in
   let is_global_protocol () =
     List.exists ast.protocols ~f:(fun {Loc.loc= _; value= proto} ->
-        String.equal (Name.Name.user proto.name) (ProtocolName.user protocol) )
+        ProtocolName.equal proto.name protocol )
   in
   let root_dir =
     RootDirName.of_string @@ Printf.sprintf "%s/%s" out_dir protocol_pkg

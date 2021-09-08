@@ -65,11 +65,12 @@
 
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
-%{ open Syntax
-   module Name = Name.Name
+%{
+open Syntax
+open Names
 
-  (* list of 'a list option *)
-  let loalo = function None -> [] | Some n -> n
+(* list of 'a list option *)
+let loalo = function None -> [] | Some n -> n
 %}
 %%
 
@@ -147,7 +148,7 @@ let protocol_decl == global_protocol_decl (* local pending *)
 (* nuScr extension, the keyword global protocol can be shortened to either *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 let raw_global_protocol_decl ==
-  opts = protocol_options? ; protocol_hdr ; nm = name ;
+  opts = protocol_options? ; protocol_hdr ; nm = protoname ;
   pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ;
   ann = annotation? ; body = global_protocol_body ;
   {
@@ -166,7 +167,7 @@ let raw_global_protocol_decl ==
 let nested_protocol_decl == located(raw_nested_protocol_decl)
 (* TODO: Remove unnecessary stuff? *)
 let raw_nested_protocol_decl ==
-  nested_hdr ; nm = name ;
+  nested_hdr ; nm = protoname ;
   pars = parameter_decls? ; rs = nested_role_decls ; rp = rec_parameter_decls? ;
   ann = annotation? ; body = global_protocol_body ;
   {
@@ -216,7 +217,7 @@ let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
 let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                          new_nms = new_role_decls? ; RPAR ; { (nms, loalo new_nms) }
 
-let role_decl == ROLE_KW ; nm = name ; { nm }
+let role_decl == ROLE_KW ; nm = rolename ; { nm }
 
 
 let new_role_decls == SEMICOLON ; NEW_KW ;
@@ -241,44 +242,46 @@ let raw_global_interaction ==
   | global_do
   | global_calls
 let global_do ==
-  DO_KW ; nm = name ;
+  DO_KW ; nm = protoname ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
   { Do (nm, loalo ra, ann) }
 
 let global_calls ==
-  caller = name ; CALLS_KW ; nm = name ;
+  caller = rolename ; CALLS_KW ; nm = protoname ;
   ra = role_args? ; SEMICOLON ; ann = annotation? ;
   { Calls (caller, nm, loalo ra, ann) }
 
 let role_args ==
-  LPAR ; nm = separated_nonempty_list(COMMA, name) ; RPAR ; { nm }
+  LPAR ; nm = separated_nonempty_list(COMMA, rolename) ; RPAR ; { nm }
 
 let global_choice ==
-  CHOICE_KW ; AT_KW ; ~ = name ;
+  CHOICE_KW ; AT_KW ; ~ = rolename ;
   ~ = separated_nonempty_list(OR_KW, global_protocol_block) ;
   < Choice >
 
 let global_continue ==
-  | CONTINUE_KW ; n = name ; LSQUARE; exprs = separated_list(COMMA, expr); RSQUARE; SEMICOLON ; { Continue(n, exprs) }
-  | CONTINUE_KW ; n = name ; SEMICOLON ; { Continue(n, []) }
+  | CONTINUE_KW ; n = tyvarname ;
+    LSQUARE; exprs = separated_list(COMMA, expr); RSQUARE; SEMICOLON ;
+    { Continue(n, exprs) }
+  | CONTINUE_KW ; n = tyvarname ; SEMICOLON ; { Continue(n, []) }
 
 let global_recursion ==
-  | REC_KW ; n = name ; LSQUARE ;
+  | REC_KW ; n = tyvarname ; LSQUARE ;
     rec_vars = separated_list(COMMA, rec_var); RSQUARE;
     g = global_protocol_block ;
     { Recursion(n, rec_vars, g) }
-  | REC_KW ; n = name ; g = global_protocol_block ; { Recursion(n, [], g) }
+  | REC_KW ; n = tyvarname ; g = global_protocol_block ; { Recursion(n, [], g) }
 
 let rec_var ==
-  | var = name; LT;
-    roles = separated_nonempty_list(COMMA, name);
+  | var = varname; LT;
+    roles = separated_nonempty_list(COMMA, rolename);
     GT; COLON;
     ty = payload_el;
     EQUAL;
     init = expr;
     { { var ; roles ; ty ; init } }
-  | var = name; LT;
-    roles = separated_nonempty_list(COMMA, name);
+  | var = varname; LT;
+    roles = separated_nonempty_list(COMMA, rolename);
     GT; COLON;
     LPAR ;
     ty = payload_el;
@@ -288,8 +291,8 @@ let rec_var ==
     { { var ; roles ; ty ; init } }
 
 let global_message_transfer ==
-  msg = message ; FROM_KW ; frn = name ;
-  TO_KW ; trns = separated_nonempty_list(COMMA, name) ;
+  msg = message ; FROM_KW ; frn = rolename ;
+  TO_KW ; trns = separated_nonempty_list(COMMA, rolename) ;
   SEMICOLON ; ann = annotation? ;
   { MessageTransfer
       { message = msg
@@ -303,12 +306,12 @@ let global_message_transfer ==
    Scribble parser *)
 let message ==
   msg = message_signature ; { msg }
-  | ~ = name ; < MessageName >
+  | ~ = labelname ; < MessageName >
 
 (* this corresponds to siglit in Scribble.g *)
 let message_signature ==
   (* LPAR ; payload ; RPAR *)
-  | nm=name ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
+  | nm = labelname ; LPAR ; pars=separated_list(COMMA, payload_el) ; RPAR ;
       { Message { name = nm
                 ; payload = pars
                 }
@@ -317,23 +320,47 @@ let message_signature ==
 
 let payload_el ==
   (* protocol @ role (delegation) *)
-  | n1 = name ; ARROBA ; n2 = name  ; { PayloadDel(n1, n2) }
-  | nm = qname ; < PayloadName >
-  | v = name ; COLON ; t = name; LCURLY; e = expr; RCURLY;
+  | n1 = protoname ; ARROBA ; n2 = rolename  ; { PayloadDel(n1, n2) }
+  | nm = create_payload(qname) ; < PayloadName >
+  | v = varname ; COLON ; t = payloadtypename; LCURLY; e = expr; RCURLY;
     { PayloadRTy (Refined (v, t, e)) }
-  | ~ = name ; COLON ; ~ = qname ; < PayloadBnd >
+  | ~ = varname ; COLON ; ~ = create_payload(qname) ; < PayloadBnd >
 
 
 let annotation == ARROBA ; ann = EXTIDENT ; { ann }
 
 
 (* qualified names *)
-let qname == create (raw_qname)
+let qname == raw_qname
 
 let raw_qname ==
   names = separated_nonempty_list(DOT, IDENT); { String.concat "." names }
 
-let name == create(raw_name)
+let name == raw_name
+
+let varname ==
+  x = raw_name; { VariableName.create x (Loc.create $loc) }
+
+let payloadtypename ==
+  x = raw_name; { PayloadTypeName.create x (Loc.create $loc) }
+
+let protoname ==
+  x = raw_name; { ProtocolName.create x (Loc.create $loc) }
+
+let rolename ==
+  x = raw_name; { RoleName.create x (Loc.create $loc) }
+
+let tyvarname ==
+  x = raw_name; { TypeVariableName.create x (Loc.create $loc) }
+
+let labelname ==
+  x = raw_name; { LabelName.create x (Loc.create $loc) }
+
+let create_var(x) ==
+  ~ = x; { VariableName.create x (Loc.create $loc) }
+
+let create_payload(x) ==
+  ~ = x; { PayloadTypeName.create x (Loc.create $loc) }
 
 let raw_name ==
   | i = IDENT ; { i }
@@ -345,7 +372,7 @@ atomic_expr:
     { Int i }
   | s = EXTIDENT
     { String s }
-  | i = create(IDENT)
+  | i = create_var(IDENT)
     { Var i }
   | TRUE_KW { Bool true }
   | FALSE_KW { Bool false }
@@ -392,6 +419,3 @@ expr:
 (* utilities *)
 let located(x) ==
   ~ = x; { { Loc.loc = Loc.create $loc; Loc.value = x } }
-
-let create(x) ==
-  ~ = x; { Name.create x (Loc.create $loc)}

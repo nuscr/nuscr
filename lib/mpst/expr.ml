@@ -36,8 +36,7 @@ module Sexp = struct
     to_string_buf buffer s ; Buffer.contents buffer
 end
 
-(** An expression, used in RefinementType extension *)
-type t = VariableName.t raw_expr [@@deriving sexp_of, eq, ord]
+type t = expr [@@deriving sexp_of, eq, ord]
 
 let rec show = function
   | Var v -> VariableName.user v
@@ -47,14 +46,6 @@ let rec show = function
   | Binop (b, e1, e2) ->
       sprintf "(%s)%s(%s)" (show e1) (show_binop b) (show e2)
   | Unop (u, e) -> sprintf "%s(%s)" (show_unop u) (show e)
-
-let rec of_syntax_expr = function
-  | Var n -> Var (VariableName.of_name n)
-  | Int n -> Int n
-  | Bool n -> Bool n
-  | String n -> String n
-  | Binop (b, e1, e2) -> Binop (b, of_syntax_expr e1, of_syntax_expr e2)
-  | Unop (u, e) -> Unop (u, of_syntax_expr e)
 
 (** Types for expressions. Integers, booleans and strings are are modelled,
     and can be thus refined with RefinementTypes extension *)

@@ -59,9 +59,9 @@ let reference_var var =
 let chan_type type_str = sprintf "chan %s" type_str
 
 let new_variable name_gen var_name =
+  let module Namegen = Namegen.Make (VariableName) in
   let name_gen, var_name = Namegen.unique_name name_gen var_name in
-  let variable = VariableName.of_string var_name in
-  (name_gen, variable)
+  (name_gen, var_name)
 
 let var_type_decl var type_name = sprintf "%s %s" var type_name
 

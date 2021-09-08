@@ -4,7 +4,7 @@ open Syntax
 open Loc
 open Err
 open Symtable
-module Name = Name.Name
+open Names
 
 let rec swap_role swap_role_f {value; loc} =
   let value =
@@ -29,7 +29,7 @@ let rec swap_role swap_role_f {value; loc} =
   {value; loc}
 
 let instantiate (protocol : raw_global_protocol)
-    (replacement_roles : name list) =
+    (replacement_roles : RoleName.t list) =
   let original_roles = protocol.roles in
   let replacement_map = List.zip original_roles replacement_roles in
   let replacement_map =
@@ -40,38 +40,35 @@ let instantiate (protocol : raw_global_protocol)
   in
   let replacement_map =
     List.fold
-      ~f:(fun acc (ori, rep) ->
-        Map.add_exn acc ~key:(Name.user ori) ~data:rep )
-      ~init:(Map.empty (module String))
+      ~f:(fun acc (ori, rep) -> Map.add_exn acc ~key:ori ~data:rep)
+      ~init:(Map.empty (module RoleName))
       replacement_map
   in
-  let swap_f r = Map.find_exn replacement_map (Name.user r) in
+  let swap_f r = Map.find_exn replacement_map r in
   List.map ~f:(swap_role swap_f) protocol.interactions
 
 let rec_var_of_protocol_roles (name, roles) loc =
-  let names = List.map ~f:Name.user (name :: roles) in
-  Name.create (Printf.sprintf "__%s" (String.concat ~sep:"_" names)) loc
+  let names = ProtocolName.user name :: List.map ~f:RoleName.user roles in
+  TypeVariableName.create
+    (Printf.sprintf "__%s" (String.concat ~sep:"_" names))
+    loc
 
 let mk_protocol_map scr_module =
   let f acc {value= p; loc} =
-    match
-      Map.add acc ~key:(Name.user p.name) ~data:(p, loc, List.length p.roles)
-    with
+    match Map.add acc ~key:p.name ~data:(p, loc, List.length p.roles) with
     | `Ok acc -> acc
     | `Duplicate ->
-        let _, old_loc, _ = Map.find_exn acc (Name.user p.name) in
-        uerr
-          (RedefinedProtocol (Names.ProtocolName.of_name p.name, loc, old_loc)
-          )
+        let _, old_loc, _ = Map.find_exn acc p.name in
+        uerr (RedefinedProtocol (p.name, loc, old_loc))
   in
   let protocols =
-    List.fold ~f ~init:(Map.empty (module String)) scr_module.protocols
+    List.fold ~f ~init:(Map.empty (module ProtocolName)) scr_module.protocols
   in
   protocols
 
 module ProtocolCall = struct
   module T = struct
-    type t = name * name list [@@deriving ord, sexp_of]
+    type t = ProtocolName.t * RoleName.t list [@@deriving ord, sexp_of]
   end
 
   include T
@@ -84,8 +81,8 @@ let expand_global_protocol (scr_module : scr_module)
   let protocols = mk_protocol_map scr_module in
   let known_roles = protocol.value.roles in
   let check_role r =
-    if List.mem known_roles ~equal:Name.equal r then ()
-    else uerr (UnboundRole (Names.RoleName.of_name r))
+    if List.mem known_roles ~equal:RoleName.equal r then ()
+    else uerr (UnboundRole r)
   in
   let maybe_add_recursion ~loc ~known (name, roles) interactions =
     let has_recursion = Map.find_exn known (name, roles) in
@@ -114,17 +111,14 @@ let expand_global_protocol (scr_module : scr_module)
                   Continue (rec_var_of_protocol_roles (name, roles) loc, [])
               ; loc } ] )
       | Do (name, roles, _annot) ->
-          let protocol_to_expand = Map.find protocols (Name.user name) in
+          let protocol_to_expand = Map.find protocols name in
           let protocol_to_expand, _, arity =
             match protocol_to_expand with
             | Some p -> p
-            | None -> uerr (UnboundProtocol (Names.ProtocolName.of_name name))
+            | None -> uerr (UnboundProtocol name)
           in
           if List.length roles <> arity then
-            uerr
-              (ArityMismatch
-                 (Names.ProtocolName.of_name name, arity, List.length roles)
-              ) ;
+            uerr (ArityMismatch (name, arity, List.length roles)) ;
           List.iter ~f:check_role roles ;
           let known = Map.add_exn known ~key:(name, roles) ~data:false in
           let known, interactions =
@@ -189,8 +183,8 @@ let validate_calls_in_protocols (scr_module : scr_module) =
   let rec validate_protocol_calls prefix global_table nested_table protocol =
     let rec validate_interaction protocol_roles global_table nested_table i =
       let check_role r =
-        if List.mem protocol_roles ~equal:Name.equal r then ()
-        else uerr (UnboundRole (Names.RoleName.of_name r))
+        if List.mem protocol_roles ~equal:RoleName.equal r then ()
+        else uerr (UnboundRole r)
       in
       let validate_call caller proto roles symbol_table =
         check_role caller ;
@@ -201,12 +195,9 @@ let validate_calls_in_protocols (scr_module : scr_module) =
         let proto_roles, _ = decl.split_decl in
         let arity = List.length proto_roles in
         if arity <> List.length roles then
-          uerr
-            (ArityMismatch
-               (Names.ProtocolName.of_name proto, arity, List.length roles)
-            ) ;
-        if arity <> Set.length (Set.of_list (module Name) roles) then
-          uerr (DuplicateRoleArgs (Names.ProtocolName.of_name proto))
+          uerr (ArityMismatch (proto, arity, List.length roles)) ;
+        if arity <> Set.length (Set.of_list (module RoleName) roles) then
+          uerr (DuplicateRoleArgs proto)
       in
       let interaction = i.value in
       match interaction with
@@ -237,9 +228,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
             iss
       | _ -> ()
     in
-    let new_prefix =
-      name_with_prefix prefix (Name.user protocol.value.name)
-    in
+    let new_prefix = name_with_prefix prefix protocol.value.name in
     let nested_protocols = protocol.value.nested_protocols in
     let new_nested_st =
       build_symbol_table new_prefix nested_protocols (Some nested_table)
@@ -253,7 +242,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
       ~f:(validate_protocol_calls new_prefix global_table new_nested_st)
       nested_protocols
   in
-  let prefix = "" in
+  let prefix = ProtocolName.of_string "" in
   let nested_symbol_table =
     build_symbol_table prefix scr_module.nested_protocols None
   in
@@ -272,22 +261,21 @@ let validate_calls_in_protocols (scr_module : scr_module) =
 (* Rename only nested protocols so they have unique ids. Global protocols and
    calls to global protocols (do <proto>(...);) remain the same *)
 let rename_nested_protocols (scr_module : scr_module) =
+  let module Namegen = Namegen.Make (ProtocolName) in
   let rename known name =
-    let name_str = N.user name in
-    N.rename name (Map.find_exn known name_str)
+    ProtocolName.rename name (ProtocolName.user (Map.find_exn known name))
   in
   let update_known_protocols prefix uids known protocols =
     let update_protocol_info (uids, known) (global_protocol : global_protocol)
         =
       let proto = global_protocol.value in
       let {name; _} = proto in
-      let name_str = N.user name in
-      let protocol_name = name_with_prefix prefix name_str in
+      let protocol_name = name_with_prefix prefix name in
       let new_uids, protocol_name = Namegen.unique_name uids protocol_name in
-      let new_known =
-        Map.update known name_str ~f:(fun _ -> protocol_name)
+      let new_known = Map.update known name ~f:(fun _ -> protocol_name) in
+      let new_name =
+        ProtocolName.rename name (ProtocolName.user protocol_name)
       in
-      let new_name = N.rename name protocol_name in
       ( (new_uids, new_known)
       , {global_protocol with value= {proto with name= new_name}} )
     in
@@ -321,7 +309,7 @@ let rename_nested_protocols (scr_module : scr_module) =
       | Do _ | MessageTransfer _ | Continue _ -> i
     in
     let proto = protocol.value in
-    let prefix = N.user proto.name in
+    let prefix = proto.name in
     let nested_protocols = proto.nested_protocols in
     (* Update known and uids with nested protocols declarations *)
     let (new_uids, new_known), new_nested_protocols =
@@ -346,12 +334,16 @@ let rename_nested_protocols (scr_module : scr_module) =
           ; interactions= new_interactions } } )
   in
   let (uids, known), global_protocols =
-    update_known_protocols "" (Namegen.create ())
-      (Map.empty (module String))
+    update_known_protocols
+      (ProtocolName.of_string "")
+      (Namegen.create ())
+      (Map.empty (module ProtocolName))
       scr_module.protocols
   in
   let (uids, known), nested_protocols =
-    update_known_protocols "" uids known scr_module.nested_protocols
+    update_known_protocols
+      (ProtocolName.of_string "")
+      uids known scr_module.nested_protocols
   in
   let (uids, _), renamed_global_protocols =
     List.fold_map ~init:(uids, known) ~f:update_protocol_interactions

@@ -18,12 +18,9 @@ open Syntax.RawExpr
    | Binop of binop * t * t  (** A binary operator *)
    | Unop of unop * t  (** An unary operator *)
     v} *)
-type t = VariableName.t raw_expr [@@deriving sexp_of, eq, ord]
+type t = expr [@@deriving sexp_of, eq, ord]
 
 val show : t -> string
-
-val of_syntax_expr : expr -> t
-(** Convert from an expression in concrete syntax to abstract syntax *)
 
 val free_var : t -> Set.M(VariableName).t
 (** Get free variables in an expression *)

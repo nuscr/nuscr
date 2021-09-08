@@ -119,12 +119,10 @@ let show =
         let l_str = show_nested_type_internal indent l in
         invite ^ create ^ l_str
     | AcceptL (role, protocol, roles, new_roles, caller, l) ->
-        let roles_str = List.map ~f:RoleName.user roles in
-        let new_roles_str = List.map ~f:RoleName.user new_roles in
         sprintf "%saccept %s@%s(%s) from %s;\n%s" current_indent
           (RoleName.user role)
           (ProtocolName.user protocol)
-          (Symtable.show_roles (roles_str, new_roles_str))
+          (Symtable.show_roles (roles, new_roles))
           (RoleName.user caller)
           (show_nested_type_internal indent l)
     | SilentL (var, ty, l) ->
@@ -137,10 +135,9 @@ let show =
 
 let show_nested_t (nested_t : nested_t) =
   let show_local_protocol ((protocol, role), (roles, ltype)) =
-    let roles_str = List.map ~f:RoleName.user roles in
     sprintf "%s@%s(%s) {\n\n%s\n}" (RoleName.user role)
       (ProtocolName.user protocol)
-      (Symtable.show_roles (roles_str, []))
+      (Symtable.show_roles (roles, []))
       (show ltype)
   in
   Map.to_alist nested_t
@@ -151,15 +148,19 @@ type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
 let build_local_proto_name_lookup (nested_t : nested_t) :
     local_proto_name_lookup =
+  let module Namegen = Namegen.Make (ProtocolName) in
   let gen_unique_name ~key:(protocol, role) ~data:_
       (local_protocol_names, name_gen) =
     let protocol_name =
-      sprintf "%s_%s" (ProtocolName.user protocol) (RoleName.user role)
+      ProtocolName.rename protocol
+        (sprintf "%s_%s" (ProtocolName.user protocol) (RoleName.user role))
     in
     let name_gen, protocol_name =
       Namegen.unique_name name_gen protocol_name
     in
-    let local_protocol_name = LocalProtocolName.of_string protocol_name in
+    let local_protocol_name =
+      LocalProtocolName.of_other_name (module ProtocolName) protocol_name
+    in
     ( Map.add_exn local_protocol_names ~key:(protocol, role)
         ~data:local_protocol_name
     , name_gen )
@@ -511,6 +512,7 @@ let project_nested_t (nested_t : Gtype.nested_t) =
 
 let make_unique_tvars ltype =
   (* TODO: Handle expressions in recursion and recursive variables *)
+  let module Namegen = Namegen.Make (TypeVariableName) in
   let rec rename_tvars tvar_mapping namegen = function
     | RecvL (msg, sender, l) ->
         let namegen, l = rename_tvars tvar_mapping namegen l in
@@ -519,10 +521,7 @@ let make_unique_tvars ltype =
         let namegen, l = rename_tvars tvar_mapping namegen l in
         (namegen, SendL (msg, recv, l))
     | MuL (tvar, rec_vars, l) ->
-        let namegen, new_tvar_str =
-          Namegen.unique_name namegen (TypeVariableName.user tvar)
-        in
-        let new_tvar = TypeVariableName.of_string @@ new_tvar_str in
+        let namegen, new_tvar = Namegen.unique_name namegen tvar in
         let tvar_mapping =
           Map.update tvar_mapping tvar ~f:(fun _ -> new_tvar)
         in

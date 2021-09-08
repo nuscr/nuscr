@@ -60,9 +60,7 @@ module Toplevel = struct
       List.iter ~f:(fun (g, _) -> Gtype.validate_refinements_exn g) g_types ;
     let l_types =
       List.map
-        ~f:(fun (g, roles) ->
-          List.map ~f:(fun r -> Ltype.project (RoleName.of_name r) g) roles
-          )
+        ~f:(fun (g, roles) -> List.map ~f:(fun r -> Ltype.project r g) roles)
         g_types
     in
     show
@@ -101,9 +99,7 @@ module Toplevel = struct
     let protocols = ast.protocols in
     let roles p =
       let {Loc.value= {name; roles; _}; _} = p in
-      List.map
-        ~f:(fun role -> (ProtocolName.of_name name, RoleName.of_name role))
-        roles
+      List.map ~f:(fun role -> (name, role)) roles
     in
     List.concat_map ~f:(fun p -> roles p) protocols
 
@@ -129,10 +125,7 @@ module Toplevel = struct
     let gp =
       match
         List.find
-          ~f:(fun gt ->
-            ProtocolName.equal
-              (ProtocolName.of_name gt.Loc.value.name)
-              protocol )
+          ~f:(fun gt -> ProtocolName.equal gt.Loc.value.name protocol)
           ast.protocols
       with
       | Some gp -> gp
@@ -169,10 +162,7 @@ module Toplevel = struct
     let gp =
       match
         List.find
-          ~f:(fun gt ->
-            ProtocolName.equal
-              (ProtocolName.of_name gt.Loc.value.name)
-              protocol )
+          ~f:(fun gt -> ProtocolName.equal gt.Loc.value.name protocol)
           ast.protocols
       with
       | Some gp -> gp

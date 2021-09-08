@@ -48,30 +48,23 @@ let show_payload = function
 let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
 
 let parse_typename name =
-  match Name.Name.user name with
+  match PayloadTypeName.user name with
   | "int" -> Expr.PTInt
   | "string" -> Expr.PTString
   | "bool" -> Expr.PTBool
   | "unit" -> Expr.PTUnit
-  | _ -> Expr.PTAbstract (PayloadTypeName.of_name name)
+  | _ -> Expr.PTAbstract name
 
 let of_syntax_payload (payload : Syntax.payloadt) =
   let open Syntax in
   match payload with
   | PayloadName n -> PValue (None, parse_typename n)
-  | PayloadDel (p, r) ->
-      PDelegate (ProtocolName.of_name p, RoleName.of_name r)
-  | PayloadBnd (var, n) ->
-      PValue (Some (VariableName.of_name var), parse_typename n)
+  | PayloadDel (p, r) -> PDelegate (p, r)
+  | PayloadBnd (var, n) -> PValue (Some var, parse_typename n)
   | PayloadRTy (Simple n) -> PValue (None, parse_typename n)
   | PayloadRTy (Refined (v, t, e)) ->
       if Pragma.refinement_type_enabled () then
-        PValue
-          ( Some (VariableName.of_name v)
-          , Expr.PTRefined
-              ( VariableName.of_name v
-              , parse_typename t
-              , Expr.of_syntax_expr e ) )
+        PValue (Some v, Expr.PTRefined (v, parse_typename t, e))
       else
         uerr
           (PragmaNotSet
@@ -96,9 +89,8 @@ let of_syntax_message (message : Syntax.message) =
   let open Syntax in
   match message with
   | Message {name; payload} ->
-      { label= LabelName.of_name name
-      ; payload= List.map ~f:of_syntax_payload payload }
-  | MessageName name -> {label= LabelName.of_name name; payload= []}
+      {label= name; payload= List.map ~f:of_syntax_payload payload}
+  | MessageName name -> {label= name; payload= []}
 
 type rec_var =
   { rv_name: VariableName.t
@@ -197,8 +189,6 @@ let call_label caller protocol roles =
 let show_nested_t (g : nested_t) =
   let show_aux ~key ~data acc =
     let {static_roles; dynamic_roles; nested_protocol_names; gtype} = data in
-    let roles_str = List.map ~f:RoleName.user static_roles in
-    let new_roles_str = List.map ~f:RoleName.user dynamic_roles in
     let str_proto_names =
       List.map ~f:ProtocolName.user nested_protocol_names
     in
@@ -206,7 +196,7 @@ let show_nested_t (g : nested_t) =
     let proto_str =
       sprintf "protocol %s(%s) {\n\nNested Protocols: %s\n\n%s\n}"
         (ProtocolName.user key)
-        (Symtable.show_roles (roles_str, new_roles_str))
+        (Symtable.show_roles (static_roles, dynamic_roles))
         (if String.length names_str = 0 then "-" else names_str)
         (show gtype)
     in
@@ -222,10 +212,7 @@ let rec_var_of_syntax_rec_var rec_var =
     | PValue (_, ty) -> ty
     | _ -> assert false
   in
-  { rv_name= VariableName.of_name var
-  ; rv_roles= List.map ~f:RoleName.of_name roles
-  ; rv_ty
-  ; rv_init_expr= Expr.of_syntax_expr init }
+  {rv_name= var; rv_roles= roles; rv_ty; rv_init_expr= init}
 
 type conv_env =
   { free_names: Set.M(TypeVariableName).t
@@ -241,7 +228,6 @@ let init_conv_env =
 let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
-  let roles = List.map ~f:RoleName.of_name roles in
   let assert_empty l =
     if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
   in
@@ -255,8 +241,6 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
     | {value; _} :: rest -> (
       match value with
       | MessageTransfer {message; from_role; to_roles; _} ->
-          let from_role = RoleName.of_name from_role in
-          let to_roles = List.map ~f:RoleName.of_name to_roles in
           check_role from_role ;
           let init, free_names =
             conv_interactions
@@ -271,7 +255,6 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           in
           (List.fold_right ~f ~init to_roles, free_names)
       | Recursion (rname, rec_vars, interactions) ->
-          let rname = TypeVariableName.of_name rname in
           if Set.mem env.free_names rname then
             unimpl "Alpha convert recursion names"
           else assert_empty rest ;
@@ -298,11 +281,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
             (MuG (rname, rec_vars, cont), Set.remove free_names_ rname)
           else (cont, free_names_)
       | Continue (name, rec_exprs) ->
-          let name = TypeVariableName.of_name name in
           let rec_exprs =
-            if Pragma.refinement_type_enabled () then
-              List.map ~f:Expr.of_syntax_expr rec_exprs
-            else []
+            if Pragma.refinement_type_enabled () then rec_exprs else []
           in
           if Set.mem env.unguarded_tvs name then
             uerr (UnguardedTypeVariable name) ;
@@ -312,7 +292,6 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           assert_empty rest ;
           (TVarG (name, rec_exprs, cont), Set.add env.free_names name)
       | Choice (role, interactions_list) ->
-          let role = RoleName.of_name role in
           assert_empty rest ;
           check_role role ;
           if List.length interactions_list = 1 then
@@ -331,25 +310,20 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           (* This case is only reachable with NestedProtocols pragma turned on
            * *)
           assert (Pragma.nested_protocol_enabled ()) ;
-          let fst_role = RoleName.of_name @@ List.hd_exn roles in
-          let role_names = List.map ~f:RoleName.of_name roles in
+          let fst_role = List.hd_exn roles in
           let cont, free_names =
             conv_interactions
               {env with unguarded_tvs= Set.empty (module TypeVariableName)}
               rest
           in
-          ( CallG (fst_role, ProtocolName.of_name protocol, role_names, cont)
-          , free_names )
+          (CallG (fst_role, protocol, roles, cont), free_names)
       | Calls (caller, proto, roles, _) ->
-          let caller_role = RoleName.of_name caller in
-          let role_names = List.map ~f:RoleName.of_name roles in
           let cont, free_names =
             conv_interactions
               {env with unguarded_tvs= Set.empty (module TypeVariableName)}
               rest
           in
-          ( CallG (caller_role, ProtocolName.of_name proto, role_names, cont)
-          , free_names ) )
+          (CallG (caller, proto, roles, cont), free_names) )
   in
   let gtype, free_names = conv_interactions init_conv_env interactions in
   match Set.choose free_names with
@@ -587,25 +561,34 @@ let validate_refinements_exn t =
   aux env t
 
 let add_missing_payload_field_names nested_t =
+  let module Namegen = Namegen.Make (PayloadTypeName) in
   let add_missing_names namegen = function
     | PValue (None, n1) ->
         let payload_name_str =
-          "p_" ^ String.uncapitalize @@ Expr.show_payload_type n1
-        in
-        let namegen, payload_name_str =
-          Namegen.unique_name namegen payload_name_str
-        in
-        let payload_name = VariableName.of_string payload_name_str in
-        (namegen, PValue (Some payload_name, n1))
-    | PValue (Some payload_name, n1) ->
-        let payload_name_str =
-          String.uncapitalize @@ VariableName.user payload_name
+          PayloadTypeName.of_string
+            ("p_" ^ String.uncapitalize @@ Expr.show_payload_type n1)
         in
         let namegen, payload_name_str =
           Namegen.unique_name namegen payload_name_str
         in
         let payload_name =
-          VariableName.rename payload_name payload_name_str
+          VariableName.of_other_name
+            (module PayloadTypeName)
+            payload_name_str
+        in
+        (namegen, PValue (Some payload_name, n1))
+    | PValue (Some payload_name, n1) ->
+        let payload_name_str =
+          PayloadTypeName.create
+            (String.uncapitalize @@ VariableName.user payload_name)
+            (VariableName.where payload_name)
+        in
+        let namegen, payload_name_str =
+          Namegen.unique_name namegen payload_name_str
+        in
+        let payload_name =
+          VariableName.rename payload_name
+            (PayloadTypeName.user payload_name_str)
         in
         (namegen, PValue (Some payload_name, n1))
     | PDelegate _ as p -> (namegen, p)
@@ -632,25 +615,16 @@ let add_missing_payload_field_names nested_t =
 let nested_t_of_module (scr_module : Syntax.scr_module) =
   let open Syntax in
   let scr_module = Extraction.rename_nested_protocols scr_module in
-  let split_role_names (roles, new_roles) =
-    let role_names = List.map ~f:RoleName.of_name roles in
-    let new_role_names = List.map ~f:RoleName.of_name new_roles in
-    (role_names, new_role_names)
-  in
   let rec add_protocol protocols (protocol : global_protocol) =
     let nested_protocols = protocol.value.nested_protocols in
     let protocols =
       List.fold ~init:protocols ~f:add_protocol nested_protocols
     in
-    let proto_name = ProtocolName.of_name protocol.value.name in
+    let proto_name = protocol.value.name in
     let gtype = of_protocol protocol in
-    let static_roles, dynamic_roles =
-      split_role_names protocol.value.split_roles
-    in
+    let static_roles, dynamic_roles = protocol.value.split_roles in
     let nested_protocol_names =
-      List.map
-        ~f:(fun {Loc.value= {name; _}; _} -> ProtocolName.of_name name)
-        nested_protocols
+      List.map ~f:(fun {Loc.value= {name; _}; _} -> name) nested_protocols
     in
     Map.add_exn protocols ~key:proto_name
       ~data:{static_roles; dynamic_roles; nested_protocol_names; gtype}
