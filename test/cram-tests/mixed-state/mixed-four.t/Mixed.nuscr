@@ -1,9 +1,9 @@
 (*# MixedStateChoice #*)
 
-global protocol Streaming (role A, role B, role C) {
+global protocol Mixed (role A, role B, role C) {
   rec X {
     choice at A {
-      M1 from A to B ; M1F from B to C ; continue X ;
+      M1 from A to C ; M1F from C to B ;
     } or {
       M2 from B to A ; M2F from A to C ; M2FF from C to B ; continue X ;
     } or {
@@ -11,3 +11,19 @@ global protocol Streaming (role A, role B, role C) {
     }
   }
 }
+(*
+global protocol MixedSome (role A, role B, role C) {
+  rec X {
+    choice at A {
+      M1 from A to C ; continue X ; (*) here B never learns this choice,
+                                    (*) and it's ok because the protocol continues,
+                                    (*) and maybe we don't want C to know that A and B
+                                    (*) exchange M1s without telling C
+    } or {
+      M2 from B to A ; M2F from A to C ; M2FF from C to B ; continue X ;
+    } or {
+      M3 from C to A ; M3F from A to B ; M3FF from B to C ;
+    }
+  }
+}
+*)
