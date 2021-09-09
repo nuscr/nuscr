@@ -1,0 +1,9 @@
+(*# MixedStateChoice #*)
+
+global protocol Choice (role A, role B, role C, role D) {
+  choice at A {
+    ABL from A to B ; CD from C to D ; (*) these continuations are uninformed, and do not rely on the choice, move them away.
+  } or {
+    ABR from A to B ; CD from C to D ;
+  }
+}

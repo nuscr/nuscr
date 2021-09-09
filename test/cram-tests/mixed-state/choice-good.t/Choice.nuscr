@@ -1,0 +1,10 @@
+(*# MixedStateChoice #*)
+
+global protocol Choice (role A, role B, role C, role D) {
+  CD from C to D ; (*) compare to choice-bad.t, this is the same protocol and it does not make vacuous choices
+  choice at A {
+    ABL from A to B ;
+  } or {
+    ABR from A to B ;
+  }
+}
