@@ -431,7 +431,7 @@ let new_project_env =
   ; unguarded_tv= Set.empty (module TypeVariableName)
   ; lazy_conts= Map.empty (module TypeVariableName) }
 
-let rec project' env (projected_role : RoleName.t) =
+let rec project_phase_one env (projected_role : RoleName.t) =
   let check_expr silent_vars e =
     let free_vars = Expr.free_var e in
     let unknown_vars = Set.inter free_vars silent_vars in
@@ -481,7 +481,7 @@ let rec project' env (projected_role : RoleName.t) =
       in
       let rec lazy_cont =
         lazy
-          (project'
+          (project_phase_one
              { env with
                lazy_conts=
                  Map.add_exn ~key:name ~data:lazy_cont env.lazy_conts }
@@ -492,7 +492,7 @@ let rec project' env (projected_role : RoleName.t) =
       | TVarL _ | EndL -> EndL
       | l_type -> MuL (name, rec_exprs, l_type) )
   | MessageG (m, send_r, recv_r, g_type) -> (
-      let next env = project' env projected_role g_type in
+      let next env = project_phase_one env projected_role g_type in
       match projected_role with
       (* When projected role is involved in an interaction, reset unguarded_tv
        * *)
@@ -565,7 +565,9 @@ let rec project' env (projected_role : RoleName.t) =
           g_types
       in
       let recv_r = Set.choose_exn possible_roles in
-      let l_types = List.map ~f:(project' env projected_role) g_types in
+      let l_types =
+        List.map ~f:(project_phase_one env projected_role) g_types
+      in
       match projected_role with
       | _
         when RoleName.equal projected_role choice_r
@@ -573,14 +575,17 @@ let rec project' env (projected_role : RoleName.t) =
         match l_types with
         | [ltype] -> ltype
         | _ -> ChoiceL (choice_r, l_types) )
-      | _ -> (
-        match List.reduce ~f:(merge projected_role) l_types with
-        | Some l -> l
-        | None -> EndL ) )
+      | _ ->
+          (* Do not compute the merge in phase 1, this is to be done in phase
+             2, when the lazy types are fully constructed. So we won't have
+             the issue of Lazy.undefined when computing the merge here.
+             FIXME: Use a more proper way to mark choices that need to be
+             merged in phase 2 instead of Hacky '@' symbol *)
+          ChoiceL (RoleName.rename choice_r "@", l_types) )
   | CallG (caller, protocol, roles, g_type) -> (
       (* Reset unguarded_tv *)
       let next =
-        project'
+        project_phase_one
           {env with unguarded_tv= Set.empty (module TypeVariableName)}
           projected_role g_type
       in
@@ -609,13 +614,75 @@ let rec project' env (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
-let project projected_role g = project' new_project_env projected_role g
+let rec project_phase_two projected_role ltype =
+  let rec aux ltype =
+    match ltype with
+    | RecvL (m, r, l') -> RecvL (m, r, aux l')
+    | SendL (m, r, l') -> SendL (m, r, aux l')
+    | SilentL (v, t, l') -> SilentL (v, t, aux l')
+    | InviteCreateL (rs1, rs2, p, l') -> InviteCreateL (rs1, rs2, p, aux l')
+    | AcceptL (r, p, rs1, rs2, r', l') -> AcceptL (r, p, rs1, rs2, r', aux l')
+    | EndL -> EndL
+    | ChoiceL (r, ls) ->
+        let ls = List.map ~f:aux ls in
+        if String.equal (RoleName.user r) "@" then
+          match List.reduce ~f:(merge projected_role) ls with
+          | Some l -> aux l
+          | None -> EndL
+        else ChoiceL (r, ls)
+    | MuL (tv, rvs, l') -> MuL (tv, rvs, aux l')
+    | TVarL (tv, es, l) -> TVarL (tv, es, l)
+  in
+  let merged = aux ltype in
+  let rec handle_recursions lazy_conts unguarded_tvs ltype =
+    let next = handle_recursions lazy_conts unguarded_tvs in
+    let next_clear_unguarded =
+      handle_recursions lazy_conts (Set.empty (module TypeVariableName))
+    in
+    match ltype with
+    | RecvL (m, r, l') -> RecvL (m, r, next_clear_unguarded l')
+    | SendL (m, r, l') -> SendL (m, r, next_clear_unguarded l')
+    | SilentL (v, t, l') -> SilentL (v, t, next l')
+    | InviteCreateL (rs1, rs2, p, l') ->
+        InviteCreateL (rs1, rs2, p, next_clear_unguarded l')
+    | AcceptL (r, p, rs1, rs2, r', l') ->
+        AcceptL (r, p, rs1, rs2, r', next_clear_unguarded l')
+    | EndL -> EndL
+    | ChoiceL (r, ls) ->
+        let ls = List.map ~f:next ls in
+        ChoiceL (r, ls)
+    | MuL (tv, rvs, l') ->
+        let rec lazy_cont =
+          lazy
+            (handle_recursions
+               (Map.add_exn ~key:tv ~data:lazy_cont lazy_conts)
+               (Set.add unguarded_tvs tv)
+               l' )
+        in
+        MuL (tv, rvs, Lazy.force lazy_cont)
+    | TVarL (tv, es, _) ->
+        if Set.mem unguarded_tvs tv then EndL
+        else TVarL (tv, es, Map.find_exn lazy_conts tv)
+  in
+  handle_recursions
+    (Map.empty (module TypeVariableName))
+    (Set.empty (module TypeVariableName))
+    merged
+
+let project_with_env env projected_role g =
+  let ltype = project_phase_one env projected_role g in
+  let ltype = project_phase_two projected_role ltype in
+  ltype
+
+let project = project_with_env new_project_env
 
 let project_nested_t (nested_t : Gtype.nested_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
     let ltype =
-      project' {new_project_env with penv= nested_t} projected_role gtype
+      project_with_env
+        {new_project_env with penv= nested_t}
+        projected_role gtype
     in
     (* TODO: Fix make unique tvars *)
     Map.add_exn local_protocols
