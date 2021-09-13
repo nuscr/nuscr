@@ -1,0 +1,46 @@
+(*# MixedStateChoice #*)
+
+
+(* fails in extraction *)
+
+global protocol Lock(role A, role B, role C)
+{
+  REQ from A to B;
+  REQ from A to C;
+  choice at B
+  {
+    ACK from B to A;
+    ACK from A to C;
+    choice at C
+    {
+      ACK from C to A;
+      REL from A to B;
+      REL from A to C;
+    }
+    or
+    {
+      do Lock(C, A, B);
+    }
+  }
+  or
+  {
+    do Lock(B, A, C);
+  }
+
+}
+
+(* this one works on the web version but not on the mixed branch. It now does segmentation fault. *)
+
+(*
+global Smol (role A, role B)
+{
+  AB from A to B ;
+  choice at B {
+    SAME from B to A ;
+    do Smol (A, B);
+  } or {
+(*)    OTHER from B to A ;
+    do Smol (B, A);
+  }
+}
+*)
