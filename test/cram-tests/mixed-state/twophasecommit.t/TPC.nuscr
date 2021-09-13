@@ -1,0 +1,124 @@
+(*# MixedStateChoice #*)
+
+(* Two phase commit between C (a coordinator) and A, and B, (two
+participants).
+*)
+
+(* protocol as we would want it without par (with par A and B would be
+true participants, however without refinements there would not be a
+way to specify if commit or rollback
+
+global protocol TwoPhase (role C, role A, role B) {
+  QTC from C to A ; (*) query to commit
+  QTC from C to B ;
+  choice at A {
+    YES from A to C ;
+    choice at B {
+      YES from B to C ;
+      COMMIT from C to A ;
+      COMMIT from C to B ;
+    } or {
+      NO from B to C ;
+      ROLLBACK from C to A ;
+      ROLLBACK from C to B ;
+    }
+  } or {
+    NO from A to C ;
+    choice at B {
+      YES from B to C ;
+      ROLLBACK from C to A ;
+      ROLLBACK from C to B ;
+    } or {
+      NO from B to C ;
+      ROLLBACK from C to A ;
+      ROLLBACK from C to B ;
+    }
+  }
+}
+*)
+
+(*) adding messages for well informedness
+
+global protocol TwoPhase (role C, role A, role B) {
+  QTC from C to A ;
+  QTC from C to B ;
+  choice at A {
+    YES from A to C ;
+    YES from C to B ; (*) needed to get well informed choice (also makes it mergeable)
+    choice at B {
+      YES from B to C ;
+      COMMIT from C to A ;
+      COMMIT from C to B ;
+    } or {
+      NO from B to C ;
+      ROLLBACK from C to A ;
+      ROLLBACK from C to B ;
+    }
+  } or {
+    NO from A to C ;
+    NO from C to B ;  (*) needed to get well informed choice (also makes it mergeable)
+    choice at B {
+      YES from B to C ;
+      ROLLBACK1 from C to A ;
+      ROLLBACK1 from C to B ;
+    } or {
+      NO from B to C ;
+      ROLLBACK3 from C to A ;
+      ROLLBACK3 from C to B ;
+    }
+  }
+}
+
+(* In this case we optimise the fact that once A rejects the commit we
+don't need the input from B anymore. This is supported here but it is
+not mergeable by nuScr web. *)
+
+global protocol TwoPhaseOptim (role C, role A, role B) {
+  QTC from C to A ;
+  QTC from C to B ;
+  choice at A {
+    YES from A to C ;
+    YES from A to B ;
+    choice at B {
+      YES from B to C ;
+      COMMIT from C to A ;
+      COMMIT from C to B ;
+    } or {
+      NO from B to C ;
+      ROLLBACK from C to A ;
+      ROLLBACK from C to B ;
+    }
+  } or {
+    NO from A to C ;
+    ROLLBACK from C to A ;
+    ROLLBACK from C to B ;
+  }
+}
+
+(* Same as the optimised version but with recursion, they repeat until
+they can agree. *)
+
+global protocol TwoPhaseRec (role C, role A, role B) {
+  rec X {
+  QTC from C to A ;
+  QTC from C to B ;
+  choice at A {
+    YES from A to C ;
+    YES from A to B ;
+    choice at B {
+      YES from B to C ;
+      COMMIT from C to A ;
+      COMMIT from C to B ;
+      ACK from A to C ;
+      ACK from B to C ; (*) now C knows that everyone made the changes persistent
+    } or {
+      NO from B to C ;
+      ROLLBACK from C to A ;
+      ROLLBACK from C to B ; continue X ;
+    }
+  } or {
+    NO from A to C ;
+    ROLLBACK from C to A ;
+    ROLLBACK from C to B ; continue X ;
+  }
+}}
