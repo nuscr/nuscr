@@ -1,0 +1,52 @@
+(*# MixedStateChoice #*)
+
+(* Roles:
+
+B: a web browser.
+S: a video streamer.
+U: a user who wants to watch a video for a while.
+
+*)
+global protocol InterruptibleStreaming (role BROWSER, role STREAMER, role USER) {
+  rec X {
+    choice at BROWSER {
+      VIDEO from STREAMER to BROWSER ; (*) once the session is established the video starts streaming
+      MORE from BROWSER to STREAMER ; (*) the browser asks for more when it needs to
+      continue X ;
+    } or {
+      REQ_STOP from USER to BROWSER ; (*) the user may (at any time) request a stop
+      STOP from BROWSER to STREAMER ; (*) when the browser receives this notifies the streamer
+      DONE from BROWSER to USER ; (*) the browser notifies the user that it ended
+    }
+  }
+}
+
+
+(*
+
+Notes:
+
+- even if it is a choice at browser, the browser may not stop unless
+  asked to. The choice is between filling its video buffer or polling
+  the user for stop.
+
+- the process calculus type system, will mandate that before asking
+  for more data, the browser must check if it was asked to stop.
+
+- moreover, this protocol specifies a well behaved polling strategy.
+  it is well behaved because the polls have to happen at regular
+  intervals. However, a process can block on polling, to solve this we
+  ould need to add permissions to read so processes cannot read
+  continuosly. Do we do that? Do we prove something about it?
+
+- a harmless 'orphan message' happens if the the user requested stop
+  is received after the streamer already sent some video. Only
+  received messages count.
+
+- this could model a data aquisition system, where the roles are:
+
+  BROWSER -> server that stores data
+  STREAMER -> sensor system that captures data
+  USER -> management system for the data aquisition system.
+
+*)
