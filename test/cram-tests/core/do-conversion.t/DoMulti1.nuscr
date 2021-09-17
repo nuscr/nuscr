@@ -1,0 +1,11 @@
+protocol Pass(role A, role B, role C) {
+  choice at A {
+    Foo from A to B;
+    Foo from B to C;
+    do Pass(A, B, C);
+  } or {
+    Bar from A to B;
+    Bar from B to C;
+    do Pass(A, B, C);
+  }
+}
