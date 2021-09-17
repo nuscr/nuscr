@@ -469,7 +469,7 @@ let rec project' env (projected_role : RoleName.t) =
               named_payloads )
   | ChoiceG (choice_r, g_types) when Pragma.mixed_state_choice_enabled () ->
       let rec continue = function
-        | TVarG (_, _, g) -> Lazy.force g
+        | TVarG (_, _, g) when Lazy.is_val g -> Lazy.force g
         | ChoiceG (r, gs) -> ChoiceG (r, List.map ~f:continue gs)
         | g -> g
       in
