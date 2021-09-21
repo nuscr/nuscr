@@ -260,7 +260,11 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           let f to_role acc =
             check_role to_role ;
             if RoleName.equal from_role to_role then
-              uerr (ReflexiveMessage from_role) ;
+              uerr
+                (ReflexiveMessage
+                   ( from_role
+                   , RoleName.where from_role
+                   , RoleName.where to_role ) ) ;
             MessageG (of_syntax_message message, from_role, to_role, acc)
           in
           (List.fold_right ~f ~init to_roles, free_names)

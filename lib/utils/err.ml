@@ -13,7 +13,7 @@ type user_error =
   | Uncategorised of string
   | InvalidCommandLineParam of string
   | UnboundRole of RoleName.t
-  | ReflexiveMessage of RoleName.t
+  | ReflexiveMessage of RoleName.t * Loc.t * Loc.t
   | UnableToMerge of string
   | RedefinedProtocol of ProtocolName.t * Loc.t * Loc.t
   | UnboundProtocol of ProtocolName.t
@@ -60,9 +60,10 @@ let show_user_error = function
   | UnboundRole r ->
       "Unbound role " ^ RoleName.user r ^ " at " ^ Loc.show
       @@ RoleName.where r
-  | ReflexiveMessage r ->
-      "Reflexive message of Role " ^ RoleName.user r ^ " at " ^ Loc.show
-      @@ RoleName.where r
+  | ReflexiveMessage (r, loc1, loc2) ->
+      let loc_merge = Loc.merge loc1 loc2 in
+      "Reflexive message of Role " ^ RoleName.user r ^ " at "
+      ^ Loc.show loc_merge
   | UnableToMerge s -> "Unable to merge: " ^ s
   | RedefinedProtocol (name, interval1, interval2) ->
       "Redefined protocol " ^ ProtocolName.user name ^ " at "

@@ -14,7 +14,7 @@ type user_error =
   | Uncategorised of string
   | InvalidCommandLineParam of string
   | UnboundRole of RoleName.t
-  | ReflexiveMessage of RoleName.t
+  | ReflexiveMessage of RoleName.t * Loc.t * Loc.t
   | UnableToMerge of string
   | RedefinedProtocol of ProtocolName.t * Loc.t * Loc.t
   | UnboundProtocol of ProtocolName.t
