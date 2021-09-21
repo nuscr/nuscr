@@ -382,3 +382,11 @@ let ensure_satisfiable env =
   | `Sat -> ()
   | `Unsat -> Err.uerr Err.UnsatisfiableRefinement
   | `Unknown -> Err.violation "Solver returned unknown result"
+
+let parse_typename name =
+  match PayloadTypeName.user name with
+  | "int" -> PTInt
+  | "string" -> PTString
+  | "bool" -> PTBool
+  | "unit" -> PTUnit
+  | _ -> PTAbstract name

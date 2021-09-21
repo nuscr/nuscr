@@ -71,6 +71,9 @@ val smt_sort_of_type : payload_type -> string
 val default_value : payload_type -> t
 (** Get the default value of a payload type, which may not exist. *)
 
+val parse_typename : PayloadTypeName.t -> payload_type
+(** Convert a PayloadTypeName to a [payload_type] *)
+
 (** {1 Typing} *)
 
 type typing_env
