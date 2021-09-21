@@ -468,12 +468,6 @@ let rec project' env (projected_role : RoleName.t) =
               ~f:(fun acc (var, t) -> SilentL (var, t, acc))
               named_payloads )
   | ChoiceG (choice_r, g_types) when Pragma.mixed_state_choice_enabled () ->
-      let rec continue = function
-        | TVarG (_, _, g) when Lazy.is_val g -> Lazy.force g
-        | ChoiceG (r, gs) -> ChoiceG (r, List.map ~f:continue gs)
-        | g -> g
-      in
-      let g_types = List.map ~f:continue g_types in
       let l_types = List.map ~f:(project' env projected_role) g_types in
       let check_distinct_prefix ltys =
         let rec aux acc = function
@@ -484,10 +478,7 @@ let rec project' env (projected_role : RoleName.t) =
               else aux (Set.add acc l) rest
           | ChoiceL (_, ls) :: rest -> aux acc (ls @ rest)
           | MuL (_, _, l) :: rest -> aux acc (l :: rest)
-          | TVarL (_, _) :: _ ->
-              Err.violation
-                "TVarL should not appear here, since we unwrapped the \
-                 recursion earlier"
+          | TVarL (_, _) :: _ -> Err.unimpl "handle TVarL"
           | EndL :: rest -> aux acc rest (* Temporary hack *)
           | _ -> Err.unimpl "throw an error here for bad local types"
         in
