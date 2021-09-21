@@ -8,6 +8,10 @@ let is_debug () =
   Option.is_some (Sys.getenv "DEBUG")
   || Option.is_some (Sys.getenv "NUSCRDEBUG")
 
+let show_position pos =
+  let open Lexing in
+  Printf.sprintf "%s: line %d" pos.pos_fname pos.pos_lnum
+
 let parse_role_protocol_exn rp =
   match String.split rp ~on:'@' with
   | [role; protocol] ->
@@ -118,11 +122,18 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
   with
   | Err.UserError msg ->
       `Error (false, "User error: " ^ Err.show_user_error msg)
-  | Err.Violation msg -> `Error (false, "Internal Error: " ^ msg)
-  | Err.UnImplemented desc ->
+  | Err.Violation (msg, where) ->
       `Error
         ( false
-        , "I'm sorry, it is unfortunate " ^ desc ^ " is not implemented" )
+        , Printf.sprintf "Internal Error: %s, raised at %s" msg
+            (show_position where) )
+  | Err.UnImplemented (desc, where) ->
+      `Error
+        ( false
+        , Printf.sprintf
+            "I'm sorry, it is unfortunate %s is not implemented (raised at \
+             %s)"
+            desc (show_position where) )
   | e when not (is_debug ()) ->
       `Error (false, "Reported problem:\n " ^ Exn.to_string e)
 

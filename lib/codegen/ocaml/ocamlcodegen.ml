@@ -43,7 +43,9 @@ let gen_callback_module (g : G.t) : structure_item =
   let env = [%type: t] in
   let f st acc =
     match state_action_type g st with
-    | `Mixed -> Err.violation "Mixed states should not occur in an EFSM"
+    | `Mixed ->
+        Err.violation ~here:[%here]
+          "Mixed states should not occur in an EFSM"
     | `Terminal -> acc
     | `Send _ ->
         let gen_send (_, a, _) acc =
@@ -58,7 +60,9 @@ let gen_callback_module (g : G.t) : structure_item =
                      , [payload_type] ) )
               in
               row :: acc
-          | _ -> Err.violation "Sending states should only have send actions"
+          | _ ->
+              Err.violation ~here:[%here]
+                "Sending states should only have send actions"
         in
         let rows = G.fold_succ_e gen_send g st [] in
         let rows =
@@ -79,7 +83,7 @@ let gen_callback_module (g : G.t) : structure_item =
               let val_ = Val.mk (Location.mknoloc name) ty in
               val_ :: callbacks
           | _ ->
-              Err.violation
+              Err.violation ~here:[%here]
                 "Receiving states should only have receive actions"
         in
         G.fold_succ_e gen_recv g st acc
@@ -125,7 +129,7 @@ let get_transitions g st =
         let {Gtype.label; Gtype.payload} = msg in
         (r, LabelName.user label, payload_values payload, next) :: acc
     | _ ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Epsilon transtions should not appear after EFSM generation"
   in
   G.fold_succ_e f g st []

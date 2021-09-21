@@ -312,7 +312,8 @@ let of_local_type lty =
     | TVarL (tv, _) ->
         (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
     | AcceptL _ | InviteCreateL _ ->
-        Err.violation "Nested protocols are not supported in efsm"
+        Err.violation ~here:[%here]
+          "Nested protocols are not supported in efsm"
     | SilentL (v, ty, l) ->
         let env =
           {env with silent_var_buffer= (v, ty) :: env.silent_var_buffer}
@@ -346,7 +347,7 @@ let of_local_type lty =
                   ~f:(function
                     | None -> rv
                     | Some _ ->
-                        Err.unimpl
+                        Err.unimpl ~here:[%here]
                           "Multiple recursions with variables in choices" )
                   rec_var_info to_state
           in
@@ -373,7 +374,7 @@ let state_action_type g st =
       | SendA (r, _, _) -> `Send r
       | RecvA (r, _, _) -> `Recv r
       | Epsilon ->
-          Err.violation
+          Err.violation ~here:[%here]
             "Epsilon transitions should not appear after EFSM generation"
     in
     merge_state_action_type aty acc
@@ -390,7 +391,7 @@ let find_all_payloads g =
         | [] -> Set.add acc (PayloadTypeName.of_string "unit")
         | _ -> List.fold ~f:Set.add ~init:acc payloads )
     | _ ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Epsilon transitions should not appear after EFSM generation"
   in
   G.fold_edges_e f g
@@ -403,7 +404,7 @@ let find_all_roles g =
     match a with
     | SendA (r, _, _) | RecvA (r, _, _) -> Set.add acc r
     | _ ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Epsilon transitions should not appear after EFSM generation"
   in
   G.fold_edges_e f g (Set.empty (module RoleName))

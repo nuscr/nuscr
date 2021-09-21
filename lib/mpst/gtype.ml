@@ -68,7 +68,8 @@ module Payload = struct
 
   let typename_of_payload = function
     | PValue (_, ty) -> Expr.payload_typename_of_payload_type ty
-    | PDelegate _ -> Err.unimpl "delegation for code generation"
+    | PDelegate _ ->
+        Err.unimpl ~here:[%here] "delegation for code generation"
 end
 
 include Payload
@@ -239,7 +240,8 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
   let open Syntax in
   let {Loc.value= {roles; interactions; _}; _} = global_protocol in
   let assert_empty l =
-    if not @@ List.is_empty l then unimpl "Non tail-recursive protocol"
+    if not @@ List.is_empty l then
+      unimpl ~here:[%here] "Non tail-recursive protocol"
   in
   let check_role r =
     if not @@ List.mem roles r ~equal:RoleName.equal then
@@ -270,7 +272,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
           (List.fold_right ~f ~init to_roles, free_names)
       | Recursion (rname, rec_vars, interactions) ->
           if Set.mem env.free_names rname then
-            unimpl "Alpha convert recursion names"
+            unimpl ~here:[%here] "Alpha convert recursion names"
           else assert_empty rest ;
           let rec lazy_cont =
             lazy
@@ -370,7 +372,7 @@ let rec substitute g tvar g_sub =
               rec_vars rec_exprs
           with
           | Base.List.Or_unequal_lengths.Ok rec_vars -> rec_vars
-          | _ -> unimpl "Error in substitution"
+          | _ -> unimpl ~here:[%here] "Error in substitution"
         in
         MuG (tvar__, rec_vars, g)
     | g_sub -> g_sub )
@@ -447,7 +449,7 @@ let validate_refinements_exn t =
                           ; Expr.sexp_of_expr refinement
                           ; e ]
                       else
-                        Err.violationf
+                        Err.violationf ~here:[%here]
                           "TODO: Handle the case where refinement and \
                            payload variables are different"
                   | _ -> e
@@ -518,7 +520,7 @@ let validate_refinements_exn t =
                     (tenv, rvenv, role_knowledge)
                 | None -> (tenv, rvenv, role_knowledge)
               else uerr (IllFormedPayloadType (Expr.show_payload_type p_type))
-          | PDelegate _ -> unimpl "Delegation as payload"
+          | PDelegate _ -> unimpl ~here:[%here] "Delegation as payload"
         in
         let env = List.fold ~init:env ~f payloads in
         aux env g
@@ -567,7 +569,7 @@ let validate_refinements_exn t =
         with
         | Base.List.Or_unequal_lengths.Ok () -> ()
         | Base.List.Or_unequal_lengths.Unequal_lengths ->
-            unimpl
+            unimpl ~here:[%here]
               "Error message for mismatched number of recursion variable \
                declaration and expressions" )
     | CallG _ -> assert false

@@ -207,8 +207,8 @@ let rec merge projected_role lty1 lty2 =
                   (RecvL (m, r, merge projected_role lty l_))
             | Some (RecvL _) -> fail ()
             | _ ->
-                violation "Merge receive must be merging receive local types"
-            )
+                violation ~here:[%here]
+                  "Merge receive must be merging receive local types" )
         | AcceptL (role', protocol, roles, new_roles, caller, lty) as l -> (
             let label = call_label caller protocol roles in
             match List.Assoc.find acc ~equal:LabelName.equal label with
@@ -223,9 +223,11 @@ let rec merge projected_role lty1 lty2 =
                      , caller
                      , merge projected_role lty lty_ ) )
             | _ ->
-                violation "Merge receive must be merging receive local types"
-            )
-        | _ -> violation "Merge receive must be merging receive local types"
+                violation ~here:[%here]
+                  "Merge receive must be merging receive local types" )
+        | _ ->
+            violation ~here:[%here]
+              "Merge receive must be merging receive local types"
       in
       let conts = List.fold ~f:aux ~init:[] recvs in
       match conts with
@@ -300,7 +302,7 @@ let rec check_consistent_gchoice choice_r possible_roles = function
   | TVarG (_, _, g) ->
       check_consistent_gchoice choice_r possible_roles (Lazy.force g)
   | g ->
-      violation
+      violation ~here:[%here]
         ( "Normalised global type always has a message in choice branches\n"
         ^ Gtype.show g )
 
@@ -428,7 +430,7 @@ let rec project' env (projected_role : RoleName.t) =
           | MuG (_, _, g) :: rest -> aux acc (g :: rest)
           | TVarG (_, _, g) :: rest -> aux acc (Lazy.force g :: rest)
           | _ ->
-              violation
+              violation ~here:[%here]
                 "Normalised global type always has a message in choice \
                  branches"
         in
@@ -540,7 +542,9 @@ let make_unique_tvars ltype =
     | AcceptL (role, protocol, roles, new_roles, caller, l) ->
         let namegen, l = rename_tvars tvar_mapping namegen l in
         (namegen, AcceptL (role, protocol, roles, new_roles, caller, l))
-    | SilentL _ -> Err.unimpl "renaming recursive variables with refinements"
+    | SilentL _ ->
+        Err.unimpl ~here:[%here]
+          "renaming recursive variables with refinements"
   in
   let namegen = Namegen.create () in
   let _, ltype =

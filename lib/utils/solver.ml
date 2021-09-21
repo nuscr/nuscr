@@ -9,4 +9,5 @@ let run_solver input =
     let output = Process.read_stdout ~stdin:input "z3" [|"-smt2"; "-in"|] in
     String.concat ~sep:"\n" output
   with Process.Exit.Error e ->
-    Err.violationf "Solver error: %s" (Process.Exit.error_to_string e)
+    Err.violationf ~here:[%here] "Solver error: %s"
+      (Process.Exit.error_to_string e)

@@ -20,7 +20,7 @@ module Toplevel = struct
         in
         uerr (ParserError (Loc.create err_interval))
     | Err.UserError e -> uerr e
-    | e -> Err.violation ("Found a problem:" ^ Exn.to_string e)
+    | e -> Err.violation ~here:[%here] ("Found a problem:" ^ Exn.to_string e)
 
   let parse fname (ch : In_channel.t) : scr_module =
     let lexbuf = set_filename fname (Lexing.from_channel ch) in

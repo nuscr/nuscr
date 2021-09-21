@@ -98,7 +98,7 @@ let new_typing_env = Map.empty (module VariableName)
 let env_append env var ty =
   match Map.add env ~key:var ~data:ty with
   | `Ok env -> env
-  | `Duplicate -> Err.unimpl "alpha-converting variables"
+  | `Duplicate -> Err.unimpl ~here:[%here] "alpha-converting variables"
 
 (* let env_print env =
  *   Map.iteri
@@ -201,7 +201,7 @@ let rec smt_sort_of_type = function
   | PTString -> "String"
   | PTUnit -> "Int" (* SMT does not have a separate sort for units *)
   | PTAbstract n ->
-      Err.unimpl
+      Err.unimpl ~here:[%here]
         (Printf.sprintf "Type %s is currently not supported for SMT encoding"
            (PayloadTypeName.user n) )
   | PTRefined (_, t, _) -> smt_sort_of_type t
@@ -214,7 +214,7 @@ let add_const var ty env =
     match Map.find declare_consts key with
     | Some data_ ->
         if String.equal data data_ then declare_consts
-        else Err.unimpl "Handling multiply defined variables"
+        else Err.unimpl ~here:[%here] "Handling multiply defined variables"
     | None -> Map.add_exn declare_consts ~key ~data
   in
   {env with declare_consts}
@@ -370,9 +370,9 @@ let rec default_value = function
   | PTInt -> Int 0
   | PTBool -> Bool true
   | PTString -> String ""
-  | PTUnit -> Err.unimpl "unit as an expression"
+  | PTUnit -> Err.unimpl ~here:[%here] "unit as an expression"
   | PTAbstract typename ->
-      Err.violationf "No default value available for %s"
+      Err.violationf ~here:[%here] "No default value available for %s"
         (PayloadTypeName.user typename)
   | PTRefined (_, ty, _) -> default_value ty
 
@@ -381,7 +381,7 @@ let ensure_satisfiable env =
   match check_sat encoded with
   | `Sat -> ()
   | `Unsat -> Err.uerr Err.UnsatisfiableRefinement
-  | `Unknown -> Err.violation "Solver returned unknown result"
+  | `Unknown -> Err.violation ~here:[%here] "Solver returned unknown result"
 
 let parse_typename name =
   match PayloadTypeName.user name with

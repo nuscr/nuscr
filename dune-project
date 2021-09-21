@@ -13,8 +13,7 @@
 
 (license GPL-3.0-or-later)
 
-(authors "Francisco Ferreira" "Fangyi Zhou" "Simon Castellan"
-  "Benito Echarren")
+(authors "Francisco Ferreira" "Fangyi Zhou" "Simon Castellan" "Benito Echarren")
 
 (maintainers "Francisco Ferreira")
 
@@ -41,6 +40,8 @@
   (stdio
    (>= v0.12.0))
   (ppx_sexp_conv
+   (>= v0.12.0))
+  (ppx_here
    (>= v0.12.0))
   (z3 :with-test)
   (odoc :with-doc)

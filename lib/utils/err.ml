@@ -1,6 +1,14 @@
 open! Base
 open Names
 open Printf
+open Lexing
+
+(** A Violation is reported when an impossible state was reached. It has to
+    be considered a bug even when the fix is to change the Violation to a
+    user error *)
+exception Violation of (string * position)
+
+exception UnImplemented of (string * position)
 
 type user_error =
   | UnknownPragma of string
@@ -125,19 +133,11 @@ let show_user_error = function
         (TypeVariableName.user tv)
         (Loc.show (TypeVariableName.where tv))
 
-(** A Violation is reported when an impossible state was reached. It has to
-    be considered a bug even when the fix is to change the Violation to a
-    user error *)
-exception Violation of string
-[@@deriving sexp_of]
-
-exception UnImplemented of string [@@deriving sexp_of]
-
-let unimpl desc = UnImplemented desc |> raise
+let unimpl ~here desc = UnImplemented (desc, here) |> raise
 
 let uerr e = UserError e |> raise
 
-let violation e = Violation e |> raise
+let violation ~here e = Violation (e, here) |> raise
 
 (** A convenient function for raising a violation with printf strings *)
-let violationf fmt = Printf.ksprintf violation fmt
+let violationf ~here fmt = Printf.ksprintf (violation ~here) fmt

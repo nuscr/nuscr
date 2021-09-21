@@ -45,12 +45,12 @@ val show_user_error : user_error -> string
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a
     user error *)
-exception Violation of string
+exception Violation of (string * Lexing.position)
 [@@deriving sexp_of]
 
 (** An Unimplemented is reported when certain features are not implemented,
     the string attached provides a description of the feature missing. *)
-exception UnImplemented of string
+exception UnImplemented of (string * Lexing.position)
 [@@deriving sexp_of]
 
 (** {2 Shortcuts for raising exceptions} *)
@@ -58,11 +58,11 @@ exception UnImplemented of string
 val uerr : user_error -> 'a
 (** Raise an user error *)
 
-val unimpl : string -> 'a
+val unimpl : here:Lexing.position -> string -> 'a
 (** Raise an Unimplemented error *)
 
-val violation : string -> 'a
+val violation : here:Lexing.position -> string -> 'a
 (** Raise a violation, with a reason *)
 
-val violationf : ('a, unit, string, 'b) format4 -> 'a
+val violationf : here:Lexing.position -> ('a, unit, string, 'b) format4 -> 'a
 (** Raise a violation, with a reason formatted using format strings *)

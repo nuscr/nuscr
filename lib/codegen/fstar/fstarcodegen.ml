@@ -36,7 +36,9 @@ let compute_var_map start g rec_var_info =
       | ((v_, _, _) as entry_) :: rest ->
           if VariableName.equal v v_ then
             if [%derive.eq: var_entry] entry entry_ then lst
-            else Err.violationf "Clashing variable %s" (VariableName.user v)
+            else
+              Err.violationf ~here:[%here] "Clashing variable %s"
+                (VariableName.user v)
           else aux (entry_ :: acc) rest
       | [] -> List.rev (entry :: acc)
     in
@@ -68,7 +70,7 @@ let compute_var_map start g rec_var_info =
               let vars = List.fold ~f:append ~init:vars concrete_vars in
               aux acc (next_st, vars)
           | Epsilon ->
-              Err.violation
+              Err.violation ~here:[%here]
                 "Epsilon transitions should not appear in EFSM outputs"
         in
         let acc = G.fold_succ_e next g curr_st acc in
@@ -232,9 +234,10 @@ let generate_send_choices buffer g var_map =
               | 1 ->
                   let _, ty, _ = List.hd_exn concrete_vars in
                   (label, ty) :: acc
-              | _ -> Err.unimpl "handling more than 1 payload" )
+              | _ -> Err.unimpl ~here:[%here] "handling more than 1 payload"
+              )
           | _ ->
-              Err.violation
+              Err.violation ~here:[%here]
                 "A sending state should only have sending actions"
         in
         let acc = G.fold_succ_e collect_action g st [] in
@@ -293,7 +296,8 @@ let generate_transition_typedefs buffer g var_map =
                     let vars_to_bind = Map.find_exn var_map st in
                     let ty = bind_variables_ty ty vars_to_bind st in
                     Expr.show_payload_type ty
-                | _ -> Err.unimpl "handling more than 1 payload"
+                | _ ->
+                    Err.unimpl ~here:[%here] "handling more than 1 payload"
               in
               let new_entry =
                 Printf.sprintf "%s: (st: %s) -> (%s) -> ML unit"
@@ -303,13 +307,15 @@ let generate_transition_typedefs buffer g var_map =
               in
               new_entry :: acc
           | _ ->
-              Err.violation
+              Err.violation ~here:[%here]
                 "A receiving state should have only RecvA outgoing \
                  transitions"
         in
         let acc = G.fold_succ_e collect_recv_transition g st acc in
         acc
-    | `Mixed -> Err.violation "Mixed states should not occur in the EFSM"
+    | `Mixed ->
+        Err.violation ~here:[%here]
+          "Mixed states should not occur in the EFSM"
     | `Terminal -> acc
   in
   let transitions = G.fold_vertex collect_transition g [] in
@@ -359,7 +365,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
         in
         (silent_vars, List.rev rec_var_updates)
     | Epsilon ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Epsilon transition should not appear after EFSM generation"
   in
   let content =
@@ -452,13 +458,16 @@ let generate_run_fns buffer start g var_map rec_var_info =
                 |> PayloadTypeName.user
               in
               (payload, ty, e)
-          | Gtype.PDelegate _ -> Err.unimpl "delegation in code generation" )
-        | _ -> Err.unimpl "sending multiple payload items"
+          | Gtype.PDelegate _ ->
+              Err.unimpl ~here:[%here] "delegation in code generation" )
+        | _ -> Err.unimpl ~here:[%here] "sending multiple payload items"
       in
       let body =
         match state_action_type g st with
         | `Terminal -> "()"
-        | `Mixed -> Err.violation "An EFSM should not have a mixed state"
+        | `Mixed ->
+            Err.violation ~here:[%here]
+              "An EFSM should not have a mixed state"
         | `Send r ->
             let connect_selection =
               Printf.sprintf "let conn = comms %s in"
@@ -503,7 +512,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     ; "in"
                     ; run_next_state ]
                 | _ ->
-                    Err.violation
+                    Err.violation ~here:[%here]
                       "Sending state should only have outgoing send actions"
               in
               entry :: acc
@@ -560,7 +569,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     ; "in"
                     ; run_next_state ]
                 | _ ->
-                    Err.violation
+                    Err.violation ~here:[%here]
                       "Receiving state should only have outgoing receive \
                        actions"
               in

@@ -22,13 +22,14 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
   let add_unique_protocol_name protocols protocol_name =
     let name_str = protocol_pkg_name protocol_name in
     if Set.mem protocols name_str then
-      Err.violation "Protocol names must be unique when lowercased" ;
+      Err.violation ~here:[%here]
+        "Protocol names must be unique when lowercased" ;
     Set.add protocols name_str
   in
   let add_unique_role_name roles role =
     let role_str = lowercase_role_name role in
     if Set.mem roles role_str then
-      Err.violation "Role names must be unique when lowercased" ;
+      Err.violation ~here:[%here] "Role names must be unique when lowercased" ;
     Set.add roles role_str
   in
   (* Ensure message labels are unique when capitalised *)
@@ -43,7 +44,7 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
               (Err.DuplicatePayloadField
                  (label, VariableName.of_string field_str) ) ;
           Set.add fields field_str
-      | PDelegate _ -> Err.violation "Delegation not supported"
+      | PDelegate _ -> Err.violation ~here:[%here] "Delegation not supported"
     in
     let label_str = msg_type_name label in
     match Map.find msgs label_str with
@@ -56,10 +57,10 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
         Map.add_exn msgs ~key:label_str ~data:(label, payload)
     | Some (label', payload') ->
         if not (LabelName.equal label label') then
-          Err.violation
+          Err.violation ~here:[%here]
             "Message labels must be unique when capitalized cased" ;
         if not (List.equal equal_pvalue_payload payload payload') then
-          Err.violation
+          Err.violation ~here:[%here]
             "Within a protocol, messages with the same label should  have \
              the same payloads" ;
         msgs
@@ -126,12 +127,12 @@ let extract_choice_labels ltypes =
     | SendL ({label; _}, _, _) -> label
     | MuL (_, _, ltype) -> extract_label ltype
     | TVarL _ ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Currently unfolding of recursion not supported for extracting \
            choice labels - branches of choices should have an explit first \
            message"
     | _ ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Cannot generate code for nested choices - choices should be \
            flattened or local type should be normalised to ensure this"
   in
@@ -143,7 +144,7 @@ let extract_choice_label_enums msgs_env ltypes =
         MessagesEnv.get_invitation_enum msgs_env protocol roles
     | RecvL ({label; _}, _, _) -> MessagesEnv.get_message_enum msgs_env label
     | _ ->
-        Err.violation
+        Err.violation ~here:[%here]
           "Cannot extract choice msg labels: choices should be flattened \
            and recursion should be unfolded (local type should be \
            normalised) to ensure that all branches have an explict first \
@@ -248,7 +249,7 @@ let gen_recv_impl env var_name_gen sender payloads recv_cb is_recv_choice_msg
           , var_name_gen
           , recv_payload_stmt :: chan_recv_stmts
           , VariableName.user payload_var :: chan_vars )
-      | PDelegate _ -> Err.violation "Delegation not supported" )
+      | PDelegate _ -> Err.violation ~here:[%here] "Delegation not supported" )
   in
   (* env.<msg>_From_<sender>(<msg>) *)
   let recv_function = FunctionName.of_string @@ CallbackName.user recv_cb in
@@ -288,7 +289,7 @@ let gen_send_impl env var_name_gen receiver msg_enum payloads send_cb =
           , var_name_gen
           , recv_payload_stmt :: chan_recv_stmts
           , VariableName.user payload_var :: chan_vars )
-      | PDelegate _ -> Err.violation "Delegation not supported" )
+      | PDelegate _ -> Err.violation ~here:[%here] "Delegation not supported" )
   in
   (* env.<msg>_From_<sender>(<msg>) *)
   let send_function = FunctionName.of_string @@ CallbackName.user send_cb in
