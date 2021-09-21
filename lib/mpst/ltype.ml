@@ -469,22 +469,22 @@ let rec project' env (projected_role : RoleName.t) =
               named_payloads )
   | ChoiceG (choice_r, g_types) when Pragma.mixed_state_choice_enabled () ->
       let l_types = List.map ~f:(project' env projected_role) g_types in
-      let check_distinct_prefix ltys =
-        let rec aux acc = function
-          | [] -> ()
-          | (RecvL (m, _, _) | SendL (m, _, _)) :: rest ->
-              let l = m.label in
-              if Set.mem acc l then uerr (DuplicateLabel l)
-              else aux (Set.add acc l) rest
-          | ChoiceL (_, ls) :: rest -> aux acc (ls @ rest)
-          | MuL (_, _, l) :: rest -> aux acc (l :: rest)
-          | TVarL (_, _) :: _ -> Err.unimpl "handle TVarL"
-          | EndL :: rest -> aux acc rest (* Temporary hack *)
-          | _ -> Err.unimpl "throw an error here for bad local types"
-        in
-        aux (Set.empty (module LabelName)) ltys
-      in
-      check_distinct_prefix l_types ;
+      (* let check_distinct_prefix ltys =
+       *   let rec aux acc = function
+       *     | [] -> ()
+       *     | (RecvL (m, _, _) | SendL (m, _, _)) :: rest ->
+       *         let l = m.label in
+       *         if Set.mem acc l then uerr (DuplicateLabel l)
+       *         else aux (Set.add acc l) rest
+       *     | ChoiceL (_, ls) :: rest -> aux acc (ls @ rest)
+       *     | MuL (_, _, l) :: rest -> aux acc (l :: rest)
+       *     | TVarL (_, _, l) :: rest -> aux acc (Lazy.force l :: rest)
+       *     | EndL :: rest -> aux acc rest (* Temporary hack *)
+       *     | _ -> Err.unimpl "throw an error here for bad local types"
+       *   in
+       *   aux (Set.empty (module LabelName)) ltys
+       * in
+       * check_distinct_prefix l_types ; *)
       ChoiceL (choice_r, l_types)
   | ChoiceG (choice_r, g_types) -> (
       let check_distinct_prefix gtys =
