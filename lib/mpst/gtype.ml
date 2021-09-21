@@ -112,6 +112,19 @@ type t =
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
 [@@deriving sexp_of]
 
+let rec evaluate_lazy_gtype = function
+  | MessageG (m, r1, r2, g) -> MessageG (m, r1, r2, evaluate_lazy_gtype g)
+  | MuG (tv, rv, g) -> MuG (tv, rv, evaluate_lazy_gtype g)
+  | TVarG (tv, es, g) ->
+      TVarG
+        ( tv
+        , es
+        , (* Force evaluation, then convert back to a lazy value *)
+          Lazy.from_val (Lazy.force g) )
+  | ChoiceG (r, gs) -> ChoiceG (r, List.map ~f:evaluate_lazy_gtype gs)
+  | EndG -> EndG
+  | CallG (r, p, rs, g) -> CallG (r, p, rs, evaluate_lazy_gtype g)
+
 type nested_global_info =
   { static_roles: RoleName.t list
   ; dynamic_roles: RoleName.t list
@@ -325,7 +338,7 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
   let gtype, free_names = conv_interactions init_conv_env interactions in
   match Set.choose free_names with
   | Some free_name -> uerr (UnboundRecursionName free_name)
-  | None -> gtype
+  | None -> evaluate_lazy_gtype gtype
 
 let rec flatten = function
   | ChoiceG (role, choices) ->
