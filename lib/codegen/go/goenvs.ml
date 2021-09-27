@@ -1511,9 +1511,8 @@ module LTypeCodeGenEnv : sig
   val gen_callbacks_file : t -> LocalProtocolName.t -> bool -> string
 end = struct
   type t =
-    { protocol: ProtocolName.t
-    ; role: RoleName.t
-    ; channel_env: ChannelEnv.t
+    { (* protocol: ProtocolName.t ; role: RoleName.t *)
+      channel_env: ChannelEnv.t
     ; invite_env: InviteEnv.t
     ; callbacks_env: CallbacksEnv.t
     ; role_imports: ImportsEnv.t }
@@ -1526,7 +1525,8 @@ end = struct
     let invite_env = InviteEnv.create local_protocol invite_imports in
     let callbacks_env = CallbacksEnv.create root_dir callback_enum_names in
     let role_imports = ImportsEnv.create root_dir in
-    {protocol; role; channel_env; invite_env; callbacks_env; role_imports}
+    {(* protocol; role *)
+     channel_env; invite_env; callbacks_env; role_imports}
 
   let get_or_add_channel ({channel_env; _} as t) chan_key =
     let channel_env, (channel_name, _) =
