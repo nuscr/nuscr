@@ -73,6 +73,8 @@ type nested_global_info =
 
 type nested_t = nested_global_info Map.M(ProtocolName).t
 
+val all_roles : t -> Set.M(RoleName).t
+
 val show : t -> string
 (** Provides a textual representation of a global type *)
 

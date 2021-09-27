@@ -468,23 +468,36 @@ let rec project' env (projected_role : RoleName.t) =
               ~f:(fun acc (var, t) -> SilentL (var, t, acc))
               named_payloads )
   | ChoiceG (choice_r, g_types) when Pragma.mixed_state_choice_enabled () ->
+      let ensure_local_label_uniqueness gtys =
+        let all_roles =
+          Set.union_list (module RoleName) (List.map ~f:all_roles gtys)
+        in
+        let check_role role_to_check =
+          let rec aux acc gtys =
+            match gtys with
+            | [] -> ()
+            | EndG :: rest -> aux acc rest
+            | MessageG (m, _, to_role, _) :: rest
+              when RoleName.equal to_role role_to_check ->
+                if Set.mem acc m.label then
+                  unimplf ~here:[%here]
+                    "Error message for local label uniqueness violation: %s"
+                    (LabelName.user m.label)
+                else aux (Set.add acc m.label) rest
+            | MessageG (_, _, _, g) :: rest -> aux acc (g :: rest)
+            | CallG _ :: _ ->
+                violation ~here:[%here]
+                  "MixedStateChoice and NestedProtocols are not compatible"
+            | MuG (_, _, g) :: rest -> aux acc (g :: rest)
+            | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
+            | TVarG _ :: _ -> unimpl ~here:[%here] "LLU for TVarG"
+          in
+          aux (Set.empty (module LabelName)) gtys
+        in
+        Set.iter ~f:check_role all_roles
+      in
+      ensure_local_label_uniqueness g_types ;
       let l_types = List.map ~f:(project' env projected_role) g_types in
-      (* let check_distinct_prefix ltys =
-       *   let rec aux acc = function
-       *     | [] -> ()
-       *     | (RecvL (m, _, _) | SendL (m, _, _)) :: rest ->
-       *         let l = m.label in
-       *         if Set.mem acc l then uerr (DuplicateLabel l)
-       *         else aux (Set.add acc l) rest
-       *     | ChoiceL (_, ls) :: rest -> aux acc (ls @ rest)
-       *     | MuL (_, _, l) :: rest -> aux acc (l :: rest)
-       *     | TVarL (_, _, l) :: rest -> aux acc (Lazy.force l :: rest)
-       *     | EndL :: rest -> aux acc rest (* Temporary hack *)
-       *     | _ -> Err.unimpl "throw an error here for bad local types"
-       *   in
-       *   aux (Set.empty (module LabelName)) ltys
-       * in
-       * check_distinct_prefix l_types ; *)
       ChoiceL (choice_r, l_types)
   | ChoiceG (choice_r, g_types) -> (
       let check_distinct_prefix gtys =
