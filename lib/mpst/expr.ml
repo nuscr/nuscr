@@ -1,7 +1,7 @@
 open! Base
 open Printf
 open Names
-open Syntax.RawExpr
+open Syntax.Exprs
 
 (* Workaround for https://github.com/janestreet/sexplib/issues/34 *)
 module Sexp = struct

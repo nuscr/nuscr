@@ -2,7 +2,7 @@ open! Base
 open! Stdio
 open Names
 open Efsm
-open Syntax.RawExpr
+open Syntax.Exprs
 
 let show_vars = function
   | [] -> "(empty)"

@@ -2,7 +2,7 @@
 
 open! Base
 open Names
-open Syntax.RawExpr
+open Syntax.Exprs
 
 (** {1 Expressions} *)
 

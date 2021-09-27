@@ -23,15 +23,15 @@ Show HigherLower FSM and State variables.
            start((Syntax.Refined (
      { Loc.loc = 4:9 to 4:10 in: HigherLower.nuscr; value = "n" },
      { Loc.loc = 4:11 to 4:14 in: HigherLower.nuscr; value = "int" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.And,
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Leq, (Syntax.RawExpr.Int 0),
-           (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.And,
+        (Syntax.Exprs.Binop (Syntax.Exprs.Leq, (Syntax.Exprs.Int 0),
+           (Syntax.Exprs.Var
               { Loc.loc = 4:20 to 4:21 in: HigherLower.nuscr; value = "n" })
            )),
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Lt,
-           (Syntax.RawExpr.Var
+        (Syntax.Exprs.Binop (Syntax.Exprs.Lt,
+           (Syntax.Exprs.Var
               { Loc.loc = 4:25 to 4:26 in: HigherLower.nuscr; value = "n" }),
-           (Syntax.RawExpr.Int 100)))
+           (Syntax.Exprs.Int 100)))
         ))
      )));
            from_role =
@@ -47,8 +47,8 @@ Show HigherLower FSM and State variables.
             limit((Syntax.Refined (
      { Loc.loc = 5:9 to 5:11 in: HigherLower.nuscr; value = "t0" },
      { Loc.loc = 5:12 to 5:15 in: HigherLower.nuscr; value = "int" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.Lt, (Syntax.RawExpr.Int 0),
-        (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.Lt, (Syntax.Exprs.Int 0),
+        (Syntax.Exprs.Var
            { Loc.loc = 5:20 to 5:22 in: HigherLower.nuscr; value = "t0" })
         ))
      )));
@@ -70,13 +70,13 @@ Show HigherLower FSM and State variables.
                 (Syntax.Refined (
      { Loc.loc = 6:20 to 6:21 in: HigherLower.nuscr; value = "t" },
      { Loc.loc = 6:23 to 6:26 in: HigherLower.nuscr; value = "int" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.Lt, (Syntax.RawExpr.Int 0),
-        (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.Lt, (Syntax.Exprs.Int 0),
+        (Syntax.Exprs.Var
            { Loc.loc = 6:31 to 6:32 in: HigherLower.nuscr; value = "t" })
         ))
      ));
                 init =
-                (Syntax.RawExpr.Var
+                (Syntax.Exprs.Var
                    { Loc.loc = 6:37 to 6:39 in: HigherLower.nuscr; value = "t0"
                      })
                 }
@@ -88,15 +88,15 @@ Show HigherLower FSM and State variables.
                   guess((Syntax.Refined (
      { Loc.loc = 7:11 to 7:12 in: HigherLower.nuscr; value = "x" },
      { Loc.loc = 7:13 to 7:16 in: HigherLower.nuscr; value = "int" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.And,
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Leq, (Syntax.RawExpr.Int 0),
-           (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.And,
+        (Syntax.Exprs.Binop (Syntax.Exprs.Leq, (Syntax.Exprs.Int 0),
+           (Syntax.Exprs.Var
               { Loc.loc = 7:22 to 7:23 in: HigherLower.nuscr; value = "x" })
            )),
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Lt,
-           (Syntax.RawExpr.Var
+        (Syntax.Exprs.Binop (Syntax.Exprs.Lt,
+           (Syntax.Exprs.Var
               { Loc.loc = 7:27 to 7:28 in: HigherLower.nuscr; value = "x" }),
-           (Syntax.RawExpr.Int 100)))
+           (Syntax.Exprs.Int 100)))
         ))
      )));
                   from_role =
@@ -119,17 +119,17 @@ Show HigherLower FSM and State variables.
                           higher((Syntax.Refined (
      { Loc.loc = 9:16 to 9:22 in: HigherLower.nuscr; value = "ignore" },
      { Loc.loc = 9:23 to 9:27 in: HigherLower.nuscr; value = "unit" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.And,
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Gt,
-           (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.And,
+        (Syntax.Exprs.Binop (Syntax.Exprs.Gt,
+           (Syntax.Exprs.Var
               { Loc.loc = 9:28 to 9:29 in: HigherLower.nuscr; value = "n" }),
-           (Syntax.RawExpr.Var
+           (Syntax.Exprs.Var
               { Loc.loc = 9:32 to 9:33 in: HigherLower.nuscr; value = "x" })
            )),
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Gt,
-           (Syntax.RawExpr.Var
+        (Syntax.Exprs.Binop (Syntax.Exprs.Gt,
+           (Syntax.Exprs.Var
               { Loc.loc = 9:37 to 9:38 in: HigherLower.nuscr; value = "t" }),
-           (Syntax.RawExpr.Int 1)))
+           (Syntax.Exprs.Int 1)))
         ))
      )));
                           from_role =
@@ -158,12 +158,12 @@ Show HigherLower FSM and State variables.
                          (Continue (
                             { Loc.loc = 11:18 to 11:22 in: HigherLower.nuscr;
                               value = "Loop" },
-                            [(Syntax.RawExpr.Binop (Syntax.RawExpr.Minus,
-                                (Syntax.RawExpr.Var
+                            [(Syntax.Exprs.Binop (Syntax.Exprs.Minus,
+                                (Syntax.Exprs.Var
                                    { Loc.loc =
                                      11:24 to 11:25 in: HigherLower.nuscr;
                                      value = "t" }),
-                                (Syntax.RawExpr.Int 1)))
+                                (Syntax.Exprs.Int 1)))
                               ]
                             ))
                          }
@@ -175,10 +175,10 @@ Show HigherLower FSM and State variables.
                            win((Syntax.Refined (
      { Loc.loc = 13:13 to 13:19 in: HigherLower.nuscr; value = "ignore" },
      { Loc.loc = 13:20 to 13:24 in: HigherLower.nuscr; value = "unit" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.Eq,
-        (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.Eq,
+        (Syntax.Exprs.Var
            { Loc.loc = 13:25 to 13:26 in: HigherLower.nuscr; value = "n" }),
-        (Syntax.RawExpr.Var
+        (Syntax.Exprs.Var
            { Loc.loc = 13:27 to 13:28 in: HigherLower.nuscr; value = "x" })
         ))
      )));
@@ -211,17 +211,17 @@ Show HigherLower FSM and State variables.
                            lower((Syntax.Refined (
      { Loc.loc = 16:15 to 16:21 in: HigherLower.nuscr; value = "ignore" },
      { Loc.loc = 16:22 to 16:26 in: HigherLower.nuscr; value = "unit" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.And,
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Lt,
-           (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.And,
+        (Syntax.Exprs.Binop (Syntax.Exprs.Lt,
+           (Syntax.Exprs.Var
               { Loc.loc = 16:27 to 16:28 in: HigherLower.nuscr; value = "n" }),
-           (Syntax.RawExpr.Var
+           (Syntax.Exprs.Var
               { Loc.loc = 16:31 to 16:32 in: HigherLower.nuscr; value = "x" })
            )),
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Gt,
-           (Syntax.RawExpr.Var
+        (Syntax.Exprs.Binop (Syntax.Exprs.Gt,
+           (Syntax.Exprs.Var
               { Loc.loc = 16:36 to 16:37 in: HigherLower.nuscr; value = "t" }),
-           (Syntax.RawExpr.Int 1)))
+           (Syntax.Exprs.Int 1)))
         ))
      )));
                            from_role =
@@ -250,12 +250,12 @@ Show HigherLower FSM and State variables.
                           (Continue (
                              { Loc.loc = 18:18 to 18:22 in: HigherLower.nuscr;
                                value = "Loop" },
-                             [(Syntax.RawExpr.Binop (Syntax.RawExpr.Minus,
-                                 (Syntax.RawExpr.Var
+                             [(Syntax.Exprs.Binop (Syntax.Exprs.Minus,
+                                 (Syntax.Exprs.Var
                                     { Loc.loc =
                                       18:24 to 18:25 in: HigherLower.nuscr;
                                       value = "t" }),
-                                 (Syntax.RawExpr.Int 1)))
+                                 (Syntax.Exprs.Int 1)))
                                ]
                              ))
                           }
@@ -267,17 +267,17 @@ Show HigherLower FSM and State variables.
                            lose((Syntax.Refined (
      { Loc.loc = 20:14 to 20:20 in: HigherLower.nuscr; value = "ignore" },
      { Loc.loc = 20:21 to 20:25 in: HigherLower.nuscr; value = "unit" },
-     (Syntax.RawExpr.Binop (Syntax.RawExpr.And,
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Neq,
-           (Syntax.RawExpr.Var
+     (Syntax.Exprs.Binop (Syntax.Exprs.And,
+        (Syntax.Exprs.Binop (Syntax.Exprs.Neq,
+           (Syntax.Exprs.Var
               { Loc.loc = 20:26 to 20:27 in: HigherLower.nuscr; value = "n" }),
-           (Syntax.RawExpr.Var
+           (Syntax.Exprs.Var
               { Loc.loc = 20:29 to 20:30 in: HigherLower.nuscr; value = "x" })
            )),
-        (Syntax.RawExpr.Binop (Syntax.RawExpr.Eq,
-           (Syntax.RawExpr.Var
+        (Syntax.Exprs.Binop (Syntax.Exprs.Eq,
+           (Syntax.Exprs.Var
               { Loc.loc = 20:34 to 20:35 in: HigherLower.nuscr; value = "t" }),
-           (Syntax.RawExpr.Int 1)))
+           (Syntax.Exprs.Int 1)))
         ))
      )));
                            from_role =
