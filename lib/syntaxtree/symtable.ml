@@ -22,26 +22,18 @@ let show_roles split_decl =
   in
   roles_str ^ new_roles_str
 
-let show_protocol_decl (proto_decl : protocol_decl) =
-  String.concat ~sep:""
-    [ ProtocolName.user proto_decl.proto_name
-    ; "("
-    ; show_roles proto_decl.split_decl
-    ; ")" ]
+(* let show_protocol_decl (proto_decl : protocol_decl) = String.concat
+   ~sep:"" [ ProtocolName.user proto_decl.proto_name ; "(" ; show_roles
+   proto_decl.split_decl ; ")" ] *)
 
 (** Symbol table type *)
-type symbol_table =
-  { protocol: ProtocolName.t
-  ; table: protocol_decl Map.M(ProtocolName).t
-        [@printer
-          fun fmt tbl ->
-            let nested_protos =
-              String.concat ~sep:", "
-                (List.map ~f:show_protocol_decl (Map.data tbl))
-            in
-            fprintf fmt "{%s}" nested_protos]
-  ; parent: symbol_table option }
-[@@deriving show]
+type t =
+  { (* protocol: ProtocolName.t *)
+    table: protocol_decl Map.M(ProtocolName).t
+        (* [@printer fun fmt tbl -> let nested_protos = String.concat ~sep:",
+           " (List.map ~f:show_protocol_decl (Map.data tbl)) in fprintf fmt
+           "{%s}" nested_protos] *)
+  ; parent: t option }
 
 (** Generate nested protocol names based on the name of the parent protocol*)
 let name_with_prefix prefix proto_name =
@@ -69,8 +61,8 @@ let decl_from_protocol prefix (protocol : global_protocol) =
   {proto_name; all_roles; split_decl; loc}
 
 (** Build symbol table for a given protocol *)
-let build_symbol_table (prefix : ProtocolName.t)
-    (protocols : global_protocol list) (parent : symbol_table option) =
+let create (prefix : ProtocolName.t) (protocols : global_protocol list)
+    (parent : t option) =
   let add_proto_decl acc (protocol : global_protocol) =
     let decl = decl_from_protocol prefix protocol in
     let name = protocol.value.name in
@@ -87,10 +79,10 @@ let build_symbol_table (prefix : ProtocolName.t)
       ~init:(Map.empty (module ProtocolName))
       ~f:add_proto_decl protocols
   in
-  {protocol= prefix; table; parent}
+  {(* protocol= prefix; *) table; parent}
 
 (** Recursively look up a protocol in the symbol table hierarchy *)
-let rec lookup_protocol (symbol_table : symbol_table) protocol =
+let rec lookup_protocol (symbol_table : t) protocol =
   match Map.find symbol_table.table protocol with
   | Some decl -> decl
   | None -> (

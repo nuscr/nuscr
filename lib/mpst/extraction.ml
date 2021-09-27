@@ -232,7 +232,7 @@ let validate_calls_in_protocols (scr_module : scr_module) =
     let new_prefix = name_with_prefix prefix protocol.value.name in
     let nested_protocols = protocol.value.nested_protocols in
     let new_nested_st =
-      build_symbol_table new_prefix nested_protocols (Some nested_table)
+      Symtable.create new_prefix nested_protocols (Some nested_table)
     in
     let interactions = protocol.value.interactions in
     let roles = protocol.value.roles in
@@ -245,10 +245,10 @@ let validate_calls_in_protocols (scr_module : scr_module) =
   in
   let prefix = ProtocolName.of_string "" in
   let nested_symbol_table =
-    build_symbol_table prefix scr_module.nested_protocols None
+    Symtable.create prefix scr_module.nested_protocols None
   in
   let global_symbol_table =
-    build_symbol_table prefix scr_module.protocols None
+    Symtable.create prefix scr_module.protocols None
   in
   List.iter
     ~f:
