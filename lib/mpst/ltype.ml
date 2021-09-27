@@ -473,26 +473,31 @@ let rec project' env (projected_role : RoleName.t) =
           Set.union_list (module RoleName) (List.map ~f:all_roles gtys)
         in
         let check_role role_to_check =
-          let rec aux acc gtys =
+          let rec aux acc tvars gtys =
             match gtys with
             | [] -> ()
-            | EndG :: rest -> aux acc rest
+            | EndG :: rest -> aux acc tvars rest
             | MessageG (m, _, to_role, _) :: rest
               when RoleName.equal to_role role_to_check ->
                 if Set.mem acc m.label then
                   unimplf ~here:[%here]
                     "Error message for local label uniqueness violation: %s"
                     (LabelName.user m.label)
-                else aux (Set.add acc m.label) rest
-            | MessageG (_, _, _, g) :: rest -> aux acc (g :: rest)
+                else aux (Set.add acc m.label) tvars rest
+            | MessageG (_, _, _, g) :: rest -> aux acc tvars (g :: rest)
             | CallG _ :: _ ->
                 violation ~here:[%here]
                   "MixedStateChoice and NestedProtocols are not compatible"
-            | MuG (_, _, g) :: rest -> aux acc (g :: rest)
-            | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
-            | TVarG _ :: _ -> unimpl ~here:[%here] "LLU for TVarG"
+            | MuG (_, _, g) :: rest -> aux acc tvars (g :: rest)
+            | ChoiceG (_, gs) :: rest -> aux acc tvars (gs @ rest)
+            | TVarG (tvar, _, g) :: rest ->
+                if Set.mem tvars tvar then aux acc tvars rest
+                else aux acc (Set.add tvars tvar) (Lazy.force g :: rest)
           in
-          aux (Set.empty (module LabelName)) gtys
+          aux
+            (Set.empty (module LabelName))
+            (Set.empty (module TypeVariableName))
+            gtys
         in
         Set.iter ~f:check_role all_roles
       in
