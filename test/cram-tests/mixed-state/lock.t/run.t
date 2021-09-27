@@ -1,5 +1,5 @@
 The protocol is not yet described. But some variations on Lock, but
 with recursive calls.
   $ nuscr Lock.nuscr
-  nuscr: I'm sorry, it is unfortunate Error message for local label uniqueness violation: REQ is not implemented (raised at lib/mpst/ltype.ml: line 431)
+  nuscr: User error: Label REQ is not locally unique for role B, at 8:3 to 8:6 in: Lock.nuscr and 9:3 to 9:6 in: Lock.nuscr
   [1]

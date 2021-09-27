@@ -480,9 +480,18 @@ let rec project' env (projected_role : RoleName.t) =
             | MessageG (m, _, to_role, _) :: rest
               when RoleName.equal to_role role_to_check ->
                 if Set.mem acc m.label then
-                  unimplf ~here:[%here]
-                    "Error message for local label uniqueness violation: %s"
-                    (LabelName.user m.label)
+                  let defined =
+                    Set.find acc ~f:(fun l -> LabelName.equal m.label l)
+                  in
+                  let defined_loc =
+                    LabelName.where (Option.value_exn defined)
+                  in
+                  uerr
+                    (LabelNotUnique
+                       ( m.label
+                       , role_to_check
+                       , LabelName.where m.label
+                       , defined_loc ) )
                 else aux (Set.add acc m.label) tvars rest
             | MessageG (_, _, _, g) :: rest -> aux acc tvars (g :: rest)
             | CallG _ :: _ ->

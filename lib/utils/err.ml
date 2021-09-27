@@ -43,6 +43,7 @@ type user_error =
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
   | RoleNotEnabled of RoleName.t
+  | LabelNotUnique of LabelName.t * RoleName.t * Loc.t * Loc.t
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed *)
@@ -138,6 +139,10 @@ let show_user_error = function
         "Role %s is not enabled, the role is unaware of a previous branch \
          in the protocol"
         (RoleName.user r)
+  | LabelNotUnique (label, role, loc1, loc2) ->
+      sprintf "Label %s is not locally unique for role %s, at %s and %s"
+        (LabelName.user label) (RoleName.user role) (Loc.show loc1)
+        (Loc.show loc2)
 
 let unimpl ~here desc = UnImplemented (desc, here) |> raise
 
