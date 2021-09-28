@@ -1,6 +1,5 @@
 open! Base
 open! Stdio
-open Names
 open Printf
 open Err
 
@@ -16,12 +15,6 @@ let create_dir dir_path =
       (FileSysErr
          (sprintf "Unable to create new directory: %s in path: %s" dir_path
             (Unix.getcwd ()) ) )
-
-let create_pkg pkg_name = create_dir (PackageName.user pkg_name)
-
-let pkg_path pkgs =
-  let str_pkgs = List.map ~f:PackageName.user pkgs in
-  String.concat ~sep:"/" str_pkgs
 
 let gen_file_path path file_name = sprintf "%s/%s" path file_name
 

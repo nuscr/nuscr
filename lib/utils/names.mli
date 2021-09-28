@@ -1,6 +1,6 @@
 open! Base
 
-module type S = sig
+module type UntaggedName = sig
   type t [@@deriving show {with_path= false}, sexp_of]
 
   val of_string : string -> t
@@ -17,10 +17,12 @@ module type S = sig
 end
 
 module type TaggedName = sig
-  include S
+  include UntaggedName
 
-  val of_other_name : (module S with type t = 'a) -> 'a -> t
+  val of_other_name : (module UntaggedName with type t = 'a) -> 'a -> t
 end
+
+module Make () : TaggedName
 
 module ProtocolName : TaggedName
 
@@ -35,36 +37,3 @@ module VariableName : TaggedName
 module TypeVariableName : TaggedName
 
 module LocalProtocolName : TaggedName
-
-module ChannelStructName : TaggedName
-
-module ChannelName : TaggedName
-
-module InviteChannelStructName : TaggedName
-
-module InviteChannelName : TaggedName
-
-module CallbackName : TaggedName
-
-module CallbacksEnvName : TaggedName
-
-module MessageStructName : TaggedName
-
-module FileName : TaggedName
-
-(* TODO: Is it needed? *)
-module ResultName : TaggedName
-
-module PackageName : TaggedName
-
-module ParameterName : TaggedName
-
-module RootDirName : TaggedName
-
-module EnumName : TaggedName
-
-module EnumTypeName : TaggedName
-
-module FunctionName : TaggedName
-
-module InterfaceName : TaggedName

@@ -1,12 +1,13 @@
 open! Base
 open Ltype
 open Goenvs
-open Names
 open Goimpl
-open Gonames
 open Gtype
 open Syntax
 open Fsutil
+open! Gonames
+
+let create_pkg pkg_name = create_dir (PackageName.user pkg_name)
 
 (** Validate protocols to ensure Go implementation can be generated
 

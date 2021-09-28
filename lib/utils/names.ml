@@ -1,6 +1,6 @@
 open! Base
 
-module type S = sig
+module type UntaggedName = sig
   type t [@@deriving show {with_path= false}, sexp_of]
 
   val of_string : string -> t
@@ -16,7 +16,13 @@ module type S = sig
   include Comparable.S with type t := t
 end
 
-module UntaggedName : S = struct
+module type TaggedName = sig
+  include UntaggedName
+
+  val of_other_name : (module UntaggedName with type t = 'a) -> 'a -> t
+end
+
+module UntaggedName : UntaggedName = struct
   module M = struct
     type t = string Loc.located [@@deriving show {with_path= false}, sexp_of]
 
@@ -37,17 +43,11 @@ module UntaggedName : S = struct
   include Comparable.Make (M)
 end
 
-module type TaggedName = sig
-  include S
-
-  val of_other_name : (module S with type t = 'a) -> 'a -> t
-end
-
 module Make () : TaggedName = struct
   include UntaggedName
 
-  let of_other_name (type a) (module Other : S with type t = a) (name : a) :
-      t =
+  let of_other_name (type a) (module Other : UntaggedName with type t = a)
+      (name : a) : t =
     create (Other.user name) (Other.where name)
 end
 
@@ -64,36 +64,3 @@ module VariableName : TaggedName = Make ()
 module TypeVariableName : TaggedName = Make ()
 
 module LocalProtocolName : TaggedName = Make ()
-
-module ChannelStructName : TaggedName = Make ()
-
-module ChannelName : TaggedName = Make ()
-
-module InviteChannelStructName : TaggedName = Make ()
-
-module InviteChannelName : TaggedName = Make ()
-
-module CallbackName : TaggedName = Make ()
-
-module CallbacksEnvName : TaggedName = Make ()
-
-module MessageStructName : TaggedName = Make ()
-
-module FileName : TaggedName = Make ()
-
-(* TODO: Is it needed? *)
-module ResultName : TaggedName = Make ()
-
-module PackageName : TaggedName = Make ()
-
-module ParameterName : TaggedName = Make ()
-
-module RootDirName : TaggedName = Make ()
-
-module EnumName : TaggedName = Make ()
-
-module EnumTypeName : TaggedName = Make ()
-
-module FunctionName : TaggedName = Make ()
-
-module InterfaceName : TaggedName = Make ()

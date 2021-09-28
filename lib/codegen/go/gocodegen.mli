@@ -1,5 +1,5 @@
 open! Base
-open Names
+open Gonames
 
 (** Record containing the implementation of all the components of the Go
     protocol implementation *)

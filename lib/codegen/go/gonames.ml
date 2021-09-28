@@ -1,6 +1,39 @@
 open! Base
 open Printf
-open Names
+include Names
+
+module ChannelStructName : TaggedName = Make ()
+
+module ChannelName : TaggedName = Make ()
+
+module InviteChannelStructName : TaggedName = Make ()
+
+module InviteChannelName : TaggedName = Make ()
+
+module CallbackName : TaggedName = Make ()
+
+module CallbacksEnvName : TaggedName = Make ()
+
+module MessageStructName : TaggedName = Make ()
+
+module FileName : TaggedName = Make ()
+
+(* TODO: Is it needed? *)
+module ResultName : TaggedName = Make ()
+
+module PackageName : TaggedName = Make ()
+
+module ParameterName : TaggedName = Make ()
+
+module RootDirName : TaggedName = Make ()
+
+module EnumName : TaggedName = Make ()
+
+module EnumTypeName : TaggedName = Make ()
+
+module FunctionName : TaggedName = Make ()
+
+module InterfaceName : TaggedName = Make ()
 
 (* GOLANG PACKAGE NAMES *)
 let pkg_messages = PackageName.of_string "messages"
@@ -308,3 +341,7 @@ let new_setup_invite_chan_var caller participant =
 
 let new_role_env_var role =
   VariableName.of_string @@ sprintf "%s_env" (lowercase_role_name role)
+
+let pkg_path pkgs =
+  let str_pkgs = List.map ~f:PackageName.user pkgs in
+  String.concat ~sep:"/" str_pkgs
