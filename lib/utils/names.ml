@@ -7,6 +7,8 @@ module type UntaggedName = sig
 
   val rename : t -> string -> t
 
+  val update : t -> f:(string -> string) -> t
+
   val user : t -> string
 
   val where : t -> Loc.t
@@ -23,20 +25,24 @@ module type TaggedName = sig
 end
 
 module UntaggedName : UntaggedName = struct
+  open Loc
+
   module M = struct
-    type t = string Loc.located [@@deriving show {with_path= false}, sexp_of]
+    type t = string located [@@deriving show {with_path= false}, sexp_of]
 
-    let of_string s = {Loc.value= s; loc= Loc.ghost_loc}
+    let of_string s = {value= s; loc= ghost_loc}
 
-    let rename n s = {n with Loc.value= s}
+    let rename n s = {n with value= s}
 
-    let user n = n.Loc.value
+    let update n ~f = {n with value= f n.value}
 
-    let where n = n.Loc.loc
+    let user n = n.value
 
-    let create value loc : t = {Loc.value; Loc.loc}
+    let where n = n.loc
 
-    let compare n n' = String.compare n.Loc.value n'.Loc.value
+    let create value loc : t = {value; loc}
+
+    let compare n n' = String.compare n.value n'.value
   end
 
   include M

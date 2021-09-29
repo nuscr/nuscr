@@ -7,6 +7,8 @@ module type UntaggedName = sig
 
   val rename : t -> string -> t
 
+  val update : t -> f:(string -> string) -> t
+
   val user : t -> string
 
   val where : t -> Loc.t
