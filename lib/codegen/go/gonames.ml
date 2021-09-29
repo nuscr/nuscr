@@ -1,6 +1,6 @@
 open! Base
 open Printf
-include Names
+open Names
 
 module ChannelStructName : TaggedName = Make ()
 

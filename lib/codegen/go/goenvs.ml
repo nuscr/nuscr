@@ -1,5 +1,6 @@
 open! Base
 open Goimpl
+open Names
 open Gonames
 open Gtype
 open Ltype

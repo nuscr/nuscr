@@ -1,6 +1,7 @@
 open! Base
 open Printf
-open! Gonames
+open Names
+open Gonames
 
 (* TODO: Use an AST *)
 

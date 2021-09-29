@@ -1,5 +1,5 @@
 open! Base
-open Gonames
+open Names
 
 val generate_go_code :
      Syntax.scr_module

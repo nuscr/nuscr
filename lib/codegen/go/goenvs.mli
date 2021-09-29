@@ -1,4 +1,5 @@
 open! Base
+open Names
 open Gonames
 open Gtype
 open Ltype

@@ -5,7 +5,8 @@ open Goimpl
 open Gtype
 open Syntax
 open Fsutil
-open! Gonames
+open Names
+open Gonames
 
 let create_pkg pkg_name = create_dir (PackageName.user pkg_name)
 
