@@ -1,7 +1,7 @@
 open! Base
 open Printf
 open Names
-open Gonames
+open! Gonames
 
 (* TODO: Use an AST *)
 
@@ -11,7 +11,7 @@ let messages_import_path root pkg =
 
 let channels_import_path root pkg =
   sprintf "\"%s/%s/%s\"" (RootDirName.user root)
-    (PackageName.user pkg_channels)
+    (PackageName.user PackageName.pkg_channels)
     (PackageName.user pkg)
 
 let roles_import_path root pkg =
@@ -25,7 +25,7 @@ let callbacks_import_path root pkg =
 
 let results_import_path root pkg =
   sprintf "\"%s/%s/%s\"" (RootDirName.user root)
-    (PackageName.user pkg_results)
+    (PackageName.user PackageName.pkg_results)
     (PackageName.user pkg)
 
 let sync_import_path _ pkg = sprintf "\"%s\"" (PackageName.user pkg)
@@ -63,10 +63,11 @@ let new_variable name_gen var_name =
   let name_gen, var_name = Namegen.unique_name name_gen var_name in
   (name_gen, var_name)
 
-let var_type_decl var type_name = sprintf "%s %s" var type_name
+let var_type_decl var type_name =
+  sprintf "%s %s" (VariableName.user var) type_name
 
 let new_var_decl var_name var_type =
-  sprintf "var %s" (var_type_decl (VariableName.user var_name) var_type)
+  sprintf "var %s" (var_type_decl var_name var_type)
 
 let new_var_assignment var_name rhs =
   sprintf "%s := %s" (VariableName.user var_name) rhs
@@ -123,7 +124,9 @@ let callbacks_pkg_env callbacks_pkg env_name =
     (CallbacksEnvName.user env_name)
 
 let pkg_function pkg function_name =
-  sprintf "%s.%s" (PackageName.user pkg) (FunctionName.user function_name)
+  FunctionName.of_string
+    (sprintf "%s.%s" (PackageName.user pkg)
+       (FunctionName.user function_name) )
 
 let protocol_result_access pkg result =
   sprintf "%s.%s" (PackageName.user pkg) (ResultName.user result)
@@ -177,12 +180,14 @@ let callbacks_env_interface env_name callbacks =
       | None -> []
       | Some (`Result (param_name, (pkg, result))) ->
           [ var_type_decl
-              (ParameterName.user param_name)
+              (VariableName.of_other_name (module ParameterName) param_name)
               (protocol_result_access pkg result) ]
       | Some (`Payloads payloads) ->
           List.map payloads ~f:(fun (payload_name, payload_type) ->
               var_type_decl
-                (ParameterName.user payload_name)
+                (VariableName.of_other_name
+                   (module ParameterName)
+                   payload_name )
                 (PayloadTypeName.user payload_type) )
     in
     let return_type =
@@ -238,9 +243,7 @@ let gen_enum (enum_type, enum_values) =
 
 (* MESSAGE STRUCT *)
 let msg_field_decl (field_name, field_type) =
-  struct_field_decl
-    (VariableName.user field_name)
-    (PayloadTypeName.user field_type)
+  struct_field_decl field_name (PayloadTypeName.user field_type)
 
 let gen_msg_struct (msg_struct_name, fields) =
   let struct_name = MessageStructName.user msg_struct_name in
@@ -251,14 +254,18 @@ let gen_msg_struct (msg_struct_name, fields) =
 let role_chan_field_decl (chan_name, (pkg, role_chan)) =
   let type_of_channel = protocol_channel_access pkg role_chan in
   let channel_type = chan_type type_of_channel in
-  struct_field_decl (InviteChannelName.user chan_name) channel_type
+  struct_field_decl
+    (VariableName.of_other_name (module InviteChannelName) chan_name)
+    channel_type
 
 (* INVITE CHANNEL STRUCT *)
 let invite_chan_field_decl (chan_name, invite_chan_struct) =
   let channel_type =
     chan_type (InviteChannelStructName.user invite_chan_struct)
   in
-  struct_field_decl (InviteChannelName.user chan_name) channel_type
+  struct_field_decl
+    (VariableName.of_other_name (module InviteChannelName) chan_name)
+    channel_type
 
 (* CHANNEL OPERATIONS *)
 let msg_from_channel chan_str = sprintf "<-%s" chan_str
@@ -363,7 +370,7 @@ let return_stmt return_val = sprintf "return %s" return_val
 let call_function function_name params =
   let str_params = List.map ~f:VariableName.user params in
   let params_str = join_params str_params in
-  sprintf "%s(%s)" function_name params_str
+  sprintf "%s(%s)" (FunctionName.user function_name) params_str
 
 let call_method obj_var method_name params =
   let params_str = join_params params in

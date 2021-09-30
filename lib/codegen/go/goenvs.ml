@@ -1,7 +1,7 @@
 open! Base
 open Goimpl
 open Names
-open Gonames
+open! Gonames
 open Gtype
 open Ltype
 
@@ -52,12 +52,13 @@ end = struct
 
   let import_messages (name_gen, root_dir, imports) =
     let name_gen, messages, pkg_alias =
-      get_or_add_import_alias name_gen imports.messages pkg_messages
+      get_or_add_import_alias name_gen imports.messages
+        PackageName.pkg_messages
     in
     ((name_gen, root_dir, {imports with messages}), pkg_alias)
 
   let import_channels (name_gen, root_dir, imports) protocol =
-    let pkg = PackageName.of_string (protocol_pkg_name protocol) in
+    let pkg = PackageName.protocol_pkg_name protocol in
     let name_gen, channels, pkg_alias =
       get_or_add_import_alias name_gen imports.channels pkg
     in
@@ -65,18 +66,20 @@ end = struct
 
   let import_invitations (name_gen, root_dir, imports) =
     let name_gen, invitations, pkg_alias =
-      get_or_add_import_alias name_gen imports.invitations pkg_invitations
+      get_or_add_import_alias name_gen imports.invitations
+        PackageName.pkg_invitations
     in
     ((name_gen, root_dir, {imports with invitations}), pkg_alias)
 
   let import_callbacks (name_gen, root_dir, imports) =
     let name_gen, callbacks, pkg_alias =
-      get_or_add_import_alias name_gen imports.callbacks pkg_callbacks
+      get_or_add_import_alias name_gen imports.callbacks
+        PackageName.pkg_callbacks
     in
     ((name_gen, root_dir, {imports with callbacks}), pkg_alias)
 
   let import_results (name_gen, root_dir, imports) protocol =
-    let pkg = PackageName.of_string (protocol_pkg_name protocol) in
+    let pkg = PackageName.protocol_pkg_name protocol in
     let name_gen, results, pkg_alias =
       get_or_add_import_alias name_gen imports.results pkg
     in
@@ -84,13 +87,13 @@ end = struct
 
   let import_roles (name_gen, root_dir, imports) =
     let name_gen, roles, pkg_alias =
-      get_or_add_import_alias name_gen imports.roles pkg_roles
+      get_or_add_import_alias name_gen imports.roles PackageName.pkg_roles
     in
     ((name_gen, root_dir, {imports with roles}), pkg_alias)
 
   let import_sync (name_gen, root_dir, imports) =
     let name_gen, sync, pkg_alias =
-      get_or_add_import_alias name_gen imports.sync pkg_sync
+      get_or_add_import_alias name_gen imports.sync PackageName.pkg_sync
     in
     ((name_gen, root_dir, {imports with sync}), pkg_alias)
 
@@ -192,23 +195,21 @@ end = struct
   let add_message_enum ((enum_type, name_gen, enums) as env) label =
     if Map.mem enums label then env
     else
-      let enum_name = EnumName.of_string (msg_enum_name label) in
+      let enum_name = EnumName.msg_enum_name label in
       let name_gen, enum_name = Namegen.unique_name name_gen enum_name in
       (enum_type, name_gen, Map.add_exn enums ~key:label ~data:enum_name)
 
   let add_invitation_enum ((enum_type, name_gen, enums) as env) protocol
       roles =
-    let call_label = gen_call_label protocol roles in
+    let call_label = LabelName.gen_call_label protocol roles in
     if Map.mem enums call_label then env
     else
-      let enum_name =
-        EnumName.of_string (invitation_enum_name protocol roles)
-      in
+      let enum_name = EnumName.invitation_enum_name protocol roles in
       let name_gen, enum_name = Namegen.unique_name name_gen enum_name in
       (enum_type, name_gen, Map.add_exn enums ~key:call_label ~data:enum_name)
 
   let get_invitation_enum (_, _, enums) protocol roles =
-    let call_label = gen_call_label protocol roles in
+    let call_label = LabelName.gen_call_label protocol roles in
     Map.find_exn enums call_label
 
   let get_message_enum (_, _, enums) label = Map.find_exn enums label
@@ -216,13 +217,13 @@ end = struct
   let get_enum_type_name (enum_type, _, _) = enum_type
 
   let generate_messages_file (enum_name, _, enums) =
-    let pkg_stmt = package_stmt pkg_messages in
+    let pkg_stmt = package_stmt PackageName.pkg_messages in
     let label_enum_decl = gen_enum (enum_name, Map.data enums) in
     join_non_empty_lines ~sep:"\n\n" [pkg_stmt; label_enum_decl]
 
   let create protocol_name =
     let namegen = Namegen.create () in
-    let enum_type = message_label_enum_name protocol_name in
+    let enum_type = EnumTypeName.message_label_enum_name protocol_name in
     let enum_name = EnumName.of_other_name (module EnumTypeName) enum_type in
     let namegen, _ = Namegen.unique_name namegen enum_name in
     (enum_type, namegen, Map.empty (module LabelName))
@@ -251,15 +252,11 @@ end = struct
 
   let new_enum (enum_type_name_gen, enum_name_gen) local_protocol labels =
     let enum_name_of_label name_gen label =
-      let enum_name =
-        EnumName.of_string (choice_enum_value local_protocol label)
-      in
+      let enum_name = EnumName.choice_enum_value local_protocol label in
       let name_gen, enum_name = EnumNamegen.unique_name name_gen enum_name in
       (name_gen, enum_name)
     in
-    let enum_type =
-      EnumTypeName.of_string (choice_enum_type local_protocol)
-    in
+    let enum_type = EnumTypeName.choice_enum_type local_protocol in
     let enum_type_name_gen, enum_type =
       EnumTypeNamegen.unique_name enum_type_name_gen enum_type
     in
@@ -326,24 +323,23 @@ end = struct
           | None ->
               let imports, pkg = ImportsEnv.import_messages imports in
               let label_enum_type =
-                message_label_enum_name entrypoint_protocol
+                EnumTypeName.message_label_enum_name entrypoint_protocol
               in
               let label_enum_type_str =
                 pkg_enum_type_access pkg label_enum_type
               in
-              ( chan_field_name role "Label" is_send
+              ( ChannelName.chan_field_name role "Label" ~is_send
               , label_enum_type_str
               , imports )
           | Some payload_type ->
               (* TODO: Assumes payload type is valid identifier: e.g. string,
                  int. etc.*)
-              ( chan_field_name role
-                  (capitalize_payload_type payload_type)
-                  is_send
+              ( ChannelName.chan_field_name role
+                  (PayloadTypeName.to_capitalize_string payload_type)
+                  ~is_send
               , PayloadTypeName.user payload_type
               , imports )
         in
-        let chan_field_name = ChannelName.of_string chan_field_name in
         let field_type = chan_type field_type in
         let namegen, chan_field =
           Namegen.unique_name namegen chan_field_name
@@ -364,7 +360,10 @@ end = struct
   let gen_channel_struct ((_, struct_name, _, _, channel_fields, _) : t) =
     let gen_chan_field_decl ~key:_ ~data:(chan_name, chan_type) chan_fields =
       (* Get pkg name *)
-      struct_field_decl (ChannelName.user chan_name) chan_type :: chan_fields
+      struct_field_decl
+        (VariableName.of_other_name (module ChannelName) chan_name)
+        chan_type
+      :: chan_fields
     in
     let chan_decls =
       Map.fold ~init:[] ~f:gen_chan_field_decl channel_fields
@@ -376,7 +375,7 @@ end = struct
   let get_channel_imports (_, _, _, _, _, imports) = imports
 
   let create role entrypoint_protocol protocol imports : t =
-    let struct_name = ChannelStructName.of_string @@ chan_struct_name role in
+    let struct_name = ChannelStructName.chan_struct_name role in
     ( Namegen.create ()
     , struct_name
     , entrypoint_protocol
@@ -446,19 +445,16 @@ end = struct
     * ImportsEnv.t
 
   let new_role_channel_field namegen imports channel_name new_role protocol =
-    let channel_name = InviteChannelName.of_string channel_name in
     let namegen, invite_chan = Namegen.unique_name namegen channel_name in
     let imports, pkg = ImportsEnv.import_channels imports protocol in
-    let role_chan_name =
-      ChannelStructName.of_string @@ chan_struct_name new_role
-    in
+    let role_chan_name = ChannelStructName.chan_struct_name new_role in
     (namegen, imports, (invite_chan, (pkg, role_chan_name)))
 
   let new_invite_channel_field namegen channel_name local_protocol =
-    let channel_name = InviteChannelName.of_string channel_name in
     let namegen, invite_chan = Namegen.unique_name namegen channel_name in
-    let invite_struct = invite_struct_name local_protocol in
-    let chan_type = InviteChannelStructName.of_string invite_struct in
+    let chan_type =
+      InviteChannelStructName.invite_struct_name local_protocol
+    in
     (namegen, (invite_chan, chan_type))
 
   let get_or_add_send_invitation_channels
@@ -469,10 +465,11 @@ end = struct
     | Some (role_chan, role_invite_chan) -> (env, role_chan, role_invite_chan)
     | None ->
         let role_channel_name =
-          send_role_chan_name participant local_protocol
+          InviteChannelName.send_role_chan_name participant local_protocol
         in
         let invite_channel_name =
-          send_role_invite_chan_name participant local_protocol
+          InviteChannelName.send_role_invite_chan_name participant
+            local_protocol
         in
         let namegen, imports, role_chan =
           new_role_channel_field namegen imports role_channel_name new_role
@@ -495,9 +492,11 @@ end = struct
     match Map.find invite_chan_fields invitation_key with
     | Some (role_chan, role_invite_chan) -> (env, role_chan, role_invite_chan)
     | None ->
-        let role_channel_name = recv_role_chan_name caller local_protocol in
+        let role_channel_name =
+          InviteChannelName.recv_role_chan_name caller local_protocol
+        in
         let invite_channel_name =
-          recv_role_invite_chan_name caller local_protocol
+          InviteChannelName.recv_role_invite_chan_name caller local_protocol
         in
         (* TODO: modify new_role_channel_field to return channel as tuple *)
         let namegen, imports, role_chan =
@@ -532,7 +531,7 @@ end = struct
 
   let create local_protocol imports =
     let struct_name =
-      InviteChannelStructName.of_string @@ invite_struct_name local_protocol
+      InviteChannelStructName.invite_struct_name local_protocol
     in
     (Namegen.create (), struct_name, Map.empty (module InvitationId), imports)
 end
@@ -579,14 +578,12 @@ end = struct
 
   let new_protocol_setup_channel_struct env protocol roles =
     let gen_field_decl role =
-      let chan_name =
-        InviteChannelName.of_string @@ setup_role_chan_name role
-      in
-      let chan_type = ChannelStructName.of_string @@ chan_struct_name role in
+      let chan_name = InviteChannelName.setup_role_chan_name role in
+      let chan_type = ChannelStructName.chan_struct_name role in
       (chan_name, chan_type)
     in
     let struct_name =
-      InviteChannelStructName.of_string @@ setup_chan_struct_name protocol
+      InviteChannelStructName.setup_chan_struct_name protocol
     in
     let chan_fields = List.map ~f:gen_field_decl roles in
     let role_channels =
@@ -597,20 +594,17 @@ end = struct
 
   let new_protocol_setup_invite_struct env protocol_lookup protocol roles =
     let gen_field_decl role =
-      let chan_name =
-        InviteChannelName.of_string @@ setup_invite_chan_name role
-      in
+      let chan_name = InviteChannelName.setup_invite_chan_name role in
       let local_protocol =
         lookup_local_protocol protocol_lookup protocol role
       in
       let chan_type =
-        InviteChannelStructName.of_string
-        @@ invite_struct_name local_protocol
+        InviteChannelStructName.invite_struct_name local_protocol
       in
       (chan_name, chan_type)
     in
     let struct_name =
-      InviteChannelStructName.of_string @@ setup_invite_struct_name protocol
+      InviteChannelStructName.setup_invite_struct_name protocol
     in
     let chan_fields = List.map ~f:gen_field_decl roles in
     let invite_channels =
@@ -645,7 +639,7 @@ end = struct
   let new_protocol_setup_function env protocol =
     let func_name_gen, setup_function_names = env.setup_functions in
     let setup_function =
-      FunctionName.of_string (protocol_setup_function_name protocol)
+      FunctionName.protocol_setup_function_name protocol
     in
     let func_name_gen, setup_function =
       Namegen.unique_name func_name_gen setup_function
@@ -666,7 +660,7 @@ end = struct
         lookup_protocol_id protocol_lookup local_protocol_id
       in
       let impl_function_name =
-        FunctionName.of_string (local_protocol_function_name local_protocol)
+        FunctionName.local_protocol_function_name local_protocol
       in
       let name_gen, _ = Namegen.unique_name name_gen impl_function_name in
       name_gen
@@ -879,8 +873,7 @@ end = struct
             (imports, var_name_gen, setup_env)
           else
             let chan_var_name =
-              VariableName.of_string
-                (new_data_chan_var sender recv payload_type)
+              VariableName.new_data_chan_var sender recv payload_type
             in
             let var_name_gen, chan_var =
               Namegen.unique_name var_name_gen chan_var_name
@@ -999,13 +992,13 @@ end = struct
     if Map.mem invite_chan_vars invite_key then env
     else
       let role_chan_var =
-        VariableName.of_string (new_setup_role_chan_var caller participant)
+        VariableName.new_setup_role_chan_var caller participant
       in
       let var_name_gen, role_chan_var_name =
         Namegen.unique_name var_name_gen role_chan_var
       in
       let invite_chan_var =
-        VariableName.of_string (new_setup_invite_chan_var caller participant)
+        VariableName.new_setup_invite_chan_var caller participant
       in
       let var_name_gen, invite_chan_var_name =
         Namegen.unique_name var_name_gen invite_chan_var
@@ -1027,7 +1020,7 @@ end = struct
         protocol_channel_access call_protocol_pkg role_chan_type
       in
       let invite_chan_type_str =
-        invitation_pkg_access pkg_invitations invite_chan_type
+        invitation_pkg_access PackageName.pkg_invitations invite_chan_type
       in
       let chan_vars =
         (role_chan_var_name, chan_type role_chan_type_str)
@@ -1083,9 +1076,7 @@ end = struct
           ( ChannelName.user field :: fields
           , VariableName.user value :: values ) )
     in
-    let role_chan_var =
-      VariableName.of_string (new_role_chan_setup_var role)
-    in
+    let role_chan_var = VariableName.new_role_chan_setup_var role in
     let var_name_gen, role_chan_var_name =
       Namegen.unique_name var_name_gen role_chan_var
     in
@@ -1113,9 +1104,7 @@ end = struct
           ( InviteChannelName.user field :: fields
           , VariableName.user value :: values ) )
     in
-    let invite_chan_var =
-      VariableName.of_string (new_invite_chan_setup_var role)
-    in
+    let invite_chan_var = VariableName.new_invite_chan_setup_var role in
     let var_name_gen, invite_chan_var_name =
       Namegen.unique_name var_name_gen invite_chan_var
     in
@@ -1258,7 +1247,7 @@ end = struct
       msg_label payloads recv_role =
     (* <msg_label>_To_<role>[_<uid>]() (payload_1, ... , payload_n)*)
     let callback_name =
-      CallbackName.of_string (send_callback_name msg_label recv_role)
+      CallbackName.send_callback_name msg_label recv_role
     in
     let name_gen, callback = Namegen.unique_name name_gen callback_name in
     let payload_types =
@@ -1278,7 +1267,7 @@ end = struct
     (* <msg_label>_From_<role>[_uid](p_1 payload_type_1, ..., p_n
        payload_type_n) *)
     let callback_name =
-      CallbackName.of_string (recv_callback_name msg_label sender_role)
+      CallbackName.recv_callback_name msg_label sender_role
     in
     let name_gen, callback = Namegen.unique_name name_gen callback_name in
     (* Assumes unique, valid parameter names (preprocessing already
@@ -1286,7 +1275,7 @@ end = struct
     let callback_params =
       List.map payloads ~f:(function
         | PValue (param_name, payload_type) ->
-            ( var_to_param_name param_name
+            ( ParameterName.of_var_opt param_name
             , Expr.payload_typename_of_payload_type payload_type )
         | PDelegate _ ->
             Err.violation ~here:[%here] "Delegation not supported" )
@@ -1300,9 +1289,7 @@ end = struct
   let new_protocol_setup_callback
       (name_gen, choice_enums, callbacks, imports) protocol =
     (* <protocol>_Setup[_uid]() *)
-    let callback_name =
-      CallbackName.of_string (protocol_setup_callback_name protocol)
-    in
+    let callback_name = CallbackName.protocol_setup_callback_name protocol in
     let name_gen, callback = Namegen.unique_name name_gen callback_name in
     let callbacks = (callback, None, None) :: callbacks in
     let env = (name_gen, choice_enums, callbacks, imports) in
@@ -1312,12 +1299,10 @@ end = struct
       local_protocol =
     (* To_<local_protocol>_Env[_uid]() <local_protocol>_Env *)
     let callback_name =
-      CallbackName.of_string (convert_env_callback_name local_protocol)
+      CallbackName.convert_env_callback_name local_protocol
     in
     let name_gen, callback = Namegen.unique_name name_gen callback_name in
-    let new_env_type =
-      CallbacksEnvName.of_string @@ callbacks_env_name local_protocol
-    in
+    let new_env_type = CallbacksEnvName.callbacks_env_name local_protocol in
     let callbacks =
       (callback, None, Some (`Env new_env_type)) :: callbacks
     in
@@ -1329,14 +1314,14 @@ end = struct
       role =
     (* ResultFrom_<local_protocol>[_<uid>](result
        <protocol>.<role>_Result) *)
-    let callback_name =
-      CallbackName.of_string (result_callback_name local_protocol)
-    in
+    let callback_name = CallbackName.result_callback_name local_protocol in
     let name_gen, callback = Namegen.unique_name name_gen callback_name in
     let imports, pkg = ImportsEnv.import_results imports protocol in
-    let result_name = ResultName.of_string @@ result_struct_name role in
+    let result_name = ResultName.result_struct_name role in
     let result_param =
-      ParameterName.of_other_name (module VariableName) result_var
+      ParameterName.of_other_name
+        (module VariableName)
+        VariableName.result_var
     in
     let callbacks =
       (callback, Some (`Result (result_param, (pkg, result_name))), None)
@@ -1348,9 +1333,7 @@ end = struct
   let new_choice_callback
       (name_gen, (enum_names_env, enums), callbacks, imports) choice_role
       labels local_protocol =
-    let callback_name =
-      CallbackName.of_string (choice_callback_name choice_role)
-    in
+    let callback_name = CallbackName.choice_callback_name choice_role in
     let name_gen, callback = Namegen.unique_name name_gen callback_name in
     let enum_names_env, enum_type_name, enum_values =
       EnumNamesEnv.new_enum enum_names_env local_protocol labels
@@ -1365,17 +1348,15 @@ end = struct
   let add_done_callback
       ((name_gen, (enum_name_gen, enums), callbacks, imports) as env)
       protocol role is_dynamic_role =
-    match Namegen.curr_unique_name name_gen done_callback with
+    match Namegen.curr_unique_name name_gen CallbackName.done_callback with
     | None ->
         let name_gen, callback =
-          Namegen.unique_name name_gen done_callback
+          Namegen.unique_name name_gen CallbackName.done_callback
         in
         let imports, return_type =
           if is_dynamic_role then (imports, None)
           else
-            let result_type =
-              ResultName.of_string @@ result_struct_name role
-            in
+            let result_type = ResultName.result_struct_name role in
             let imports, pkg = ImportsEnv.import_results imports protocol in
             (imports, Some (`Result (pkg, result_type)))
         in
@@ -1390,20 +1371,18 @@ end = struct
     let indent = incr_indent "" in
     let function_body = indent_line indent (panic_with_msg todo_panic_msg) in
     let create_func_name =
-      FunctionName.of_string @@ new_create_env_function_name local_protocol
+      FunctionName.new_create_env_function_name local_protocol
     in
     let return_type = Some (CallbacksEnvName.user callbacks_env_name) in
     function_decl create_func_name [] return_type function_body
 
   let gen_callbacks_file (_, (_, enums), callbacks, imports) local_protocol
       is_dynamic_role =
-    let pkg = package_stmt pkg_callbacks in
+    let pkg = package_stmt PackageName.pkg_callbacks in
     let enum_decls = List.map ~f:gen_enum enums in
     let enum_decls_str = String.concat ~sep:"\n\n" enum_decls in
     let imports_str = ImportsEnv.generate_imports imports in
-    let env_name =
-      CallbacksEnvName.of_string @@ callbacks_env_name local_protocol
-    in
+    let env_name = CallbacksEnvName.callbacks_env_name local_protocol in
     let callbacks_interface = callbacks_env_interface env_name callbacks in
     let create_env_func =
       if is_dynamic_role then gen_create_env_function local_protocol env_name
@@ -1609,8 +1588,8 @@ end = struct
     ({env with callbacks_env}, enum_values, callback)
 
   let gen_result_struct role =
-    let struct_name = result_struct_name role in
-    struct_decl struct_name []
+    let struct_name = ResultName.result_struct_name role in
+    struct_decl (ResultName.user struct_name) []
 
   let import_messages ({role_imports; _} as env) =
     let role_imports, pkg_alias = ImportsEnv.import_messages role_imports in
