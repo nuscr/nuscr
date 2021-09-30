@@ -340,9 +340,6 @@ module InterfaceName = struct
     of_string (sprintf "%s_Env" (ProtocolName.to_capitalize_string protocol))
 end
 
-(* TYPES *)
-let int_type = "int"
-
 module FunctionName = struct
   include Make ()
 

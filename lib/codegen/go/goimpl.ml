@@ -131,9 +131,6 @@ let pkg_function pkg function_name =
 let protocol_result_access pkg result =
   sprintf "%s.%s" (PackageName.user pkg) (ResultName.user result)
 
-let protocol_msg_access pkg msg =
-  sprintf "%s.%s" (PackageName.user pkg) (MessageStructName.user msg)
-
 let protocol_channel_access pkg channel =
   sprintf "%s.%s" (PackageName.user pkg) (ChannelStructName.user channel)
 
@@ -216,6 +213,9 @@ let callbacks_env_interface env_name callbacks =
   in
   gen_interface callbacks_interface_name callback_decls
 
+(* TYPES *)
+let int_type = "int"
+
 (* ENUM DECLARATIONS *)
 let enum_type_decl enum_type =
   sprintf "type %s %s" (EnumTypeName.user enum_type) int_type
@@ -240,15 +240,6 @@ let gen_enum (enum_type, enum_values) =
   let type_decl = enum_type_decl enum_type in
   let value_decls = enum_decl enum_type enum_values in
   join_non_empty_lines [type_decl; value_decls]
-
-(* MESSAGE STRUCT *)
-let msg_field_decl (field_name, field_type) =
-  struct_field_decl field_name (PayloadTypeName.user field_type)
-
-let gen_msg_struct (msg_struct_name, fields) =
-  let struct_name = MessageStructName.user msg_struct_name in
-  let field_decls = List.map ~f:msg_field_decl fields in
-  struct_decl struct_name field_decls
 
 (* ROLE CHANNEL STRUCT *)
 let role_chan_field_decl (chan_name, (pkg, role_chan)) =
@@ -332,23 +323,6 @@ let gen_switch_stmt switch_var callbacks_pkg enum_values cases_impl indent
   sprintf "%sswitch %s {\n%s\n%s}" indent
     (VariableName.user switch_var)
     switch_cases_str indent
-
-(* SELECT STATEMENT *)
-let gen_select_case impl case_indent =
-  match impl with
-  | recv_stmt :: impl' ->
-      let select_case = gen_case_stmt recv_stmt in
-      let select_case = indent_line case_indent select_case in
-      let impl_indent = incr_indent case_indent in
-      let impl' = List.map ~f:(indent_line impl_indent) impl' in
-      (select_case :: impl', impl_indent)
-  | [] -> failwith "Cannot have empty choice branch"
-
-let gen_select_stmt select_cases indent =
-  (* Assume each of the implementations is of the form: case <recv>:\n
-     <impl> *)
-  let select_cases_str = join_non_empty_lines select_cases in
-  sprintf "%sselect {\n%s\n%s}" indent select_cases_str indent
 
 (* FUNCTION DECLARATIONS *)
 let function_decl function_name params return_type impl =

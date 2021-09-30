@@ -240,8 +240,6 @@ module PayloadTypeName : sig
   include ExtendedTaggedName with type t = PayloadTypeName.t
 end
 
-val int_type : string
-
 val default_case : string
 
 val todo_panic_msg : string
