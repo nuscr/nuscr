@@ -30,6 +30,10 @@ which prints help and usage information.
 We use the [dune](https://dune.readthedocs.io/en/stable) build system.
 To contribute, clone the repo and run
 ```
+  opam pin . --with-version=dev
+```
+to pin the nuscr version to `dev`, and then run
+```
   dune build
 ```
 to build.
