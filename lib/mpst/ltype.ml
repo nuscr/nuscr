@@ -191,6 +191,25 @@ let show_lookup_table table =
 
 exception Unmergable of t * t [@@deriving sexp_of]
 
+(* Remove silent prefixes in a silent type, and return a list of silent
+   prefixes and a non-silent type (that is not a choice) *)
+let un_silent lty =
+  let rec aux acc = function
+    | [] -> acc
+    | (curr, lty) :: rest -> (
+      match lty with
+      | SilentL (v, ty, lty) -> aux acc (((v, ty) :: curr, lty) :: rest)
+      | ChoiceL (_, ltys) ->
+          aux acc (List.map ~f:(fun lty -> (curr, lty)) ltys @ rest)
+      | _ -> aux ((curr, lty) :: acc) rest )
+  in
+  aux [] [([], lty)]
+
+let rec re_silent (vars, lty) =
+  match vars with
+  | [] -> lty
+  | (v, ty) :: rest -> re_silent (rest, SilentL (v, ty, lty))
+
 let rec merge projected_role lty1 lty2 =
   try
     let fail () = raise (Unmergable (lty1, lty2)) in
@@ -235,6 +254,38 @@ let rec merge projected_role lty1 lty2 =
       | [(_, lty)] -> lty
       | conts -> ChoiceL (r, List.map ~f:snd conts)
     in
+    let merge_silent_prefix lty1 lty2 =
+      let unsilent1 = un_silent lty1 in
+      let unsilent2 = un_silent lty2 in
+      let var_lty_pairs = unsilent1 @ unsilent2 in
+      (* var_lty_pairs should have length >= 2 *)
+      let rec try_merge env ltys =
+        match (env, ltys) with
+        | `Init, (_, EndL) :: rest -> try_merge `End rest
+        | `Init, (_, (TVarL _ as tv)) :: rest -> try_merge (`TVar tv) rest
+        | `Init, (vars, (RecvL (m, r, _) as lty)) :: rest ->
+            try_merge
+              (`Recv
+                (Set.singleton (module LabelName) m.label, r, [(vars, lty)])
+                )
+              rest
+        | `End, [] -> EndL
+        | `End, (_, EndL) :: rest -> try_merge `End rest
+        | `TVar tv, [] -> tv
+        | `TVar tv, (_, (TVarL _ as tv')) :: rest when equal tv tv' ->
+            try_merge (`TVar tv) rest
+        | `Recv (_, recv_role, acc), [] ->
+            ChoiceL (recv_role, List.map ~f:re_silent acc)
+        | ( `Recv (seen, recv_role, acc)
+          , (vars, (RecvL (m, r, _) as lty)) :: rest )
+          when RoleName.equal recv_role r && not (Set.mem seen m.label) ->
+            try_merge
+              (`Recv (Set.add seen m.label, recv_role, (vars, lty) :: acc))
+              rest
+        | _ -> fail ()
+      in
+      try_merge `Init var_lty_pairs
+    in
     match (lty1, lty2) with
     | RecvL (_, r1, _), RecvL (_, r2, _) ->
         if not @@ RoleName.equal r1 r2 then fail () ;
@@ -264,6 +315,7 @@ let rec merge projected_role lty1 lty2 =
       when RoleName.equal r2 caller && not (RoleName.equal r2 projected_role)
       ->
         merge_recv r2 (lty1 :: ltys2)
+    | SilentL _, _ | _, SilentL _ -> merge_silent_prefix lty1 lty2
     | _ -> if equal lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
     let error = show l1 ^ " " ^ show l2 in
