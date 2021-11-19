@@ -275,7 +275,7 @@ let rec merge projected_role lty1 lty2 =
         | `TVar tv, (_, (TVarL _ as tv')) :: rest when equal tv tv' ->
             try_merge (`TVar tv) rest
         | `Recv (_, recv_role, acc), [] ->
-            ChoiceL (recv_role, List.map ~f:re_silent acc)
+            ChoiceL (recv_role, List.rev_map ~f:re_silent acc)
         | ( `Recv (seen, recv_role, acc)
           , (vars, (RecvL (m, r, _) as lty)) :: rest )
           when RoleName.equal recv_role r && not (Set.mem seen m.label) ->

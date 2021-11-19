@@ -8,5 +8,9 @@ TODO: Currently the protocol cannot be merged for C.
     (silent) x(int);
     One() from B;
     end
+  } or {
+    (silent) z(int);
+    Three() from B;
+    end
   }
   

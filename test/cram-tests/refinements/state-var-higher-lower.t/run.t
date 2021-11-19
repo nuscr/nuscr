@@ -339,21 +339,21 @@ Show HigherLower FSM and State variables.
   rec Loop [(silent) t<B>: t:int{(0)<(t)} = t0] {
     (silent) x(x:int{((0)<=(x))&&((x)<(100))});
     choice at B {
-      (silent) ignore(ignore:unit{((n)<>(x))&&((t)=(1))});
-      win() from B;
-      end
-    } or {
       (silent) ignore(ignore:unit{((n)<(x))&&((t)>(1))});
       lower() from B;
+      continue Loop;
+    } or {
+      (silent) ignore(ignore:unit{((n)>(x))&&((t)>(1))});
+      higher() from B;
       continue Loop;
     } or {
       (silent) ignore(ignore:unit{(n)=(x)});
       lose() from B;
       end
     } or {
-      (silent) ignore(ignore:unit{((n)>(x))&&((t)>(1))});
-      higher() from B;
-      continue Loop;
+      (silent) ignore(ignore:unit{((n)<>(x))&&((t)=(1))});
+      win() from B;
+      end
     }
   }
   
@@ -403,17 +403,17 @@ Show HigherLower FSM and State variables.
     0;
     1;
     2 [label="!silent t<B>: t:int{(0)<(t)} = t0", ];
-    5;
-    8;
+    7;
+    9;
     
     
     0 -> 1 [label="B!start(n: n:int{((0)<=(n))&&((n)<(100))})", ];
     1 -> 2 [label="B!limit(t0: t0:int{(0)<(t0)})", ];
     2 -> 2 [label="B?higher()<ignore: ignore:unit{((n)>(x))&&((t)>(1))}>", ];
-    2 -> 2 [label="B?lower()<ignore: ignore:unit{((n)<(x))&&((t)>(1))}>", ];
-    2 -> 5 [label="B?win()<ignore: ignore:unit{((n)<>(x))&&((t)=(1))}, x: x:int{((0)<=(x))&&((x)<(100))}>",
+    2 -> 2 [label="B?lower()<ignore: ignore:unit{((n)<(x))&&((t)>(1))}, x: x:int{((0)<=(x))&&((x)<(100))}>",
             ];
-    2 -> 8 [label="B?lose()<ignore: ignore:unit{(n)=(x)}>", ];
+    2 -> 7 [label="B?lose()<ignore: ignore:unit{(n)=(x)}>", ];
+    2 -> 9 [label="B?win()<ignore: ignore:unit{((n)<>(x))&&((t)=(1))}>", ];
     
     }
   digraph G {

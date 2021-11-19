@@ -7,5 +7,8 @@ global protocol Merge(role A, role B, role C) {
     } or {
         Two(y:int) from A to B;
         Two() from B to C;
+    } or {
+        Three(z:int) from A to B;
+        Three() from B to C;
     }
 }
