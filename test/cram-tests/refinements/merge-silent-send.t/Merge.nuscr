@@ -1,0 +1,11 @@
+(*# RefinementTypes #*)
+
+global protocol MergeSend(role A, role B, role C) {
+  choice at A {
+    One(x: int) from A to B;
+    Stuff() from C to B;
+  } or {
+    Two(y: int) from A to B;
+    Stuff() from C to B;
+  }
+}
