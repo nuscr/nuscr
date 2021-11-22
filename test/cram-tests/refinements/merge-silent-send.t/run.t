@@ -8,5 +8,4 @@ conditions)
           (silent) y(int);
          Stuff() to B;
          end
-         
   [1]
