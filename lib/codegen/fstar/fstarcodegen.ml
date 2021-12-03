@@ -4,6 +4,37 @@ open Names
 open Efsm
 open Syntax.Exprs
 
+let fstar_show_binop = show_binop
+
+let fstar_show_unop = function
+  | StrLen -> "FStar.String.strlen"
+  | unop -> show_unop unop
+
+(* Convert to F* expression *)
+let rec fstar_show_expr = function
+  | Var v -> VariableName.user v
+  | Int i -> Int.to_string i
+  | Bool b -> Bool.to_string b
+  | String s -> "\"" ^ s ^ "\""
+  | Binop (b, e1, e2) ->
+      Printf.sprintf "(%s)%s(%s)" (fstar_show_expr e1) (fstar_show_binop b)
+        (fstar_show_expr e2)
+  | Unop (u, e) ->
+      Printf.sprintf "%s(%s)" (fstar_show_unop u) (fstar_show_expr e)
+
+(* Convert to F* type *)
+let rec fstar_show_payload_type = function
+  | Expr.PTAbstract n -> PayloadTypeName.user n
+  | Expr.PTRefined (v, t, e) ->
+      Printf.sprintf "%s:%s{%s}" (VariableName.user v)
+        (fstar_show_payload_type t)
+        (fstar_show_expr e)
+  | Expr.PTInt -> "int"
+  | Expr.PTBool -> "bool"
+  | Expr.PTString -> "string"
+  | Expr.PTUnit -> "unit"
+
+(* Show variables to user-facing output *)
 let show_vars = function
   | [] -> "(empty)"
   | vars ->
@@ -211,7 +242,7 @@ let generate_state_defs buffer var_maps =
             let entry =
               Printf.sprintf "%s: (%s%s)" (VariableName.user name)
                 (if is_silent then "erased " else "")
-                (Expr.show_payload_type ty)
+                (fstar_show_payload_type ty)
             in
             ( entry :: acc
             , if is_silent then name :: silent_vars else silent_vars ) )
@@ -254,7 +285,7 @@ let generate_send_choices buffer g var_map =
                  let ty = bind_variables_ty ty vars_to_bind st in
                  Printf.sprintf "| %s of %s"
                    (FstarNames.choice_ctor_name st (LabelName.user label))
-                   (Expr.show_payload_type ty) )
+                   (fstar_show_payload_type ty) )
                acc )
         in
         Buffer.add_string buffer (preamble ^ def ^ "\n")
@@ -295,7 +326,7 @@ let generate_transition_typedefs buffer g var_map =
                     let _, ty, _ = List.hd_exn concrete_vars in
                     let vars_to_bind = Map.find_exn var_map st in
                     let ty = bind_variables_ty ty vars_to_bind st in
-                    Expr.show_payload_type ty
+                    fstar_show_payload_type ty
                 | _ ->
                     Err.unimpl ~here:[%here] "handling more than 1 payload"
               in
@@ -383,7 +414,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
             | Some (_, ty) ->
                 (* We have a new silent variable *)
                 Printf.sprintf "(assume false; hide %s)"
-                  (Expr.default_value ty |> Expr.show)
+                  (Expr.default_value ty |> fstar_show_expr)
             | None -> (
               match
                 List.find
@@ -393,7 +424,7 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
               | Some (_, e) ->
                   (* We have a recursion variable to be updated *)
                   let e = bind_variables_e e curr_vars curr in
-                  Expr.show e
+                  fstar_show_expr e
               | None -> (
                 match
                   List.find
@@ -405,15 +436,15 @@ let construct_next_state var_map ~curr ~next action rec_var_info =
                     (* We have a recursion variable to be initialised *)
                     if is_silent then
                       Printf.sprintf "(assume false; hide %s)"
-                        (Expr.default_value rv_ty |> Expr.show)
+                        (Expr.default_value rv_ty |> fstar_show_expr)
                     else
                       let e = bind_variables_e rv_init_expr curr_vars curr in
-                      Expr.show e
+                      fstar_show_expr e
                 | None ->
                     (* We have a variable that is either new, or can be
                        retrieved from the existing state *)
                     let e = bind_variables_e (Var v) curr_vars curr in
-                    Expr.show e ) )
+                    fstar_show_expr e ) )
           in
           header ^ value
         in
@@ -547,7 +578,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                       match e with
                       | Some e ->
                           Printf.sprintf "%s\nassume (%s);" recv_payload
-                            (Expr.show e)
+                            (fstar_show_expr e)
                       | None -> recv_payload
                     in
                     let recv_callback =
@@ -607,8 +638,8 @@ let generate_run_fns buffer start g var_map rec_var_info =
                   let value =
                     if is_silent then
                       Printf.sprintf "(assume false; hide %s)"
-                        (Expr.show (Expr.default_value rv_ty))
-                    else Expr.show rv_init_expr
+                        (fstar_show_expr (Expr.default_value rv_ty))
+                    else fstar_show_expr rv_init_expr
                   in
                   Printf.sprintf "%s= %s" rv_name value )
                 rvs
