@@ -240,7 +240,7 @@ let generate_state_defs buffer var_maps =
           ~f:(fun (acc, silent_vars) (name, ty, is_silent) ->
             let ty = reveal_silent_vars silent_vars ty in
             let entry =
-              Printf.sprintf "%s: (%s%s)" (VariableName.user name)
+              Printf.sprintf "%s: %s(%s)" (VariableName.user name)
                 (if is_silent then "erased " else "")
                 (fstar_show_payload_type ty)
             in

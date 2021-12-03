@@ -140,19 +140,19 @@ A should have some erased variables.
   noeq type state0 =
   {
   _dumState0: unit;
-  count: (erased int)
+  count: erased (int)
   }
   
   noeq type state5 =
   {
   _dumState5: unit;
-  count: (erased int)
+  count: erased (int)
   }
   
   noeq type state6 =
   {
   _dumState6: unit;
-  count: (erased int);
+  count: erased (int);
   sum: (sum:int{(sum)=((reveal count))})
   }
   
