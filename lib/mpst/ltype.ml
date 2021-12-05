@@ -320,6 +320,373 @@ let rec check_consistent_gchoice choice_r possible_roles = function
         ( "Normalised global type always has a message in choice branches\n"
         ^ Gtype.show g )
 
+(* project a 'nondeterministic' local type in a straightforward manner. All
+   SendL/RecvL's are prefixed with fresh state identifier (StateL). Mergings
+   are deferred using EpsilonL constructor, and branches in internal choices
+   could have MuL's and TVarL's. *)
+let rec project_nondet (projected_role : RoleName.t) (g : Gtype.t) =
+  let state l = StateL (StateNameSet.fresh_singleton (), l) in
+  match g with
+  | MessageG (m, send_r, recv_r, g_type) ->
+      if RoleName.equal projected_role send_r then
+        state
+        @@ Lazy.from_val
+             (SendL (m, recv_r, project_nondet projected_role g_type))
+      else if RoleName.equal projected_role recv_r then
+        state
+        @@ Lazy.from_val
+             (RecvL (m, send_r, project_nondet projected_role g_type))
+      else project_nondet projected_role g_type
+  | ChoiceG (choice_r, g_types) ->
+      if RoleName.equal projected_role choice_r then
+        (* internal choice *)
+        ChoiceL
+          (choice_r, List.map ~f:(project_nondet projected_role) g_types)
+      else
+        (* non-deterministic choices -- defer merging using EpsilonL *)
+        EpsilonL (List.map ~f:(project_nondet projected_role) g_types)
+  | EndG -> EndL
+  | MuG (name, _, g_type) -> (
+    match project_nondet projected_role g_type with
+    | TVarL (name', _) when TypeVariableName.equal name name' -> EndL
+    | EndL -> EndL
+    | lType -> MuL (name, [], lType) )
+  | TVarG (name, _, _) -> TVarL (name, [])
+  | CallG (_, _, _, _) -> (* TODO *) assert false
+
+let rec unfold (tv, body) (l : t) =
+  match l with
+  | RecvL (m, send_r, cont) -> RecvL (m, send_r, unfold (tv, body) cont)
+  | SendL (m, recv_r, cont) -> SendL (m, recv_r, unfold (tv, body) cont)
+  | ChoiceL (choice_r, conts) ->
+      ChoiceL (choice_r, List.map ~f:(unfold (tv, body)) conts)
+  | TVarL (tv', _) when TypeVariableName.equal tv tv' -> MuL (tv, [], body)
+  | TVarL (_, _) -> l
+  | MuL (tv, rec_var, cont) -> MuL (tv, rec_var, unfold (tv, body) cont)
+  | EndL -> l
+  | StateL (state_id, cont) ->
+      StateL (state_id, lazy (unfold (tv, body) (Lazy.force cont)))
+  | EpsilonL conts -> EpsilonL (List.map ~f:(unfold (tv, body)) conts)
+  | InviteCreateL (_, _, _, _) -> assert false
+  | AcceptL (_, _, _, _, _, _) -> assert false
+  | SilentL (_, _, _) -> assert false
+
+let end_state = StateNameSet.singleton_of_string "state_end"
+
+(* Compute the powerset state by removing epsilons and expanding mu's.
+
+   Returns Either.First [(state_id0, SendL/RecvL/ChoiceL); (state_id1, ...);
+   ...] if the state is successfully computed.
+
+   Otherwise, Either.Second [tvar0; tvar1; ...] denotes a 'backward' epsilon
+   transition which could be eliminated at the caller's site.
+
+   Parameters: (1) ~visited records visited recursion variables and detects
+   backward epsilon links. (2) ~binding tracks mu bindings outside the
+   type. *)
+let rec compute_state ~visited ~binding (l : t) =
+  let is_visited tv = List.mem ~equal:TypeVariableName.equal visited tv in
+  match l with
+  | MuL (tv, _, _) when is_visited tv ->
+      (* a backward epsilon link is found as a result of unfolding (see
+         next). *)
+      Either.Second [tv]
+  | MuL (tv, _, cont) -> (
+      (* visited a recursion variable for the first time. unfold it. *)
+      let cont = unfold (tv, cont) cont in
+      match compute_state ~visited:(tv :: visited) ~binding cont with
+      | Either.Second tvars ->
+          (* only backward epsilon links from here *)
+          let tvars =
+            (* filter out transitions pointing to this state *)
+            List.filter
+              ~f:(fun tv' -> not @@ TypeVariableName.equal tv tv')
+              tvars
+          in
+          if List.length tvars > 0 then
+            (* if some backward links remain, return them *)
+            Either.Second tvars
+          else
+            (* all links points to myself -- this must be an `end` state! *)
+            Either.First [(end_state, EndL)]
+      | sts -> sts )
+  | TVarL (tv, _) when is_visited tv ->
+      (* another form of a backward epsilon transition. This 'bare' recursion
+         variable occurs when a mu is stripped off in `determinise`. *)
+      Either.Second [tv]
+  | TVarL (tv, _) ->
+      (* just expand it if it is for the first time. *)
+      let t = Map.find_exn binding tv in
+      compute_state ~visited:(tv :: visited) ~binding t
+  | EndL -> Either.First [(end_state, EndL)]
+  | StateL (state_id, l) -> (
+    match Lazy.force l with
+    | RecvL (m, send_r, cont) ->
+        Either.First [(state_id, RecvL (m, send_r, cont))]
+    | SendL (m, recv_r, cont) ->
+        Either.First [(state_id, SendL (m, recv_r, cont))]
+    | _ ->
+        (* impossible: only send/recv shuold be annotated with state names *)
+        assert false )
+  | ChoiceL (choice_r, conts) ->
+      (* internal choice. all branches must be distinct; hence a non-epsilon
+         loop to this state is prohibited. *)
+      let states, vars =
+        List.partition_map conts ~f:(compute_state ~visited ~binding)
+      in
+      let vars = List.concat vars in
+      if List.length vars > 0 then
+        (* epsilon loops found *)
+        violation "internal choice expands infinitely"
+      else
+        let states = List.concat states in
+        let state_ids, conts = List.unzip states in
+        (* FIXME check conts are deterministic *)
+        Either.First
+          [(StateNameSet.union_list state_ids, ChoiceL (choice_r, conts))]
+  | EpsilonL conts ->
+      (* epsilon transitions -- compute non-epsilon transitions *)
+      let states, vars =
+        List.partition_map conts ~f:(compute_state ~visited ~binding)
+      in
+      let states = List.concat states in
+      if List.length states > 0 then
+        (* just return concrete transitions -- the backward epsilon links can
+           safely be ignored *)
+        Either.First states
+      else
+        (* no concrete transitions -- return all target states (variables).
+           they are later filtered (and possibly replaced with EndL's) at
+           binding site *)
+        Either.Second (List.concat vars)
+  | RecvL (_, _, _) | SendL (_, _, _) ->
+      (* impossible: RecvL and SendL are always prefixd by StateL *)
+      assert false
+  | SilentL (_, _, _) -> (* TODO *) assert false
+  | InviteCreateL (_, _, _, _) -> (* TODO *) assert false
+  | AcceptL (_, _, _, _, _, _) -> (* TODO *) assert false
+
+(* Deferred merging. it computes merging for the first actions, and for
+   overlapping input labels, merging is deferred using EpsilonL *)
+let merge_deferred projected_role types =
+  let rec aux (acc : (LabelName.t * t) list) = function
+    | RecvL (m, _, lty) as l -> (
+        let {label; _} = m in
+        match List.Assoc.find acc ~equal:LabelName.equal label with
+        | None -> (label, l) :: acc
+        | Some (RecvL (m_, r, l_))
+          when List.equal equal_payload m.Gtype.payload m_.Gtype.payload ->
+            (* input labels overlap. defer merging of the continuation using
+               EpsilonL *)
+            List.Assoc.add acc ~equal:LabelName.equal label
+              (RecvL (m, r, EpsilonL [lty; l_]))
+        | Some (RecvL _) -> violation "Payload type mismatch"
+        | _ -> violation "Merge receive must be merging receive local types"
+        )
+    | _ -> violation "Merge receive must be merging receive local types"
+  in
+  match types with
+  | (RecvL (_, sender_r, _) :: _ | ChoiceL (sender_r, _) :: _)
+    when not @@ RoleName.equal projected_role sender_r -> (
+      let recvs =
+        List.concat_map
+          ~f:(function
+            | RecvL (_, sender_r, _) as l -> [(sender_r, l)]
+            | ChoiceL (sender_r, ls)
+              when not @@ RoleName.equal projected_role sender_r ->
+                List.map ~f:(fun l -> (sender_r, l)) ls
+            | t ->
+                violation @@ "Merge should be receive local types: " ^ show t
+            )
+          types
+      in
+      let senders, recvs = List.unzip recvs in
+      let sender =
+        match senders with
+        | [r] -> r
+        | r :: rs when List.for_all ~f:(RoleName.equal r) rs -> r
+        | _ -> violation "Merge sender must be identical"
+      in
+      let conts = List.fold ~f:aux ~init:[] recvs in
+      match conts with
+      | [] -> EndL
+      | [(_, lty)] -> lty
+      | conts -> ChoiceL (sender, List.map ~f:snd conts) )
+  | EndL :: ls when List.for_all ls ~f:(equal EndL) -> EndL
+  | [(SendL (_, _, _) as l)] -> l
+  | [(ChoiceL (sender_r, _) as l)]
+    when RoleName.equal projected_role sender_r ->
+      l
+  | ts ->
+      violation @@ "Can't merge. projected role:"
+      ^ RoleName.user projected_role
+      ^ " protocol: \n"
+      ^ String.concat ~sep:"\n\n and \n"
+      @@ List.map ~f:show ts
+
+(* unfold all mu's at the head *)
+let rec unwind ?(bound = Set.empty (module TypeVariableName)) (l : t) =
+  match l with
+  | MuL (tv, _, cont) ->
+      let binding, cont = unwind ~bound:(Set.add bound tv) cont in
+      ((tv, cont) :: binding, cont)
+  | TVarL (tv, _) when Set.mem bound tv -> ([], EndL)
+  | l -> ([], l)
+
+(* determinise the non-deterministic local types using powerset construction.
+
+   the returned RecvL/SendL/ChoiceL are prefixed by state id (StateL).
+
+   to avoid indefinite expansion, calculation of the next state is deferred
+   using StateL constructor. the loop is resolved using additional mu binders
+   introduced by `remove_states`. *)
+let rec determinise projected_role binding0 (l : t) =
+  (* peeling off mu's *)
+  let binding, l = unwind l in
+  (* and record them as visited *)
+  let visited = List.rev_map ~f:fst binding in
+  let binding =
+    List.fold_left
+      ~f:(fun binding (key, data) -> Map.add_exn binding ~key ~data)
+      ~init:binding0 binding
+  in
+  (* compute the current states *)
+  let states =
+    match compute_state ~visited ~binding l with
+    | Either.First states -> states
+    | Either.Second _ -> [(end_state, EndL)]
+  in
+  let state_ids, typs = List.unzip states in
+  let new_state_id =
+    (* powerset construction *)
+    StateNameSet.union_list state_ids
+  in
+  let merged =
+    lazy
+      ( determinise_following projected_role binding
+      @@ merge_deferred projected_role typs )
+  in
+  let t =
+    (* prefix it by the powerset state id *)
+    StateL (new_state_id, merged)
+  in
+  (* and wrap it by the mu binders which we peeled off at the beginning *)
+  List.fold_left ~f:(fun t tv -> MuL (tv, [], t)) ~init:t visited
+
+and determinise_following projected_role binding (l : t) =
+  let next = function
+    | RecvL (m, send_r, cont) ->
+        RecvL (m, send_r, determinise projected_role binding cont)
+    | SendL (m, recv_r, cont) ->
+        SendL (m, recv_r, determinise projected_role binding cont)
+    | _ -> (* TODO *) assert false
+  in
+  match l with
+  | TVarL (tvar, _) ->
+      determinise projected_role binding (Map.find_exn binding tvar)
+  | EndL -> EndL
+  | (RecvL (_, _, _) | SendL (_, _, _)) as l -> next l
+  | ChoiceL (r, conts) -> ChoiceL (r, List.map ~f:next conts)
+  | _ -> assert false
+
+type state_env =
+  { visited: Set.M(StateNameSet).t
+  ; current_var: TypeVariableName.t option
+  ; rename_var: TypeVariableName.t Map.M(TypeVariableName).t
+  ; state_to_var: TypeVariableName.t Map.M(StateNameSet).t }
+
+let new_state_env =
+  { visited= Set.empty (module StateNameSet)
+  ; current_var= None
+  ; rename_var= Map.empty (module TypeVariableName)
+  ; state_to_var= Map.empty (module StateNameSet) }
+
+(* remove StateL constructors by detecting loops. returns the used (powerset)
+   state id in the first component of the pair *)
+let rec remove_states env (l : t) =
+  let empty = Set.empty (module StateNameSet) in
+  let next ?(nextenv = {env with current_var= None}) f t =
+    let used, t = remove_states nextenv t in
+    (used, f t)
+  in
+  let make_tvar state_ids =
+    let tvar =
+      String.concat ~sep:"_"
+        (List.map ~f:StateName.user @@ Set.to_list state_ids)
+    in
+    TypeVariableName.create tvar Loc.ghost_loc
+  in
+  match l with
+  | RecvL (m, send_r, cont) -> next (fun t -> RecvL (m, send_r, t)) cont
+  | SendL (m, recv_r, cont) -> next (fun t -> SendL (m, recv_r, t)) cont
+  | ChoiceL (choose_r, conts) ->
+      let us, conts =
+        List.unzip
+        @@ List.map ~f:(remove_states {env with current_var= None}) conts
+      in
+      let used = Set.union_list (module StateNameSet) us in
+      (used, ChoiceL (choose_r, conts))
+  | MuL (tvar, rec_vars, cont) when Option.is_none env.current_var ->
+      (* associate the recursion variable with the powerset state *)
+      let nextenv = {env with current_var= Some tvar} in
+      next ~nextenv (fun t -> MuL (tvar, rec_vars, t)) cont
+  | MuL (tvar, rec_vars, cont) ->
+      (* if mu's are nested, rename the inner ones *)
+      let nextenv =
+        { env with
+          rename_var=
+            Map.add_exn env.rename_var ~key:tvar
+              ~data:(Option.value_exn env.current_var) }
+      in
+      next ~nextenv (fun t -> MuL (tvar, rec_vars, t)) cont
+  | TVarL (tvar, expr) when Map.mem env.rename_var tvar ->
+      (* rename variables bound by the inner binding *)
+      let tvar = Map.find_exn env.rename_var tvar in
+      (empty, TVarL (tvar, expr))
+  | TVarL (tvar, expr) -> (empty, TVarL (tvar, expr))
+  | EndL -> (empty, EndL)
+  | StateL (state_ids, _) when Set.mem env.visited state_ids ->
+      (* already visited; put typevar here *)
+      if Map.mem env.state_to_var state_ids then
+        (empty, TVarL (Map.find_exn env.state_to_var state_ids, []))
+      else
+        ( Set.singleton (module StateNameSet) state_ids
+        , TVarL (make_tvar state_ids, []) )
+  | StateL (state_ids, cont) when Option.is_none env.current_var ->
+      (* first time, and the state is not bound *)
+      let visited = Set.add env.visited state_ids in
+      let used, cont = remove_states {env with visited} (Lazy.force cont) in
+      if Set.mem used state_ids then
+        (Set.remove used state_ids, MuL (make_tvar state_ids, [], cont))
+      else (Set.remove used state_ids, cont)
+  | StateL (tvars, cont) ->
+      (* first time, but state is already bound by a mu *)
+      let visited = Set.add env.visited tvars in
+      let state_to_var =
+        Map.add_exn env.state_to_var ~key:tvars
+          ~data:(Option.value_exn env.current_var)
+      in
+      let used, cont =
+        remove_states {env with state_to_var; visited} (Lazy.force cont)
+      in
+      (Set.remove used tvars, cont)
+  | EpsilonL ls ->
+      violation @@ "unexpected epsilon:\n"
+      ^ String.concat ~sep:"\nand\n"
+      @@ List.map ~f:show ls
+  | InviteCreateL (_, _, _, _)
+   |AcceptL (_, _, _, _, _, _)
+   |SilentL (_, _, _) ->
+      assert false
+
+let rec project projected_role g =
+  let l = project_nondet projected_role g in
+  let l =
+    determinise projected_role (Map.empty (module TypeVariableName)) l
+  in
+  let _, l = remove_states new_state_env l in
+  l
+
 (* Various infomation needed during projection *)
 type project_env =
   { penv: Gtype.nested_t (* Info for nested protocols *)
@@ -502,7 +869,7 @@ let rec project' env (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
-let project projected_role g = project' new_project_env projected_role g
+let _project projected_role g = project' new_project_env projected_role g
 
 let project_nested_t (nested_t : Gtype.nested_t) =
   let project_role protocol_name all_roles gtype local_protocols
