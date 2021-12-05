@@ -33,6 +33,8 @@ type t =
   | SilentL of VariableName.t * Expr.payload_type * t
       (** Used with refinement types to indicate knowledge obtained via a
           global protocol. *)
+  | StateL of StateNameSet.t * t Lazy.t
+  | EpsilonL of t list
 
 (** Unique id identifying a local protocol *)
 module LocalProtocolId : sig

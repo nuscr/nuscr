@@ -318,6 +318,8 @@ let of_local_type lty =
           {env with silent_var_buffer= (v, ty) :: env.silent_var_buffer}
         in
         conv_ltype_aux env l
+    | StateL _ -> assert false
+    | EpsilonL _ -> assert false
   in
   let env, start = conv_ltype_aux init_conv_env lty in
   let {g; rec_var_info; _} = env in

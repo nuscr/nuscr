@@ -21,6 +21,8 @@ type t =
       * RoleName.t
       * t
   | SilentL of VariableName.t * Expr.payload_type * t
+  | StateL of StateNameSet.t * (t Lazy.t[@equal Base.phys_equal])
+  | EpsilonL of t list
 [@@deriving sexp_of, eq]
 
 module LocalProtocolId = struct
@@ -132,6 +134,20 @@ let show =
           (VariableName.user var)
           (Expr.show_payload_type ty)
           (show_nested_type_internal indent l)
+    | EpsilonL ls ->
+        let pre = sprintf "%s(nondet) {\n" current_indent in
+        let intermission = sprintf "%s} or {\n" current_indent in
+        let post = sprintf "%s}\n" current_indent in
+        let choices =
+          List.map ~f:(show_nested_type_internal (indent + 1)) ls
+        in
+        let ls = String.concat ~sep:intermission choices in
+        pre ^ ls ^ post
+    | StateL (n, l) ->
+        sprintf "%s(recState) %s {\n%s%s}\n" current_indent
+          (StateNameSet.user n)
+          (show_nested_type_internal (indent + 1) (Lazy.force l))
+          current_indent
   in
   show_nested_type_internal 0
 
@@ -543,6 +559,14 @@ let make_unique_tvars ltype =
         let namegen, l = rename_tvars tvar_mapping namegen l in
         (namegen, AcceptL (role, protocol, roles, new_roles, caller, l))
     | SilentL _ -> Err.unimpl "renaming recursive variables with refinements"
+    | EpsilonL ls ->
+        let namegen, ls =
+          List.fold_map ls ~init:namegen ~f:(rename_tvars tvar_mapping)
+        in
+        (namegen, EpsilonL ls)
+    | StateL (_, _) ->
+        Err.unimpl
+          "renaming recursive variables with intermediate state annotations"
   in
   let namegen = Namegen.create () in
   let _, ltype =
