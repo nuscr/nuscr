@@ -10,27 +10,27 @@ module Toplevel = struct
 
   let load_pragmas ast = Pragma.load_from_pragmas ast.pragmas
 
-  let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
-    lexbuf.Lexing.lex_curr_p <-
-      {lexbuf.Lexing.lex_curr_p with Lexing.pos_fname= fname} ;
-    lexbuf
-
   let parse_from_lexbuf lexbuf : scr_module =
-    try Parser.scr_module Lexer.token lexbuf with
+    let lexer = Sedlexing.with_tokenizer Lexer.token lexbuf in
+    let parse =
+      MenhirLib.Convert.Simplified.traditional2revised Parser.scr_module
+    in
+    try parse lexer with
     | Lexer.LexError msg -> uerr (LexerError msg)
     | Parser.Error ->
-        let err_interval =
-          (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
-        in
+        let err_interval = Sedlexing.lexing_positions lexbuf in
         uerr (ParserError (Loc.create err_interval))
     | Err.UserError e -> uerr e
     | e -> Err.violation ~here:[%here] ("Found a problem:" ^ Exn.to_string e)
 
-  let parse fname (ch : In_channel.t) : scr_module =
-    let lexbuf = set_filename fname (Lexing.from_channel ch) in
+  let parse_string str =
+    let lexbuf = Sedlexing.Utf8.from_string str in
     parse_from_lexbuf lexbuf
 
-  let parse_string string = parse_from_lexbuf @@ Lexing.from_string string
+  let parse fname (ch : In_channel.t) : scr_module =
+    let lexbuf = Sedlexing.Utf8.from_channel ch in
+    Sedlexing.set_filename lexbuf fname ;
+    parse_from_lexbuf lexbuf
 
   let validate_protocols_exn (ast : scr_module) : unit =
     let show ~f ?(sep = "\n") xs =

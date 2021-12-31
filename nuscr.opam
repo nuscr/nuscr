@@ -15,6 +15,7 @@ bug-reports: "https://github.com/nuscr/nuscr/issues"
 depends: [
   "ocaml" {>= "4.10"}
   "menhir" {>= "20190924"}
+  "sedlex" {>= "2.5"}
   "ppx_deriving" {>= "5.2"}
   "dune" {>= "2.8"}
   "base" {>= "v0.12.0"}

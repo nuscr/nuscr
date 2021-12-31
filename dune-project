@@ -32,6 +32,8 @@
    (>= 4.10))
   (menhir
    (>= 20190924))
+  (sedlex
+   (>= 2.5))
   (ppx_deriving
    (>= 5.2))
   dune
