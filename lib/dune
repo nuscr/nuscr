@@ -8,10 +8,11 @@
 (library
  (name nuscrlib)
  (public_name nuscr.lib)
- (libraries base stdio ocamlgraph ppxlib unix process)
+ (libraries base stdio ocamlgraph ppxlib unix process sedlex menhirLib)
  (library_flags (-linkall))
  (preprocess
   (pps
+   sedlex.ppx
    ppx_deriving.show
    ppx_deriving.eq
    ppx_deriving.ord
