@@ -73,6 +73,31 @@ let rec from_gtype = function
 
 let from_ltype _ = unimpl ~here:[%here] "from_ltype"
 
-let show_gtype_mpstk _ = unimpl ~here:[%here] "show_gtype_mpstk"
+let show_cont f (label, payloads, cont) =
+  let payloads =
+    match payloads with
+    | [] -> ""
+    | payloads ->
+        String.concat ~sep:", " (List.map ~f:PayloadTypeName.user payloads)
+  in
+  Printf.sprintf "%s%s . %s" (LabelName.user label) payloads (f cont)
+
+let show_cont_list f = function
+  | [cont] -> show_cont f cont
+  | conts ->
+      Printf.sprintf "{\n%s\n}"
+        (String.concat ~sep:",\n" (List.map ~f:(show_cont f) conts))
+
+let rec show_gtype_mpstk = function
+  | BranchG {g_br_from; g_br_to; g_br_cont} ->
+      Printf.sprintf "%s→%s:%s" (RoleName.user g_br_from)
+        (RoleName.user g_br_to)
+        (show_cont_list show_gtype_mpstk g_br_cont)
+  | MuG (tv, cont) ->
+      Printf.sprintf "μ(%s)(%s)"
+        (TypeVariableName.user tv)
+        (show_gtype_mpstk cont)
+  | TVarG tv -> TypeVariableName.user tv
+  | EndG -> "end"
 
 let show_ltype_mpstk _ = unimpl ~here:[%here] "show_ltype_mpstk"
