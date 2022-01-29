@@ -82,11 +82,12 @@ let pragma_decl :=
 let pragmas :=
   | PRAGMA_START; ps = separated_list(COMMA, pragma_decl) ; PRAGMA_END ; { ps }
 
+(* A file is parsed into a module *)
 let scr_module :=
   pgs = pragmas? ; (* Pragma must be at the beginning of a file *)
-  md = option(module_decl) ;
+  md = module_decl? ;
   ts = payload_type_decl* ;
-  nps = nested_protocol_decl*;
+  nps = nested_protocol_decl* ;
   ps = protocol_decl* ;
   EOI ;
     {
@@ -96,7 +97,6 @@ let scr_module :=
       ; nested_protocols = nps
       ; protocols = ps }
     }
-
 
 let module_decl == located (raw_module_decl)
 
@@ -138,16 +138,18 @@ let protocol_decl == global_protocol_decl (* local pending *)
 
 (* nuScr extension, the keyword global protocol can be shortened to either *)
 let global_protocol_decl == located(raw_global_protocol_decl)
+
 let raw_global_protocol_decl ==
   opts = protocol_options? ; protocol_hdr ; nm = protoname ;
-  pars = parameter_decls? ; rs = role_decls ; rp = rec_parameter_decls? ;
+  pars = loption(parameter_decls) ; rs = role_decls ;
+  rp = loption(rec_parameter_decls) ;
   ann = annotation? ; body = global_protocol_body ;
   {
     let (nested_protos, ints) = body in
     { name = nm
     ; options = opts
-    ; parameters = (match pars with Some p -> p | _ -> [])
-    ; rec_parameters = (match rp with Some p -> p | _ -> [])
+    ; parameters = pars
+    ; rec_parameters = rp
     ; roles = rs
     ; split_roles = (rs, [])
     ; nested_protocols = nested_protos
@@ -156,17 +158,19 @@ let raw_global_protocol_decl ==
   } }
 
 let nested_protocol_decl == located(raw_nested_protocol_decl)
+
 (* TODO: Remove unnecessary stuff? *)
 let raw_nested_protocol_decl ==
   nested_hdr ; nm = protoname ;
-  pars = parameter_decls? ; rs = nested_role_decls ; rp = rec_parameter_decls? ;
+  pars = loption(parameter_decls) ; rs = nested_role_decls ;
+  rp = loption(rec_parameter_decls) ;
   ann = annotation? ; body = global_protocol_body ;
   {
     let (nested_protos, ints) = body in
     { name = nm
     ; options = None
-    ; parameters = (match pars with Some p -> p | _ -> [])
-    ; rec_parameters = (match rp with Some p -> p | _ -> [])
+    ; parameters = pars
+    ; rec_parameters = rp
     ; roles = (let (rs', rs'') = rs in rs' @ rs'')
     ; split_roles = rs
     ; nested_protocols = nested_protos
@@ -204,27 +208,23 @@ let rec_parameter_decl == nm = name ; COLON ; ann = IDENT ; { (nm, ann) }
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }
 
-
 let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                          new_nms = loption(new_role_decls) ; RPAR ; { (nms, new_nms) }
 
 let role_decl == ROLE_KW ; nm = rolename ; { nm }
 
-
 let new_role_decls == SEMICOLON ; NEW_KW ;
                       nms = separated_nonempty_list(COMMA, role_decl) ; { nms }
-
 
 let global_protocol_body ==
   LCURLY ; nested_protos = nested_protocol_decl*; ints = global_interaction* ;
   RCURLY ; { (nested_protos, ints) }
 
-
 let global_protocol_block ==
   LCURLY ; ints = global_interaction* ; RCURLY ; { ints }
 
-
 let global_interaction == located(raw_global_interaction)
+
 let raw_global_interaction ==
   global_message_transfer
   | global_recursion
@@ -308,7 +308,6 @@ let message_signature ==
                 }
       }
 
-
 let payload_el ==
   (* protocol @ role (delegation) *)
   | n1 = protoname ; ARROBA ; n2 = rolename  ; { PayloadDel(n1, n2) }
@@ -317,9 +316,7 @@ let payload_el ==
     { PayloadRTy (Refined (v, t, e)) }
   | ~ = varname ; COLON ; ~ = create_payload(qname) ; < PayloadBnd >
 
-
 let annotation == ARROBA ; ann = EXTIDENT ; { ann }
-
 
 (* qualified names *)
 let qname == raw_qname
