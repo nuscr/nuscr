@@ -78,7 +78,9 @@ let show_cont f (label, payloads, cont) =
     match payloads with
     | [] -> ""
     | payloads ->
-        String.concat ~sep:", " (List.map ~f:PayloadTypeName.user payloads)
+        Printf.sprintf "(%s)"
+          (String.concat ~sep:", "
+             (List.map ~f:PayloadTypeName.user payloads) )
   in
   Printf.sprintf "%s%s . %s" (LabelName.user label) payloads (f cont)
 

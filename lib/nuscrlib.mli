@@ -31,7 +31,13 @@ val project_role :
     [role] in the protocol [protocol]. *)
 
 val get_global_type : Syntax.scr_module -> protocol:ProtocolName.t -> Gtype.t
-(** [get_global_type module] gets the corresponding global type for a module *)
+(** [get_global_type module ~protocol] gets the corresponding global type for
+    a protocol in a module *)
+
+val get_global_type_literature_syntax :
+  Syntax.scr_module -> protocol:ProtocolName.t -> LiteratureSyntax.global
+(** [get_global_type module_literature_syntax ~protocol] gets the
+    corresponding global type for a protocol in a module in literature syntax*)
 
 val generate_fsm :
      Syntax.scr_module
@@ -92,3 +98,4 @@ module Efsm = Efsm
 module Err = Err
 module Names = Names
 module Loc = Loc
+module LiteratureSyntax = LiteratureSyntax

@@ -125,6 +125,10 @@ module Toplevel = struct
     in
     Extraction.expand_global_protocol ast gp |> Gtype.of_protocol
 
+  let get_global_type_literature_syntax ast ~protocol =
+    let gtype = get_global_type ast ~protocol in
+    LiteratureSyntax.from_gtype gtype
+
   let project_protocol_role ast ~protocol ~role : Ltype.t =
     get_global_type ast ~protocol |> Ltype.project role
 
@@ -183,3 +187,4 @@ module Efsm = Efsm
 module Err = Err
 module Names = Names
 module Loc = Loc
+module LiteratureSyntax = LiteratureSyntax
