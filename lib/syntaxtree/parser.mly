@@ -64,41 +64,6 @@
 %token PRAGMA_START
 %token PRAGMA_END
 
-%type <((string * string option) list) option> option(parameter_decls)
-%type <(Pragma.t * string option) list option> option(pragmas)
-%type <(string * Syntax.annotation) list option> option(rec_parameter_decls)
-%type <(string * Syntax.annotation) list> separated_nonempty_list(COMMA,rec_parameter_decl)
-%type <(string * string option) list> separated_nonempty_list(COMMA,parameter_decl)
-%type <(string * string option)> parameter_decl
-%type <Pragma.pragmas> loption(separated_nonempty_list(COMMA,pragma_decl))
-%type <Pragma.pragmas> separated_nonempty_list(COMMA,pragma_decl)
-%type <Pragma.pragmas> pragmas
-%type <Pragma.t * string option> pragma_decl
-%type <RoleName.t list option> option(new_role_decls)
-%type <RoleName.t list option> option(role_args)
-%type <RoleName.t list> separated_nonempty_list(COMMA,role_decl)
-%type <RoleName.t list> separated_nonempty_list(COMMA,rolename)
-%type <Syntax.annotation option> option(annotation)
-%type <Syntax.expr list> loption(separated_nonempty_list(COMMA,expr))
-%type <Syntax.expr list> separated_nonempty_list(COMMA,expr)
-%type <Syntax.expr> atomic_expr expr expr_0 expr_1 expr_2
-%type <Syntax.global_interaction list list> separated_nonempty_list(OR_KW,global_protocol_block)
-%type <Syntax.global_interaction list> list(global_interaction)
-%type <Syntax.global_protocol list> list(nested_protocol_decl)
-%type <Syntax.global_protocol list> list(protocol_decl)
-%type <Syntax.mod_decl> option(module_decl)
-%type <Syntax.payloadt list> loption(separated_nonempty_list(COMMA,payload_el))
-%type <Syntax.payloadt list> separated_nonempty_list(COMMA,payload_el)
-%type <Syntax.protocol_mods option> option(protocol_options)
-%type <Syntax.rec_var list> loption(separated_nonempty_list(COMMA,rec_var))
-%type <Syntax.rec_var list> separated_nonempty_list(COMMA,rec_var)
-%type <Syntax.scr_module> scr_module
-%type <Syntax.type_decl list> list(payload_type_decl)
-%type <string list> separated_nonempty_list(DOT,IDENT)
-%type <string option> option(pragma_value)
-%type <string> pragma_value
-%type <unit option> option(PROTOCOL_KW)
-
 (* ---------------------------------------- *)
 %start <Syntax.scr_module> doc
 %{
@@ -220,8 +185,8 @@ let raw_nested_protocol_decl ==
   } }
 
 let protocol_hdr ==
-  GLOBAL_KW ; PROTOCOL_KW?
-  | PROTOCOL_KW
+  GLOBAL_KW ; PROTOCOL_KW? ; { () }
+  | PROTOCOL_KW ; { () }
 
 let nested_hdr ==
   NESTED_KW ; PROTOCOL_KW

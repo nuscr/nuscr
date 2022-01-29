@@ -4,7 +4,7 @@
 
 (cram enable)
 
-(using menhir 1.0)
+(using menhir 2.0)
 
 (generate_opam_files true)
 
