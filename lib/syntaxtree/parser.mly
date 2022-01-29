@@ -65,7 +65,7 @@
 %token PRAGMA_END
 
 (* ---------------------------------------- *)
-%start <Syntax.scr_module> doc
+%start <Syntax.scr_module> scr_module
 %{
 open Syntax
 open Names
@@ -81,13 +81,6 @@ let pragma_decl :=
 (* pragmas *)
 let pragmas :=
   | PRAGMA_START; ps = separated_list(COMMA, pragma_decl) ; PRAGMA_END ; { ps }
-
-(* document -- should use toke lexer *)
-
-let doc :=
-  m = scr_module ;
-  { m }
-
 
 let scr_module :=
   pgs = pragmas? ; (* Pragma must be at the beginning of a file *)

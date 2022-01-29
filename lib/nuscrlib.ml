@@ -12,7 +12,7 @@ module Toplevel = struct
     lexbuf
 
   let parse_from_lexbuf lexbuf : scr_module =
-    try Parser.doc Lexer.token lexbuf with
+    try Parser.scr_module Lexer.token lexbuf with
     | Lexer.LexError msg -> uerr (LexerError msg)
     | Parser.Error ->
         let err_interval =
