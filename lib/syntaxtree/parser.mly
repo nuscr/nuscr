@@ -69,9 +69,6 @@
 %{
 open Syntax
 open Names
-
-(* list of 'a list option *)
-let loalo = function None -> [] | Some n -> n
 %}
 %%
 
@@ -216,7 +213,7 @@ let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
 
 
 let nested_role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
-                         new_nms = new_role_decls? ; RPAR ; { (nms, loalo new_nms) }
+                         new_nms = loption(new_role_decls) ; RPAR ; { (nms, new_nms) }
 
 let role_decl == ROLE_KW ; nm = rolename ; { nm }
 
@@ -244,13 +241,13 @@ let raw_global_interaction ==
   | global_calls
 let global_do ==
   DO_KW ; nm = protoname ;
-  ra = role_args? ; SEMICOLON ; ann = annotation? ;
-  { Do (nm, loalo ra, ann) }
+  ra = loption(role_args) ; SEMICOLON ; ann = annotation? ;
+  { Do (nm, ra, ann) }
 
 let global_calls ==
   caller = rolename ; CALLS_KW ; nm = protoname ;
-  ra = role_args? ; SEMICOLON ; ann = annotation? ;
-  { Calls (caller, nm, loalo ra, ann) }
+  ra = loption(role_args) ; SEMICOLON ; ann = annotation? ;
+  { Calls (caller, nm, ra, ann) }
 
 let role_args ==
   LPAR ; nm = separated_nonempty_list(COMMA, rolename) ; RPAR ; { nm }
