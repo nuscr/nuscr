@@ -1,7 +1,7 @@
 open! Base
 open Names
 
-type 'a cont_list = (LabelName.t * PayloadTypeName.t * 'a) list
+type 'a cont_list = (LabelName.t * PayloadTypeName.t list * 'a) list
 
 type global =
   | BranchG of
