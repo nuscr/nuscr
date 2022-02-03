@@ -71,7 +71,66 @@ let rec from_gtype = function
           ; g_br_cont= List.rev conts } )
   | Gtype.CallG _ -> Err.unimpl ~here:[%here] "from_gtype: CallG"
 
-let from_ltype _ = unimpl ~here:[%here] "from_ltype"
+let rec from_ltype = function
+  | Ltype.RecvL (m, r_from, cont) ->
+      RecvL
+        ( r_from
+        , [ ( m.Gtype.label
+            , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+            , from_ltype cont ) ] )
+  | Ltype.SendL (m, r_from, cont) ->
+      SendL
+        ( r_from
+        , [ ( m.Gtype.label
+            , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+            , from_ltype cont ) ] )
+  | Ltype.ChoiceL (_, conts) -> (
+    match conts with
+    | [] ->
+        Err.violation ~here:[%here]
+          "Choice should have a non-empty list of continuations"
+    | _ :: _ -> (
+        let aux (choice_role, acc) ltype =
+          let choice_role =
+            match choice_role with
+            | Some r -> Some r
+            | None -> (
+              match ltype with
+              | Ltype.SendL (_, r_send, _) -> Some (`Send r_send)
+              | Ltype.RecvL (_, r_recv, _) -> Some (`Recv r_recv)
+              | _ ->
+                  Err.violation ~here:[%here]
+                    "First action in ChoiceL should be either SendL or RecvL"
+              )
+          in
+          let cont =
+            match ltype with
+            | Ltype.SendL (m, _, cont) ->
+                ( m.Gtype.label
+                , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+                , from_ltype cont )
+            | Ltype.RecvL (m, _, cont) ->
+                ( m.Gtype.label
+                , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+                , from_ltype cont )
+            | _ ->
+                Err.violation ~here:[%here]
+                  "First action in ChoiceL should be either SendL or RecvL"
+          in
+          (choice_role, cont :: acc)
+        in
+        let choice_role, conts = List.fold ~init:(None, []) ~f:aux conts in
+        match choice_role with
+        | Some (`Send r) -> SendL (r, conts)
+        | Some (`Recv r) -> RecvL (r, conts)
+        | None -> Err.violation ~here:[%here] "Choice cannot be empty" ) )
+  | Ltype.TVarL (tv, _) -> TVarL tv
+  | Ltype.MuL (tv, _, cont) -> MuL (tv, from_ltype cont)
+  | Ltype.EndL -> EndL
+  | Ltype.InviteCreateL _ ->
+      Err.unimpl ~here:[%here] "from_ltype: InviteCreateL"
+  | Ltype.AcceptL _ -> Err.unimpl ~here:[%here] "from_ltype: AcceptL"
+  | Ltype.SilentL _ -> Err.unimpl ~here:[%here] "from_ltype: SilentL"
 
 let show_cont f (label, payloads, cont) =
   let payloads =
