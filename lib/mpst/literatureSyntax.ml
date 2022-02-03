@@ -1,6 +1,5 @@
 open! Base
 open Names
-open Err
 
 type 'a cont_list = (LabelName.t * PayloadTypeName.t list * 'a) list
 
@@ -161,4 +160,16 @@ let rec show_gtype_mpstk = function
   | TVarG tv -> TypeVariableName.user tv
   | EndG -> "end"
 
-let show_ltype_mpstk _ = unimpl ~here:[%here] "show_ltype_mpstk"
+let rec show_ltype_mpstk = function
+  | SendL (role, conts) ->
+      Printf.sprintf "%s⊕%s" (RoleName.user role)
+        (show_cont_list show_ltype_mpstk conts)
+  | RecvL (role, conts) ->
+      Printf.sprintf "%s&%s" (RoleName.user role)
+        (show_cont_list show_ltype_mpstk conts)
+  | MuL (tv, cont) ->
+      Printf.sprintf "μ(%s)(%s)"
+        (TypeVariableName.user tv)
+        (show_ltype_mpstk cont)
+  | TVarL tv -> TypeVariableName.user tv
+  | EndL -> "end"
