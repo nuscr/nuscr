@@ -35,7 +35,8 @@ let gen_output ast f = function
 
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
-    show_global_type show_solver_queries show_global_type_mpstk =
+    show_global_type show_solver_queries show_global_type_mpstk project_mpstk
+    =
   Pragma.set_solver_show_queries show_solver_queries ;
   Pragma.set_verbose verbose ;
   try
@@ -57,6 +58,14 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
         (fun ast protocol role ->
           Nuscrlib.project_role ast ~protocol ~role |> Ltype.show )
         project
+    in
+    let () =
+      gen_output ast
+        (fun ast protocol role ->
+          let ltype = Nuscrlib.project_role ast ~protocol ~role in
+          let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
+          Nuscrlib.LiteratureSyntax.show_ltype_mpstk ltype )
+        project_mpstk
     in
     let () =
       gen_output ast
@@ -188,6 +197,16 @@ let project =
     & opt (some role_proto) None
     & info ["project"] ~doc ~docv:"ROLE@PROTO")
 
+let project_mpstk =
+  let doc =
+    "Project the local type for the specified protocol and role. \
+     <role_name>@<protocol_name>, but output in MPSTK syntax"
+  in
+  Arg.(
+    value
+    & opt (some role_proto) None
+    & info ["project-mpstk"] ~doc ~docv:"ROLE@PROTO")
+
 let fsm =
   let doc =
     "Project the CFSM for the specified protocol and role. \
@@ -298,7 +317,7 @@ let cmd =
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
         $ gencode_fstar $ sexp_global_type $ show_global_type
-        $ show_solver_queries $ show_global_type_mpstk ))
+        $ show_solver_queries $ show_global_type_mpstk $ project_mpstk ))
   , Term.info "nuscr" ~version:"%%VERSION%%" ~doc ~exits:Term.default_exits
       ~man )
 

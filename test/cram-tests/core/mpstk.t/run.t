@@ -28,3 +28,17 @@ quit . end
   ok . B2→S:s(string) . S→B2:b2(string) . end,
   quit . end
   }
+
+Projection of TwoBuyer
+  $ nuscr --project-mpstk B1@TwoBuyer TwoBuyer.nuscr
+  S⊕s(string) . S&b1(int) . B2⊕bi2(int) . end
+  $ nuscr --project-mpstk B2@TwoBuyer TwoBuyer.nuscr
+  S&b2(int) . B1&bi2(int) . S⊕{
+  quit . end,
+  ok . S⊕s(string) . S&b2(string) . end
+  }
+  $ nuscr --project-mpstk S@TwoBuyer TwoBuyer.nuscr
+  B1&s(string) . B1⊕b1(int) . B2⊕b2(int) . B2&{
+  quit . end,
+  ok . B2&s(string) . B2⊕b2(string) . end
+  }
