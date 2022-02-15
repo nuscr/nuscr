@@ -3,4 +3,4 @@ An invalid pragma should raise a user error.
 
   $ nuscr --project A@Hello Invalid.nuscr
   nuscr: User error: Unknown pragma: ThisPragmaShouldNotExist
-  [1]
+  [124]

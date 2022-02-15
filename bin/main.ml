@@ -312,13 +312,15 @@ let cmd =
     ; `S Manpage.s_bugs
     ; `P "Please report bugs on GitHub at %%PKG_ISSUES%%" ]
   in
-  ( Term.(
+  let info = Cmd.info "nuscr" ~version:"%%VERSION%%" ~doc ~man in
+  let term =
+    Term.(
       ret
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
         $ gencode_fstar $ sexp_global_type $ show_global_type
         $ show_solver_queries $ show_global_type_mpstk $ project_mpstk ))
-  , Term.info "nuscr" ~version:"%%VERSION%%" ~doc ~exits:Term.default_exits
-      ~man )
+  in
+  Cmd.v info term
 
-let () = Term.(exit @@ eval cmd)
+let () = Stdlib.exit (Cmd.eval cmd)

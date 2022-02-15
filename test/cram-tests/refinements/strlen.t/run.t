@@ -45,4 +45,4 @@ PasswordManager2 has a too short initial password, and an error is expected.
   (check-sat)
   
   nuscr: User error: Type Error: Expression "pass" should be of type stored_pass:string{(len(stored_pass))>=(6)}
-  [1]
+  [124]

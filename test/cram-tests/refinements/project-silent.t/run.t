@@ -19,4 +19,4 @@ When SenderValidateRefinements is turned on, C cannot validate refinements and a
 reported.
   $ nuscr --project D@Relay Relay2.nuscr
   nuscr: User error: Role C does not know the value of the variable x
-  [1]
+  [124]

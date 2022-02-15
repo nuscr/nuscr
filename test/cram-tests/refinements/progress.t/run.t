@@ -22,7 +22,7 @@ Nuscr should report an error if ValidateRefinementProgress is enabled.
   (check-sat)
   
   nuscr: User error: Protocol may be stuck due to refinements
-  [1]
+  [124]
 
 Nuscr should not report any error for the fixed protocol.
   $ nuscr Fixed.nuscr --project A@Stuck --show-solver-queries

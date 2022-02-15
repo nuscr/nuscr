@@ -1,3 +1,10 @@
+# UNRELEASED
+
+## Changes
+
+- Following a change in cmdliner, user errors will result in an error code of
+    124 instead of 1
+
 # 2.0.0 (2021-09-03)
 
 ## Added

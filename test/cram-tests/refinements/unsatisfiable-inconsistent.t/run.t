@@ -9,4 +9,4 @@ enabled.
 Nuscr should report an error if ValidateRefinementSatisfiability is enabled.
   $ nuscr Unsatisfiable.nuscr --project A@Unsat
   nuscr: User error: Refinements cannot be satisfied
-  [1]
+  [124]
