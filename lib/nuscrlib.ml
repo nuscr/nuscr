@@ -86,6 +86,15 @@ module Toplevel = struct
       Extraction.ensure_no_nested_protocols ast ;
       validate_protocols_exn ast )
 
+  let protocols_names_of (ast : scr_module) :
+    ProtocolName.t list =
+    let protocols = ast.protocols in
+    let name_of_prot p =
+      let {Loc.value = {name; _}; _} = p in
+      name
+    in
+    List.map ~f:(fun p -> name_of_prot p) protocols
+
   let enumerate_protocols (ast : scr_module) :
       (ProtocolName.t * RoleName.t) list =
     let protocols = ast.protocols in

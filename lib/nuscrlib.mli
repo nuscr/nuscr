@@ -20,6 +20,9 @@ val validate_exn : Syntax.scr_module -> unit
     messages will be printed *)
 
 (** {1 Other operations} *)
+val protocols_names_of: Syntax.scr_module -> ProtocolName.t list
+(** [protocols_names_of module] returns the list of the names of protocols
+ * occuring in [module] *)
 
 val enumerate : Syntax.scr_module -> (ProtocolName.t * RoleName.t) list
 (** [enumerate module] enumerates the roles occurring in [module]. The output
