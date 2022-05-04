@@ -107,7 +107,7 @@ let show_rec_var {rv_name; rv_roles; rv_ty; rv_init_expr} =
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
   | MuG of TypeVariableName.t * rec_var list * t
-  | TVarG of TypeVariableName.t * Expr.t list * t Lazy.t
+  | TVarG of TypeVariableName.t * Expr.t list * (t Lazy.t[@sexp.opaque])
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
