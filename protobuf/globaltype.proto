@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+message Action {
+  message Index {
+    string label = 1;
+    int32 next = 2;
+  }
+  int32 idx = 1;
+  enum ActionType {
+    SEND = 0;
+    RECV = 1;
+  };
+  ActionType type = 2;
+  repeated Index continuations = 3;
+}
+
+message GlobalType {
+  int32 start = 1;
+  repeated Action actions = 2;
+}
