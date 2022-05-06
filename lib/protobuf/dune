@@ -1,0 +1,21 @@
+(rule
+ (targets google_include)
+ (action
+  (with-stdout-to
+   %{targets}
+   (system "pkg-config protobuf --variable=includedir"))))
+
+(rule
+ (targets globaltype.ml)
+ (deps
+  (:proto globaltype.proto))
+ (action
+  (run
+   protoc
+   -I
+   %{read-lines:google_include}
+   -I
+   .
+   "--ocaml_opt=annot=[@@deriving show { with_path = false }, eq]"
+   --ocaml_out=.
+   %{proto})))

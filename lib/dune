@@ -8,7 +8,16 @@
 (library
  (name nuscrlib)
  (public_name nuscr.lib)
- (libraries base stdio ocamlgraph ppxlib unix process sedlex menhirLib)
+ (libraries
+  base
+  stdio
+  ocamlgraph
+  ppxlib
+  unix
+  process
+  sedlex
+  menhirLib
+  ocaml-protoc-plugin)
  (library_flags (-linkall))
  (preprocess
   (pps
