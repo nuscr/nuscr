@@ -141,6 +141,13 @@ module Toplevel = struct
     let gtype = get_global_type ast ~protocol in
     LiteratureSyntax.from_gtype gtype
 
+  let get_global_type_protobuf ast ~protocol =
+    let gtype = get_global_type ast ~protocol in
+    let gtype = Convert.of_gtype gtype in
+    let buf = Globaltype.GlobalType.to_proto gtype in
+    let output = Ocaml_protoc_plugin.Runtime.Runtime'.Writer.contents buf in
+    output
+
   let project_protocol_role ast ~protocol ~role : Ltype.t =
     get_global_type ast ~protocol |> Ltype.project role
 

@@ -82,6 +82,7 @@ type global_action_verb =
   | ShowGlobalTypeMpstk
   | ShowGlobalTypeTex
   | ShowGlobalTypeSexp
+  | ShowGlobalTypeProtobuf
 
 type local_action_verb =
   | Project
@@ -126,7 +127,10 @@ let main args global_actions local_actions =
               in
               Nuscrlib.LiteratureSyntax.show_gtype_tex gtype |> print_endline
           | ShowGlobalTypeSexp ->
-              Nuscrlib.generate_sexp ast ~protocol |> print_endline )
+              Nuscrlib.generate_sexp ast ~protocol |> print_endline
+          | ShowGlobalTypeProtobuf ->
+              Nuscrlib.get_global_type_protobuf ~protocol ast |> print_string
+          )
         global_actions
     in
     let () =
@@ -352,8 +356,17 @@ let show_global_type_tex =
     value & opt_all string []
     & info ["show-global-type-tex"] ~doc ~docv:"PROTO" )
 
+let show_global_type_protobuf =
+  let doc =
+    "Print the global type for the specified protocol in protobuf format. \
+     <protocol_name>"
+  in
+  Arg.(
+    value & opt_all string []
+    & info ["show-global-type-protobuf"] ~doc ~docv:"PROTO" )
+
 let mk_global_actions show_global_type show_global_type_mpstk
-    show_global_type_tex show_global_type_sexp =
+    show_global_type_tex show_global_type_sexp show_global_type_protobuf =
   let show_global_type =
     List.map ~f:(fun p -> (ShowGlobalType, p)) show_global_type
   in
@@ -366,11 +379,17 @@ let mk_global_actions show_global_type show_global_type_mpstk
   let show_global_type_sexp =
     List.map ~f:(fun p -> (ShowGlobalTypeSexp, p)) show_global_type_sexp
   in
+  let show_global_type_protobuf =
+    List.map
+      ~f:(fun p -> (ShowGlobalTypeProtobuf, p))
+      show_global_type_protobuf
+  in
   List.concat
     [ show_global_type
     ; show_global_type_mpstk
     ; show_global_type_tex
-    ; show_global_type_sexp ]
+    ; show_global_type_sexp
+    ; show_global_type_protobuf ]
 
 let cmd =
   let doc =
@@ -396,7 +415,7 @@ let cmd =
   let global_actions =
     Term.(
       const mk_global_actions $ show_global_type $ show_global_type_mpstk
-      $ show_global_type_tex $ sexp_global_type )
+      $ show_global_type_tex $ sexp_global_type $ show_global_type_protobuf )
   in
   let local_actions =
     Term.(
