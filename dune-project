@@ -54,7 +54,11 @@
   (cmdliner
    (>= 1.1.0))
   (process
-   (>= 0.2.1))))
+   (>= 0.2.1))
+  (ocaml-protoc-plugin
+   (>= 4.2.0))
+ )
+)
 
 (package
  (name nuscr-web)
