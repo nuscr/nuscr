@@ -1,0 +1,18 @@
+(*
+Adapted from
+https://github.com/alcestes/mpstk/blob/5a056cc2193c2c588c1c7ddf130176c3aacdf38e/examples/two-buyers.global
+*)
+
+global protocol TwoBuyer(role B1, role B2, role S) {
+  s(string) from B1 to S;
+  b1(int) from S to B1;
+  b2(int) from S to B2;
+  bi2(int) from B1 to B2;
+  choice at B2 {
+    ok from B2 to S;
+    s(string) from B2 to S;
+    b2(string) from S to B2;
+  } or {
+    quit from B2 to S;
+  }
+}
