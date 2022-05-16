@@ -5,4 +5,4 @@ choice then.
 
   $ nuscr Choice.nuscr
   nuscr: User error: Role C is not enabled, the role is unaware of a previous branch in the protocol
-  [1]
+  [124]
