@@ -26,8 +26,8 @@ type rec_var =
             recursion *) }
 [@@deriving sexp_of, eq]
 
-(** The type of global types. See also {!LiteratureSyntax.global} for a simpler
-    syntax. *)
+(** The type of global types. See also {!LiteratureSyntax.global} for a
+    simpler syntax. *)
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
       (** [MessageG (msg, sender, receiver, t)] starts by sending message
