@@ -1,0 +1,15 @@
+(*
+Adapted from
+https://github.com/alcestes/mpstk/blob/5a056cc2193c2c588c1c7ddf130176c3aacdf38e/examples/streaming.global
+*)
+global protocol Streaming(role DP, role K, role KP, role C) {
+  rec t {
+    d(bool) from DP to K;
+    k(bool) from KP to K;
+    c(bool) from K to C;
+    d(bool) from DP to K;
+    k(bool) from KP to K;
+    c(bool) from K to C;
+    continue t;
+  }
+}
