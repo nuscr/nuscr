@@ -8,6 +8,7 @@ type payload =
   | PDelegate of ProtocolName.t * RoleName.t
 [@@deriving eq, sexp_of, show, ord]
 
+(** A message in a global type carries a label, and a list of payloads. *)
 type message = {label: LabelName.t; payload: payload list}
 [@@deriving eq, sexp_of, show, ord]
 
@@ -25,13 +26,25 @@ type rec_var =
             recursion *) }
 [@@deriving sexp_of, eq]
 
-(** The type of global types *)
+(** The type of global types. See also {!LiteratureSyntax.global} for a simpler
+    syntax. *)
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
       (** [MessageG (msg, sender, receiver, t)] starts by sending message
           [msg] from [sender] to [receiver] and continues as [t] *)
   | MuG of TypeVariableName.t * rec_var list * t
+      (** [MuG (type_var, rec_vars, g)] is a recursive type, corresponding to
+          the syntax `\mu t. G`, where t is represented by [type_var] and G
+          is represented by [t]. [rec_vars] are recursion parameters, used in
+          RefinementTypes extension for parameterised recursion, an empty
+          list is supplied when that feature is not used. *)
   | TVarG of TypeVariableName.t * Expr.t list * t Lazy.t
+      (** [TVarG (type_var, exprs, g_lazy)] is a type variable, scoped inside
+          a recursion. [type_var] is the name of the type variable, [exprs]
+          are expressions supplied into paramterised recursion, used in
+          RefinementTypes extension. Otherwise an empty list is supplied when
+          that feature is not used. [g_lazy] provides a convenient way to
+          access the type that the type variable recurses into. *)
   | ChoiceG of RoleName.t * t list
       (** [ChoiceG (name, ts)] expresses a choice located at participant
           [name] between the [ts] *)
