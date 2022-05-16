@@ -95,6 +95,7 @@ val generate_fstar_code :
 (** Generate F* code, with support for refinement types *)
 
 module Pragma = Pragma
+module Expr = Expr
 module Gtype = Gtype
 module Ltype = Ltype
 module Efsm = Efsm

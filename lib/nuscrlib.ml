@@ -189,6 +189,7 @@ end
 
 include Toplevel
 module Pragma = Pragma
+module Expr = Expr
 module Gtype = Gtype
 module Ltype = Ltype
 module Efsm = Efsm
