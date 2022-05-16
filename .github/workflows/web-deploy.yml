@@ -58,6 +58,7 @@ jobs:
             [[ "$(git branch --show-current)" == "develop" ]] && export DEPLOY_DEST="./dev"
             git fetch
             git switch -f gh-pages
+            git clean -fxd
             rsync -av --delete --filter='P .git' /tmp/deployment/ $DEPLOY_DEST
             git add -A || true
             git commit --amend --reset-author --date=now -m "Deploy docs" || true
