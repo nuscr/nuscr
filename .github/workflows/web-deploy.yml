@@ -53,9 +53,11 @@ jobs:
             git config user.name "NuScr"
             mkdir -p /tmp/deployment
             cp -r site/* /tmp/deployment
+            export DEPLOY_DEST=.
+            [[ "$(git branch --show-current)" == "develop" ]] && export DEPLOY_DEST="./dev"
             git fetch
             git switch -f gh-pages
-            rsync -av --delete --filter='P .git' /tmp/deployment/ .
+            rsync -av --delete --filter='P .git' /tmp/deployment/ $DEPLOY_DEST
             git add -A || true
             git commit --amend --reset-author --date=now -m "Deploy docs" || true
             git push --force
