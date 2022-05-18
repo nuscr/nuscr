@@ -1,9 +1,22 @@
 # UNRELEASED
 
-## Changes
+# 2.1.0 (2022-05-18)
 
+## Added
+- A new module `LiteratureSyntax` where global and local type constructors that
+  similar to those used in literature (without extensions) are provided for the
+  convenience of developers.
+- New command line options to output global and local types in the format of
+  [mpstk](https://github.com/alcestes/mpstk).
+
+## Changed
 - Following a change in cmdliner, user errors will result in an error code of
-    124 instead of 1
+  124 instead of 1
+- Improved documentation
+
+## Fixed
+- Fixed an issue that breaks parser generation with menhir
+- Unguarded recursions should be correctly reported as errors
 
 # 2.0.0 (2021-09-03)
 
