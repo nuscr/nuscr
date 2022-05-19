@@ -15,6 +15,8 @@ module type UntaggedName = sig
 
   val create : string -> Loc.t -> t
 
+  val hash : t -> int
+
   include Comparable.S with type t := t
 end
 

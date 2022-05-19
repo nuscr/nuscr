@@ -15,6 +15,8 @@ module type UntaggedName = sig
 
   val create : string -> Loc.t -> t
 
+  val hash : t -> int
+
   include Comparable.S with type t := t
 end
 
@@ -43,6 +45,8 @@ module UntaggedName : UntaggedName = struct
     let create value loc : t = {value; loc}
 
     let compare n n' = String.compare n.value n'.value
+
+    let hash n = String.hash n.value
   end
 
   include M
@@ -70,3 +74,13 @@ module VariableName : TaggedName = Make ()
 module TypeVariableName : TaggedName = Make ()
 
 module LocalProtocolName : TaggedName = Make ()
+
+module _ = struct
+  (* Check whether a name can be used in a map, a set and a hashtbl *)
+  let _ =
+    let module N = Make () in
+    let _ = Map.empty (module N) in
+    let _ = Set.empty (module N) in
+    let _ = Hashtbl.create (module N) in
+    ()
+end
