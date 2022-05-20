@@ -1,49 +1,55 @@
 (** Main entry point of the library *)
 open Names
 
+(** A type for parsed syntax tree *)
+type scr_module
+
+val load_pragmas : scr_module -> unit
+(** Load pragmas defined in a parsed syntax tree *)
+
 (** {1 Parsing} *)
 
 (** This section deals with parsing protocols. *)
 
-val parse_string : string -> Syntax.scr_module
-(** Parse a string into a {!Syntax.scr_module}. *)
+val parse_string : string -> scr_module
+(** Parse a string into a {!scr_module}. *)
 
-val parse : string -> Stdio.In_channel.t -> Syntax.scr_module
+val parse : string -> Stdio.In_channel.t -> scr_module
 (** Parse from an input channel. The first parameter is the filename, for use
     in error messages. *)
 
 (** {1 Validation} *)
 
-val validate_exn : Syntax.scr_module -> unit
+val validate_exn : scr_module -> unit
 (** [validate_exn module] validates the module [module] by performing
     standard checks. If verbose is set to true in the config, debugging
     messages will be printed *)
 
 (** {1 Other operations} *)
-val protocols_names_of : Syntax.scr_module -> ProtocolName.t list
+val protocols_names_of : scr_module -> ProtocolName.t list
 (** [protocols_names_of module] returns the list of the names of protocols
     occuring in [module] *)
 
-val enumerate : Syntax.scr_module -> (ProtocolName.t * RoleName.t) list
+val enumerate : scr_module -> (ProtocolName.t * RoleName.t) list
 (** [enumerate module] enumerates the roles occurring in [module]. The output
     is a list of pair [(protocol, role-name)]. *)
 
 val project_role :
-  Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> Ltype.t
+  scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> Ltype.t
 (** [project_role module protocol role] computes the local type for role
     [role] in the protocol [protocol]. *)
 
-val get_global_type : Syntax.scr_module -> protocol:ProtocolName.t -> Gtype.t
+val get_global_type : scr_module -> protocol:ProtocolName.t -> Gtype.t
 (** [get_global_type module ~protocol] gets the corresponding global type for
     a protocol in a module *)
 
 val get_global_type_literature_syntax :
-  Syntax.scr_module -> protocol:ProtocolName.t -> LiteratureSyntax.global
+  scr_module -> protocol:ProtocolName.t -> LiteratureSyntax.global
 (** [get_global_type module_literature_syntax ~protocol] gets the
     corresponding global type for a protocol in a module in literature syntax*)
 
 val generate_fsm :
-     Syntax.scr_module
+     scr_module
   -> protocol:ProtocolName.t
   -> role:RoleName.t
   -> Efsm.state * Efsm.t
@@ -53,7 +59,7 @@ val generate_fsm :
     index. *)
 
 val generate_go_code :
-     Syntax.scr_module
+     scr_module
   -> protocol:ProtocolName.t
   -> out_dir:string
   -> go_path:string option
@@ -68,7 +74,7 @@ val generate_go_code :
 
 val generate_ocaml_code :
      monad:bool
-  -> Syntax.scr_module
+  -> scr_module
   -> protocol:ProtocolName.t
   -> role:RoleName.t
   -> string
@@ -76,14 +82,14 @@ val generate_ocaml_code :
     code for the [role] in [protocol], inside a [module] [monad] indicates
     whether the generated code uses a monad for transport (e.g. Lwt, Async) *)
 
-val generate_sexp : Syntax.scr_module -> protocol:ProtocolName.t -> string
+val generate_sexp : scr_module -> protocol:ProtocolName.t -> string
 (** [generate_code ~monad module protocol role] generates event-style OCaml
     code for the [role] in [protocol], inside a [module] [monad] indicates
     whether the generated code uses a monad for transport (e.g. Lwt, Async) *)
 
 val generate_ast :
      monad:bool
-  -> Syntax.scr_module
+  -> scr_module
   -> protocol:ProtocolName.t
   -> role:RoleName.t
   -> Ppxlib_ast.Parsetree.structure
@@ -91,7 +97,7 @@ val generate_ast :
     except it returns an AST instead of a string *)
 
 val generate_fstar_code :
-  Syntax.scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
+  scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
 (** Generate F* code, with support for refinement types *)
 
 module Pragma = Pragma

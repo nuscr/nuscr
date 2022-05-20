@@ -41,7 +41,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
   Pragma.set_verbose verbose ;
   try
     let ast = process_file file Nuscrlib.parse in
-    Pragma.load_from_pragmas ast.pragmas ;
+    Nuscrlib.load_pragmas ast ;
     if Option.is_some fsm && Pragma.nested_protocol_enabled () then
       Err.uerr
         (Err.IncompatibleFlag ("fsm", Pragma.show Pragma.NestedProtocols)) ;

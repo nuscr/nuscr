@@ -6,6 +6,10 @@ module Toplevel = struct
   open Err
   open Names
 
+  type scr_module = Syntax.scr_module
+
+  let load_pragmas ast = Pragma.load_from_pragmas ast.pragmas
+
   let set_filename (fname : string) (lexbuf : Lexing.lexbuf) =
     lexbuf.Lexing.lex_curr_p <-
       {lexbuf.Lexing.lex_curr_p with Lexing.pos_fname= fname} ;
