@@ -26,6 +26,7 @@ val validate_exn : scr_module -> unit
     messages will be printed *)
 
 (** {1 Other operations} *)
+
 val protocols_names_of : scr_module -> ProtocolName.t list
 (** [protocols_names_of module] returns the list of the names of protocols
     occuring in [module] *)
