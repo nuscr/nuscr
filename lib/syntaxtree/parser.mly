@@ -65,7 +65,7 @@
 %token PRAGMA_END
 
 (* ---------------------------------------- *)
-%start <Syntax.scr_module> scr_module
+%start <Gtype.scr_module> scr_module
 %{
 open Syntax
 open Names

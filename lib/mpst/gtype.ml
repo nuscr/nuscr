@@ -4,6 +4,10 @@ open Loc
 open Err
 open Names
 
+type scr_module = Syntax.scr_module
+
+type global_protocol = Syntax.global_protocol
+
 (** Various definitions and operations on Payload *)
 module Payload = struct
   type payload =
@@ -629,7 +633,7 @@ let add_missing_payload_field_names nested_t =
       {nested with gtype= add_missing_payload_names gtype} )
 
 let nested_t_of_module (scr_module : Syntax.scr_module) =
-  let open Syntax in
+  let open! Syntax in
   let scr_module = Extraction.rename_nested_protocols scr_module in
   let rec add_protocol protocols (protocol : global_protocol) =
     let nested_protocols = protocol.value.nested_protocols in

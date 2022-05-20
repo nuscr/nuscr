@@ -3,6 +3,12 @@ open Names
 
 (** Global types *)
 
+(* An abstract type for a parse tree *)
+type scr_module = Syntax.scr_module
+
+(* An abstract type for a global protocol in the parse tree *)
+type global_protocol = Syntax.global_protocol
+
 type payload =
   | PValue of VariableName.t option * Expr.payload_type
   | PDelegate of ProtocolName.t * RoleName.t
@@ -78,11 +84,10 @@ val call_label :
 (** Generates a unique label for a protocol call based on the caller, the
     protocol called and the participants involved *)
 
-val of_protocol : Syntax.global_protocol -> t
-(** Turn a raw protocol (from the parser) into a global type, optional
-    argument [refined] determines whether refinement types are enabled. *)
+val of_protocol : global_protocol -> t
+(** Turn a raw protocol (from the parser) into a global type. *)
 
-val nested_t_of_module : Syntax.scr_module -> nested_t
+val nested_t_of_module : scr_module -> nested_t
 (** Turn scribble module (from the parser) into a nested global type *)
 
 val normalise : t -> t
