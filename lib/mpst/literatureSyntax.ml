@@ -185,7 +185,7 @@ let rec show_gtype_tex = function
   | BranchG {g_br_from; g_br_to; g_br_cont} -> (
     match g_br_cont with
     | [(label, payloads, g_next)] ->
-        sprintf "\\gtCommSingle{%s}{%s}{%s}{%s}{%s}"
+        sprintf "\\gtCommSingle{%s}{%s}{%s}{%s}{%%\n%s\n}"
           (tex_format_role g_br_from)
           (tex_format_role g_br_to) (tex_format_label label)
           (tex_format_payloads payloads)
@@ -198,13 +198,13 @@ let rec show_gtype_tex = function
         in
         sprintf
           "\\gtCommRaw{%s}{%s}{%%\n\
-           \\begin{array}{@{}l{}}\n\
+           \\begin{array}{@{}l@{}}\n\
            %s\n\
            \\end{array}\n\
            }"
           (tex_format_role g_br_from)
           (tex_format_role g_br_to)
-          (String.concat ~sep:"\n" (List.map ~f:tex_format_cont conts)) )
+          (String.concat ~sep:"\\\\\n" (List.map ~f:tex_format_cont conts)) )
   | MuG (tv, cont) ->
       sprintf "\\gtRec{%s}{%s}"
         (TypeVariableName.user tv)
