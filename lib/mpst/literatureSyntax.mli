@@ -40,3 +40,10 @@ val show_gtype_mpstk : global -> string
 val show_ltype_mpstk : local -> string
 (** Output the local type in a form recognised by MPSTK.
     https://github.com/alcestes/mpstk *)
+
+val show_gtype_tex : global -> string
+(** Output the global type in a tex format using the package mpstmacros.
+    https://github.com/fangyi-zhou/mpstmacros
+
+    WARNING: identifiers are provided "as is", manual escaping may be
+    required *)

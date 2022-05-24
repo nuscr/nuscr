@@ -1,6 +1,8 @@
 open! Base
 open Names
 
+let sprintf = Printf.sprintf
+
 type 'a cont_list = (LabelName.t * PayloadTypeName.t list * 'a) list
 
 type global =
@@ -136,40 +138,76 @@ let show_cont f (label, payloads, cont) =
     match payloads with
     | [] -> ""
     | payloads ->
-        Printf.sprintf "(%s)"
+        sprintf "(%s)"
           (String.concat ~sep:", "
              (List.map ~f:PayloadTypeName.user payloads) )
   in
-  Printf.sprintf "%s%s . %s" (LabelName.user label) payloads (f cont)
+  sprintf "%s%s . %s" (LabelName.user label) payloads (f cont)
 
 let show_cont_list f = function
   | [cont] -> show_cont f cont
   | conts ->
-      Printf.sprintf "{\n%s\n}"
+      sprintf "{\n%s\n}"
         (String.concat ~sep:",\n" (List.map ~f:(show_cont f) conts))
 
 let rec show_gtype_mpstk = function
   | BranchG {g_br_from; g_br_to; g_br_cont} ->
-      Printf.sprintf "%s→%s:%s" (RoleName.user g_br_from)
-        (RoleName.user g_br_to)
+      sprintf "%s→%s:%s" (RoleName.user g_br_from) (RoleName.user g_br_to)
         (show_cont_list show_gtype_mpstk g_br_cont)
   | MuG (tv, cont) ->
-      Printf.sprintf "μ(%s)(%s)"
-        (TypeVariableName.user tv)
-        (show_gtype_mpstk cont)
+      sprintf "μ(%s)(%s)" (TypeVariableName.user tv) (show_gtype_mpstk cont)
   | TVarG tv -> TypeVariableName.user tv
   | EndG -> "end"
 
 let rec show_ltype_mpstk = function
   | SendL (role, conts) ->
-      Printf.sprintf "%s⊕%s" (RoleName.user role)
+      sprintf "%s⊕%s" (RoleName.user role)
         (show_cont_list show_ltype_mpstk conts)
   | RecvL (role, conts) ->
-      Printf.sprintf "%s&%s" (RoleName.user role)
+      sprintf "%s&%s" (RoleName.user role)
         (show_cont_list show_ltype_mpstk conts)
   | MuL (tv, cont) ->
-      Printf.sprintf "μ(%s)(%s)"
-        (TypeVariableName.user tv)
-        (show_ltype_mpstk cont)
+      sprintf "μ(%s)(%s)" (TypeVariableName.user tv) (show_ltype_mpstk cont)
   | TVarL tv -> TypeVariableName.user tv
   | EndL -> "end"
+
+let tex_format_role role = sprintf "\\RoleFmt{%s}" (RoleName.user role)
+
+let tex_format_label label = sprintf "\\LabelFmt{%s}" (LabelName.user label)
+
+let tex_format_payload payload =
+  sprintf "\\PayloadFmt{%s}" (PayloadTypeName.user payload)
+
+let tex_format_payloads payloads =
+  String.concat ~sep:", " (List.map ~f:tex_format_payload payloads)
+
+let rec show_gtype_tex = function
+  | BranchG {g_br_from; g_br_to; g_br_cont} -> (
+    match g_br_cont with
+    | [(label, payloads, g_next)] ->
+        sprintf "\\gtCommSingle{%s}{%s}{%s}{%s}{%s}"
+          (tex_format_role g_br_from)
+          (tex_format_role g_br_to) (tex_format_label label)
+          (tex_format_payloads payloads)
+          (show_gtype_tex g_next)
+    | conts ->
+        let tex_format_cont (label, payloads, g_next) =
+          sprintf "\\commChoice{%s}{%s}{%s}" (tex_format_label label)
+            (tex_format_payloads payloads)
+            (show_gtype_tex g_next)
+        in
+        sprintf
+          "\\gtCommRaw{%s}{%s}{%%\n\
+           \\begin{array}{@{}l{}}\n\
+           %s\n\
+           \\end{array}\n\
+           }"
+          (tex_format_role g_br_from)
+          (tex_format_role g_br_to)
+          (String.concat ~sep:"\n" (List.map ~f:tex_format_cont conts)) )
+  | MuG (tv, cont) ->
+      sprintf "\\gtRec{%s}{%s}"
+        (TypeVariableName.user tv)
+        (show_gtype_tex cont)
+  | TVarG tv -> sprintf "\\gtRecVar{%s}" (TypeVariableName.user tv)
+  | EndG -> "\\gtEnd"
