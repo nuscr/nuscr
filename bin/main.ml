@@ -36,7 +36,7 @@ let gen_output ast f = function
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
     show_global_type show_solver_queries show_global_type_mpstk project_mpstk
-    =
+    show_global_type_tex =
   Pragma.set_solver_show_queries show_solver_queries ;
   Pragma.set_verbose verbose ;
   try
@@ -137,6 +137,16 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
           Nuscrlib.LiteratureSyntax.show_gtype_mpstk gtype |> print_endline
           )
         show_global_type_mpstk
+    in
+    let () =
+      Option.iter
+        ~f:(fun protocol ->
+          let protocol = ProtocolName.of_string protocol in
+          let gtype =
+            Nuscrlib.get_global_type_literature_syntax ~protocol ast
+          in
+          Nuscrlib.LiteratureSyntax.show_gtype_tex gtype |> print_endline )
+        show_global_type_tex
     in
     `Ok ()
   with
@@ -283,6 +293,16 @@ let show_global_type_mpstk =
     & opt (some string) None
     & info ["show-global-type-mpstk"] ~doc ~docv:"PROTO")
 
+let show_global_type_tex =
+  let doc =
+    "Print the global type for the specified protocol in latex format. \
+     <protocol_name>"
+  in
+  Arg.(
+    value
+    & opt (some string) None
+    & info ["show-global-type-tex"] ~doc ~docv:"PROTO")
+
 let out_dir =
   let doc =
     "Path to the project directory inside which the code is to be \
@@ -319,7 +339,8 @@ let cmd =
         ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
         $ gencode_fstar $ sexp_global_type $ show_global_type
-        $ show_solver_queries $ show_global_type_mpstk $ project_mpstk ))
+        $ show_solver_queries $ show_global_type_mpstk $ project_mpstk
+        $ show_global_type_tex ))
   in
   Cmd.v info term
 
