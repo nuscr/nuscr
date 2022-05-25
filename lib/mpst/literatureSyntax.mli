@@ -34,15 +34,22 @@ val from_ltype : Ltype.t -> local
 (** Convert from a {!Ltype.t} *)
 
 val show_gtype_mpstk : global -> string
-(** Output the global type in a form recognised by MPSTK.
+(** Output a global type in a form recognised by MPSTK.
     https://github.com/alcestes/mpstk *)
 
 val show_ltype_mpstk : local -> string
-(** Output the local type in a form recognised by MPSTK.
+(** Output a local type in a form recognised by MPSTK.
     https://github.com/alcestes/mpstk *)
 
 val show_gtype_tex : global -> string
-(** Output the global type in a tex format using the package mpstmacros.
+(** Output a global type in a tex format using the package mpstmacros.
+    https://github.com/fangyi-zhou/mpstmacros
+
+    WARNING: identifiers are provided "as is", manual escaping may be
+    required *)
+
+val show_ltype_tex : local -> string
+(** Output a local type in a tex format using the package mpstmacros.
     https://github.com/fangyi-zhou/mpstmacros
 
     WARNING: identifiers are provided "as is", manual escaping may be

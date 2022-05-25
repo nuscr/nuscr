@@ -215,3 +215,23 @@ let rec show_gtype_tex = function
         (show_gtype_tex cont)
   | TVarG tv -> sprintf "\\gtRecVar{%s}" (TypeVariableName.user tv)
   | EndG -> "\\gtEnd"
+
+let rec show_ltype_tex = function
+  | SendL (role, conts) ->
+      let prefix_single =
+        sprintf "\\ltIntCSingle{%s}" (tex_format_role role)
+      in
+      let prefix_raw = sprintf "\\ltIntCRaw{%s}" (tex_format_role role) in
+      show_cont_list show_ltype_tex ~prefix_single ~prefix_raw conts
+  | RecvL (role, conts) ->
+      let prefix_single =
+        sprintf "\\ltExtCSingle{%s}" (tex_format_role role)
+      in
+      let prefix_raw = sprintf "\\ltExtCRaw{%s}" (tex_format_role role) in
+      show_cont_list show_ltype_tex ~prefix_single ~prefix_raw conts
+  | MuL (tv, cont) ->
+      sprintf "\\ltRec{%s}{%s}"
+        (TypeVariableName.user tv)
+        (show_ltype_tex cont)
+  | TVarL tv -> sprintf "\\ltRecVar{%s}" (TypeVariableName.user tv)
+  | EndL -> "\\ltEnd"
