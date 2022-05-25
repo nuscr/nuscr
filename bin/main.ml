@@ -36,7 +36,7 @@ let gen_output ast f = function
 let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
     show_global_type show_solver_queries show_global_type_mpstk project_mpstk
-    show_global_type_tex =
+    show_global_type_tex project_tex =
   Pragma.set_solver_show_queries show_solver_queries ;
   Pragma.set_verbose verbose ;
   try
@@ -66,6 +66,14 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
           let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
           Nuscrlib.LiteratureSyntax.show_ltype_mpstk ltype )
         project_mpstk
+    in
+    let () =
+      gen_output ast
+        (fun ast protocol role ->
+          let ltype = Nuscrlib.project_role ast ~protocol ~role in
+          let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
+          Nuscrlib.LiteratureSyntax.show_ltype_tex ltype )
+        project_tex
     in
     let () =
       gen_output ast
@@ -217,6 +225,16 @@ let project_mpstk =
     & opt (some role_proto) None
     & info ["project-mpstk"] ~doc ~docv:"ROLE@PROTO")
 
+let project_tex =
+  let doc =
+    "Project the local type for the specified protocol and role. \
+     <role_name>@<protocol_name>, but output in LaTeX format"
+  in
+  Arg.(
+    value
+    & opt (some role_proto) None
+    & info ["project-tex"] ~doc ~docv:"ROLE@PROTO")
+
 let fsm =
   let doc =
     "Project the CFSM for the specified protocol and role. \
@@ -295,7 +313,7 @@ let show_global_type_mpstk =
 
 let show_global_type_tex =
   let doc =
-    "Print the global type for the specified protocol in latex format. \
+    "Print the global type for the specified protocol in LaTeX format. \
      <protocol_name>"
   in
   Arg.(
@@ -340,7 +358,7 @@ let cmd =
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
         $ gencode_fstar $ sexp_global_type $ show_global_type
         $ show_solver_queries $ show_global_type_mpstk $ project_mpstk
-        $ show_global_type_tex ))
+        $ show_global_type_tex $ project_tex ))
   in
   Cmd.v info term
 

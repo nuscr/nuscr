@@ -53,3 +53,44 @@ quit . end
   }
   }
 
+Projection of TwoBuyer
+  $ nuscr --project-tex B1@TwoBuyer TwoBuyer.nuscr
+  \ltIntCSingle{\RoleFmt{S}}{\LabelFmt{s}}{\PayloadFmt{string}}{%
+  \ltExtCSingle{\RoleFmt{S}}{\LabelFmt{b1}}{\PayloadFmt{int}}{%
+  \ltIntCSingle{\RoleFmt{B2}}{\LabelFmt{bi2}}{\PayloadFmt{int}}{%
+  \ltEnd
+  }
+  }
+  }
+  $ nuscr --project-tex B2@TwoBuyer TwoBuyer.nuscr
+  \ltExtCSingle{\RoleFmt{S}}{\LabelFmt{b2}}{\PayloadFmt{int}}{%
+  \ltExtCSingle{\RoleFmt{B1}}{\LabelFmt{bi2}}{\PayloadFmt{int}}{%
+  \ltIntCRaw{\RoleFmt{S}}{%
+  \begin{array}{@{}l@{}}
+  \commChoice{\LabelFmt{quit}}{}{\ltEnd}\\
+  \commChoice{\LabelFmt{ok}}{}{\ltIntCSingle{\RoleFmt{S}}{\LabelFmt{s}}{\PayloadFmt{string}}{%
+  \ltExtCSingle{\RoleFmt{S}}{\LabelFmt{b2}}{\PayloadFmt{string}}{%
+  \ltEnd
+  }
+  }}
+  \end{array}
+  }
+  }
+  }
+  $ nuscr --project-tex S@TwoBuyer TwoBuyer.nuscr
+  \ltExtCSingle{\RoleFmt{B1}}{\LabelFmt{s}}{\PayloadFmt{string}}{%
+  \ltIntCSingle{\RoleFmt{B1}}{\LabelFmt{b1}}{\PayloadFmt{int}}{%
+  \ltIntCSingle{\RoleFmt{B2}}{\LabelFmt{b2}}{\PayloadFmt{int}}{%
+  \ltExtCRaw{\RoleFmt{B2}}{%
+  \begin{array}{@{}l@{}}
+  \commChoice{\LabelFmt{quit}}{}{\ltEnd}\\
+  \commChoice{\LabelFmt{ok}}{}{\ltExtCSingle{\RoleFmt{B2}}{\LabelFmt{s}}{\PayloadFmt{string}}{%
+  \ltIntCSingle{\RoleFmt{B2}}{\LabelFmt{b2}}{\PayloadFmt{string}}{%
+  \ltEnd
+  }
+  }}
+  \end{array}
+  }
+  }
+  }
+  }
