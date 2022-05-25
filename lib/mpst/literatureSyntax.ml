@@ -181,30 +181,34 @@ let tex_format_payload payload =
 let tex_format_payloads payloads =
   String.concat ~sep:", " (List.map ~f:tex_format_payload payloads)
 
-let rec show_gtype_tex = function
-  | BranchG {g_br_from; g_br_to; g_br_cont} -> (
-    match g_br_cont with
-    | [(label, payloads, g_next)] ->
-        sprintf "\\gtCommSingle{%s}{%s}{%s}{%s}{%%\n%s\n}"
-          (tex_format_role g_br_from)
-          (tex_format_role g_br_to) (tex_format_label label)
+let show_cont_list f ~prefix_single ~prefix_raw = function
+  | [(label, payloads, next)] ->
+      sprintf "%s{%s}{%s}{%%\n%s\n}" prefix_single (tex_format_label label)
+        (tex_format_payloads payloads)
+        (f next)
+  | conts ->
+      let tex_format_cont (label, payloads, next) =
+        sprintf "\\commChoice{%s}{%s}{%s}" (tex_format_label label)
           (tex_format_payloads payloads)
-          (show_gtype_tex g_next)
-    | conts ->
-        let tex_format_cont (label, payloads, g_next) =
-          sprintf "\\commChoice{%s}{%s}{%s}" (tex_format_label label)
-            (tex_format_payloads payloads)
-            (show_gtype_tex g_next)
-        in
-        sprintf
-          "\\gtCommRaw{%s}{%s}{%%\n\
-           \\begin{array}{@{}l@{}}\n\
-           %s\n\
-           \\end{array}\n\
-           }"
+          (f next)
+      in
+      sprintf "%s{%%\n\\begin{array}{@{}l@{}}\n%s\n\\end{array}\n}"
+        prefix_raw
+        (String.concat ~sep:"\\\\\n" (List.map ~f:tex_format_cont conts))
+
+let rec show_gtype_tex = function
+  | BranchG {g_br_from; g_br_to; g_br_cont} ->
+      let prefix_single =
+        sprintf "\\gtCommSingle{%s}{%s}"
           (tex_format_role g_br_from)
           (tex_format_role g_br_to)
-          (String.concat ~sep:"\\\\\n" (List.map ~f:tex_format_cont conts)) )
+      in
+      let prefix_raw =
+        sprintf "\\gtCommRaw{%s}{%s}"
+          (tex_format_role g_br_from)
+          (tex_format_role g_br_to)
+      in
+      show_cont_list show_gtype_tex ~prefix_single ~prefix_raw g_br_cont
   | MuG (tv, cont) ->
       sprintf "\\gtRec{%s}{%s}"
         (TypeVariableName.user tv)
