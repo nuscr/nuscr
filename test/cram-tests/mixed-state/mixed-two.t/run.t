@@ -3,5 +3,5 @@ branch, there is a participant that never learns about it and the
 protocol terminates without C that stays on forever.
 
   $ nuscr Mixed.nuscr
-  nuscr: I'm sorry, it is unfortunate Error message for uninformed choice for role C is not implemented (raised at lib/mpst/gtype.ml: line 615)
+  nuscr: I'm sorry, it is unfortunate Error message for uninformed choice for role C is not implemented (raised at lib/mpst/gtype.ml: line 619)
   [124]
