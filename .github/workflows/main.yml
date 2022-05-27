@@ -36,6 +36,6 @@ jobs:
 
       - run: opam exec -- dune runtest
 
-      - run: opam install ocamlformat=0.21.0
+      - run: opam install ocamlformat=0.22.4
 
       - run: opam exec -- dune build @fmt
