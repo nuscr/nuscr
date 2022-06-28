@@ -44,6 +44,105 @@ let roles_to_string roles =
   let str_roles = List.map ~f:RoleName.user roles in
   String.concat ~sep:", " str_roles
 
+let show =
+  let indent_here indent = String.make (indent * 2) ' ' in
+  let rec show_nested_type_internal indent =
+    let current_indent = indent_here indent in
+    function
+    | RecvL (m, r, l) ->
+        sprintf "%s%s from %s;\n%s" current_indent (show_message m)
+          (RoleName.user r)
+          (show_nested_type_internal indent l)
+    | SendL (m, r, l) ->
+        sprintf "%s%s to %s;\n%s" current_indent (show_message m)
+          (RoleName.user r)
+          (show_nested_type_internal indent l)
+    | MuL (n, rec_vars, l) ->
+        let rec_vars_s =
+          if List.is_empty rec_vars then ""
+          else
+            "["
+            ^ String.concat ~sep:", "
+                (List.map
+                   ~f:(fun (is_silent, rv) ->
+                     let prefix = if is_silent then "(silent) " else "" in
+                     prefix ^ Gtype.show_rec_var rv )
+                   rec_vars )
+            ^ "] "
+        in
+        sprintf "%srec %s %s{\n%s%s}\n" current_indent
+          (TypeVariableName.user n) rec_vars_s
+          (show_nested_type_internal (indent + 1) l)
+          current_indent
+    | TVarL (n, rec_exprs, _) ->
+        let rec_exprs_s =
+          if List.is_empty rec_exprs then ""
+          else
+            " ["
+            ^ String.concat ~sep:", " (List.map ~f:Expr.show rec_exprs)
+            ^ "]"
+        in
+        sprintf "%scontinue %s%s;\n" current_indent (TypeVariableName.user n)
+          rec_exprs_s
+    | EndL -> sprintf "%send\n" current_indent
+    | ChoiceL (r, ls) ->
+        let pre =
+          sprintf "%schoice at %s {\n" current_indent (RoleName.user r)
+        in
+        let intermission = sprintf "%s} or {\n" current_indent in
+        let post = sprintf "%s}\n" current_indent in
+        let choices =
+          List.map ~f:(show_nested_type_internal (indent + 1)) ls
+        in
+        let ls = String.concat ~sep:intermission choices in
+        pre ^ ls ^ post
+    | InviteCreateL (invite_roles, create_roles, protocol, l) ->
+        let name_str = ProtocolName.user protocol in
+        let invite =
+          sprintf "%sinvite(%s) to %s;\n" current_indent
+            (roles_to_string invite_roles)
+            name_str
+        in
+        let create =
+          if List.length create_roles = 0 then ""
+          else
+            let str_roles =
+              List.map
+                ~f:(fun r -> sprintf "role %s" (RoleName.user r))
+                create_roles
+            in
+            sprintf "%screate(%s) in %s;\n" current_indent
+              (String.concat ~sep:", " str_roles)
+              name_str
+        in
+        let l_str = show_nested_type_internal indent l in
+        invite ^ create ^ l_str
+    | AcceptL (role, protocol, roles, new_roles, caller, l) ->
+        sprintf "%saccept %s@%s(%s) from %s;\n%s" current_indent
+          (RoleName.user role)
+          (ProtocolName.user protocol)
+          (Symtable.show_roles (roles, new_roles))
+          (RoleName.user caller)
+          (show_nested_type_internal indent l)
+    | SilentL (var, ty, l) ->
+        sprintf "%s(silent) %s(%s);\n%s" current_indent
+          (VariableName.user var)
+          (Expr.show_payload_type ty)
+          (show_nested_type_internal indent l)
+  in
+  show_nested_type_internal 0
+
+let show_nested_t (nested_t : nested_t) =
+  let show_local_protocol ((protocol, role), (roles, ltype)) =
+    sprintf "%s@%s(%s) {\n\n%s\n}" (RoleName.user role)
+      (ProtocolName.user protocol)
+      (Symtable.show_roles (roles, []))
+      (show ltype)
+  in
+  Map.to_alist nested_t
+  |> List.map ~f:show_local_protocol
+  |> String.concat ~sep:"\n\n"
+
 let rec equal lty1 lty2 =
   match (lty1, lty2) with
   | RecvL (m1, r1, lty1'), RecvL (m2, r2, lty2') ->
@@ -154,105 +253,6 @@ let equal_coinductive lty1 lty2 =
       | SilentL _, _ -> false )
   in
   aux lty1 lty2
-
-let show =
-  let indent_here indent = String.make (indent * 2) ' ' in
-  let rec show_nested_type_internal indent =
-    let current_indent = indent_here indent in
-    function
-    | RecvL (m, r, l) ->
-        sprintf "%s%s from %s;\n%s" current_indent (show_message m)
-          (RoleName.user r)
-          (show_nested_type_internal indent l)
-    | SendL (m, r, l) ->
-        sprintf "%s%s to %s;\n%s" current_indent (show_message m)
-          (RoleName.user r)
-          (show_nested_type_internal indent l)
-    | MuL (n, rec_vars, l) ->
-        let rec_vars_s =
-          if List.is_empty rec_vars then ""
-          else
-            "["
-            ^ String.concat ~sep:", "
-                (List.map
-                   ~f:(fun (is_silent, rv) ->
-                     let prefix = if is_silent then "(silent) " else "" in
-                     prefix ^ Gtype.show_rec_var rv )
-                   rec_vars )
-            ^ "] "
-        in
-        sprintf "%srec %s %s{\n%s%s}\n" current_indent
-          (TypeVariableName.user n) rec_vars_s
-          (show_nested_type_internal (indent + 1) l)
-          current_indent
-    | TVarL (n, rec_exprs, _) ->
-        let rec_exprs_s =
-          if List.is_empty rec_exprs then ""
-          else
-            " ["
-            ^ String.concat ~sep:", " (List.map ~f:Expr.show rec_exprs)
-            ^ "]"
-        in
-        sprintf "%scontinue %s%s;\n" current_indent (TypeVariableName.user n)
-          rec_exprs_s
-    | EndL -> sprintf "%send\n" current_indent
-    | ChoiceL (r, ls) ->
-        let pre =
-          sprintf "%schoice at %s {\n" current_indent (RoleName.user r)
-        in
-        let intermission = sprintf "%s} or {\n" current_indent in
-        let post = sprintf "%s}\n" current_indent in
-        let choices =
-          List.map ~f:(show_nested_type_internal (indent + 1)) ls
-        in
-        let ls = String.concat ~sep:intermission choices in
-        pre ^ ls ^ post
-    | InviteCreateL (invite_roles, create_roles, protocol, l) ->
-        let name_str = ProtocolName.user protocol in
-        let invite =
-          sprintf "%sinvite(%s) to %s;\n" current_indent
-            (roles_to_string invite_roles)
-            name_str
-        in
-        let create =
-          if List.length create_roles = 0 then ""
-          else
-            let str_roles =
-              List.map
-                ~f:(fun r -> sprintf "role %s" (RoleName.user r))
-                create_roles
-            in
-            sprintf "%screate(%s) in %s;\n" current_indent
-              (String.concat ~sep:", " str_roles)
-              name_str
-        in
-        let l_str = show_nested_type_internal indent l in
-        invite ^ create ^ l_str
-    | AcceptL (role, protocol, roles, new_roles, caller, l) ->
-        sprintf "%saccept %s@%s(%s) from %s;\n%s" current_indent
-          (RoleName.user role)
-          (ProtocolName.user protocol)
-          (Symtable.show_roles (roles, new_roles))
-          (RoleName.user caller)
-          (show_nested_type_internal indent l)
-    | SilentL (var, ty, l) ->
-        sprintf "%s(silent) %s(%s);\n%s" current_indent
-          (VariableName.user var)
-          (Expr.show_payload_type ty)
-          (show_nested_type_internal indent l)
-  in
-  show_nested_type_internal 0
-
-let show_nested_t (nested_t : nested_t) =
-  let show_local_protocol ((protocol, role), (roles, ltype)) =
-    sprintf "%s@%s(%s) {\n\n%s\n}" (RoleName.user role)
-      (ProtocolName.user protocol)
-      (Symtable.show_roles (roles, []))
-      (show ltype)
-  in
-  Map.to_alist nested_t
-  |> List.map ~f:show_local_protocol
-  |> String.concat ~sep:"\n\n"
 
 type local_proto_name_lookup = LocalProtocolName.t Map.M(LocalProtocolId).t
 
