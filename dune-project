@@ -41,6 +41,8 @@
    (>= v0.12.0))
   (ppx_sexp_conv
    (>= v0.12.0))
+  (ppx_hash
+   (>= v0.12.0))
   (ppx_here
    (>= v0.12.0))
   (z3 :with-test)
