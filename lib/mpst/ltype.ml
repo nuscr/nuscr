@@ -115,10 +115,13 @@ let equal_coinductive lty1 lty2 =
       | TVarL (tv1, es1, lty1'), TVarL (tv2, es2, lty2') ->
           [%derive.eq: TypeVariableName.t * Expr.t list] (tv1, es1) (tv2, es2)
           && aux (Lazy.force lty1') (Lazy.force lty2')
+      | TVarL (_, [], lty'), lty | lty, TVarL (_, [], lty') ->
+          aux (Lazy.force lty') lty
       | MuL (tv1, rvs1, lty1'), MuL (tv2, rvs2, lty2') ->
           [%derive.eq: TypeVariableName.t * (bool * Gtype.rec_var) list]
             (tv1, rvs1) (tv2, rvs2)
           && aux lty1' lty2'
+      | MuL (_, [], lty'), lty | lty, MuL (_, [], lty') -> aux lty lty'
       | EndL, EndL -> true
       | ( InviteCreateL (rs1, rs1', p1, lty1')
         , InviteCreateL (rs2, rs2', p2, lty2') ) ->
@@ -395,6 +398,7 @@ let rec merge projected_role lty1 lty2 =
       try_merge `Init var_lty_pairs
     in
     match (lty1, lty2) with
+    | lty1, lty2 when equal_coinductive lty1 lty2 -> lty1
     | RecvL (_, r1, _), RecvL (_, r2, _) ->
         if not @@ RoleName.equal r1 r2 then fail () ;
         merge_recv r1 [lty1; lty2]
@@ -432,7 +436,7 @@ let rec merge projected_role lty1 lty2 =
         merge projected_role (Lazy.force l_lazy) lty2
     | lty1, TVarL (_, _, l_lazy) when Lazy.is_val l_lazy ->
         merge projected_role lty1 (Lazy.force l_lazy)
-    | _ -> if equal_coinductive lty1 lty2 then lty1 else fail ()
+    | _ -> fail ()
   with Unmergable (l1, l2) ->
     let error = show l1 ^ "\nand\n\n" ^ show l2 in
     uerr @@ Err.UnableToMerge (String.strip error)
