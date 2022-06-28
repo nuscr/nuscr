@@ -1,0 +1,38 @@
+global protocol Proto(role A, role B, role C) {
+    choice at A {
+        foo from A to B;
+        a from A to C;
+        rec X {
+            b from A to C;
+            a from A to C;
+            continue X;
+        }
+    } or {
+        bar from A to B;
+        rec X {
+            a from A to C;
+            b from A to C;
+            continue X;
+        }
+    }
+}
+
+global protocol Proto2(role A, role B, role C) {
+    choice at A {
+        foo from A to B;
+        rec X {
+            a from A to C;
+            b from A to C;
+            a from A to C;
+            b from A to C;
+            continue X;
+        }
+    } or {
+        bar from A to B;
+        rec X {
+            a from A to C;
+            b from A to C;
+            continue X;
+        }
+    }
+}
