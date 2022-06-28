@@ -31,15 +31,15 @@ Example2 should also be projectable.
   $ nuscr --project A@Example2 Loop2.nuscr
   nuscr: Reported problem:
           ("Stack overflow")
-  [1]
+  [124]
   $ nuscr --project B@Example2 Loop2.nuscr
   nuscr: Reported problem:
           ("Stack overflow")
-  [1]
+  [124]
   $ nuscr --project C@Example2 Loop2.nuscr
   nuscr: Reported problem:
           ("Stack overflow")
-  [1]
+  [124]
 
 Example3 should also be projectable.
 
