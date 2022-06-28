@@ -88,6 +88,70 @@ let rec equal lty1 lty2 =
   | AcceptL _, _ -> false
   | SilentL _, _ -> false
 
+let equal_coinductive lty1 lty2 =
+  let memory =
+    Pairset.create
+      ( module struct
+        type nonrec t = t
+      end )
+  in
+  let rec aux lty1 lty2 =
+    if Hash_set.mem memory (lty1, lty2) then true
+    else (
+      Hash_set.add memory (lty1, lty2) ;
+      match (lty1, lty2) with
+      | RecvL (m1, r1, lty1'), RecvL (m2, r2, lty2') ->
+          [%derive.eq: Gtype.message * RoleName.t] (m1, r1) (m2, r2)
+          && aux lty1' lty2'
+      | SendL (m1, r1, lty1'), SendL (m2, r2, lty2') ->
+          [%derive.eq: Gtype.message * RoleName.t] (m1, r1) (m2, r2)
+          && aux lty1' lty2'
+      | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2) ->
+          [%derive.eq: RoleName.t] r1 r2 && List.equal aux ltys1 ltys2
+      | TVarL (tv1, es1, lty1'), TVarL (tv2, es2, lty2') ->
+          [%derive.eq: TypeVariableName.t * Expr.t list] (tv1, es1) (tv2, es2)
+          && ( phys_equal lty1' lty2'
+             || aux (Lazy.force lty1') (Lazy.force lty2') )
+      | TVarL (_, [], lty'), lty | lty, TVarL (_, [], lty') ->
+          aux (Lazy.force lty') lty
+      | MuL (tv1, rvs1, lty1'), MuL (tv2, rvs2, lty2') ->
+          [%derive.eq: TypeVariableName.t * (bool * Gtype.rec_var) list]
+            (tv1, rvs1) (tv2, rvs2)
+          && aux lty1' lty2'
+      | MuL (_, [], lty'), lty | lty, MuL (_, [], lty') -> aux lty lty'
+      | EndL, EndL -> true
+      | ( InviteCreateL (rs1, rs1', p1, lty1')
+        , InviteCreateL (rs2, rs2', p2, lty2') ) ->
+          [%derive.eq: RoleName.t list * RoleName.t list * ProtocolName.t]
+            (rs1, rs1', p1) (rs2, rs2', p2)
+          && aux lty1' lty2'
+      | ( AcceptL (r1, p1, rs1, rs1', r1', lty1')
+        , AcceptL (r2, p2, rs2, rs2', r2', lty2') ) ->
+          [%derive.eq:
+            RoleName.t
+            * ProtocolName.t
+            * RoleName.t list
+            * RoleName.t list
+            * RoleName.t] (r1, p1, rs1, rs1', r1') (r2, p2, rs2, rs2', r2')
+          && aux lty1' lty2'
+      | SilentL (v1, t1, lty1'), SilentL (v2, t2, lty2') ->
+          [%derive.eq: VariableName.t * Expr.payload_type] (v1, t1) (v2, t2)
+          && aux lty1' lty2'
+      (* Enumerate constructors here, so that new additions to local types
+         will * raise a partial pattern matching warning. Otherwise, simply
+         use a * catch-all clause may cause future breakage *)
+      | RecvL _, _ -> false
+      | SendL _, _ -> false
+      | ChoiceL _, _ -> false
+      | TVarL _, _ -> false
+      | MuL _, _ -> false
+      | EndL, _ -> false
+      | InviteCreateL _, _ -> false
+      | AcceptL _, _ -> false
+      | SilentL _, _ -> false )
+  in
+  aux lty1 lty2
+
 module Formatting = struct
   open! Caml.Format
 
@@ -416,7 +480,7 @@ let rec merge projected_role lty1 lty2 =
       ->
         merge_recv r2 (lty1 :: ltys2)
     | SilentL _, _ | _, SilentL _ -> merge_silent_prefix lty1 lty2
-    | _ -> if equal lty1 lty2 then lty1 else fail ()
+    | _ -> if equal_coinductive lty1 lty2 then lty1 else fail ()
   with Unmergable (l1, l2) ->
     let error = show l1 ^ "\nand\n" ^ show l2 in
     uerr @@ Err.UnableToMerge (String.strip error)
