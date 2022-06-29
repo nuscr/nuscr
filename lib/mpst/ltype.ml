@@ -321,118 +321,127 @@ let rec re_silent (vars, lty) =
   | [] -> lty
   | (v, ty) :: rest -> re_silent (rest, SilentL (v, ty, lty))
 
-let rec merge projected_role lty1 lty2 =
-  try
-    let fail () = raise (Unmergable (lty1, lty2)) in
-    let merge_recv r recvs =
-      let rec aux (acc : (LabelName.t * t) list) = function
-        | RecvL (m, _, lty) as l -> (
-            let {label; _} = m in
-            match List.Assoc.find acc ~equal:LabelName.equal label with
-            | None -> (label, l) :: acc
-            | Some (RecvL (m_, r, l_))
-              when List.equal equal_payload m.Gtype.payload m_.Gtype.payload
-              ->
-                List.Assoc.add acc ~equal:LabelName.equal label
-                  (RecvL (m, r, merge projected_role lty l_))
-            | Some (RecvL _) -> fail ()
-            | _ ->
-                violation ~here:[%here]
-                  "Merge receive must be merging receive local types" )
-        | AcceptL (role', protocol, roles, new_roles, caller, lty) as l -> (
-            let label = call_label caller protocol roles in
-            match List.Assoc.find acc ~equal:LabelName.equal label with
-            | None -> (label, l) :: acc
-            | Some (AcceptL (_, _, _, _, _, lty_)) ->
-                List.Assoc.add acc ~equal:LabelName.equal label
-                  (AcceptL
-                     ( role'
-                     , protocol
-                     , roles
-                     , new_roles
-                     , caller
-                     , merge projected_role lty lty_ ) )
-            | _ ->
-                violation ~here:[%here]
-                  "Merge receive must be merging receive local types" )
-        | _ ->
-            violation ~here:[%here]
-              "Merge receive must be merging receive local types"
-      in
-      let conts = List.fold ~f:aux ~init:[] recvs in
-      match conts with
-      | [] -> EndL
-      | [(_, lty)] -> lty
-      | conts -> ChoiceL (r, List.map ~f:snd conts)
+let rec really_merge ~memory ~projected_role lty1 lty2 =
+  let fail () = raise (Unmergable (lty1, lty2)) in
+  let merge_recv r recvs =
+    let rec aux (acc : (LabelName.t * t) list) = function
+      | RecvL (m, _, lty) as l -> (
+          let {label; _} = m in
+          match List.Assoc.find acc ~equal:LabelName.equal label with
+          | None -> (label, l) :: acc
+          | Some (RecvL (m_, r, l_))
+            when List.equal equal_payload m.Gtype.payload m_.Gtype.payload ->
+              List.Assoc.add acc ~equal:LabelName.equal label
+                (RecvL (m, r, really_merge ~projected_role ~memory lty l_))
+          | Some (RecvL _) -> fail ()
+          | _ ->
+              violation ~here:[%here]
+                "Merge receive must be merging receive local types" )
+      | AcceptL (role', protocol, roles, new_roles, caller, lty) as l -> (
+          let label = call_label caller protocol roles in
+          match List.Assoc.find acc ~equal:LabelName.equal label with
+          | None -> (label, l) :: acc
+          | Some (AcceptL (_, _, _, _, _, lty_)) ->
+              List.Assoc.add acc ~equal:LabelName.equal label
+                (AcceptL
+                   ( role'
+                   , protocol
+                   , roles
+                   , new_roles
+                   , caller
+                   , really_merge ~projected_role ~memory lty lty_ ) )
+          | _ ->
+              violation ~here:[%here]
+                "Merge receive must be merging receive local types" )
+      | _ ->
+          violation ~here:[%here]
+            "Merge receive must be merging receive local types"
     in
-    let merge_silent_prefix lty1 lty2 =
-      let unsilent1 = un_silent lty1 in
-      let unsilent2 = un_silent lty2 in
-      let var_lty_pairs = unsilent1 @ unsilent2 in
-      (* var_lty_pairs should have length >= 2 *)
-      let rec try_merge env ltys =
-        match (env, ltys) with
-        | `Init, (_, EndL) :: rest -> try_merge `End rest
-        | `Init, (_, (TVarL _ as tv)) :: rest -> try_merge (`TVar tv) rest
-        | `Init, (vars, (RecvL (m, r, _) as lty)) :: rest ->
-            try_merge
-              (`Recv
-                (Set.singleton (module LabelName) m.label, r, [(vars, lty)])
-                )
-              rest
-        | `End, [] -> EndL
-        | `End, (_, EndL) :: rest -> try_merge `End rest
-        | `TVar tv, [] -> tv
-        | `TVar tv, (_, (TVarL _ as tv')) :: rest when equal tv tv' ->
-            try_merge (`TVar tv) rest
-        | `Recv (_, recv_role, acc), [] ->
-            ChoiceL (recv_role, List.rev_map ~f:re_silent acc)
-        | ( `Recv (seen, recv_role, acc)
-          , (vars, (RecvL (m, r, _) as lty)) :: rest )
-          when RoleName.equal recv_role r && not (Set.mem seen m.label) ->
-            try_merge
-              (`Recv (Set.add seen m.label, recv_role, (vars, lty) :: acc))
-              rest
-        | _ -> fail ()
-      in
-      try_merge `Init var_lty_pairs
+    let conts = List.fold ~f:aux ~init:[] recvs in
+    match conts with
+    | [] -> EndL
+    | [(_, lty)] -> lty
+    | conts -> ChoiceL (r, List.map ~f:snd conts)
+  in
+  let merge_silent_prefix lty1 lty2 =
+    let unsilent1 = un_silent lty1 in
+    let unsilent2 = un_silent lty2 in
+    let var_lty_pairs = unsilent1 @ unsilent2 in
+    (* var_lty_pairs should have length >= 2 *)
+    let rec try_merge env ltys =
+      match (env, ltys) with
+      | `Init, (_, EndL) :: rest -> try_merge `End rest
+      | `Init, (_, (TVarL _ as tv)) :: rest -> try_merge (`TVar tv) rest
+      | `Init, (vars, (RecvL (m, r, _) as lty)) :: rest ->
+          try_merge
+            (`Recv
+              (Set.singleton (module LabelName) m.label, r, [(vars, lty)]) )
+            rest
+      | `End, [] -> EndL
+      | `End, (_, EndL) :: rest -> try_merge `End rest
+      | `TVar tv, [] -> tv
+      | `TVar tv, (_, (TVarL _ as tv')) :: rest when equal tv tv' ->
+          try_merge (`TVar tv) rest
+      | `Recv (_, recv_role, acc), [] ->
+          ChoiceL (recv_role, List.rev_map ~f:re_silent acc)
+      | ( `Recv (seen, recv_role, acc)
+        , (vars, (RecvL (m, r, _) as lty)) :: rest )
+        when RoleName.equal recv_role r && not (Set.mem seen m.label) ->
+          try_merge
+            (`Recv (Set.add seen m.label, recv_role, (vars, lty) :: acc))
+            rest
+      | _ -> fail ()
     in
-    match (lty1, lty2) with
-    | lty1, lty2 when equal_coinductive lty1 lty2 -> lty1
-    | RecvL (_, r1, _), RecvL (_, r2, _) ->
-        if not @@ RoleName.equal r1 r2 then fail () ;
-        merge_recv r1 [lty1; lty2]
-    | AcceptL (_, _, _, _, caller, _), RecvL (_, r2, _) ->
-        if not @@ RoleName.equal caller r2 then fail () ;
-        merge_recv r2 [lty1; lty2]
-    | RecvL (_, r1, _), AcceptL (_, _, _, _, caller, _) ->
-        if not @@ RoleName.equal caller r1 then fail () ;
-        merge_recv r1 [lty1; lty2]
-    | ChoiceL (r1, ltys1), RecvL (_, r2, _) when RoleName.equal r1 r2 ->
-        (* Choice is a set of receive *)
-        merge_recv r1 (lty2 :: ltys1)
-    | RecvL (_, r2, _), ChoiceL (r1, ltys2) when RoleName.equal r1 r2 ->
-        merge_recv r1 (lty1 :: ltys2)
-    | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
-      when RoleName.equal r1 r2 && not (RoleName.equal r1 projected_role) ->
-        merge_recv r1 (ltys1 @ ltys2)
-    | AcceptL (_, _, _, _, caller1, _), AcceptL (_, _, _, _, caller2, _) ->
-        if not @@ RoleName.equal caller1 caller2 then fail () ;
-        merge_recv caller1 [lty1; lty2]
-    | ChoiceL (r1, ltys1), AcceptL (_, _, _, _, caller, _)
-      when RoleName.equal r1 caller && not (RoleName.equal r1 projected_role)
-      ->
-        merge_recv r1 (lty2 :: ltys1)
-    | AcceptL (_, _, _, _, caller, _), ChoiceL (r2, ltys2)
-      when RoleName.equal r2 caller && not (RoleName.equal r2 projected_role)
-      ->
-        merge_recv r2 (lty1 :: ltys2)
-    | SilentL _, _ | _, SilentL _ -> merge_silent_prefix lty1 lty2
-    | TVarL (_, _, l_lazy), lty2 when Lazy.is_val l_lazy ->
-        merge projected_role (Lazy.force l_lazy) lty2
-    | lty1, TVarL (_, _, l_lazy) when Lazy.is_val l_lazy ->
-        merge projected_role lty1 (Lazy.force l_lazy)
-    | _ -> fail ()
+    try_merge `Init var_lty_pairs
+  in
+  match (lty1, lty2) with
+  | lty1, lty2 when equal_coinductive lty1 lty2 -> lty1
+  | RecvL (_, r1, _), RecvL (_, r2, _) ->
+      if not @@ RoleName.equal r1 r2 then fail () ;
+      merge_recv r1 [lty1; lty2]
+  | AcceptL (_, _, _, _, caller, _), RecvL (_, r2, _) ->
+      if not @@ RoleName.equal caller r2 then fail () ;
+      merge_recv r2 [lty1; lty2]
+  | RecvL (_, r1, _), AcceptL (_, _, _, _, caller, _) ->
+      if not @@ RoleName.equal caller r1 then fail () ;
+      merge_recv r1 [lty1; lty2]
+  | ChoiceL (r1, ltys1), RecvL (_, r2, _) when RoleName.equal r1 r2 ->
+      (* Choice is a set of receive *)
+      merge_recv r1 (lty2 :: ltys1)
+  | RecvL (_, r2, _), ChoiceL (r1, ltys2) when RoleName.equal r1 r2 ->
+      merge_recv r1 (lty1 :: ltys2)
+  | ChoiceL (r1, ltys1), ChoiceL (r2, ltys2)
+    when RoleName.equal r1 r2 && not (RoleName.equal r1 projected_role) ->
+      merge_recv r1 (ltys1 @ ltys2)
+  | AcceptL (_, _, _, _, caller1, _), AcceptL (_, _, _, _, caller2, _) ->
+      if not @@ RoleName.equal caller1 caller2 then fail () ;
+      merge_recv caller1 [lty1; lty2]
+  | ChoiceL (r1, ltys1), AcceptL (_, _, _, _, caller, _)
+    when RoleName.equal r1 caller && not (RoleName.equal r1 projected_role)
+    ->
+      merge_recv r1 (lty2 :: ltys1)
+  | AcceptL (_, _, _, _, caller, _), ChoiceL (r2, ltys2)
+    when RoleName.equal r2 caller && not (RoleName.equal r2 projected_role)
+    ->
+      merge_recv r2 (lty1 :: ltys2)
+  | SilentL _, _ | _, SilentL _ -> merge_silent_prefix lty1 lty2
+  | TVarL (_, _, l_lazy), lty' | lty', TVarL (_, _, l_lazy) ->
+      let lty1 = Lazy.force l_lazy in
+      let lty2 = lty' in
+      if Hash_set.mem memory (lty1, lty2) then lty2
+      else (
+        Hash_set.add memory (lty1, lty2) ;
+        really_merge ~projected_role ~memory lty1 lty2 )
+  | _ -> fail ()
+
+let merges projected_role ltys =
+  let memory =
+    Pairset.create
+      ( module struct
+        type nonrec t = t
+      end )
+  in
+  try List.reduce_exn ~f:(really_merge ~projected_role ~memory) ltys
   with Unmergable (l1, l2) ->
     let error = show l1 ^ "\nand\n\n" ^ show l2 in
     uerr @@ Err.UnableToMerge (String.strip error)
@@ -686,9 +695,7 @@ let rec project_phase_two projected_role ltype =
     | ChoiceL (r, ls) ->
         let ls = List.map ~f:aux ls in
         if String.equal (RoleName.user r) "@" then
-          match List.reduce ~f:(merge projected_role) ls with
-          | Some l -> aux l
-          | None -> EndL
+          match ls with [] -> EndL | ls -> aux (merges projected_role ls)
         else ChoiceL (r, ls)
     | MuL (tv, rvs, l') -> MuL (tv, rvs, aux l')
     | TVarL (tv, es, l) -> TVarL (tv, es, l)

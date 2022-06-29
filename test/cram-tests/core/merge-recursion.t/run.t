@@ -12,6 +12,7 @@ Example1 should be projectable.
   }
   
 
+
   $ nuscr --project B@Example1 Loop1.nuscr
   rec Loop {
     Foo() from A;
@@ -25,6 +26,7 @@ Example1 should be projectable.
   
 
 
+
 (BROKEN)
 Example2 should also be projectable.
 
@@ -32,14 +34,17 @@ Example2 should also be projectable.
   nuscr: Reported problem:
           ("Stack overflow")
   [124]
+
   $ nuscr --project B@Example2 Loop2.nuscr
   nuscr: Reported problem:
           ("Stack overflow")
   [124]
+
   $ nuscr --project C@Example2 Loop2.nuscr
   nuscr: Reported problem:
           ("Stack overflow")
   [124]
+
 
 Example3 should also be projectable.
 
@@ -58,6 +63,7 @@ Example3 should also be projectable.
   }
   
 
+
   $ nuscr --project B@Example3 Loop3.nuscr
   rec Loop {
     Foo() from A;
@@ -71,6 +77,7 @@ Example3 should also be projectable.
   }
   
 
+
   $ nuscr --project C@Example3 Loop3.nuscr
   rec Loop {
     choice at C {
@@ -82,4 +89,5 @@ Example3 should also be projectable.
     }
   }
   
+
 
