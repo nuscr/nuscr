@@ -355,7 +355,7 @@ let show_lookup_table table =
   in
   Map.fold table ~init:"" ~f:show_aux
 
-exception Unmergable of t * t [@@deriving sexp_of]
+exception Unmergable [@@deriving sexp_of]
 
 (* Remove silent prefixes in a silent type, and return a list of silent
    prefixes and a non-silent type (that is not a choice) *)
@@ -377,7 +377,7 @@ let rec re_silent (vars, lty) =
   | (v, ty) :: rest -> re_silent (rest, SilentL (v, ty, lty))
 
 let rec really_merge unguarded_tv projected_role lty1 lty2 =
-  let fail () = raise (Unmergable (lty1, lty2)) in
+  let fail () = raise Unmergable in
   let merge_recv r recvs =
     let rec aux (acc : (LabelName.t * t) list) = function
       | RecvL (m, _, lty) as l -> (
@@ -501,8 +501,8 @@ let merge ?unguarded_tv projected_role lty1 lty2 =
          ~default:(Set.empty (module TypeVariableName))
          unguarded_tv )
       projected_role lty1 lty2
-  with Unmergable (l1, l2) ->
-    let error = show l1 ^ "\nand\n" ^ show l2 in
+  with Unmergable ->
+    let error = show lty1 ^ "\nand\n" ^ show lty2 in
     uerr @@ Err.UnableToMerge (String.strip error)
 
 (* Check whether the first message in a g choice is from choice_r to recv_r,
