@@ -4,6 +4,5 @@ Unbound role name in messages are not allowed.
   [124]
 
   $ nuscr UnboundRoleMore.nuscr
-  nuscr: Reported problem:
-          (Not_found_s ("Map.find_exn: not found" T))
+  nuscr: User error: Unbound role T at 9:17 to 9:18 in: UnboundRoleMore.nuscr
   [124]

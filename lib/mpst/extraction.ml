@@ -44,7 +44,11 @@ let instantiate (protocol : raw_global_protocol)
       ~init:(Map.empty (module RoleName))
       replacement_map
   in
-  let swap_f r = Map.find_exn replacement_map r in
+  let swap_f r =
+    match Map.find replacement_map r with
+    | Some r -> r
+    | None -> uerr (UnboundRole r)
+  in
   List.map ~f:(swap_role swap_f) protocol.interactions
 
 let rec_var_of_protocol_roles (name, roles) loc =
