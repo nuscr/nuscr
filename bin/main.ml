@@ -4,7 +4,7 @@ open Nuscrlib
 open Names
 open Cmdliner
 
-let is_debug () =
+let is_debug =
   Option.is_some (Sys.getenv "DEBUG")
   || Option.is_some (Sys.getenv "NUSCRDEBUG")
 
@@ -172,7 +172,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
             "I'm sorry, it is unfortunate %s is not implemented (raised at \
              %s)"
             desc (show_position where) )
-  | e when not (is_debug ()) ->
+  | e when not is_debug ->
       `Error (false, "Reported problem:\n " ^ Exn.to_string e)
 
 let role_proto =
