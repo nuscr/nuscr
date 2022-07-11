@@ -457,6 +457,7 @@ let rec really_merge unguarded_tv projected_role lty1 lty2 =
     try_merge `Init var_lty_pairs
   in
   match (lty1, lty2) with
+  | _ when equal_coinductive lty1 lty2 -> lty1
   | RecvL (_, r1, _), RecvL (_, r2, _) ->
       if not @@ RoleName.equal r1 r2 then fail () ;
       merge_recv r1 [lty1; lty2]
@@ -492,7 +493,10 @@ let rec really_merge unguarded_tv projected_role lty1 lty2 =
       MuL (tv1, [], really_merge unguarded_tv projected_role lty1' lty2')
   | TVarL (tv, _, _), lty when Set.mem unguarded_tv tv -> lty
   | lty, TVarL (tv, _, _) when Set.mem unguarded_tv tv -> lty
-  | _ -> if equal_coinductive lty1 lty2 then lty1 else fail ()
+  | TVarL (_, [], lty'), lty | lty, TVarL (_, [], lty') ->
+      let lty' = Lazy.force lty' in
+      really_merge unguarded_tv projected_role lty lty'
+  | _ -> fail ()
 
 let merge ?unguarded_tv projected_role lty1 lty2 =
   try
