@@ -1,0 +1,10 @@
+global protocol Foo(role N, role E)
+{
+  Foo from N to T;
+  do Foo2(N, E);
+}
+
+global protocol Foo2(role N, role E)
+{
+  Foo from N to T;
+}
