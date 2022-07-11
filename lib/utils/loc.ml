@@ -12,8 +12,11 @@ let show_position pos =
   sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let show (startp, endp) : string =
-  sprintf "%s to %s in: %s" (show_position startp) (show_position endp)
-    startp.pos_fname
+  let filename =
+    if String.is_empty startp.pos_fname then ""
+    else " in: " ^ startp.pos_fname
+  in
+  sprintf "%s to %s%s" (show_position startp) (show_position endp) filename
 
 let pp fmt loc = Caml.Format.fprintf fmt "%s" (show loc)
 
