@@ -42,7 +42,7 @@ let display_role scr (protocol, role) =
       ; txt " ] "
       ; txt " [ "
       ; lk_f
-      ; txt " ] " ])
+      ; txt " ] " ] )
 
 let display_roles scr l =
   To_dom.of_element @@ T.(ul (List.map (display_role scr) l))

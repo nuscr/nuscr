@@ -213,7 +213,7 @@ let project =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["project"] ~doc ~docv:"ROLE@PROTO")
+    & info ["project"] ~doc ~docv:"ROLE@PROTO" )
 
 let project_mpstk =
   let doc =
@@ -223,7 +223,7 @@ let project_mpstk =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["project-mpstk"] ~doc ~docv:"ROLE@PROTO")
+    & info ["project-mpstk"] ~doc ~docv:"ROLE@PROTO" )
 
 let project_tex =
   let doc =
@@ -233,7 +233,7 @@ let project_tex =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["project-tex"] ~doc ~docv:"ROLE@PROTO")
+    & info ["project-tex"] ~doc ~docv:"ROLE@PROTO" )
 
 let fsm =
   let doc =
@@ -241,7 +241,7 @@ let fsm =
      <role_name>@<protocol_name>"
   in
   Arg.(
-    value & opt (some role_proto) None & info ["fsm"] ~doc ~docv:"ROLE@PROTO")
+    value & opt (some role_proto) None & info ["fsm"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_ocaml =
   let doc =
@@ -251,7 +251,7 @@ let gencode_ocaml =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["gencode-ocaml"] ~doc ~docv:"ROLE@PROTO")
+    & info ["gencode-ocaml"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_fstar =
   let doc =
@@ -261,7 +261,7 @@ let gencode_fstar =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["gencode-fstar"] ~doc ~docv:"ROLE@PROTO")
+    & info ["gencode-fstar"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_monadic_ocaml =
   let doc =
@@ -271,7 +271,7 @@ let gencode_monadic_ocaml =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["gencode-ocaml-monadic"] ~doc ~docv:"ROLE@PROTO")
+    & info ["gencode-ocaml-monadic"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_go =
   let doc =
@@ -281,7 +281,7 @@ let gencode_go =
   Arg.(
     value
     & opt (some role_proto) None
-    & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO")
+    & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO" )
 
 let sexp_global_type =
   let doc =
@@ -290,7 +290,7 @@ let sexp_global_type =
   Arg.(
     value
     & opt (some string) None
-    & info ["generate-sexp"] ~doc ~docv:"PROTO")
+    & info ["generate-sexp"] ~doc ~docv:"PROTO" )
 
 let show_global_type =
   let doc =
@@ -299,7 +299,7 @@ let show_global_type =
   Arg.(
     value
     & opt (some string) None
-    & info ["show-global-type"] ~doc ~docv:"PROTO")
+    & info ["show-global-type"] ~doc ~docv:"PROTO" )
 
 let show_global_type_mpstk =
   let doc =
@@ -309,7 +309,7 @@ let show_global_type_mpstk =
   Arg.(
     value
     & opt (some string) None
-    & info ["show-global-type-mpstk"] ~doc ~docv:"PROTO")
+    & info ["show-global-type-mpstk"] ~doc ~docv:"PROTO" )
 
 let show_global_type_tex =
   let doc =
@@ -319,7 +319,7 @@ let show_global_type_tex =
   Arg.(
     value
     & opt (some string) None
-    & info ["show-global-type-tex"] ~doc ~docv:"PROTO")
+    & info ["show-global-type-tex"] ~doc ~docv:"PROTO" )
 
 let out_dir =
   let doc =
@@ -358,7 +358,7 @@ let cmd =
         $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
         $ gencode_fstar $ sexp_global_type $ show_global_type
         $ show_solver_queries $ show_global_type_mpstk $ project_mpstk
-        $ show_global_type_tex $ project_tex ))
+        $ show_global_type_tex $ project_tex ) )
   in
   Cmd.v info term
 

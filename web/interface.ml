@@ -17,7 +17,7 @@ module Error = struct
       let e = Webutils.get errorbox in
       Webutils.(
         set_inner_html e "%s" string ;
-        set_display e "block")
+        set_display e "block" )
     in
     Printf.ksprintf display fmt
 
