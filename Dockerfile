@@ -8,13 +8,6 @@ COPY --chown=opam:opam ./ $HOME/nuscr
 
 WORKDIR $HOME/nuscr
 
-RUN opam pin add --no-action -y nuscr.dev -k path . \
-  && opam pin add --no-action -y nuscr-web.dev -k path . \
-  && opam install -dt ./nuscr.opam --deps-only
-
-RUN eval $(opam config env) \
-  && dune subst \
-  && dune build -p nuscr\
-  && dune install nuscr
+RUN opam install -y ./nuscr.opam
 
 CMD ["nuscr"]
