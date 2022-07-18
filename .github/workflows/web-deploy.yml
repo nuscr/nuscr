@@ -18,14 +18,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-        with:
-          path: nuscr
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-version }}
-          opam-local-packages: nuscr/*.opam
+
+      - name: Setup yarn
+        uses: actions/setup-node@v3
+        cache: 'yarn'
 
       - name: Cache opam
         uses: actions/cache@v2
@@ -33,23 +34,23 @@ jobs:
           path: _opam
           key: ${{ runner.os }}-${{ matrix.ocaml-version }}-${{ hashFiles('dune-project') }}
 
-      - run: cd nuscr && opam install . --deps-only --with-doc --with-test
+      - run: opam install . --deps-only --with-doc --with-test
 
-      - run: cd nuscr && opam exec -- dune build
+      - run: opam exec -- dune build
+
+      - run: cd web && yarn
 
       - name: Build docs
         run: |
-            cd nuscr
             opam exec -- dune build @doc
             mkdir -p site/docs
             cp -r _build/default/_doc/_html/* site/docs
 
       - name: Deploy live version
-        run: cd nuscr && WHERE=../site opam exec -- make -C web deploy
+        run: WHERE=../site opam exec -- make -C web minify
 
       - name: Deploy docs
         run: |
-            cd nuscr
             git config user.email "nuscr@nuscr.dev"
             git config user.name "NuScr"
             mkdir -p /tmp/deployment
