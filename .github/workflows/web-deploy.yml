@@ -23,6 +23,7 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-version }}
+          cache-prefix: v2
 
       - name: Setup yarn
         uses: actions/setup-node@v3
