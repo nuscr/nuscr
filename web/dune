@@ -3,7 +3,9 @@
  (action
   (run ./genex_dune.sh))
  (deps
-  (source_tree ../examples)))
+  (file ../test/cram-tests/refinements/state-var-contract.t/Contract.nuscr)
+  (source_tree ../examples)
+  (file examplelist.txt)))
 
 (executable
  (name live)
