@@ -1,3 +1,4 @@
+test/cram-tests/refinements/state-var-contract.t/Contract.nuscr
 examples/annot/Adder.nuscr
 examples/annot/Fib.nuscr
 examples/annot/FibnoAss.nuscr
