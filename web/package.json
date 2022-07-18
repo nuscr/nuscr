@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "esbuild": "^0.14.49",
+    "serve": "^14.0.1"
+  }
+}
