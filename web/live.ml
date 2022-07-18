@@ -53,11 +53,12 @@ let analyse () =
   match parse_string protocol with
   | exception e -> Interface.Error.display_exn e
   | ast -> (
-    match validate_exn ast with
-    | exception e -> Interface.Error.display_exn e
-    | () ->
-        let roles_html = display_roles ast @@ enumerate ast in
-        W.(set_children (get "roles") [(roles_html :> Dom.node Js.t)]) )
+      load_pragmas ast ;
+      match validate_exn ast with
+      | exception e -> Interface.Error.display_exn e
+      | () ->
+          let roles_html = display_roles ast @@ enumerate ast in
+          W.(set_children (get "roles") [(roles_html :> Dom.node Js.t)]) )
 
 let init _ =
   let button =
