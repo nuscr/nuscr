@@ -63,6 +63,7 @@ jobs:
             git switch -f gh-pages
             git clean -fxd
             rsync -av --delete --filter='P .git' /tmp/deployment/ $DEPLOY_DEST
+            touch .nojekyll
             git add -A || true
             git commit --amend --reset-author --date=now -m "Deploy docs" || true
             git push --force
