@@ -26,7 +26,8 @@ jobs:
 
       - name: Setup yarn
         uses: actions/setup-node@v3
-        cache: 'yarn'
+        with:
+          cache: 'yarn'
 
       - name: Cache opam
         uses: actions/cache@v2
