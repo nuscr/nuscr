@@ -13,6 +13,3 @@ examples/from-scribble-java/test/test2/Test2.nuscr
 examples/from-scribble-java/test/test3/Test3.nuscr
 examples/from-scribble-java/test/test4/Test4.nuscr
 examples/from-scribble-java/test/test6/Test6.nuscr
-examples/parser/GMessage.nuscr
-examples/parser/GProtocol.nuscr
-examples/parser/first.nuscr
