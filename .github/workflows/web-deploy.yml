@@ -45,20 +45,18 @@ jobs:
       - name: Deploy live version
         run: WHERE=../site opam exec -- make -C web minify
 
-      - name: Deploy docs
-        run: |
-            git config user.email "nuscr@nuscr.dev"
-            git config user.name "NuScr"
-            mkdir -p /tmp/deployment
-            cp -r site/* /tmp/deployment
-            export DEPLOY_DEST=.
-            [[ "$(git branch --show-current)" == "develop" ]] && export DEPLOY_DEST="./dev"
-            git fetch
-            git switch -f gh-pages
-            git clean -fxd
-            rsync -av --delete --filter='P .git' /tmp/deployment/ $DEPLOY_DEST
-            touch .nojekyll
-            git add -A || true
-            git commit --amend --reset-author --date=now -m "Deploy docs" || true
-            git push --force
+      - name: Deploy docs (dev)
+        if: github.event_name == 'push' && github.ref_name == 'develop'
+        uses: JamesIves/github-pages-deploy-action@v4.3.4
+        with:
+          folder: site
+          target-folder: dev
+          single-commit: true
 
+      - name: Deploy docs (master)
+        if: github.event_name == 'push' && github.ref_name == 'master'
+        uses: JamesIves/github-pages-deploy-action@v4.3.4
+        with:
+          folder: site
+          target-folder: .
+          single-commit: true
