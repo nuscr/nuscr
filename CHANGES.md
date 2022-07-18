@@ -1,5 +1,23 @@
 # UNRELEASED
 
+# 2.1.1 (2022-07-18)
+
+## Added
+- New ways to convert global/local types into LaTeX macros, using
+  [mpstmacros](https://github.com/fangyi-zhou/mpstmacros)
+## Changed
+- Improve documentation for some modules
+- `scr_module` is now an abstract type, whose definition is not exposed
+- File name will not be reported in error messages if there is none
+- JavaScript files in the web version are now minified
+- Improve the list of examples in the web version
+## Fixed
+- Fix a panic when duplicate recursion variable exists
+- Stacktraces is printed correctly when `NUSCRDEBUG` or `DEBUG` env
+  variable is set
+- Error is raised gracefully when an unbound role is found in the expansion of
+  an `do` block
+
 # 2.1.0 (2022-05-18)
 
 ## Added
