@@ -85,14 +85,13 @@ let pragmas :=
 let scr_module :=
   pgs = pragmas? ; (* Pragma must be at the beginning of a file *)
   md = module_decl? ;
-  ts = payload_type_decl* ;
+  _ = payload_type_decl* ;
   nps = nested_protocol_decl* ;
   ps = protocol_decl* ;
   EOI ;
     {
       { decl = md
       ; pragmas = Option.value ~default:[] pgs
-      ; types = ts
       ; nested_protocols = nps
       ; protocols = ps }
     }
@@ -107,29 +106,14 @@ let raw_module_decl ==
 let payload_type_decl == located (raw_payload_type_decl)
 
 let raw_payload_type_decl ==
-  TYPE_KW ; LT ; d = IDENT ; GT ; ts = EXTIDENT ;
-  FROM_KW ; l = EXTIDENT ; AS_KW ; tn = IDENT ;
+  TYPE_KW ; LT ; _ = IDENT ; GT ; _ = EXTIDENT ;
+  FROM_KW ; _ = EXTIDENT ; AS_KW ; _ = IDENT ;
   SEMICOLON ;
-    {
-      { domain = d
-      ; type_spec = ts
-      ; location = l
-      ; type_name = tn
-      ; is_type = true
-      }
-    }
-| SIG_KW ; LT ; d = IDENT ; GT ; ts = EXTIDENT ;
-  FROM_KW ; l = EXTIDENT ; AS_KW ; tn = IDENT ;
+    { () }
+| SIG_KW ; LT ; _ = IDENT ; GT ; _ = EXTIDENT ;
+  FROM_KW ; _ = EXTIDENT ; AS_KW ; _ = IDENT ;
   SEMICOLON ;
-    { { domain = d
-      ; type_spec = ts
-      ; location = l
-      ; type_name = tn
-      ; is_type = true
-      }
-    }
-
-(* messages... to do *)
+    { () }
 
 (* protocols *)
 
