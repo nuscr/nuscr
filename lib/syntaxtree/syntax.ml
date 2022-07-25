@@ -54,12 +54,6 @@ type ty =
 
 type annotation = string [@@deriving show {with_path= false}, sexp_of]
 
-type raw_mod_decl = {module_name: string}
-[@@deriving show {with_path= false}]
-
-type mod_decl = raw_mod_decl located option
-[@@deriving show {with_path= false}]
-
 type payloadt =
   | PayloadName of PayloadTypeName.t
   | PayloadDel of ProtocolName.t * RoleName.t (* protocol @ role *)
@@ -150,8 +144,7 @@ and raw_global_protocol =
 [@@deriving show {with_path= false}, sexp_of]
 
 type scr_module =
-  { decl: mod_decl
-  ; pragmas: Pragma.pragmas
+  { pragmas: Pragma.pragmas
   ; nested_protocols: global_protocol list
   ; protocols: global_protocol list }
 [@@deriving show {with_path= false}]
