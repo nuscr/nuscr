@@ -99,7 +99,6 @@ and token lexbuf =
   | "protocol" -> PROTOCOL_KW
   | "global" -> GLOBAL_KW
   | "nested" -> NESTED_KW
-  | "explicit" -> EXPLICIT_KW
   | "aux" -> AUX_KW
   | "role" -> ROLE_KW
   | "sig" -> SIG_KW
