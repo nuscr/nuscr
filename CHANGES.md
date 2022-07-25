@@ -1,5 +1,13 @@
 # UNRELEASED
 
+## Changed
+- [sedlex](https://github.com/ocaml-community/sedlex) is now used for lexing,
+    for future Unicode support.
+
+## Deprecated
+- BREAKING: Scribble-style "module" and "type" declarations were parsed into an
+    AST but remain unused, now they are rejected and become parse errors.
+
 # 2.1.1 (2022-07-18)
 
 ## Added
