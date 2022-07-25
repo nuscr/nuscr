@@ -84,14 +84,13 @@ let pragmas :=
 (* A file is parsed into a module *)
 let scr_module :=
   pgs = pragmas? ; (* Pragma must be at the beginning of a file *)
-  md = module_decl? ;
+  _ = module_decl? ;
   _ = payload_type_decl* ;
   nps = nested_protocol_decl* ;
   ps = protocol_decl* ;
   EOI ;
     {
-      { decl = md
-      ; pragmas = Option.value ~default:[] pgs
+      { pragmas = Option.value ~default:[] pgs
       ; nested_protocols = nps
       ; protocols = ps }
     }
@@ -99,7 +98,7 @@ let scr_module :=
 let module_decl == located (raw_module_decl)
 
 let raw_module_decl ==
-  MODULE_KW ; nm = qname ; SEMICOLON ; { { module_name= nm } }
+  MODULE_KW ; _ = qname ; SEMICOLON ; { () }
 
 (* types and messages *)
 
