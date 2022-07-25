@@ -43,7 +43,6 @@
 %token PROTOCOL_KW
 %token GLOBAL_KW
 %token NESTED_KW
-%token EXPLICIT_KW
 %token AUX_KW
 %token ROLE_KW
 %token SIG_KW
@@ -140,14 +139,13 @@ let protocol_decl == global_protocol_decl (* local pending *)
 let global_protocol_decl == located(raw_global_protocol_decl)
 
 let raw_global_protocol_decl ==
-  opts = protocol_options? ; protocol_hdr ; nm = protoname ;
+  AUX_KW?; protocol_hdr ; nm = protoname ;
   pars = loption(parameter_decls) ; rs = role_decls ;
   rp = loption(rec_parameter_decls) ;
   ann = annotation? ; body = global_protocol_body ;
   {
     let (nested_protos, ints) = body in
     { name = nm
-    ; options = opts
     ; parameters = pars
     ; rec_parameters = rp
     ; roles = rs
@@ -168,7 +166,6 @@ let raw_nested_protocol_decl ==
   {
     let (nested_protos, ints) = body in
     { name = nm
-    ; options = None
     ; parameters = pars
     ; rec_parameters = rp
     ; roles = (let (rs', rs'') = rs in rs' @ rs'')
@@ -184,11 +181,6 @@ let protocol_hdr ==
 
 let nested_hdr ==
   NESTED_KW ; PROTOCOL_KW
-
-let protocol_options ==
-  AUX_KW ; { Aux }
-  | AUX_KW ; EXPLICIT_KW ; { AuxExplicit }
-  | EXPLICIT_KW ; { Explicit }
 
 let parameter_decls ==
   LT ; pars = separated_nonempty_list(COMMA, parameter_decl) ; GT ; { pars }

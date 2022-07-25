@@ -4,7 +4,7 @@ Show HigherLower FSM and State variables.
     value =
     { name =
       { Loc.loc = 3:17 to 3:28 in: HigherLower.nuscr; value = "HigherLower" };
-      options = None; parameters = []; rec_parameters = [];
+      parameters = []; rec_parameters = [];
       roles =
       [{ Loc.loc = 3:34 to 3:35 in: HigherLower.nuscr; value = "A" };
         { Loc.loc = 3:42 to 3:43 in: HigherLower.nuscr; value = "B" };

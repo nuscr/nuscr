@@ -85,18 +85,11 @@ and raw_global_interaction =
       RoleName.t * ProtocolName.t * RoleName.t list * annotation option
 [@@deriving show {with_path= false}]
 
-type protocol_mods = Aux | AuxExplicit | Explicit
-[@@deriving show {with_path= false}, sexp_of]
-
 type global_protocol = raw_global_protocol located
 [@@deriving show {with_path= false}, sexp_of]
 
 and raw_global_protocol =
   { name: ProtocolName.t
-  ; options: protocol_mods option
-        (* if parameter is ("foo", None) it's a type *)
-        (* if parameter is ("foo", Some "bar") it's a sig *)
-        (* neither case I know what it is *)
   ; parameters: (string * string option) list
   ; rec_parameters: (string * annotation) list
         (* parameters for the recursion *)
