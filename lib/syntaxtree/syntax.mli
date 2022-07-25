@@ -34,16 +34,6 @@ type raw_mod_decl = {module_name: string}
 type mod_decl = raw_mod_decl located option
 [@@deriving show {with_path= false}]
 
-type raw_type_decl =
-  { domain: string (* where does the type come from java|xsd|... *)
-  ; type_spec: string (* the spec of the type in its own domain *)
-  ; location: string (* location of the the type definition *)
-  ; type_name: string (* the name of the defined type *)
-  ; is_type: bool (* true for types, false for signatures *) }
-[@@deriving show {with_path= false}]
-
-type type_decl = raw_type_decl located [@@deriving show {with_path= false}]
-
 type payloadt =
   | PayloadName of PayloadTypeName.t
   | PayloadDel of ProtocolName.t * RoleName.t (* protocol @ role *)
@@ -103,7 +93,6 @@ and raw_global_protocol =
 type scr_module =
   { decl: mod_decl
   ; pragmas: Pragma.pragmas
-  ; types: type_decl list
   ; nested_protocols: global_protocol list
   ; protocols: global_protocol list }
 [@@deriving show {with_path= false}]
