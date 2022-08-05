@@ -35,8 +35,6 @@
 %token TRUE_KW
 %token FALSE_KW
 
-%token RESERVED
-
 (* keywords from Scribble.g with original comments *)
 %token PROTOCOL_KW
 %token GLOBAL_KW
