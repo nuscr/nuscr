@@ -38,14 +38,11 @@
 %token RESERVED
 
 (* keywords from Scribble.g with original comments *)
-%token TYPE_KW
 %token PROTOCOL_KW
 %token GLOBAL_KW
 %token NESTED_KW
 %token AUX_KW
 %token ROLE_KW
-%token SIG_KW
-%token AS_KW
 
 %token FROM_KW
 %token TO_KW
@@ -101,14 +98,11 @@ let global_protocol_decl == located(raw_global_protocol_decl)
 
 let raw_global_protocol_decl ==
   AUX_KW?; protocol_hdr ; nm = protoname ;
-  pars = loption(parameter_decls) ; rs = role_decls ;
-  rp = loption(rec_parameter_decls) ;
+  rs = role_decls ;
   ann = annotation? ; body = global_protocol_body ;
   {
     let (nested_protos, ints) = body in
     { name = nm
-    ; parameters = pars
-    ; rec_parameters = rp
     ; roles = rs
     ; split_roles = (rs, [])
     ; nested_protocols = nested_protos
@@ -121,14 +115,11 @@ let nested_protocol_decl == located(raw_nested_protocol_decl)
 (* TODO: Remove unnecessary stuff? *)
 let raw_nested_protocol_decl ==
   nested_hdr ; nm = protoname ;
-  pars = loption(parameter_decls) ; rs = nested_role_decls ;
-  rp = loption(rec_parameter_decls) ;
+  rs = nested_role_decls ;
   ann = annotation? ; body = global_protocol_body ;
   {
     let (nested_protos, ints) = body in
     { name = nm
-    ; parameters = pars
-    ; rec_parameters = rp
     ; roles = (let (rs', rs'') = rs in rs' @ rs'')
     ; split_roles = rs
     ; nested_protocols = nested_protos
@@ -142,21 +133,6 @@ let protocol_hdr ==
 
 let nested_hdr ==
   NESTED_KW ; PROTOCOL_KW
-
-let parameter_decls ==
-  LT ; pars = separated_nonempty_list(COMMA, parameter_decl) ; GT ; { pars }
-
-(* this is not storing the difference of Type and Sig *)
-let parameter_decl :=
-| TYPE_KW ; nm = IDENT ; { (nm, None) }
-| TYPE_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
-| SIG_KW ; nm = IDENT ; { (nm, None) }
-| SIG_KW ; nm = IDENT ; AS_KW ; nm2 = IDENT ; { (nm, Some nm2) }
-
-let rec_parameter_decls ==
-  LPAR ; pars = separated_nonempty_list(COMMA, rec_parameter_decl) ; RPAR ; { pars }
-
-let rec_parameter_decl == nm = name ; COLON ; ann = IDENT ; { (nm, ann) }
 
 let role_decls == LPAR ; nms = separated_nonempty_list(COMMA, role_decl) ;
                   RPAR ; { nms }

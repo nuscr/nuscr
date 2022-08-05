@@ -2,7 +2,7 @@
 global protocol GMessageTest(role Buyer,role SellerA,role SellerB) {
 }
 
-global protocol Order<sig Fred as Joe,type Jack>(role Buyer,role Seller) {
+global protocol Order(role Buyer,role Seller) {
 }
 
 (* in the Scribble distribution this protocol has Buyer as B but the
