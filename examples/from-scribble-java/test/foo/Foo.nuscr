@@ -6,7 +6,6 @@
 
 
 
-module test.foo.Foo;
 
 
 //type <java> "java.lang.Integer" from "rt.jar" as Integer;

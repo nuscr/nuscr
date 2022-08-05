@@ -1,8 +1,4 @@
-module demo;
 
-type <fsharp> "System.String" from "fs.dll" as string;
-type <fsharp> "System.Int32" from "fs.dll" as int;
-type <fsharp> "System.DateTime" from "fs.dll" as date;
 
 global protocol AnotherHttp(role C, role S)
 {

@@ -3,9 +3,7 @@
 
 
 
-module scratch.scratch1.Scratch1;
 
-type <java> "java.lang.Integer" from "rt.jar" as Int;
 
 global protocol Proto1(role C, role S)
 {

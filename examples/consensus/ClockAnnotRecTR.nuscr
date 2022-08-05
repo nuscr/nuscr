@@ -1,6 +1,4 @@
-module ClockAnnotRecTR; //A tail recursive version of ClockAnnotRec.scr
 
-type <java> "java.lang.Integer" from "rt.jar" as int;
 
 /*
 global protocol Lock(role A, role B, role C) (tsa:int, tsb:int, tsc:int) @"(0,0,0)"

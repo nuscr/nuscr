@@ -1,9 +1,6 @@
 
 
-module nego.Nego1;
 
-type <java> "test.nego.SAP" from "test/nego/..." as int;
-type <java> "test.nego.SAP" from "test/nego/SAP.java" as SAP;
 
 // C = Consumer, P = Producer
 global protocol Negotiation(role C, role P)

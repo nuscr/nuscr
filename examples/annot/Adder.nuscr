@@ -1,6 +1,4 @@
-module Adder;
 
-type <java> "java.lang.Integer" from "rt.jar" as int;
 
 global protocol Adder(role C, role S)
 {
