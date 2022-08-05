@@ -3,9 +3,7 @@
 
 
 
-module test.test1.Test1;
 
-type <java> "java.lang.Integer" from "rt.jar" as Integer;
 
 global protocol Proto1(role C, role S)
 {

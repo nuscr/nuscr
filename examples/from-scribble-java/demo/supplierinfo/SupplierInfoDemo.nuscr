@@ -1,10 +1,4 @@
-module src.SupplierInfoDemo;
 
-type <xsd> "UserName" from "AUTH.xsd" as username;
-type <xsd> "Password" from "AUTH.xsd" as password;
-type <xsd> "UUID" from "AUTH.xsd" as uuid;
-type <xsd> "/retailhub/supplierdetails" from "Retailer.xsd" as supplierdetails;
-type <xsd> "/retailhub/contractdetails" from "Retailer.xsd" as contractdetails;
 
 //type <xsd> "UserContext" from "AUTH.xsd" as usercontext;
 //type <xsd> "FilterSet" from "AUTH.xsd" as filters;

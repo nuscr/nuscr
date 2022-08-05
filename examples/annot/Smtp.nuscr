@@ -3,10 +3,8 @@
 
 
 
-module icse18.Smtp;
 
 
-type <dotnet> "System.UInt32" from "..." as string;
 
 
 global protocol Smtp(role S, role C)

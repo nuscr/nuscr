@@ -1,6 +1,4 @@
-module SH;
 
-type <java> "java.lang.Integer" from "rt.jar" as int;
 
 global protocol SH(role S, role C, role P)
 {

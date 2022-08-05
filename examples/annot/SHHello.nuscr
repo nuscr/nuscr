@@ -1,9 +1,7 @@
-module assrt.sh.SHHello;
 
 // This is version of the algorithm with initial hellp messages, used mainly for testing.
 // See SH.scr for the pure version of the protocol without auxiliary messages
 
-type <dotnet> "System.UInt32" from "..." as int;
 
 global protocol SH(role P, role R, role C)
 {

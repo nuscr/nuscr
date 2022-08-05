@@ -1,4 +1,3 @@
-module Adder;
 
 protocol Adder(role C, role S) {
   rec loop {

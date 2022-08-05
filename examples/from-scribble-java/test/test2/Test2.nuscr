@@ -1,10 +1,7 @@
 
 
 
-module test.test2.Test2;
 
-type <java> "java.lang.Integer" from "rt.jar" as Int;
-type <java> "java.lang.String"  from "rt.jar" as Str;
 
 global protocol Proto1(role A, role B)
 {

@@ -1,6 +1,4 @@
-module ClockAnnot;
 
-type <java> "java.lang.Integer" from "rt.jar" as int;
 
 global protocol Lock(role A, role B, role C)
 {

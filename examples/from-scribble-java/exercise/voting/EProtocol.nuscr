@@ -1,9 +1,6 @@
 
 
-module exercise.voting.EProtocol;
 
-type <java> "java.lang.Integer" from "rt.jar" as Int;
-type <java> "java.lang.String" from "rt.jar" as String;
 
 
 global protocol EVoting(role V, role S){

@@ -38,7 +38,6 @@
 %token RESERVED
 
 (* keywords from Scribble.g with original comments *)
-%token MODULE_KW
 %token TYPE_KW
 %token PROTOCOL_KW
 %token GLOBAL_KW
@@ -84,8 +83,6 @@ let pragmas :=
 (* A file is parsed into a module *)
 let scr_module :=
   pgs = pragmas? ; (* Pragma must be at the beginning of a file *)
-  _ = module_decl? ;
-  _ = payload_type_decl* ;
   nps = nested_protocol_decl* ;
   ps = protocol_decl* ;
   EOI ;
@@ -94,25 +91,6 @@ let scr_module :=
       ; nested_protocols = nps
       ; protocols = ps }
     }
-
-let module_decl == located (raw_module_decl)
-
-let raw_module_decl ==
-  MODULE_KW ; _ = qname ; SEMICOLON ; { () }
-
-(* types and messages *)
-
-let payload_type_decl == located (raw_payload_type_decl)
-
-let raw_payload_type_decl ==
-  TYPE_KW ; LT ; _ = IDENT ; GT ; _ = EXTIDENT ;
-  FROM_KW ; _ = EXTIDENT ; AS_KW ; _ = IDENT ;
-  SEMICOLON ;
-    { () }
-| SIG_KW ; LT ; _ = IDENT ; GT ; _ = EXTIDENT ;
-  FROM_KW ; _ = EXTIDENT ; AS_KW ; _ = IDENT ;
-  SEMICOLON ;
-    { () }
 
 (* protocols *)
 

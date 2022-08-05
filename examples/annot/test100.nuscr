@@ -1,5 +1,3 @@
-module test100;
-type <java> "java.lang.Integer" from "rt.jar" as int;
 
 global protocol Test100(role S, role C)
 {

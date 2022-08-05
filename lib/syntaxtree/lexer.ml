@@ -93,8 +93,6 @@ and token lexbuf =
   | "not" -> NOT_KW
   | "true" -> TRUE_KW
   | "false" -> FALSE_KW
-  | "module" -> MODULE_KW
-  | "import" -> RESERVED
   | "type" -> TYPE_KW
   | "protocol" -> PROTOCOL_KW
   | "global" -> GLOBAL_KW

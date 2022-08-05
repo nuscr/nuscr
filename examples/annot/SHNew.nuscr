@@ -1,6 +1,4 @@
-module assrt.sh.SHNew;
 
-type <dotnet> "System.UInt32" from "..." as int;
 
 global protocol SH(role P, role R)
 {  hello(s:int) from P to R;
