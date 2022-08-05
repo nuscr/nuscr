@@ -93,18 +93,11 @@ and token lexbuf =
   | "not" -> NOT_KW
   | "true" -> TRUE_KW
   | "false" -> FALSE_KW
-  | "type" -> TYPE_KW
   | "protocol" -> PROTOCOL_KW
   | "global" -> GLOBAL_KW
   | "nested" -> NESTED_KW
   | "aux" -> AUX_KW
   | "role" -> ROLE_KW
-  | "sig" -> SIG_KW
-  | "as" -> AS_KW
-  | "connect" -> RESERVED
-  | "disconnect" -> RESERVED
-  | "wrap" -> RESERVED
-  | "and" -> RESERVED
   | "from" -> FROM_KW
   | "to" -> TO_KW
   | "choice" -> CHOICE_KW

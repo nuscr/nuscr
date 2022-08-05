@@ -133,9 +133,6 @@ type global_protocol = raw_global_protocol located
 
 and raw_global_protocol =
   { name: ProtocolName.t
-  ; parameters: (string * string option) list
-  ; rec_parameters: (string * annotation) list
-        (* parameters for the recursion *)
   ; roles: RoleName.t list
   ; split_roles: RoleName.t list * RoleName.t list
   ; nested_protocols: global_protocol list
