@@ -251,8 +251,6 @@ let qname == raw_qname
 let raw_qname ==
   names = separated_nonempty_list(DOT, IDENT); { String.concat "." names }
 
-let name == raw_name
-
 let varname ==
   x = raw_name; { VariableName.create x (Loc.create $loc) }
 
