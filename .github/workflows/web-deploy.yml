@@ -38,13 +38,13 @@ jobs:
       - run: cd web && yarn
 
       - name: Deploy live version
-        run: WHERE=../site opam exec -- make -C web minify
+        run: opam exec -- make -C web minify
 
       - name: Deploy docs (dev)
         if: github.event_name == 'push' && github.ref_name == 'develop'
         uses: JamesIves/github-pages-deploy-action@v4.3.4
         with:
-          folder: site
+          folder: _site
           target-folder: dev
           single-commit: true
 
@@ -52,6 +52,6 @@ jobs:
         if: github.event_name == 'push' && github.ref_name == 'master'
         uses: JamesIves/github-pages-deploy-action@v4.3.4
         with:
-          folder: site
+          folder: _site
           target-folder: .
           single-commit: true
