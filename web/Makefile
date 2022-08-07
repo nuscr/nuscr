@@ -1,17 +1,18 @@
-ESBUILD := yarn esbuild
+WHERE   := ../_site
 
 all:
+	cd .. && dune build @doc
 	dune build live.bc.js
 
 deploy: all
 	mkdir -p $(WHERE)
-	cp -v ../_build/default/web/*js index.html style.css $(WHERE)
+	mkdir -p $(WHERE)/docs
+	cp -v ../_build/default/web/*.js index.html style.css $(WHERE)
 	cp -v ../doc/logo/nuScr.png $(WHERE)
-	chmod +w $(WHERE)/*.js
+	chmod -R +w $(WHERE)
+	cp -r ../_build/default/_doc/_html/* $(WHERE)/docs
 
 minify: deploy
-	$(ESBUILD) $(WHERE)/*.js --minify --outdir=$(WHERE)/minified
-	mv -v $(WHERE)/minified/*.js $(WHERE)
-	rm -r $(WHERE)/minified
+	./minify_all.sh $(WHERE)
 
 .PHONY: all deploy

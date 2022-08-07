@@ -37,12 +37,6 @@ jobs:
 
       - run: cd web && yarn
 
-      - name: Build docs
-        run: |
-            opam exec -- dune build @doc
-            mkdir -p site/docs
-            cp -r _build/default/_doc/_html/* site/docs
-
       - name: Deploy live version
         run: WHERE=../site opam exec -- make -C web minify
 
