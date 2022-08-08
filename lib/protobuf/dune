@@ -19,3 +19,18 @@
    "--ocaml_opt=annot=[@@deriving show { with_path = false }, eq]"
    --ocaml_out=.
    %{proto})))
+
+(rule
+ (targets localtype.ml)
+ (deps
+  (:proto localtype.proto))
+ (action
+  (run
+   protoc
+   -I
+   %{read-lines:google_include}
+   -I
+   .
+   "--ocaml_opt=annot=[@@deriving show { with_path = false }, eq]"
+   --ocaml_out=.
+   %{proto})))

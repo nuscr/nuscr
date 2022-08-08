@@ -1,16 +1,16 @@
 syntax = "proto3";
 
-message Action {
+message GlobalAction {
   message Index {
     string label = 1;
     int32 next = 2;
   }
   int32 idx = 1;
-  enum ActionType {
+  enum GlobalActionType {
     SEND = 0;
     RECV = 1;
   };
-  ActionType type = 2;
+  GlobalActionType type = 2;
   string from_role = 3;
   string to_role = 4;
   repeated Index continuations = 5;
@@ -18,5 +18,5 @@ message Action {
 
 message GlobalType {
   int32 start = 1;
-  repeated Action actions = 2;
+  repeated GlobalAction actions = 2;
 }
