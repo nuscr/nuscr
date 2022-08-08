@@ -219,7 +219,7 @@ module Formatting = struct
           | [] -> ()
           | r :: roles ->
               pp_print_string ppf (RoleName.user r) ;
-              pp_print_string ppf ", " ;
+              if not (List.is_empty roles) then pp_print_string ppf "," ;
               pp_roles roles
         in
         pp_roles roles ;

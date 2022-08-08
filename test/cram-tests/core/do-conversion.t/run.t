@@ -33,7 +33,6 @@ Both protocols should be projectable.
     Pong() from B;
     continue __PingPong_A_B;
   }
-  
 
 
 
@@ -45,7 +44,6 @@ Both protocols should be projectable.
     Pong() to B;
     continue __PingPong_A_B;
   }
-  
 
 
 

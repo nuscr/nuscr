@@ -4,12 +4,11 @@ enabled.
   Num(x: int) to B;
   choice at B {
     Pos(ignore: ignore:unit{(x)>(0)}) from B;
-    end
+    (end)
   } or {
     Neg(ignore: ignore:unit{(x)<(0)}) from B;
-    end
+    (end)
   }
-  
 
 
 
@@ -35,9 +34,8 @@ Nuscr should not report any error for the fixed protocol.
   Num(x: x:int{(x)<>(0)}) to B;
   choice at B {
     Pos(ignore: ignore:unit{(x)>(0)}) from B;
-    end
+    (end)
   } or {
     Neg(ignore: ignore:unit{(x)<(0)}) from B;
-    end
+    (end)
   }
-  

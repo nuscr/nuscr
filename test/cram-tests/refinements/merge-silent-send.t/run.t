@@ -4,8 +4,9 @@ conditions)
   $ nuscr --project C@MergeSend Merge.nuscr
   nuscr: User error: Unable to merge: (silent) x(int);
          Stuff() to B;
-         end
-          (silent) y(int);
+         (end)
+         and
+         (silent) y(int);
          Stuff() to B;
-         end
+         (end)
   [124]

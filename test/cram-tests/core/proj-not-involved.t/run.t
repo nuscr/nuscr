@@ -11,15 +11,13 @@ Since B is not involved in the loop, the protocol should be projectable.
       continue Loop;
     } or {
       Qux() to C;
-      end
+      (end)
     }
   }
-  
 
   $ nuscr --project B@Example Loop.nuscr
   Foo() from A;
-  end
-  
+  (end)
 
   $ nuscr --project C@Example Loop.nuscr
   rec Loop {
@@ -31,8 +29,7 @@ Since B is not involved in the loop, the protocol should be projectable.
       continue Loop;
     } or {
       Qux() from A;
-      end
+      (end)
     }
   }
-  
 

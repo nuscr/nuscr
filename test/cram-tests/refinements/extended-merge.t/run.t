@@ -3,14 +3,13 @@ TODO: Currently the protocol cannot be merged for C.
   choice at B {
     (silent) y(int);
     Two() from B;
-    end
+    (end)
   } or {
     (silent) x(int);
     One() from B;
-    end
+    (end)
   } or {
     (silent) z(int);
     Three() from B;
-    end
+    (end)
   }
-  

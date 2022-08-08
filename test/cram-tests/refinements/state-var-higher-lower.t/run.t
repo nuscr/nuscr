@@ -347,14 +347,13 @@ Show HigherLower FSM and State variables.
     } or {
       (silent) ignore(ignore:unit{(n)=(x)});
       lose() from B;
-      end
+      (end)
     } or {
       (silent) ignore(ignore:unit{((n)<>(x))&&((t)=(1))});
       win() from B;
-      end
+      (end)
     }
   }
-  
   start(n: n:int{((0)<=(n))&&((n)<(100))}) from A;
   limit(t0: t0:int{(0)<(t0)}) from A;
   rec Loop [t<B>: t:int{(0)<(t)} = t0] {
@@ -366,7 +365,7 @@ Show HigherLower FSM and State variables.
     } or {
       win(ignore: ignore:unit{(n)=(x)}) to C;
       lose() to A;
-      end
+      (end)
     } or {
       lower(ignore: ignore:unit{((n)<(x))&&((t)>(1))}) to C;
       lower() to A;
@@ -374,10 +373,9 @@ Show HigherLower FSM and State variables.
     } or {
       lose(ignore: ignore:unit{((n)<>(x))&&((t)=(1))}) to C;
       win() to A;
-      end
+      (end)
     }
   }
-  
   (silent) n(n:int{((0)<=(n))&&((n)<(100))});
   (silent) t0(t0:int{(0)<(t0)});
   rec Loop [(silent) t<B>: t:int{(0)<(t)} = t0] {
@@ -387,16 +385,15 @@ Show HigherLower FSM and State variables.
       continue Loop;
     } or {
       win(ignore: ignore:unit{(n)=(x)}) from B;
-      end
+      (end)
     } or {
       lower(ignore: ignore:unit{((n)<(x))&&((t)>(1))}) from B;
       continue Loop;
     } or {
       lose(ignore: ignore:unit{((n)<>(x))&&((t)=(1))}) from B;
-      end
+      (end)
     }
   }
-  
   digraph G {
     0;
     1;
