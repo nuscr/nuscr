@@ -321,7 +321,7 @@ Show HigherLower FSM and State variables.
     } or {
       win(ignore: ignore:unit{(n)=(x)}) from B to C;
       lose() from B to A;
-      end
+      (end)
     } or {
       lower(ignore: ignore:unit{((n)<(x))&&((t)>(1))}) from B to C;
       lower() from B to A;
@@ -329,10 +329,9 @@ Show HigherLower FSM and State variables.
     } or {
       lose(ignore: ignore:unit{((n)<>(x))&&((t)=(1))}) from B to C;
       win() from B to A;
-      end
+      (end)
     }
   }
-  
   start(n: n:int{((0)<=(n))&&((n)<(100))}) to B;
   limit(t0: t0:int{(0)<(t0)}) to B;
   rec Loop [(silent) t<B>: t:int{(0)<(t)} = t0] {

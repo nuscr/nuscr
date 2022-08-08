@@ -138,15 +138,19 @@ type nested_global_info =
 
 type nested_t = nested_global_info Map.M(ProtocolName).t
 
-let show =
-  let indent_here indent = String.make (indent * 2) ' ' in
-  let rec show_global_type_internal indent =
-    let current_indent = indent_here indent in
-    function
+module Formatting = struct
+  open! Caml.Format
+
+  let rec pp ppf = function
     | MessageG (m, r1, r2, g) ->
-        sprintf "%s%s from %s to %s;\n%s" current_indent (show_message m)
-          (RoleName.user r1) (RoleName.user r2)
-          (show_global_type_internal indent g)
+        pp_print_string ppf (show_message m) ;
+        pp_print_string ppf " from " ;
+        pp_print_string ppf (RoleName.user r1) ;
+        pp_print_string ppf " to " ;
+        pp_print_string ppf (RoleName.user r2) ;
+        pp_print_string ppf ";" ;
+        pp_force_newline ppf () ;
+        pp ppf g
     | MuG (n, rec_vars, g) ->
         let rec_vars_s =
           if List.is_empty rec_vars then ""
@@ -155,10 +159,18 @@ let show =
             ^ String.concat ~sep:", " (List.map ~f:show_rec_var rec_vars)
             ^ "] "
         in
-        sprintf "%srec %s %s{\n%s%s}\n" current_indent
-          (TypeVariableName.user n) rec_vars_s
-          (show_global_type_internal (indent + 1) g)
-          current_indent
+        pp_print_string ppf "rec " ;
+        pp_print_string ppf (TypeVariableName.user n) ;
+        pp_print_string ppf " " ;
+        pp_print_string ppf rec_vars_s ;
+        pp_print_string ppf "{" ;
+        pp_force_newline ppf () ;
+        pp_open_box ppf 2 ;
+        pp_print_string ppf "  " ;
+        pp ppf g ;
+        pp_close_box ppf () ;
+        pp_force_newline ppf () ;
+        pp_print_string ppf "}"
     | TVarG (n, rec_exprs, _) ->
         let rec_exprs_s =
           if List.is_empty rec_exprs then ""
@@ -167,57 +179,93 @@ let show =
             ^ String.concat ~sep:", " (List.map ~f:Expr.show rec_exprs)
             ^ "]"
         in
-        sprintf "%scontinue %s%s;\n" current_indent (TypeVariableName.user n)
-          rec_exprs_s
-    | EndG -> sprintf "%send\n" current_indent
+        pp_print_string ppf "continue " ;
+        pp_print_string ppf (TypeVariableName.user n) ;
+        pp_print_string ppf rec_exprs_s ;
+        pp_print_string ppf ";"
+    | EndG -> pp_print_string ppf "(end)"
     | ChoiceG (r, gs) ->
-        let pre =
-          sprintf "%schoice at %s {\n" current_indent (RoleName.user r)
+        pp_print_string ppf "choice at " ;
+        pp_print_string ppf (RoleName.user r) ;
+        pp_print_string ppf " {" ;
+        pp_force_newline ppf () ;
+        pp_open_box ppf 2 ;
+        pp_print_string ppf "  " ;
+        let rec pp_choices = function
+          | [] ->
+              Err.violation ~here:[%here] "Choice branches must not be empty"
+          | [g] ->
+              pp ppf g ;
+              pp_close_box ppf () ;
+              pp_force_newline ppf () ;
+              pp_print_string ppf "}"
+          | g :: gs ->
+              pp ppf g ;
+              pp_close_box ppf () ;
+              pp_force_newline ppf () ;
+              pp_print_string ppf "} or {" ;
+              pp_force_newline ppf () ;
+              pp_open_box ppf 2 ;
+              pp_print_string ppf "  " ;
+              pp_choices gs
         in
-        let intermission = sprintf "%s} or {\n" current_indent in
-        let post = sprintf "%s}\n" current_indent in
-        let choices =
-          List.map ~f:(show_global_type_internal (indent + 1)) gs
-        in
-        let gs = String.concat ~sep:intermission choices in
-        pre ^ gs ^ post
+        pp_choices gs
     | CallG (caller, proto_name, roles, g) ->
-        sprintf "%s%s calls %s(%s);\n%s" current_indent
-          (RoleName.user caller)
-          (ProtocolName.user proto_name)
-          (String.concat ~sep:", " (List.map ~f:RoleName.user roles))
-          (show_global_type_internal indent g)
-  in
-  show_global_type_internal 0
+        pp_print_string ppf (RoleName.user caller) ;
+        pp_print_string ppf " calls " ;
+        pp_print_string ppf (ProtocolName.user proto_name) ;
+        pp_print_string ppf "(" ;
+        let rec pp_roles = function
+          | [] -> ()
+          | r :: roles ->
+              pp_print_string ppf (RoleName.user r) ;
+              pp_print_string ppf ", " ;
+              pp_roles roles
+        in
+        pp_roles roles ;
+        pp_print_string ppf ");" ;
+        pp_force_newline ppf () ;
+        pp ppf g
 
-let call_label caller protocol roles =
-  let str_roles = List.map ~f:RoleName.user roles in
-  let roles_str = String.concat ~sep:"," str_roles in
-  (* Current label is a bit arbitrary - find better one? *)
-  let label_str =
-    sprintf "call(%s, %s(%s))" (RoleName.user caller)
-      (ProtocolName.user protocol)
-      roles_str
-  in
-  LabelName.create label_str (ProtocolName.where protocol)
+  let show gtype =
+    let buffer = Buffer.create 1024 in
+    let ppf = formatter_of_buffer buffer in
+    fprintf ppf "%a@?" pp gtype ;
+    Buffer.contents buffer
 
-let show_nested_t (g : nested_t) =
-  let show_aux ~key ~data acc =
-    let {static_roles; dynamic_roles; nested_protocol_names; gtype} = data in
-    let str_proto_names =
-      List.map ~f:ProtocolName.user nested_protocol_names
+  let call_label caller protocol roles =
+    let str_roles = List.map ~f:RoleName.user roles in
+    let roles_str = String.concat ~sep:"," str_roles in
+    (* Current label is a bit arbitrary - find better one? *)
+    let label_str =
+      sprintf "call(%s, %s(%s))" (RoleName.user caller)
+        (ProtocolName.user protocol)
+        roles_str
     in
-    let names_str = String.concat ~sep:", " str_proto_names in
-    let proto_str =
-      sprintf "protocol %s(%s) {\n\nNested Protocols: %s\n\n%s\n}"
-        (ProtocolName.user key)
-        (Symtable.show_roles (static_roles, dynamic_roles))
-        (if String.length names_str = 0 then "-" else names_str)
-        (show gtype)
+    LabelName.create label_str (ProtocolName.where protocol)
+
+  let show_nested_t (g : nested_t) =
+    let show_aux ~key ~data acc =
+      let {static_roles; dynamic_roles; nested_protocol_names; gtype} =
+        data
+      in
+      let str_proto_names =
+        List.map ~f:ProtocolName.user nested_protocol_names
+      in
+      let names_str = String.concat ~sep:", " str_proto_names in
+      let proto_str =
+        sprintf "protocol %s(%s) {\n\nNested Protocols: %s\n\n%s\n}"
+          (ProtocolName.user key)
+          (Symtable.show_roles (static_roles, dynamic_roles))
+          (if String.length names_str = 0 then "-" else names_str)
+          (show gtype)
+      in
+      proto_str :: acc
     in
-    proto_str :: acc
-  in
-  String.concat ~sep:"\n\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
+    String.concat ~sep:"\n\n" (List.rev (Map.fold ~init:[] ~f:show_aux g))
+end
+
+include Formatting
 
 let rec_var_of_syntax_rec_var rec_var =
   let open Syntax in

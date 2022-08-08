@@ -6,7 +6,6 @@ Evidently recursive `do` can be converted into `rec` for binary protocols.
     Pong() from B to A;
     continue __PingPong_A_B;
   }
-  
 
 
 
@@ -21,7 +20,6 @@ Do with different role arguments should expand the protocol and construct a fix 
     Pong() from A to B;
     continue __PingPong_A_B;
   }
-  
 
 
 
@@ -66,7 +64,6 @@ It should be also the case for 3 roles.
       continue __Pass_A_B_C;
     }
   }
-  
 
 
 
@@ -132,7 +129,6 @@ Similar for non-identical calls.
       }
     }
   }
-  
 
 
   $ nuscr --show-global-type Pass DoMulti3.nuscr
@@ -183,4 +179,3 @@ Similar for non-identical calls.
       }
     }
   }
-  
