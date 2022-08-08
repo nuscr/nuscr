@@ -32,7 +32,6 @@ string.
       continue X;
     }
   }
-  
 
 PasswordManager2 has a too short initial password, and an error is expected.
 

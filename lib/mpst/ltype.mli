@@ -46,6 +46,7 @@ type t =
   | SilentL of VariableName.t * Expr.payload_type * t
       (** Used with refinement types to indicate knowledge obtained via a
           global protocol, used only in RefinementTypes extension *)
+[@@deriving show]
 
 (** Unique id identifying a local protocol *)
 module LocalProtocolId : sig
@@ -62,9 +63,6 @@ end
 
 (** Mapping of local protocol id to the protocol's roles and local type *)
 type nested_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
-
-val show : t -> string
-(** Converts a local type to a string. *)
 
 val show_nested_t : nested_t -> string
 

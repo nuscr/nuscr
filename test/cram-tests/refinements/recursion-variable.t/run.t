@@ -21,7 +21,6 @@ The protocol with recursion variable should be well-formed.
     Num(curr: curr:int{(curr)=(count)}) to B;
     continue X [(count)+(1)];
   }
-  
 
 
 
@@ -47,7 +46,6 @@ The protocol with recursion variable should be well-formed.
     Num(curr: curr:int{(curr)=(count)}) to B;
     continue X [(count)+(1)];
   }
-  
 
 When projected on B, the recursion variable `count` should not appear.
 
@@ -56,11 +54,9 @@ When projected on B, the recursion variable `count` should not appear.
     Num(curr: curr:int{(curr)=(count)}) from A;
     continue X;
   }
-  
 
   $ nuscr Recursion.nuscr --project B@Recursion2
   rec X [(silent) count<A>: count:int{(count)>=(0)} = 0] {
     Num(curr: curr:int{(curr)=(count)}) from A;
     continue X;
   }
-  
