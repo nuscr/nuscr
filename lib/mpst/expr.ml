@@ -37,14 +37,50 @@ end
 
 type t = expr [@@deriving sexp_of, eq, ord]
 
-let rec show = function
-  | Var v -> VariableName.user v
-  | Int i -> Int.to_string i
-  | Bool b -> Bool.to_string b
-  | String s -> "\"" ^ s ^ "\""
-  | Binop (b, e1, e2) ->
-      sprintf "(%s)%s(%s)" (show e1) (show_binop b) (show e2)
-  | Unop (u, e) -> sprintf "%s(%s)" (show_unop u) (show e)
+module Formatting = struct
+  open! Caml.Format
+
+  let binop_level = function
+    | And | Or -> 0
+    | Eq | Neq | Lt | Gt | Leq | Geq -> 1
+    | Add | Minus -> 2
+
+  let arg_level = function Binop (b, _, _) -> binop_level b | _ -> 999
+
+  let rec pp ppf = function
+    | Var v -> pp_print_string ppf (VariableName.user v)
+    | Int i -> pp_print_int ppf i
+    | Bool b -> pp_print_bool ppf b
+    | String s ->
+        pp_print_char ppf '\"' ;
+        pp_print_string ppf s ;
+        pp_print_char ppf '\"'
+    | Binop (b, e1, e2) ->
+        let level_current = binop_level b in
+        let level_left = arg_level e1 in
+        let level_right = arg_level e2 in
+        if level_left < level_current then pp_print_char ppf '(' ;
+        pp ppf e1 ;
+        if level_left < level_current then pp_print_char ppf ')' ;
+        pp_print_char ppf ' ' ;
+        pp_print_string ppf (show_binop b) ;
+        pp_print_char ppf ' ' ;
+        if level_right < level_current then pp_print_char ppf '(' ;
+        pp ppf e2 ;
+        if level_right < level_current then pp_print_char ppf ')'
+    | Unop (u, e) ->
+        pp_print_string ppf (show_unop u) ;
+        pp_print_char ppf '(' ;
+        pp ppf e ;
+        pp_print_char ppf ')'
+
+  let show e =
+    let buffer = Buffer.create 1024 in
+    let ppf = formatter_of_buffer buffer in
+    fprintf ppf "%a@?" pp e ; Buffer.contents buffer
+end
+
+include Formatting
 
 (** Types for expressions. Integers, booleans and strings are are modelled,
     and can be thus refined with RefinementTypes extension *)
