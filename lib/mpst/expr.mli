@@ -17,9 +17,7 @@ open Syntax.Exprs
    | Binop of binop * t * t  (** A binary operator *)
    | Unop of unop * t  (** An unary operator *)
     v} *)
-type t = expr [@@deriving sexp_of, eq, ord]
-
-val show : t -> string
+type t = expr [@@deriving sexp_of, eq, ord, show]
 
 val free_var : t -> Set.M(VariableName).t
 (** Get free variables in an expression *)

@@ -6,10 +6,10 @@ Expecting recursion expressions to be correctly attached.
     6;
     
     
-    0 -> 0 [label="A?Decr()[(count)-(1)]", ];
-    0 -> 0 [label="A?Incr()[(count)+(1)]", ];
+    0 -> 0 [label="A?Decr()[count - 1]", ];
+    0 -> 0 [label="A?Incr()[count + 1]", ];
     0 -> 5 [label="A?Result()", ];
-    5 -> 6 [label="A!Total(sum: sum:int{(sum)=(count)})", ];
+    5 -> 6 [label="A!Total(sum: sum:int{sum = count})", ];
     
     }
 
