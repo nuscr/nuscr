@@ -4,6 +4,8 @@ open Nuscrlib
 open Names
 open Cmdliner
 
+(* Helpers *)
+
 let is_debug =
   Option.is_some (Sys.getenv "DEBUG")
   || Option.is_some (Sys.getenv "NUSCRDEBUG")
@@ -22,6 +24,48 @@ let parse_role_protocol_exn rp =
            "Role and protocol have to be for the form role@protocol" )
       |> raise
 
+(* Arguments and options *)
+
+type args =
+  { filename: string
+  ; enumerate: bool
+  ; go_path: string option
+  ; out_dir: string option
+  ; verbose: bool
+  ; show_solver_queries: bool }
+
+let mk_args filename enumerate go_path out_dir verbose show_solver_queries =
+  {filename; enumerate; go_path; out_dir; verbose; show_solver_queries}
+
+let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
+
+let go_path =
+  let doc =
+    "Path to the Go source directory (the parent directory of the project \
+     root) [Only applicable for Go Codegen]"
+  in
+  Arg.(value & opt (some dir) None & info ["go-path"] ~doc ~docv:"DIR")
+
+let out_dir =
+  let doc =
+    "Path to the project directory inside which the code is to be \
+     generated, relative to Go source directory [Only applicable for Go \
+     Codegen]"
+  in
+  Arg.(value & opt (some string) None & info ["out-dir"] ~doc ~docv:"DIR")
+
+let verbose =
+  let doc = "Print extra information" in
+  Arg.(value & flag & info ["v"; "verbose"] ~doc)
+
+let enumerate =
+  let doc = "Enumerate the roles and protocols in the file" in
+  Arg.(value & flag & info ["enum"] ~doc)
+
+let show_solver_queries =
+  let doc = "Print solver queries (With RefinementTypes pragma)" in
+  Arg.(value & flag & info ["show-solver-queries"] ~doc)
+
 let process_file (fn : string) (proc : string -> In_channel.t -> 'a) : 'a =
   let input = In_channel.create fn in
   let res = proc fn input in
@@ -33,12 +77,12 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
-    gencode_monadic_ocaml gencode_go gencode_fstar sexp_global_type
-    show_global_type show_solver_queries show_global_type_mpstk project_mpstk
-    show_global_type_tex project_tex =
-  Pragma.set_solver_show_queries show_solver_queries ;
-  Pragma.set_verbose verbose ;
+let main args project fsm gencode_ocaml gencode_monadic_ocaml gencode_go
+    gencode_fstar sexp_global_type show_global_type show_global_type_mpstk
+    project_mpstk show_global_type_tex project_tex =
+  let file = args.filename in
+  Pragma.set_solver_show_queries args.show_solver_queries ;
+  Pragma.set_verbose args.verbose ;
   try
     let ast = process_file file Nuscrlib.parse in
     Nuscrlib.load_pragmas ast ;
@@ -47,7 +91,7 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
         (Err.IncompatibleFlag ("fsm", Pragma.show Pragma.NestedProtocols)) ;
     Nuscrlib.validate_exn ast ;
     let () =
-      if enumerate then
+      if args.enumerate then
         Nuscrlib.enumerate ast
         |> List.map ~f:(fun (n, r) ->
                RoleName.user r ^ "@" ^ ProtocolName.user n )
@@ -105,10 +149,11 @@ let main file enumerate verbose go_path out_dir project fsm gencode_ocaml
     let () =
       Option.iter
         ~f:(fun (_role, protocol) ->
-          match out_dir with
+          match args.out_dir with
           | Some out_dir ->
               let impl =
-                Nuscrlib.generate_go_code ast ~protocol ~out_dir ~go_path
+                Nuscrlib.generate_go_code ast ~protocol ~out_dir
+                  ~go_path:args.go_path
               in
               print_endline impl
           | None ->
@@ -189,21 +234,6 @@ let role_proto =
     Caml.Format.pp_print_string fmt (ProtocolName.user p)
   in
   Arg.conv (parse, print)
-
-let enumerate =
-  let doc = "Enumerate the roles and protocols in the file" in
-  Arg.(value & flag & info ["enum"] ~doc)
-
-let verbose =
-  let doc = "Print extra information" in
-  Arg.(value & flag & info ["v"; "verbose"] ~doc)
-
-let go_path =
-  let doc =
-    "Path to the Go source directory (the parent directory of the project \
-     root) [Only applicable for Go Codegen]"
-  in
-  Arg.(value & opt (some dir) None & info ["go-path"] ~doc ~docv:"DIR")
 
 let project =
   let doc =
@@ -321,20 +351,6 @@ let show_global_type_tex =
     & opt (some string) None
     & info ["show-global-type-tex"] ~doc ~docv:"PROTO" )
 
-let out_dir =
-  let doc =
-    "Path to the project directory inside which the code is to be \
-     generated, relative to Go source directory [Only applicable for Go \
-     Codegen]"
-  in
-  Arg.(value & opt (some string) None & info ["out-dir"] ~doc ~docv:"DIR")
-
-let file = Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE")
-
-let show_solver_queries =
-  let doc = "Print solver queries (With RefinementTypes pragma)" in
-  Arg.(value & flag & info ["show-solver-queries"] ~doc)
-
 let cmd =
   let doc =
     "A tool to manipulate and validate Scribble-style multiparty protocols"
@@ -351,14 +367,18 @@ let cmd =
     ; `P "Please report bugs on GitHub at %%PKG_ISSUES%%" ]
   in
   let info = Cmd.info "nuscr" ~version:"%%VERSION%%" ~doc ~man in
+  let args =
+    Term.(
+      const mk_args $ file $ enumerate $ go_path $ out_dir $ verbose
+      $ show_solver_queries )
+  in
   let term =
     Term.(
       ret
-        ( const main $ file $ enumerate $ verbose $ go_path $ out_dir
-        $ project $ fsm $ gencode_ocaml $ gencode_monadic_ocaml $ gencode_go
-        $ gencode_fstar $ sexp_global_type $ show_global_type
-        $ show_solver_queries $ show_global_type_mpstk $ project_mpstk
-        $ show_global_type_tex $ project_tex ) )
+        ( const main $ args $ project $ fsm $ gencode_ocaml
+        $ gencode_monadic_ocaml $ gencode_go $ gencode_fstar
+        $ sexp_global_type $ show_global_type $ show_global_type_mpstk
+        $ project_mpstk $ show_global_type_tex $ project_tex ) )
   in
   Cmd.v info term
 
