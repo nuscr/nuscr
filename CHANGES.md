@@ -3,6 +3,7 @@
 ## Changed
 - [sedlex](https://github.com/ocaml-community/sedlex) is now used for lexing,
     for future Unicode support.
+- Improved pretty printing of global and local types
 
 ## Deprecated
 - BREAKING: Scribble-style "module" and "type" declarations were parsed into an
