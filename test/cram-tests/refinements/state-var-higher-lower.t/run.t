@@ -310,111 +310,113 @@ Show HigherLower FSM and State variables.
         ];
       ann = None }
     }
-  start(n: n:int{0 <= n && n < 100}) from A to B;
-  limit(t0: t0:int{0 < t0}) from A to B;
-  rec Loop [t<B>: t:int{0 < t} = t0] {
-    guess(x: x:int{0 <= x && x < 100}) from C to B;
+  start(n: (n:int{0 <= n && n < 100}) from A to B;
+  limit(t0: (t0:int{0 < t0}) from A to B;
+  rec Loop [t<B>: (t:int{0 < t} = t0] {
+    guess(x: (x:int{0 <= x && x < 100}) from C to B;
     choice at B {
-      higher(ignore: ignore:unit{n > x && t > 1}) from B to C;
+      higher(ignore: (ignore:unit{n > x && t > 1}) from B to C;
       higher() from B to A;
       continue Loop [t - 1];
     } or {
-      win(ignore: ignore:unit{n = x}) from B to C;
+      win(ignore: (ignore:unit{n = x}) from B to C;
       lose() from B to A;
       (end)
     } or {
-      lower(ignore: ignore:unit{n < x && t > 1}) from B to C;
+      lower(ignore: (ignore:unit{n < x && t > 1}) from B to C;
       lower() from B to A;
       continue Loop [t - 1];
     } or {
-      lose(ignore: ignore:unit{n <> x && t = 1}) from B to C;
+      lose(ignore: (ignore:unit{n <> x && t = 1}) from B to C;
       win() from B to A;
       (end)
     }
   }
-  start(n: n:int{0 <= n && n < 100}) to B;
-  limit(t0: t0:int{0 < t0}) to B;
-  rec Loop [(silent) t<B>: t:int{0 < t} = t0] {
-    (silent) x(x:int{0 <= x && x < 100});
+  start(n: (n:int{0 <= n && n < 100}) to B;
+  limit(t0: (t0:int{0 < t0}) to B;
+  rec Loop [(silent) t<B>: (t:int{0 < t} = t0] {
+    (silent) x((x:int{0 <= x && x < 100});
     choice at B {
-      (silent) ignore(ignore:unit{n < x && t > 1});
+      (silent) ignore((ignore:unit{n < x && t > 1});
       lower() from B;
       continue Loop;
     } or {
-      (silent) ignore(ignore:unit{n > x && t > 1});
+      (silent) ignore((ignore:unit{n > x && t > 1});
       higher() from B;
       continue Loop;
     } or {
-      (silent) ignore(ignore:unit{n = x});
+      (silent) ignore((ignore:unit{n = x});
       lose() from B;
       (end)
     } or {
-      (silent) ignore(ignore:unit{n <> x && t = 1});
+      (silent) ignore((ignore:unit{n <> x && t = 1});
       win() from B;
       (end)
     }
   }
-  start(n: n:int{0 <= n && n < 100}) from A;
-  limit(t0: t0:int{0 < t0}) from A;
-  rec Loop [t<B>: t:int{0 < t} = t0] {
-    guess(x: x:int{0 <= x && x < 100}) from C;
+  start(n: (n:int{0 <= n && n < 100}) from A;
+  limit(t0: (t0:int{0 < t0}) from A;
+  rec Loop [t<B>: (t:int{0 < t} = t0] {
+    guess(x: (x:int{0 <= x && x < 100}) from C;
     choice at B {
-      higher(ignore: ignore:unit{n > x && t > 1}) to C;
+      higher(ignore: (ignore:unit{n > x && t > 1}) to C;
       higher() to A;
       continue Loop [t - 1];
     } or {
-      win(ignore: ignore:unit{n = x}) to C;
+      win(ignore: (ignore:unit{n = x}) to C;
       lose() to A;
       (end)
     } or {
-      lower(ignore: ignore:unit{n < x && t > 1}) to C;
+      lower(ignore: (ignore:unit{n < x && t > 1}) to C;
       lower() to A;
       continue Loop [t - 1];
     } or {
-      lose(ignore: ignore:unit{n <> x && t = 1}) to C;
+      lose(ignore: (ignore:unit{n <> x && t = 1}) to C;
       win() to A;
       (end)
     }
   }
-  (silent) n(n:int{0 <= n && n < 100});
-  (silent) t0(t0:int{0 < t0});
-  rec Loop [(silent) t<B>: t:int{0 < t} = t0] {
-    guess(x: x:int{0 <= x && x < 100}) to B;
+  (silent) n((n:int{0 <= n && n < 100});
+  (silent) t0((t0:int{0 < t0});
+  rec Loop [(silent) t<B>: (t:int{0 < t} = t0] {
+    guess(x: (x:int{0 <= x && x < 100}) to B;
     choice at B {
-      higher(ignore: ignore:unit{n > x && t > 1}) from B;
+      higher(ignore: (ignore:unit{n > x && t > 1}) from B;
       continue Loop;
     } or {
-      win(ignore: ignore:unit{n = x}) from B;
+      win(ignore: (ignore:unit{n = x}) from B;
       (end)
     } or {
-      lower(ignore: ignore:unit{n < x && t > 1}) from B;
+      lower(ignore: (ignore:unit{n < x && t > 1}) from B;
       continue Loop;
     } or {
-      lose(ignore: ignore:unit{n <> x && t = 1}) from B;
+      lose(ignore: (ignore:unit{n <> x && t = 1}) from B;
       (end)
     }
   }
   digraph G {
     0;
     1;
-    2 [label="!silent t<B>: t:int{0 < t} = t0", ];
+    2 [label="!silent t<B>: (t:int{0 < t} =
+  t0", ];
     7;
     9;
     
     
-    0 -> 1 [label="B!start(n: n:int{0 <= n && n < 100})", ];
-    1 -> 2 [label="B!limit(t0: t0:int{0 < t0})", ];
-    2 -> 2 [label="B?higher()<ignore: ignore:unit{n > x && t > 1}>", ];
-    2 -> 2 [label="B?lower()<ignore: ignore:unit{n < x && t > 1}, x: x:int{0 <= x && x < 100}>",
+    0 -> 1 [label="B!start(n: (n:int{0 <= n && n < 100})", ];
+    1 -> 2 [label="B!limit(t0: (t0:int{0 < t0})", ];
+    2 -> 2 [label="B?higher()<ignore: (ignore:unit{n > x && t > 1}>", ];
+    2 -> 2 [label="B?lower()<ignore: (ignore:unit{n < x && t > 1}, x: (x:int{0 <= x && x < 100}>",
             ];
-    2 -> 7 [label="B?lose()<ignore: ignore:unit{n = x}>", ];
-    2 -> 9 [label="B?win()<ignore: ignore:unit{n <> x && t = 1}>", ];
+    2 -> 7 [label="B?lose()<ignore: (ignore:unit{n = x}>", ];
+    2 -> 9 [label="B?win()<ignore: (ignore:unit{n <> x && t = 1}>", ];
     
     }
   digraph G {
     0;
     1;
-    2 [label="t<B>: t:int{0 < t} = t0", ];
+    2 [label="t<B>: (t:int{0 < t} =
+  t0", ];
     4;
     6;
     8;
@@ -424,13 +426,13 @@ Show HigherLower FSM and State variables.
     14;
     
     
-    0 -> 1 [label="A?start(n: n:int{0 <= n && n < 100})", ];
-    1 -> 2 [label="A?limit(t0: t0:int{0 < t0})", ];
-    2 -> 4 [label="C?guess(x: x:int{0 <= x && x < 100})", ];
-    4 -> 6 [label="C!higher(ignore: ignore:unit{n > x && t > 1})", ];
-    4 -> 8 [label="C!win(ignore: ignore:unit{n = x})", ];
-    4 -> 11 [label="C!lower(ignore: ignore:unit{n < x && t > 1})", ];
-    4 -> 13 [label="C!lose(ignore: ignore:unit{n <> x && t = 1})", ];
+    0 -> 1 [label="A?start(n: (n:int{0 <= n && n < 100})", ];
+    1 -> 2 [label="A?limit(t0: (t0:int{0 < t0})", ];
+    2 -> 4 [label="C?guess(x: (x:int{0 <= x && x < 100})", ];
+    4 -> 6 [label="C!higher(ignore: (ignore:unit{n > x && t > 1})", ];
+    4 -> 8 [label="C!win(ignore: (ignore:unit{n = x})", ];
+    4 -> 11 [label="C!lower(ignore: (ignore:unit{n < x && t > 1})", ];
+    4 -> 13 [label="C!lose(ignore: (ignore:unit{n <> x && t = 1})", ];
     6 -> 2 [label="A!higher()[t - 1]", ];
     8 -> 9 [label="A!lose()", ];
     11 -> 2 [label="A!lower()[t - 1]", ];
@@ -438,30 +440,31 @@ Show HigherLower FSM and State variables.
     
     }
   digraph G {
-    0 [label="!silent t<B>: t:int{0 < t} = t0", ];
+    0 [label="!silent t<B>: (t:int{0 < t} =
+  t0", ];
     2;
     5;
     8;
     
     
-    0 -> 2 [label="B!guess(x: x:int{0 <= x && x < 100})<t0: t0:int{0 < t0}, n: n:int{0 <= n && n < 100}>",
+    0 -> 2 [label="B!guess(x: (x:int{0 <= x && x < 100})<t0: (t0:int{0 < t0}, n: (n:int{0 <= n && n < 100}>",
             ];
-    2 -> 0 [label="B?higher(ignore: ignore:unit{n > x && t > 1})", ];
-    2 -> 0 [label="B?lower(ignore: ignore:unit{n < x && t > 1})", ];
-    2 -> 5 [label="B?win(ignore: ignore:unit{n = x})", ];
-    2 -> 8 [label="B?lose(ignore: ignore:unit{n <> x && t = 1})", ];
+    2 -> 0 [label="B?higher(ignore: (ignore:unit{n > x && t > 1})", ];
+    2 -> 0 [label="B?lower(ignore: (ignore:unit{n < x && t > 1})", ];
+    2 -> 5 [label="B?win(ignore: (ignore:unit{n = x})", ];
+    2 -> 8 [label="B?lose(ignore: (ignore:unit{n <> x && t = 1})", ];
     
     }
   State 0 has variables: (empty)
-  State 1 has variables: {n: n:int{0 <= n && n < 100}}
-  State 2 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}}
-  State 4 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}}
-  State 6 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}; ignore: ignore:unit{n > x && t > 1}}
-  State 8 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}; ignore: ignore:unit{n = x}}
-  State 9 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}; ignore: ignore:unit{n = x}}
-  State 11 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}; ignore: ignore:unit{n < x && t > 1}}
-  State 13 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}; ignore: ignore:unit{n <> x && t = 1}}
-  State 14 has variables: {n: n:int{0 <= n && n < 100}; t0: t0:int{0 < t0}; t: t:int{0 < t}; x: x:int{0 <= x && x < 100}; ignore: ignore:unit{n <> x && t = 1}}
+  State 1 has variables: {n: (n:int{0 <= n && n < 100}}
+  State 2 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}}
+  State 4 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}}
+  State 6 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}; ignore: (ignore:unit{n > x && t > 1}}
+  State 8 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}; ignore: (ignore:unit{n = x}}
+  State 9 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}; ignore: (ignore:unit{n = x}}
+  State 11 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}; ignore: (ignore:unit{n < x && t > 1}}
+  State 13 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}; ignore: (ignore:unit{n <> x && t = 1}}
+  State 14 has variables: {n: (n:int{0 <= n && n < 100}; t0: (t0:int{0 < t0}; t: (t:int{0 < t}; x: (x:int{0 <= x && x < 100}; ignore: (ignore:unit{n <> x && t = 1}}
   module Generated
   open FStar.All
   open FStar.Ghost

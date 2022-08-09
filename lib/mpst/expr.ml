@@ -1,5 +1,4 @@
 open! Base
-open Printf
 open Names
 open Syntax.Exprs
 
@@ -36,6 +35,31 @@ module Sexp = struct
 end
 
 type t = expr [@@deriving sexp_of, eq, ord]
+
+(** Types for expressions. Integers, booleans and strings are are modelled,
+    and can be thus refined with RefinementTypes extension *)
+type payload_type =
+  | PTInt  (** A type for integers *)
+  | PTBool  (** A type for booleans *)
+  | PTString  (** A type for strings *)
+  | PTUnit  (** A type for units *)
+  | PTAbstract of PayloadTypeName.t
+      (** A type for other un-modelled payloads, e.g. custom types *)
+  | PTRefined of VariableName.t * payload_type * t
+      (** A refined types, [PTRefined (x, ty, e)] stands for the refined type
+          'x:ty\{e\}' where [e] is a predicate on [x]. *)
+[@@deriving sexp_of, eq, ord]
+
+let rec equal_payload_type_basic t1 t2 =
+  match (t1, t2) with
+  | PTInt, PTInt -> true
+  | PTBool, PTBool -> true
+  | PTString, PTString -> true
+  | PTUnit, PTUnit -> true
+  | PTAbstract n1, PTAbstract n2 -> PayloadTypeName.equal n1 n2
+  | PTRefined (_, t1, _), t2 -> equal_payload_type_basic t1 t2
+  | t1, PTRefined (_, t2, _) -> equal_payload_type_basic t1 t2
+  | _, _ -> false
 
 module Formatting = struct
   open! Caml.Format
@@ -78,44 +102,30 @@ module Formatting = struct
     let buffer = Buffer.create 1024 in
     let ppf = formatter_of_buffer buffer in
     fprintf ppf "%a@?" pp e ; Buffer.contents buffer
+
+  let rec pp_payload_type ppf = function
+    | PTAbstract n -> pp_print_string ppf (PayloadTypeName.user n)
+    | PTRefined (v, t, e) ->
+        pp_print_string ppf "(" ;
+        pp_print_string ppf (VariableName.user v) ;
+        pp_print_string ppf ":" ;
+        pp_payload_type ppf t ;
+        pp_print_string ppf "{" ;
+        pp ppf e ;
+        pp_print_string ppf "}"
+    | PTInt -> pp_print_string ppf "int"
+    | PTBool -> pp_print_string ppf "bool"
+    | PTString -> pp_print_string ppf "string"
+    | PTUnit -> pp_print_string ppf "unit"
+
+  let show_payload_type ty =
+    let buffer = Buffer.create 1024 in
+    let ppf = formatter_of_buffer buffer in
+    fprintf ppf "%a@?" pp_payload_type ty ;
+    Buffer.contents buffer
 end
 
 include Formatting
-
-(** Types for expressions. Integers, booleans and strings are are modelled,
-    and can be thus refined with RefinementTypes extension *)
-type payload_type =
-  | PTInt  (** A type for integers *)
-  | PTBool  (** A type for booleans *)
-  | PTString  (** A type for strings *)
-  | PTUnit  (** A type for units *)
-  | PTAbstract of PayloadTypeName.t
-      (** A type for other un-modelled payloads, e.g. custom types *)
-  | PTRefined of VariableName.t * payload_type * t
-      (** A refined types, [PTRefined (x, ty, e)] stands for the refined type
-          'x:ty\{e\}' where [e] is a predicate on [x]. *)
-[@@deriving sexp_of, eq, ord]
-
-let rec equal_payload_type_basic t1 t2 =
-  match (t1, t2) with
-  | PTInt, PTInt -> true
-  | PTBool, PTBool -> true
-  | PTString, PTString -> true
-  | PTUnit, PTUnit -> true
-  | PTAbstract n1, PTAbstract n2 -> PayloadTypeName.equal n1 n2
-  | PTRefined (_, t1, _), t2 -> equal_payload_type_basic t1 t2
-  | t1, PTRefined (_, t2, _) -> equal_payload_type_basic t1 t2
-  | _, _ -> false
-
-let rec show_payload_type = function
-  | PTAbstract n -> PayloadTypeName.user n
-  | PTRefined (v, t, e) ->
-      sprintf "%s:%s{%s}" (VariableName.user v) (show_payload_type t)
-        (show e)
-  | PTInt -> "int"
-  | PTBool -> "bool"
-  | PTString -> "string"
-  | PTUnit -> "unit"
 
 (** Obtain [PayloadTypeName.t] from a [payload_type], useful for code
     generation purposes *)

@@ -110,22 +110,23 @@ module Formatting = struct
         pp_force_newline ppf () ;
         pp ppf l
     | MuL (n, rec_vars, l) ->
-        let rec_vars_s =
-          if List.is_empty rec_vars then ""
-          else
-            "["
-            ^ String.concat ~sep:", "
-                (List.map
-                   ~f:(fun (is_silent, rv) ->
-                     let prefix = if is_silent then "(silent) " else "" in
-                     prefix ^ Gtype.show_rec_var rv )
-                   rec_vars )
-            ^ "] "
-        in
         pp_print_string ppf "rec " ;
         pp_print_string ppf (TypeVariableName.user n) ;
         pp_print_string ppf " " ;
-        pp_print_string ppf rec_vars_s ;
+        if not (List.is_empty rec_vars) then (
+          let rec pp_recvars = function
+            | [] -> ()
+            | (is_silent, recvar) :: recvars ->
+                if is_silent then fprintf ppf "(silent) " ;
+                pp_rec_var ppf recvar ;
+                if not (List.is_empty recvars) then pp_print_string ppf ", " ;
+                pp_recvars recvars
+          in
+          pp_print_string ppf "[" ;
+          pp_open_box ppf 2 ;
+          pp_recvars rec_vars ;
+          pp_close_box ppf () ;
+          pp_print_string ppf "] " ) ;
         pp_print_string ppf "{" ;
         pp_force_newline ppf () ;
         pp_open_box ppf 2 ;

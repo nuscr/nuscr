@@ -57,9 +57,7 @@ type payload_type =
   | PTRefined of VariableName.t * payload_type * t
       (** A refined types, [PTRefined (x, ty, e)] stands for the refined type
           'x:ty\{e\}' where [e] is a predicate on [x]. *)
-[@@deriving sexp_of, eq, ord]
-
-val show_payload_type : payload_type -> string
+[@@deriving sexp_of, eq, ord, show]
 
 val payload_typename_of_payload_type : payload_type -> PayloadTypeName.t
 (** Extract [PayloadTypeName] from a [payload_type] *)

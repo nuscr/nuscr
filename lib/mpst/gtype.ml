@@ -101,13 +101,6 @@ type rec_var =
   ; rv_init_expr: Expr.t }
 [@@deriving sexp_of, eq]
 
-let show_rec_var {rv_name; rv_roles; rv_ty; rv_init_expr} =
-  sprintf "%s<%s>: %s = %s"
-    (VariableName.user rv_name)
-    (String.concat ~sep:", " (List.map ~f:RoleName.user rv_roles))
-    (Expr.show_payload_type rv_ty)
-    (Expr.show rv_init_expr)
-
 type t =
   | MessageG of message * RoleName.t * RoleName.t * t
   | MuG of TypeVariableName.t * rec_var list * t
@@ -141,6 +134,19 @@ type nested_t = nested_global_info Map.M(ProtocolName).t
 module Formatting = struct
   open! Caml.Format
 
+  let pp_rec_var ppf {rv_name; rv_roles; rv_ty; rv_init_expr} =
+    fprintf ppf "%s<%s>:@ %s@ =@ %s"
+      (VariableName.user rv_name)
+      (String.concat ~sep:", " (List.map ~f:RoleName.user rv_roles))
+      (Expr.show_payload_type rv_ty)
+      (Expr.show rv_init_expr)
+
+  let show_rec_var rv =
+    let buffer = Buffer.create 1024 in
+    let ppf = formatter_of_buffer buffer in
+    fprintf ppf "%a@?" pp_rec_var rv ;
+    Buffer.contents buffer
+
   let rec pp ppf = function
     | MessageG (m, r1, r2, g) ->
         pp_print_string ppf (show_message m) ;
@@ -152,17 +158,22 @@ module Formatting = struct
         pp_force_newline ppf () ;
         pp ppf g
     | MuG (n, rec_vars, g) ->
-        let rec_vars_s =
-          if List.is_empty rec_vars then ""
-          else
-            "["
-            ^ String.concat ~sep:", " (List.map ~f:show_rec_var rec_vars)
-            ^ "] "
-        in
         pp_print_string ppf "rec " ;
         pp_print_string ppf (TypeVariableName.user n) ;
         pp_print_string ppf " " ;
-        pp_print_string ppf rec_vars_s ;
+        if not (List.is_empty rec_vars) then (
+          let rec pp_recvars = function
+            | [] -> ()
+            | recvar :: recvars ->
+                pp_rec_var ppf recvar ;
+                if not (List.is_empty recvars) then pp_print_string ppf ", " ;
+                pp_recvars recvars
+          in
+          pp_print_string ppf "[" ;
+          pp_open_box ppf 2 ;
+          pp_recvars rec_vars ;
+          pp_close_box ppf () ;
+          pp_print_string ppf "] " ) ;
         pp_print_string ppf "{" ;
         pp_force_newline ppf () ;
         pp_open_box ppf 2 ;
