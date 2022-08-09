@@ -30,7 +30,7 @@ type rec_var =
   ; rv_init_expr: Expr.t
         (** What is the initial expression assigned at the beginning of
             recursion *) }
-[@@deriving sexp_of, eq]
+[@@deriving sexp_of, eq, show]
 
 (** The type of global types. See also {!LiteratureSyntax.global} for a
     simpler syntax. *)
@@ -97,6 +97,3 @@ val normalise_nested_t : nested_t -> nested_t
 val validate_refinements_exn : t -> unit
 (** Validate refinements in the given global type, requires [RefinementTypes]
     pragma *)
-
-val show_rec_var : rec_var -> string
-(** Convert rec_var to string *)

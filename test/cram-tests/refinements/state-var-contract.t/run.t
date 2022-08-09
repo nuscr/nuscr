@@ -2,7 +2,8 @@ Print FSM for C@Contract
   $ nuscr --fsm C@Contract Contract.nuscr
   digraph G {
     0;
-    1 [label="currentPrice<C, P>: int = initialPrice", ];
+    1 [label="currentPrice<C, P>: int =
+  initialPrice", ];
     4;
     5;
     7;
@@ -13,15 +14,15 @@ Print FSM for C@Contract
     
     
     0 -> 1 [label="P!propose(initialPrice: int)", ];
-    1 -> 4 [label="P?accept(confirmedPrice: confirmedPrice:int{confirmedPrice = currentPrice})",
+    1 -> 4 [label="P?accept(confirmedPrice: (confirmedPrice:int{confirmedPrice = currentPrice})",
             ];
-    1 -> 7 [label="P?counter(counterPrice: counterPrice:int{counterPrice <> currentPrice})",
+    1 -> 7 [label="P?counter(counterPrice: (counterPrice:int{counterPrice <> currentPrice})",
             ];
     1 -> 15 [label="P?reject()", ];
     4 -> 5 [label="P!confirm()", ];
-    7 -> 1 [label="P!counter(newCounterPrice: newCounterPrice:int{counterPrice <> newCounterPrice})[newCounterPrice]",
+    7 -> 1 [label="P!counter(newCounterPrice: (newCounterPrice:int{counterPrice <> newCounterPrice})[newCounterPrice]",
             ];
-    7 -> 9 [label="P!accept(confirmedPrice: confirmedPrice:int{confirmedPrice = counterPrice})",
+    7 -> 9 [label="P!accept(confirmedPrice: (confirmedPrice:int{confirmedPrice = counterPrice})",
             ];
     7 -> 13 [label="P!reject()", ];
     9 -> 10 [label="P?confirm()", ];
