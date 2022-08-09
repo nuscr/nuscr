@@ -77,9 +77,16 @@ let gen_output ast f = function
       print_endline res
   | _ -> ()
 
-let main args project fsm gencode_ocaml gencode_monadic_ocaml gencode_go
-    gencode_fstar sexp_global_type show_global_type show_global_type_mpstk
-    project_mpstk show_global_type_tex project_tex =
+type global_action_verb =
+  | ShowGlobalType
+  | ShowGlobalTypeMpstk
+  | ShowGlobalTypeTex
+  | ShowGlobalTypeSexp
+
+type global_action = global_action_verb * string (* protocol *)
+
+let main args global_actions project fsm gencode_ocaml gencode_monadic_ocaml
+    gencode_go gencode_fstar project_mpstk project_tex =
   let file = args.filename in
   Pragma.set_solver_show_queries args.show_solver_queries ;
   Pragma.set_verbose args.verbose ;
@@ -166,40 +173,27 @@ let main args project fsm gencode_ocaml gencode_monadic_ocaml gencode_go
         gencode_go
     in
     let () =
-      Option.iter
-        ~f:(fun protocol ->
+      List.iter
+        ~f:(fun (verb, protocol) ->
           let protocol = ProtocolName.of_string protocol in
-          Nuscrlib.generate_sexp ast ~protocol |> print_endline )
-        sexp_global_type
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          let gtype = Nuscrlib.get_global_type ~protocol ast in
-          Nuscrlib.Gtype.show gtype |> print_endline )
-        show_global_type
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          let gtype =
-            Nuscrlib.get_global_type_literature_syntax ~protocol ast
-          in
-          Nuscrlib.LiteratureSyntax.show_gtype_mpstk gtype |> print_endline
-          )
-        show_global_type_mpstk
-    in
-    let () =
-      Option.iter
-        ~f:(fun protocol ->
-          let protocol = ProtocolName.of_string protocol in
-          let gtype =
-            Nuscrlib.get_global_type_literature_syntax ~protocol ast
-          in
-          Nuscrlib.LiteratureSyntax.show_gtype_tex gtype |> print_endline )
-        show_global_type_tex
+          match verb with
+          | ShowGlobalType ->
+              let gtype = Nuscrlib.get_global_type ~protocol ast in
+              Nuscrlib.Gtype.show gtype |> print_endline
+          | ShowGlobalTypeMpstk ->
+              let gtype =
+                Nuscrlib.get_global_type_literature_syntax ~protocol ast
+              in
+              Nuscrlib.LiteratureSyntax.show_gtype_mpstk gtype
+              |> print_endline
+          | ShowGlobalTypeTex ->
+              let gtype =
+                Nuscrlib.get_global_type_literature_syntax ~protocol ast
+              in
+              Nuscrlib.LiteratureSyntax.show_gtype_tex gtype |> print_endline
+          | ShowGlobalTypeSexp ->
+              Nuscrlib.generate_sexp ast ~protocol |> print_endline )
+        global_actions
     in
     `Ok ()
   with
@@ -317,19 +311,14 @@ let sexp_global_type =
   let doc =
     "Generate the S-expression for the specified protocol. <protocol_name>"
   in
-  Arg.(
-    value
-    & opt (some string) None
-    & info ["generate-sexp"] ~doc ~docv:"PROTO" )
+  Arg.(value & opt_all string [] & info ["generate-sexp"] ~doc ~docv:"PROTO")
 
 let show_global_type =
   let doc =
     "Print the global type for the specified protocol. <protocol_name>"
   in
   Arg.(
-    value
-    & opt (some string) None
-    & info ["show-global-type"] ~doc ~docv:"PROTO" )
+    value & opt_all string [] & info ["show-global-type"] ~doc ~docv:"PROTO" )
 
 let show_global_type_mpstk =
   let doc =
@@ -337,8 +326,7 @@ let show_global_type_mpstk =
      <protocol_name>"
   in
   Arg.(
-    value
-    & opt (some string) None
+    value & opt_all string []
     & info ["show-global-type-mpstk"] ~doc ~docv:"PROTO" )
 
 let show_global_type_tex =
@@ -347,9 +335,28 @@ let show_global_type_tex =
      <protocol_name>"
   in
   Arg.(
-    value
-    & opt (some string) None
+    value & opt_all string []
     & info ["show-global-type-tex"] ~doc ~docv:"PROTO" )
+
+let mk_global_actions show_global_type show_global_type_mpstk
+    show_global_type_tex show_global_type_sexp =
+  let show_global_type =
+    List.map ~f:(fun p -> (ShowGlobalType, p)) show_global_type
+  in
+  let show_global_type_mpstk =
+    List.map ~f:(fun p -> (ShowGlobalTypeMpstk, p)) show_global_type_mpstk
+  in
+  let show_global_type_tex =
+    List.map ~f:(fun p -> (ShowGlobalTypeTex, p)) show_global_type_tex
+  in
+  let show_global_type_sexp =
+    List.map ~f:(fun p -> (ShowGlobalTypeSexp, p)) show_global_type_sexp
+  in
+  List.concat
+    [ show_global_type
+    ; show_global_type_mpstk
+    ; show_global_type_tex
+    ; show_global_type_sexp ]
 
 let cmd =
   let doc =
@@ -372,13 +379,17 @@ let cmd =
       const mk_args $ file $ enumerate $ go_path $ out_dir $ verbose
       $ show_solver_queries )
   in
+  let global_actions =
+    Term.(
+      const mk_global_actions $ show_global_type $ show_global_type_mpstk
+      $ show_global_type_tex $ sexp_global_type )
+  in
   let term =
     Term.(
       ret
-        ( const main $ args $ project $ fsm $ gencode_ocaml
-        $ gencode_monadic_ocaml $ gencode_go $ gencode_fstar
-        $ sexp_global_type $ show_global_type $ show_global_type_mpstk
-        $ project_mpstk $ show_global_type_tex $ project_tex ) )
+        ( const main $ args $ global_actions $ project $ fsm $ gencode_ocaml
+        $ gencode_monadic_ocaml $ gencode_go $ gencode_fstar $ project_mpstk
+        $ project_tex ) )
   in
   Cmd.v info term
 
