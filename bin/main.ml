@@ -83,95 +83,29 @@ type global_action_verb =
   | ShowGlobalTypeTex
   | ShowGlobalTypeSexp
 
+type local_action_verb =
+  | Project
+  | ProjectMpstk
+  | ProjectTex
+  | Fsm
+  | GencodeFstar
+  | GencodeGo
+  | GencodeOcaml
+  | GencodeOcamlMonadic
+
 type global_action = global_action_verb * string (* protocol *)
 
-let main args global_actions project fsm gencode_ocaml gencode_monadic_ocaml
-    gencode_go gencode_fstar project_mpstk project_tex =
+type local_action =
+  local_action_verb * string * string (* protocol and role *)
+
+let main args global_actions local_actions =
   let file = args.filename in
   Pragma.set_solver_show_queries args.show_solver_queries ;
   Pragma.set_verbose args.verbose ;
   try
     let ast = process_file file Nuscrlib.parse in
     Nuscrlib.load_pragmas ast ;
-    if Option.is_some fsm && Pragma.nested_protocol_enabled () then
-      Err.uerr
-        (Err.IncompatibleFlag ("fsm", Pragma.show Pragma.NestedProtocols)) ;
     Nuscrlib.validate_exn ast ;
-    let () =
-      if args.enumerate then
-        Nuscrlib.enumerate ast
-        |> List.map ~f:(fun (n, r) ->
-               RoleName.user r ^ "@" ^ ProtocolName.user n )
-        |> String.concat ~sep:"\n" |> print_endline
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          Nuscrlib.project_role ast ~protocol ~role |> Ltype.show )
-        project
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          let ltype = Nuscrlib.project_role ast ~protocol ~role in
-          let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
-          Nuscrlib.LiteratureSyntax.show_ltype_mpstk ltype )
-        project_mpstk
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          let ltype = Nuscrlib.project_role ast ~protocol ~role in
-          let ltype = Nuscrlib.LiteratureSyntax.from_ltype ltype in
-          Nuscrlib.LiteratureSyntax.show_ltype_tex ltype )
-        project_tex
-    in
-    let () =
-      gen_output ast
-        (fun ast protocol role ->
-          Nuscrlib.generate_fsm ast ~protocol ~role |> snd |> Efsm.show )
-        fsm
-    in
-    let () =
-      Option.iter
-        ~f:(fun (role, protocol) ->
-          Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
-          |> print_endline )
-        gencode_ocaml
-    in
-    let () =
-      Option.iter
-        ~f:(fun (role, protocol) ->
-          Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
-          |> print_endline )
-        gencode_monadic_ocaml
-    in
-    let () =
-      Option.iter
-        ~f:(fun (role, protocol) ->
-          Nuscrlib.generate_fstar_code ast ~protocol ~role |> print_endline
-          )
-        gencode_fstar
-    in
-    let () =
-      Option.iter
-        ~f:(fun (_role, protocol) ->
-          match args.out_dir with
-          | Some out_dir ->
-              let impl =
-                Nuscrlib.generate_go_code ast ~protocol ~out_dir
-                  ~go_path:args.go_path
-              in
-              print_endline impl
-          | None ->
-              Err.UserError
-                (Err.MissingFlag
-                   ( "out-dir"
-                   , "This flag must be set in order to generate go \
-                      implementation" ) )
-              |> raise )
-        gencode_go
-    in
     let () =
       List.iter
         ~f:(fun (verb, protocol) ->
@@ -194,6 +128,61 @@ let main args global_actions project fsm gencode_ocaml gencode_monadic_ocaml
           | ShowGlobalTypeSexp ->
               Nuscrlib.generate_sexp ast ~protocol |> print_endline )
         global_actions
+    in
+    let () =
+      List.iter
+        ~f:(fun (verb, role, protocol) ->
+          match verb with
+          | Project ->
+              Nuscrlib.project_role ast ~protocol ~role
+              |> Ltype.show |> print_endline
+          | ProjectMpstk ->
+              Nuscrlib.project_role ast ~protocol ~role
+              |> Nuscrlib.LiteratureSyntax.from_ltype
+              |> Nuscrlib.LiteratureSyntax.show_ltype_mpstk |> print_endline
+          | ProjectTex ->
+              Nuscrlib.project_role ast ~protocol ~role
+              |> Nuscrlib.LiteratureSyntax.from_ltype
+              |> Nuscrlib.LiteratureSyntax.show_ltype_tex |> print_endline
+          | Fsm ->
+              if Pragma.nested_protocol_enabled () then
+                Err.uerr
+                  (Err.IncompatibleFlag
+                     ("fsm", Pragma.show Pragma.NestedProtocols) ) ;
+              Nuscrlib.generate_fsm ast ~protocol ~role
+              |> snd |> Efsm.show |> print_endline
+          | GencodeFstar ->
+              Nuscrlib.generate_fstar_code ast ~protocol ~role
+              |> print_endline
+          | GencodeGo -> (
+            match args.out_dir with
+            | Some out_dir ->
+                let impl =
+                  Nuscrlib.generate_go_code ast ~protocol ~out_dir
+                    ~go_path:args.go_path
+                in
+                print_endline impl
+            | None ->
+                Err.UserError
+                  (Err.MissingFlag
+                     ( "out-dir"
+                     , "This flag must be set in order to generate go \
+                        implementation" ) )
+                |> raise )
+          | GencodeOcaml ->
+              Nuscrlib.generate_ocaml_code ~monad:false ast ~protocol ~role
+              |> print_endline
+          | GencodeOcamlMonadic ->
+              Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
+              |> print_endline )
+        local_actions
+    in
+    let () =
+      if args.enumerate then
+        Nuscrlib.enumerate ast
+        |> List.map ~f:(fun (n, r) ->
+               RoleName.user r ^ "@" ^ ProtocolName.user n )
+        |> String.concat ~sep:"\n" |> print_endline
     in
     `Ok ()
   with
@@ -235,9 +224,7 @@ let project =
      <role_name>@<protocol_name>"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
-    & info ["project"] ~doc ~docv:"ROLE@PROTO" )
+    value & opt_all role_proto [] & info ["project"] ~doc ~docv:"ROLE@PROTO" )
 
 let project_mpstk =
   let doc =
@@ -245,8 +232,7 @@ let project_mpstk =
      <role_name>@<protocol_name>, but output in MPSTK syntax"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
+    value & opt_all role_proto []
     & info ["project-mpstk"] ~doc ~docv:"ROLE@PROTO" )
 
 let project_tex =
@@ -255,8 +241,7 @@ let project_tex =
      <role_name>@<protocol_name>, but output in LaTeX format"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
+    value & opt_all role_proto []
     & info ["project-tex"] ~doc ~docv:"ROLE@PROTO" )
 
 let fsm =
@@ -264,8 +249,7 @@ let fsm =
     "Project the CFSM for the specified protocol and role. \
      <role_name>@<protocol_name>"
   in
-  Arg.(
-    value & opt (some role_proto) None & info ["fsm"] ~doc ~docv:"ROLE@PROTO" )
+  Arg.(value & opt_all role_proto [] & info ["fsm"] ~doc ~docv:"ROLE@PROTO")
 
 let gencode_ocaml =
   let doc =
@@ -273,8 +257,7 @@ let gencode_ocaml =
      <role_name>@<protocol_name>"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
+    value & opt_all role_proto []
     & info ["gencode-ocaml"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_fstar =
@@ -283,8 +266,7 @@ let gencode_fstar =
      <role_name>@<protocol_name>"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
+    value & opt_all role_proto []
     & info ["gencode-fstar"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_monadic_ocaml =
@@ -293,8 +275,7 @@ let gencode_monadic_ocaml =
      <role_name>@<protocol_name>"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
+    value & opt_all role_proto []
     & info ["gencode-ocaml-monadic"] ~doc ~docv:"ROLE@PROTO" )
 
 let gencode_go =
@@ -303,9 +284,42 @@ let gencode_go =
      <role_name>@<protocol_name>"
   in
   Arg.(
-    value
-    & opt (some role_proto) None
+    value & opt_all role_proto []
     & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO" )
+
+let mk_local_actions project project_mpstk project_tex fsm gencode_fstar
+    gencode_go gencode_ocaml gencode_ocaml_monadic =
+  let project = List.map ~f:(fun (r, p) -> (Project, r, p)) project in
+  let project_mpstk =
+    List.map ~f:(fun (r, p) -> (ProjectMpstk, r, p)) project_mpstk
+  in
+  let project_tex =
+    List.map ~f:(fun (r, p) -> (ProjectTex, r, p)) project_tex
+  in
+  let fsm = List.map ~f:(fun (r, p) -> (Fsm, r, p)) fsm in
+  let gencode_fstar =
+    List.map ~f:(fun (r, p) -> (GencodeFstar, r, p)) gencode_fstar
+  in
+  let gencode_go =
+    List.map ~f:(fun (r, p) -> (GencodeGo, r, p)) gencode_go
+  in
+  let gencode_ocaml =
+    List.map ~f:(fun (r, p) -> (GencodeOcaml, r, p)) gencode_ocaml
+  in
+  let gencode_ocaml_monadic =
+    List.map
+      ~f:(fun (r, p) -> (GencodeOcamlMonadic, r, p))
+      gencode_ocaml_monadic
+  in
+  List.concat
+    [ project
+    ; project_mpstk
+    ; project_tex
+    ; fsm
+    ; gencode_fstar
+    ; gencode_go
+    ; gencode_ocaml
+    ; gencode_ocaml_monadic ]
 
 let sexp_global_type =
   let doc =
@@ -384,12 +398,13 @@ let cmd =
       const mk_global_actions $ show_global_type $ show_global_type_mpstk
       $ show_global_type_tex $ sexp_global_type )
   in
-  let term =
+  let local_actions =
     Term.(
-      ret
-        ( const main $ args $ global_actions $ project $ fsm $ gencode_ocaml
-        $ gencode_monadic_ocaml $ gencode_go $ gencode_fstar $ project_mpstk
-        $ project_tex ) )
+      const mk_local_actions $ project $ project_mpstk $ project_tex $ fsm
+      $ gencode_fstar $ gencode_go $ gencode_ocaml $ gencode_monadic_ocaml )
+  in
+  let term =
+    Term.(ret (const main $ args $ global_actions $ local_actions))
   in
   Cmd.v info term
 
