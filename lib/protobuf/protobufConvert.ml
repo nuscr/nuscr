@@ -127,3 +127,15 @@ let of_ltype ltype =
         aux (Map.empty (module TypeVariableName)) 0 protobuf_ltype [ltype]
       in
       output
+
+let string_of_gtype gtype =
+  let gtype = of_gtype gtype in
+  let buf = Globaltype.GlobalType.to_proto gtype in
+  let output = Ocaml_protoc_plugin.Runtime.Runtime'.Writer.contents buf in
+  output
+
+let string_of_ltype ltype =
+  let ltype = of_ltype ltype in
+  let buf = Localtype.LocalType.to_proto ltype in
+  let output = Ocaml_protoc_plugin.Runtime.Runtime'.Writer.contents buf in
+  output

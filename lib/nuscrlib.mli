@@ -115,3 +115,4 @@ module Err = Err
 module Names = Names
 module Loc = Loc
 module LiteratureSyntax = LiteratureSyntax
+module ProtobufConvert = ProtobufConvert
