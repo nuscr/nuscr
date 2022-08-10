@@ -88,6 +88,7 @@ type local_action_verb =
   | Project
   | ProjectMpstk
   | ProjectTex
+  | ProjectProtobuf
   | Fsm
   | GencodeFstar
   | GencodeGo
@@ -148,6 +149,9 @@ let main args global_actions local_actions =
               Nuscrlib.project_role ast ~protocol ~role
               |> Nuscrlib.LiteratureSyntax.from_ltype
               |> Nuscrlib.LiteratureSyntax.show_ltype_tex |> print_endline
+          | ProjectProtobuf ->
+              Nuscrlib.project_role ast ~protocol ~role
+              |> Nuscrlib.ProtobufConvert.string_of_ltype |> print_string
           | Fsm ->
               if Pragma.nested_protocol_enabled () then
                 Err.uerr
@@ -248,6 +252,15 @@ let project_tex =
     value & opt_all role_proto []
     & info ["project-tex"] ~doc ~docv:"ROLE@PROTO" )
 
+let project_protobuf =
+  let doc =
+    "Project the local type for the specified protocol and role. \
+     <role_name>@<protocol_name>, but output in protobuf format"
+  in
+  Arg.(
+    value & opt_all role_proto []
+    & info ["project-protobuf"] ~doc ~docv:"ROLE@PROTO" )
+
 let fsm =
   let doc =
     "Project the CFSM for the specified protocol and role. \
@@ -291,14 +304,17 @@ let gencode_go =
     value & opt_all role_proto []
     & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO" )
 
-let mk_local_actions project project_mpstk project_tex fsm gencode_fstar
-    gencode_go gencode_ocaml gencode_ocaml_monadic =
+let mk_local_actions project project_mpstk project_tex project_protobuf fsm
+    gencode_fstar gencode_go gencode_ocaml gencode_ocaml_monadic =
   let project = List.map ~f:(fun (r, p) -> (Project, r, p)) project in
   let project_mpstk =
     List.map ~f:(fun (r, p) -> (ProjectMpstk, r, p)) project_mpstk
   in
   let project_tex =
     List.map ~f:(fun (r, p) -> (ProjectTex, r, p)) project_tex
+  in
+  let project_protobuf =
+    List.map ~f:(fun (r, p) -> (ProjectProtobuf, r, p)) project_protobuf
   in
   let fsm = List.map ~f:(fun (r, p) -> (Fsm, r, p)) fsm in
   let gencode_fstar =
@@ -319,6 +335,7 @@ let mk_local_actions project project_mpstk project_tex fsm gencode_fstar
     [ project
     ; project_mpstk
     ; project_tex
+    ; project_protobuf
     ; fsm
     ; gencode_fstar
     ; gencode_go
@@ -419,8 +436,9 @@ let cmd =
   in
   let local_actions =
     Term.(
-      const mk_local_actions $ project $ project_mpstk $ project_tex $ fsm
-      $ gencode_fstar $ gencode_go $ gencode_ocaml $ gencode_monadic_ocaml )
+      const mk_local_actions $ project $ project_mpstk $ project_tex
+      $ project_protobuf $ fsm $ gencode_fstar $ gencode_go $ gencode_ocaml
+      $ gencode_monadic_ocaml )
   in
   let term =
     Term.(ret (const main $ args $ global_actions $ local_actions))
