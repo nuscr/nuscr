@@ -1,9 +1,12 @@
 # UNRELEASED
 
+## Added
+- Output global and local types in a protobuf format so that they can be used
+    programmatically elsewhere.
 ## Changed
 - [sedlex](https://github.com/ocaml-community/sedlex) is now used for lexing,
     for future Unicode support.
-- Improved pretty printing of global and local types
+- Improved pretty printing of global and local types.
 
 ## Deprecated
 - BREAKING: Scribble-style "module" and "type" declarations were parsed into an
