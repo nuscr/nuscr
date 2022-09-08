@@ -2,6 +2,7 @@
 open! Base
 
 open Names
+open Message
 
 (** Annotation for refined actions, used when RefinementTypes pragma is
     enabled *)
@@ -14,9 +15,9 @@ type refinement_action_annot =
 
 (** Transitions in the EFSM *)
 type action =
-  | SendA of RoleName.t * Gtype.message * refinement_action_annot
+  | SendA of RoleName.t * message * refinement_action_annot
       (** Sending a [message] to [name] *)
-  | RecvA of RoleName.t * Gtype.message * refinement_action_annot
+  | RecvA of RoleName.t * message * refinement_action_annot
       (** Receiving a [message] from [name] *)
   | Epsilon  (** Not used *)
 

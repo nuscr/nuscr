@@ -3,6 +3,7 @@ open Ltype
 open Goenvs
 open Goimpl
 open Gtype
+open Message
 open Syntax
 open Fsutil
 open Names
@@ -35,7 +36,7 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
     Set.add roles role_str
   in
   (* Ensure message labels are unique when capitalised *)
-  let add_consistent_msg msgs {Gtype.label; payload} =
+  let add_consistent_msg msgs {label; payload} =
     let add_unique_payload_field fields payload =
       match payload with
       | PValue (None, _) -> fields

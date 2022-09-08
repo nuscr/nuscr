@@ -1,4 +1,5 @@
 open! Base
+open Message
 open Printf
 open Ltype
 open Names
@@ -34,8 +35,8 @@ let show_refinement_actions_annot {silent_vars; rec_expr_updates} =
   silent_vars ^ rec_expr_updates
 
 type action =
-  | SendA of RoleName.t * Gtype.message * refinement_action_annot
-  | RecvA of RoleName.t * Gtype.message * refinement_action_annot
+  | SendA of RoleName.t * message * refinement_action_annot
+  | RecvA of RoleName.t * message * refinement_action_annot
   | Epsilon
 [@@deriving ord, sexp_of]
 
@@ -44,7 +45,7 @@ let show_action = function
       let symb =
         match a with SendA _ -> "!" | RecvA _ -> "?" | _ -> assert false
       in
-      sprintf "%s%s%s%s" (RoleName.user r) symb (Gtype.show_message msg)
+      sprintf "%s%s%s%s" (RoleName.user r) symb (show_message msg)
         (show_refinement_actions_annot rannot)
   | Epsilon -> "ε"
 
@@ -385,8 +386,8 @@ let find_all_payloads g =
   let f (_, a, _) acc =
     match a with
     | SendA (_, msg, _) | RecvA (_, msg, _) -> (
-        let {Gtype.payload; _} = msg in
-        let payloads = List.map ~f:Gtype.typename_of_payload payload in
+        let {payload; _} = msg in
+        let payloads = List.map ~f:typename_of_payload payload in
         match payloads with
         | [] -> Set.add acc (PayloadTypeName.of_string "unit")
         | _ -> List.fold ~f:Set.add ~init:acc payloads )

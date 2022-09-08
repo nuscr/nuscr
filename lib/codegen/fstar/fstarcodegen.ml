@@ -3,6 +3,7 @@ open! Stdio
 open Names
 open Efsm
 open Syntax.Exprs
+open Message
 
 let fstar_show_binop = show_binop
 
@@ -54,10 +55,10 @@ type var_entry = VariableName.t * Expr.payload_type * (* is_silent *) bool
 let find_concrete_vars m =
   let find_named_variables =
     List.filter_map ~f:(function
-      | Gtype.PValue (Some v, ty) -> Some (v, ty, false)
+      | PValue (Some v, ty) -> Some (v, ty, false)
       | _ -> None )
   in
-  let concrete_vars = find_named_variables m.Gtype.payload in
+  let concrete_vars = find_named_variables m.payload in
   concrete_vars
 
 let compute_var_map start g rec_var_info =
@@ -258,7 +259,7 @@ let generate_send_choices buffer g var_map =
         let collect_action (_, action, _) acc =
           match action with
           | SendA (_, m, _) -> (
-              let label = m.Gtype.label in
+              let label = m.label in
               let concrete_vars = find_concrete_vars m in
               match List.length concrete_vars with
               | 0 -> (label, Expr.PTUnit) :: acc
@@ -317,7 +318,7 @@ let generate_transition_typedefs buffer g var_map =
         let collect_recv_transition (_, action, _) acc =
           match action with
           | RecvA (_, m, _) ->
-              let label = m.Gtype.label in
+              let label = m.label in
               let concrete_vars = find_concrete_vars m in
               let recv_payload =
                 match List.length concrete_vars with
@@ -467,11 +468,11 @@ let generate_run_fns buffer start g var_map rec_var_info =
           (FstarNames.state_record_name st)
       in
       let find_payload m =
-        match List.length m.Gtype.payload with
+        match List.length m.payload with
         | 0 -> ("_unit", "unit", None)
         | 1 -> (
-          match List.hd_exn m.Gtype.payload with
-          | Gtype.PValue (v, ty) ->
+          match List.hd_exn m.payload with
+          | PValue (v, ty) ->
               let payload =
                 Option.value ~default:"payload"
                   (Option.map ~f:VariableName.user v)
@@ -489,7 +490,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                 |> PayloadTypeName.user
               in
               (payload, ty, e)
-          | Gtype.PDelegate _ ->
+          | PDelegate _ ->
               Err.unimpl ~here:[%here] "delegation in code generation" )
         | _ -> Err.unimpl ~here:[%here] "sending multiple payload items"
       in
@@ -516,13 +517,13 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     let match_pattern =
                       Printf.sprintf "| %s %s ->"
                         (FstarNames.choice_ctor_name st
-                           (LabelName.user m.Gtype.label) )
+                           (LabelName.user m.label) )
                         payload
                     in
                     let send_label =
                       Printf.sprintf "let () = conn.%s \"%s\" in"
                         (FstarNames.send_payload_fn_name "string")
-                        (LabelName.user m.Gtype.label)
+                        (LabelName.user m.label)
                     in
                     let send_payload =
                       Printf.sprintf "let () = conn.%s %s in"
@@ -567,8 +568,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                 | RecvA (_, m, _) ->
                     let payload, base_ty, e = find_payload m in
                     let match_pattern =
-                      Printf.sprintf "| \"%s\" ->"
-                        (LabelName.user m.Gtype.label)
+                      Printf.sprintf "| \"%s\" ->" (LabelName.user m.label)
                     in
                     let recv_payload =
                       Printf.sprintf "let %s = conn.%s () in" payload
@@ -583,7 +583,7 @@ let generate_run_fns buffer start g var_map rec_var_info =
                     in
                     let recv_callback =
                       Printf.sprintf "let () = callbacks.%s st %s in"
-                        (FstarNames.recv_state_callback_name st m.Gtype.label)
+                        (FstarNames.recv_state_callback_name st m.label)
                         payload
                     in
                     let next_state = "let nextState =" in

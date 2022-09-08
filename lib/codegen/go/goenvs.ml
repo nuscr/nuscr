@@ -3,6 +3,7 @@ open Goimpl
 open Names
 open! Gonames
 open Gtype
+open Message
 open Ltype
 
 module ImportsEnv : sig
