@@ -7,6 +7,7 @@ open Longident
 open! Ast_helper
 open Names
 open Efsm
+open Message
 
 let mk_lid id = Location.mknoloc (Option.value_exn (unflatten [id]))
 
@@ -25,11 +26,11 @@ let mk_send_callback st = sprintf "state%dSend" st
 
 let payload_values payloads =
   List.map
-    ~f:(fun p -> PayloadTypeName.user @@ Gtype.typename_of_payload p)
+    ~f:(fun p -> PayloadTypeName.user @@ typename_of_payload p)
     payloads
 
-let process_msg (msg : Gtype.message) =
-  let {Gtype.label; Gtype.payload} = msg in
+let process_msg (msg : message) =
+  let {label; payload} = msg in
   let payload_values = payload_values payload in
   let payload_type =
     match payload_values with
@@ -126,7 +127,7 @@ let get_transitions g st =
   let f (_, a, next) acc =
     match a with
     | SendA (r, msg, _) | RecvA (r, msg, _) ->
-        let {Gtype.label; Gtype.payload} = msg in
+        let {label; payload} = msg in
         (r, LabelName.user label, payload_values payload, next) :: acc
     | _ ->
         Err.violation ~here:[%here]

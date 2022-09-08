@@ -1,5 +1,6 @@
 open! Base
 open Names
+open Message
 
 let sprintf = Printf.sprintf
 
@@ -27,8 +28,8 @@ let rec from_gtype = function
         { g_br_from= r_from
         ; g_br_to= r_to
         ; g_br_cont=
-            [ ( m.Gtype.label
-              , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+            [ ( m.label
+              , List.map ~f:typename_of_payload m.payload
               , from_gtype cont ) ] }
   | Gtype.MuG (tv, _, cont) -> MuG (tv, from_gtype cont)
   | Gtype.TVarG (tv, _, _) -> TVarG tv
@@ -54,8 +55,8 @@ let rec from_gtype = function
           let cont =
             match gtype with
             | Gtype.MessageG (m, _, _, cont) ->
-                ( m.Gtype.label
-                , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+                ( m.label
+                , List.map ~f:typename_of_payload m.payload
                 , from_gtype cont )
             | _ ->
                 Err.violation ~here:[%here]
@@ -76,14 +77,14 @@ let rec from_ltype = function
   | Ltype.RecvL (m, r_from, cont) ->
       RecvL
         ( r_from
-        , [ ( m.Gtype.label
-            , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+        , [ ( m.label
+            , List.map ~f:typename_of_payload m.payload
             , from_ltype cont ) ] )
   | Ltype.SendL (m, r_from, cont) ->
       SendL
         ( r_from
-        , [ ( m.Gtype.label
-            , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+        , [ ( m.label
+            , List.map ~f:typename_of_payload m.payload
             , from_ltype cont ) ] )
   | Ltype.ChoiceL (_, conts) -> (
     match conts with
@@ -107,12 +108,12 @@ let rec from_ltype = function
           let cont =
             match ltype with
             | Ltype.SendL (m, _, cont) ->
-                ( m.Gtype.label
-                , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+                ( m.label
+                , List.map ~f:typename_of_payload m.payload
                 , from_ltype cont )
             | Ltype.RecvL (m, _, cont) ->
-                ( m.Gtype.label
-                , List.map ~f:Gtype.typename_of_payload m.Gtype.payload
+                ( m.label
+                , List.map ~f:typename_of_payload m.payload
                 , from_ltype cont )
             | _ ->
                 Err.violation ~here:[%here]

@@ -1,7 +1,6 @@
 open! Base
 open Names
 open! Gonames
-open Gtype
 open Ltype
 
 (** Environment which keeps track of the package imports which which need to
@@ -232,12 +231,20 @@ module CallbacksEnv : sig
   type t
 
   val new_send_callback :
-    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
+       t
+    -> LabelName.t
+    -> Message.payload list
+    -> RoleName.t
+    -> t * CallbackName.t
   (** Add callback for returning the payloads for the message which will be
       sent in a labelled message exchange *)
 
   val new_recv_callback :
-    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
+       t
+    -> LabelName.t
+    -> Message.payload list
+    -> RoleName.t
+    -> t * CallbackName.t
   (** Add callback which takes in the message which was received in labelled
       message exchange *)
 
@@ -331,10 +338,18 @@ module LTypeCodeGenEnv : sig
 
   (* CallbacksEnv *)
   val new_send_callback :
-    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
+       t
+    -> LabelName.t
+    -> Message.payload list
+    -> RoleName.t
+    -> t * CallbackName.t
 
   val new_recv_callback :
-    t -> LabelName.t -> payload list -> RoleName.t -> t * CallbackName.t
+       t
+    -> LabelName.t
+    -> Message.payload list
+    -> RoleName.t
+    -> t * CallbackName.t
 
   val new_protocol_setup_callback : t -> ProtocolName.t -> t * CallbackName.t
 

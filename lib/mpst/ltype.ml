@@ -3,10 +3,11 @@ open Printf
 open Gtype
 open Err
 open Names
+open Message
 
 type t =
-  | RecvL of Gtype.message * RoleName.t * t
-  | SendL of Gtype.message * RoleName.t * t
+  | RecvL of message * RoleName.t * t
+  | SendL of message * RoleName.t * t
   | ChoiceL of RoleName.t * t list
   | TVarL of TypeVariableName.t * Expr.t list
   | MuL of TypeVariableName.t * (bool * Gtype.rec_var) list * t
@@ -272,8 +273,7 @@ let rec merge projected_role lty1 lty2 =
             match List.Assoc.find acc ~equal:LabelName.equal label with
             | None -> (label, l) :: acc
             | Some (RecvL (m_, r, l_))
-              when List.equal equal_payload m.Gtype.payload m_.Gtype.payload
-              ->
+              when List.equal equal_payload m.payload m_.payload ->
                 List.Assoc.add acc ~equal:LabelName.equal label
                   (RecvL (m, r, merge projected_role lty l_))
             | Some (RecvL _) -> fail ()

@@ -9,19 +9,6 @@ type scr_module = Syntax.scr_module
 (* An abstract type for a global protocol in the parse tree *)
 type global_protocol = Syntax.global_protocol
 
-type payload =
-  | PValue of VariableName.t option * Expr.payload_type
-  | PDelegate of ProtocolName.t * RoleName.t
-[@@deriving eq, sexp_of, show, ord]
-
-(** A message in a global type carries a label, and a list of payloads. *)
-type message = {label: LabelName.t; payload: payload list}
-[@@deriving eq, sexp_of, show, ord]
-
-val equal_pvalue_payload : payload -> payload -> bool
-
-val typename_of_payload : payload -> PayloadTypeName.t
-
 (** Recursion variable *)
 type rec_var =
   { rv_name: VariableName.t  (** Variable Name *)
@@ -35,7 +22,7 @@ type rec_var =
 (** The type of global types. See also {!LiteratureSyntax.global} for a
     simpler syntax. *)
 type t =
-  | MessageG of message * RoleName.t * RoleName.t * t
+  | MessageG of Message.message * RoleName.t * RoleName.t * t
       (** [MessageG (msg, sender, receiver, t)] starts by sending message
           [msg] from [sender] to [receiver] and continues as [t] *)
   | MuG of TypeVariableName.t * rec_var list * t
