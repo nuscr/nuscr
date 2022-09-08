@@ -9,6 +9,7 @@ takes Foo branch or Bar branch.
          (silent) y(int);
          One(xx: int) from A;
          (end)
+         when projecting on role C
   [124]
 
   $ nuscr --project C@Confuse AlsoConfuse.nuscr
@@ -20,6 +21,7 @@ takes Foo branch or Bar branch.
          (silent) y(int);
          One(xx: int) from A;
          (end)
+         when projecting on role C
   [124]
 
 C cannot receive from either A or B, so they get very confused.
@@ -33,6 +35,7 @@ C cannot receive from either A or B, so they get very confused.
          (silent) y(int);
          One(xx: int) from A;
          (end)
+         when projecting on role C
   [124]
 
 C doesn't get confused when they can be made aware of A's choice (directly).

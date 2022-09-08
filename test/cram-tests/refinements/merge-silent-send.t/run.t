@@ -9,4 +9,5 @@ conditions)
          (silent) y(int);
          Stuff() to B;
          (end)
+         when projecting on role C
   [124]

@@ -4,4 +4,5 @@ Should report an issue because of unmergeable local type when projecting on C
          and
          m3() from A;
          (end)
+         when projecting on role C
   [124]

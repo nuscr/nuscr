@@ -15,7 +15,7 @@ type user_error =
   | InvalidCommandLineParam of string
   | UnboundRole of RoleName.t
   | ReflexiveMessage of RoleName.t * Loc.t * Loc.t
-  | UnableToMerge of string
+  | UnableToMerge of string * RoleName.t option
   | RedefinedProtocol of ProtocolName.t * Loc.t * Loc.t
   | UnboundProtocol of ProtocolName.t
   | ArityMismatch of ProtocolName.t * int * int

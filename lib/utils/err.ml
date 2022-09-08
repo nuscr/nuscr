@@ -23,7 +23,7 @@ type user_error =
   | InvalidCommandLineParam of string
   | UnboundRole of RoleName.t
   | ReflexiveMessage of RoleName.t * Loc.t * Loc.t
-  | UnableToMerge of string
+  | UnableToMerge of string * RoleName.t option
   | RedefinedProtocol of ProtocolName.t * Loc.t * Loc.t
   | UnboundProtocol of ProtocolName.t
   | ArityMismatch of ProtocolName.t * int * int
@@ -73,7 +73,14 @@ let show_user_error = function
       let loc_merge = Loc.merge loc1 loc2 in
       sprintf "Reflexive message of role %s at %s" (RoleName.user r)
         (Loc.show loc_merge)
-  | UnableToMerge s -> "Unable to merge: " ^ s
+  | UnableToMerge (s, role_opt) ->
+      let role =
+        Option.map
+          ~f:(fun role -> "\nwhen projecting on role " ^ RoleName.user role)
+          role_opt
+      in
+      let role = Option.value ~default:"" role in
+      "Unable to merge: " ^ s ^ role
   | RedefinedProtocol (name, loc1, loc2) ->
       sprintf "Redefined protocol %s at %s and %s" (ProtocolName.user name)
         (Loc.show loc1) (Loc.show loc2)
