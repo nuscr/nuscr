@@ -273,13 +273,17 @@ let rec project_internal' env (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
+module P = Byrefpair.ByRefPair (struct
+  type t = internal Lazy.t
+end)
+
 let merge_internal tvs unguarded_tv lty1 lty2 =
   try
-    let rec aux lty1 lty2 =
+    let rec aux memory lty1 lty2 =
       let merge_recvI_recvChoiceI msg role lty' choices =
         match find_recv_cont_by_label msg.label choices with
         | Some k ->
-            let k' = aux k lty' in
+            let k' = aux memory k lty' in
             update_recv_cont_by_label msg.label (lazy k') choices
         | None -> lazy (RecvI (msg, role, lty')) :: choices
       in
@@ -294,8 +298,21 @@ let merge_internal tvs unguarded_tv lty1 lty2 =
           lty'
       | (lazy lty'), (lazy (TVarI (tv, []))) when Set.mem unguarded_tv tv ->
           lty'
-      | lty', (lazy (TVarI (tv, []))) | (lazy (TVarI (tv, []))), lty' ->
-          aux lty' (Lazy.force (Map.find_exn tvs tv))
+      | lty', (lazy (TVarI (tv, []))) | (lazy (TVarI (tv, []))), lty' -> (
+        match Map.find memory (lty1, lty2) with
+        | Some new_tvar -> TVarI (new_tvar, [])
+        | None ->
+            let new_tvar =
+              TypeVariableName.rename tv (TypeVariableName.user tv ^ "_")
+            in
+            let rec answer =
+              lazy
+                (aux
+                   (Map.add_exn ~key:(lty1, lty2) ~data:new_tvar memory)
+                   lty'
+                   (Lazy.force (Map.find_exn tvs tv)) )
+            in
+            MuI (new_tvar, [], answer) )
       | (lazy (RecvChoiceI (r, ltys))), (lazy (RecvI (m', r', lty')))
        |(lazy (RecvI (m', r', lty'))), (lazy (RecvChoiceI (r, ltys))) ->
           if not (RoleName.equal r r') then raise MergeFail ;
@@ -311,12 +328,14 @@ let merge_internal tvs unguarded_tv lty1 lty2 =
           RecvChoiceI (r, List.fold ~init:ltys2 ~f ltys1)
       | (lazy (MergeI ls)), lty' | lty', (lazy (MergeI ls)) ->
           let lty =
-            List.reduce_exn ~f:(fun lty1 lty2 -> lazy (aux lty1 lty2)) ls
+            List.reduce_exn
+              ~f:(fun lty1 lty2 -> lazy (aux memory lty1 lty2))
+              ls
           in
-          aux lty lty'
+          aux memory lty lty'
       | _, _ -> raise MergeFail
     in
-    aux lty1 lty2
+    aux (Map.empty (module P)) lty1 lty2
   with MergeFail ->
     uerr
       (UnableToMerge
