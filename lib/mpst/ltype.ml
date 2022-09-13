@@ -273,49 +273,50 @@ let rec project_internal' env (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
-let rec merge_internal tvs unguarded_tv lty1 lty2 =
-  let merge_recvI_recvChoiceI msg role lty' choices =
-    match find_recv_cont_by_label msg.label choices with
-    | Some k ->
-        let k' = merge_internal tvs unguarded_tv k lty' in
-        update_recv_cont_by_label msg.label (lazy k') choices
-    | None -> lazy (RecvI (msg, role, lty')) :: choices
-  in
+let merge_internal tvs unguarded_tv lty1 lty2 =
   try
-    match (lty1, lty2) with
-    | (lazy lty1), (lazy lty2) when equal_internal lty1 lty2 -> lty1
-    | (lazy (RecvI (m1, r1, _))), (lazy (RecvI (m2, r2, _))) ->
-        if (not (RoleName.equal r1 r2)) || LabelName.equal m1.label m2.label
-        then raise MergeFail ;
-        RecvChoiceI (r1, [lty1; lty2])
-    | (lazy (TVarI (tv, []))), (lazy lty') when Set.mem unguarded_tv tv ->
-        lty'
-    | (lazy lty'), (lazy (TVarI (tv, []))) when Set.mem unguarded_tv tv ->
-        lty'
-    | lty', (lazy (TVarI (tv, []))) | (lazy (TVarI (tv, []))), lty' ->
-        merge_internal tvs unguarded_tv lty'
-          (Lazy.force (Map.find_exn tvs tv))
-    | (lazy (RecvChoiceI (r, ltys))), (lazy (RecvI (m', r', lty')))
-     |(lazy (RecvI (m', r', lty'))), (lazy (RecvChoiceI (r, ltys))) ->
-        if not (RoleName.equal r r') then raise MergeFail ;
-        RecvChoiceI (r, merge_recvI_recvChoiceI m' r' lty' ltys)
-    | (lazy (RecvChoiceI (r, ltys1))), (lazy (RecvChoiceI (r', ltys2))) ->
-        if not (RoleName.equal r r') then raise MergeFail ;
-        let f ltys lty =
-          match lty with
-          | (lazy (RecvI (m', r', lty'))) ->
-              merge_recvI_recvChoiceI m' r' lty' ltys
-          | _ -> assert false
-        in
-        RecvChoiceI (r, List.fold ~init:ltys2 ~f ltys1)
-    | (lazy (MergeI ls)), lty' | lty', (lazy (MergeI ls)) ->
-        let lty =
-          List.reduce_exn
-            ~f:(fun lt1 lt2 -> lazy (merge_internal tvs unguarded_tv lt1 lt2))
-            ls
-        in
-        merge_internal tvs unguarded_tv lty lty'
-    | _, _ -> raise MergeFail
+    let rec aux lty1 lty2 =
+      let merge_recvI_recvChoiceI msg role lty' choices =
+        match find_recv_cont_by_label msg.label choices with
+        | Some k ->
+            let k' = aux k lty' in
+            update_recv_cont_by_label msg.label (lazy k') choices
+        | None -> lazy (RecvI (msg, role, lty')) :: choices
+      in
+      match (lty1, lty2) with
+      | (lazy lty1), (lazy lty2) when equal_internal lty1 lty2 -> lty1
+      | (lazy (RecvI (m1, r1, _))), (lazy (RecvI (m2, r2, _))) ->
+          if
+            (not (RoleName.equal r1 r2)) || LabelName.equal m1.label m2.label
+          then raise MergeFail ;
+          RecvChoiceI (r1, [lty1; lty2])
+      | (lazy (TVarI (tv, []))), (lazy lty') when Set.mem unguarded_tv tv ->
+          lty'
+      | (lazy lty'), (lazy (TVarI (tv, []))) when Set.mem unguarded_tv tv ->
+          lty'
+      | lty', (lazy (TVarI (tv, []))) | (lazy (TVarI (tv, []))), lty' ->
+          aux lty' (Lazy.force (Map.find_exn tvs tv))
+      | (lazy (RecvChoiceI (r, ltys))), (lazy (RecvI (m', r', lty')))
+       |(lazy (RecvI (m', r', lty'))), (lazy (RecvChoiceI (r, ltys))) ->
+          if not (RoleName.equal r r') then raise MergeFail ;
+          RecvChoiceI (r, merge_recvI_recvChoiceI m' r' lty' ltys)
+      | (lazy (RecvChoiceI (r, ltys1))), (lazy (RecvChoiceI (r', ltys2))) ->
+          if not (RoleName.equal r r') then raise MergeFail ;
+          let f ltys lty =
+            match lty with
+            | (lazy (RecvI (m', r', lty'))) ->
+                merge_recvI_recvChoiceI m' r' lty' ltys
+            | _ -> assert false
+          in
+          RecvChoiceI (r, List.fold ~init:ltys2 ~f ltys1)
+      | (lazy (MergeI ls)), lty' | lty', (lazy (MergeI ls)) ->
+          let lty =
+            List.reduce_exn ~f:(fun lty1 lty2 -> lazy (aux lty1 lty2)) ls
+          in
+          aux lty lty'
+      | _, _ -> raise MergeFail
+    in
+    aux lty1 lty2
   with MergeFail ->
     uerr
       (UnableToMerge
