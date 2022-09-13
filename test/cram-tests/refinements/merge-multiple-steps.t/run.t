@@ -1,25 +1,17 @@
 Merging should succeed after 1 step of silent prefix for C and 2 steps for D.
   $ nuscr --project C@MergeMulti Merge.nuscr
-  choice at B {
-    (silent) x(int);
-    One(xx: int) from B;
-    One(xxx: int) to D;
-    (end)
-  } or {
-    (silent) y(int);
-    Two(yy: int) from B;
-    Two(yyy: int) to D;
-    (end)
-  }
+  nuscr: User error: Unable to merge:
+         (Ltype.SilentI ({ Loc.loc = 5:9 to 5:10 in: Merge.nuscr; value = "x" }, int,
+            <not evaluated>))
+         and
+         (Ltype.SilentI ({ Loc.loc = 9:9 to 9:10 in: Merge.nuscr; value = "y" }, int,
+            <not evaluated>))
+  [124]
   $ nuscr --project D@MergeMulti Merge.nuscr
-  choice at C {
-    (silent) x(int);
-    (silent) xx(int);
-    One(xxx: int) from C;
-    (end)
-  } or {
-    (silent) y(int);
-    (silent) yy(int);
-    Two(yyy: int) from C;
-    (end)
-  }
+  nuscr: User error: Unable to merge:
+         (Ltype.SilentI ({ Loc.loc = 5:9 to 5:10 in: Merge.nuscr; value = "x" }, int,
+            <not evaluated>))
+         and
+         (Ltype.SilentI ({ Loc.loc = 9:9 to 9:10 in: Merge.nuscr; value = "y" }, int,
+            <not evaluated>))
+  [124]

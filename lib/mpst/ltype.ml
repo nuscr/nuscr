@@ -5,6 +5,328 @@ open Err
 open Names
 open Message
 
+type internal =
+  | RecvI of message * RoleName.t * internal Lazy.t
+  | SendI of message * RoleName.t * internal Lazy.t
+  | RecvChoiceI of RoleName.t * internal Lazy.t list
+  | SendChoiceI of RoleName.t * internal Lazy.t list
+  | TVarI of TypeVariableName.t * Expr.t list
+  | MuI of TypeVariableName.t * (bool * Gtype.rec_var) list * internal Lazy.t
+  | EndI
+  | InviteCreateI of
+      RoleName.t list * RoleName.t list * ProtocolName.t * internal Lazy.t
+  | AcceptI of
+      RoleName.t
+      * ProtocolName.t
+      * RoleName.t list
+      * RoleName.t list
+      * RoleName.t
+      * internal Lazy.t
+  | SilentI of VariableName.t * Expr.payload_type * internal Lazy.t
+  | MergeI of internal Lazy.t list
+[@@deriving sexp_of, eq, show]
+
+let () = ignore pp_internal
+
+exception MergeFail
+
+let find_recv_cont_by_label label ltys =
+  let message_match m = LabelName.equal label m.label in
+  let rec label_match = function
+    | (lazy (RecvI (m, _, lty))) ->
+        if message_match m then Some lty else None
+    | (lazy (RecvChoiceI (_, ltys))) -> List.find_map ~f:label_match ltys
+    | _ -> None
+  in
+  List.find_map ~f:label_match ltys
+
+let update_recv_cont_by_label label k ltys =
+  let message_match m = LabelName.equal label m.label in
+  let rec label_match = function
+    | (lazy (RecvI (m, r, _))) as l ->
+        if message_match m then lazy (RecvI (m, r, k)) else l
+    | (lazy (RecvChoiceI (r, ltys))) ->
+        lazy (RecvChoiceI (r, List.map ~f:label_match ltys))
+    | l -> l
+  in
+  List.map ~f:label_match ltys
+
+(* Check whether the first message in a g choice is from choice_r to recv_r,
+   if recv_r is Some; return receive role *)
+(* In nested protocols, calls will send invitation messages all participants,
+   so need to check if any of the roles in a call is the receiver *)
+let rec check_consistent_gchoice choice_r possible_roles = function
+  | MessageG (_, send_r, recv_r_, _) ->
+      if not @@ RoleName.equal send_r choice_r then
+        uerr (RoleMismatch (choice_r, send_r)) ;
+      if
+        (not @@ Set.is_empty possible_roles)
+        && (not @@ Set.mem possible_roles recv_r_)
+      then uerr (RoleMismatch (Set.choose_exn possible_roles, recv_r_)) ;
+      Set.singleton (module RoleName) recv_r_
+  | CallG (caller_r, protocol, roles, _) ->
+      if not @@ RoleName.equal caller_r choice_r then
+        uerr (RoleMismatch (choice_r, caller_r)) ;
+      let roles_set = Set.of_list (module RoleName) roles in
+      if Set.is_empty possible_roles then roles_set
+      else
+        let intersection = Set.inter possible_roles roles_set in
+        if Set.is_empty intersection then
+          uerr (ChoiceCallRoleMismatch protocol) ;
+        intersection
+  | ChoiceG (new_choice_r, gs) ->
+      if not @@ RoleName.equal choice_r new_choice_r then
+        uerr (RoleMismatch (choice_r, new_choice_r)) ;
+      Set.union_list
+        (module RoleName)
+        (List.map ~f:(check_consistent_gchoice choice_r possible_roles) gs)
+  | MuG (_, _, g) -> check_consistent_gchoice choice_r possible_roles g
+  | TVarG (_, _, g) ->
+      check_consistent_gchoice choice_r possible_roles (Lazy.force g)
+  | g ->
+      violation ~here:[%here]
+        ( "Normalised global type always has a message in choice branches\n"
+        ^ Gtype.show g )
+
+type project_env =
+  { penv: Gtype.nested_t (* Info for nested protocols *)
+  ; rvenv: (bool * rec_var) list Map.M(TypeVariableName).t
+        (* Info for refinement variables *)
+  ; silent_vars: Set.M(VariableName).t
+        (* Info for silent variables (refinement types ) *)
+  ; unguarded_tv: Set.M(TypeVariableName).t (* Unguarded type variables *) }
+
+let new_project_env =
+  { penv= Map.empty (module ProtocolName)
+  ; rvenv= Map.empty (module TypeVariableName)
+  ; silent_vars= Set.empty (module VariableName)
+  ; unguarded_tv= Set.empty (module TypeVariableName) }
+
+let rec project_internal' env (projected_role : RoleName.t) =
+  let check_expr silent_vars e =
+    let free_vars = Expr.free_var e in
+    let unknown_vars = Set.inter free_vars silent_vars in
+    if not @@ Set.is_empty unknown_vars then
+      uerr
+        (UnknownVariableValue (projected_role, Set.choose_exn unknown_vars))
+  in
+  function
+  | EndG -> lazy EndI
+  | TVarG (name, _, _) when Set.mem env.unguarded_tv name ->
+      (* Type variable unguarded *)
+      lazy EndI
+  | TVarG (name, rec_exprs, _) ->
+      let {rvenv; silent_vars; _} = env in
+      let rec_expr_filter = Map.find_exn rvenv name in
+      let rec_exprs =
+        List.map2_exn
+          ~f:(fun (x, _) y -> if not x then Some y else None)
+          rec_expr_filter rec_exprs
+      in
+      let rec_exprs = List.filter_opt rec_exprs in
+      List.iter ~f:(check_expr silent_vars) rec_exprs ;
+      lazy (TVarI (name, rec_exprs))
+  | MuG (name, rec_exprs, g_type) ->
+      let rec_exprs =
+        List.map
+          ~f:(fun ({rv_roles; _} as rec_expr) ->
+            ( not @@ List.mem ~equal:RoleName.equal rv_roles projected_role
+            , rec_expr ) )
+          rec_exprs
+      in
+      let {rvenv; silent_vars; unguarded_tv; _} = env in
+      let silent_vars =
+        List.fold ~init:silent_vars
+          ~f:(fun acc (is_silent, {rv_name; _}) ->
+            if is_silent then Set.add acc rv_name else acc )
+          rec_exprs
+      in
+      (* FIXME: This breaks when there are shadowed type variables *)
+      let rvenv =
+        match Map.add ~key:name ~data:rec_exprs rvenv with
+        | `Ok rvenv -> rvenv
+        | `Duplicate -> rvenv
+      in
+      let env =
+        {env with rvenv; silent_vars; unguarded_tv= Set.add unguarded_tv name}
+      in
+      lazy
+        ( match project_internal' env projected_role g_type with
+        | (lazy (TVarI _ | EndI)) -> EndI
+        | lType -> MuI (name, rec_exprs, lType) )
+  | MessageG (m, send_r, recv_r, g_type) -> (
+      let next env = project_internal' env projected_role g_type in
+      match projected_role with
+      (* When projected role is involved in an interaction, reset
+         unguarded_tv *)
+      | _ when RoleName.equal projected_role send_r ->
+          lazy
+            (SendI
+               ( m
+               , recv_r
+               , next
+                   { env with
+                     unguarded_tv= Set.empty (module TypeVariableName) } ) )
+      | _ when RoleName.equal projected_role recv_r ->
+          lazy
+            (RecvI
+               ( m
+               , send_r
+               , next
+                   { env with
+                     unguarded_tv= Set.empty (module TypeVariableName) } ) )
+      (* When projected role is not involved in an interaction, do not reset
+         unguarded_tv *)
+      | _ ->
+          let named_payloads =
+            List.rev_filter_map
+              ~f:(function
+                | PValue (Some var, t) -> Some (var, t) | _ -> None )
+              m.payload
+          in
+          if
+            List.is_empty named_payloads
+            || (not @@ Pragma.refinement_type_enabled ())
+          then next env
+          else
+            let {silent_vars; _} = env in
+            let silent_vars =
+              List.fold ~init:silent_vars
+                ~f:(fun acc (var, _) -> Set.add acc var)
+                named_payloads
+            in
+            let env = {env with silent_vars} in
+            List.fold ~init:(next env)
+              ~f:(fun acc (var, t) -> lazy (SilentI (var, t, acc)))
+              named_payloads )
+  | ChoiceG (choice_r, g_types) -> (
+      let check_distinct_prefix gtys =
+        let rec aux acc = function
+          | [] -> ()
+          | MessageG (m, _, _, _) :: rest ->
+              let l = m.label in
+              if Set.mem acc l (* FIXME: Use 2 labels for location *) then
+                uerr (DuplicateLabel l)
+              else aux (Set.add acc l) rest
+          | CallG (caller, protocol, roles, _) :: rest ->
+              let l = call_label caller protocol roles in
+              if Set.mem acc l then uerr (DuplicateLabel l)
+              else aux (Set.add acc l) rest
+          | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
+          | MuG (_, _, g) :: rest -> aux acc (g :: rest)
+          | TVarG (_, _, g) :: rest -> aux acc (Lazy.force g :: rest)
+          | _ ->
+              violation ~here:[%here]
+                "Normalised global type always has a message in choice \
+                 branches"
+        in
+        aux (Set.empty (module LabelName)) gtys
+      in
+      check_distinct_prefix g_types ;
+      let possible_roles =
+        List.fold
+          ~f:(check_consistent_gchoice choice_r)
+          ~init:(Set.empty (module RoleName))
+          g_types
+      in
+      let recv_r = Set.choose_exn possible_roles in
+      let l_types =
+        List.map ~f:(project_internal' env projected_role) g_types
+      in
+      match projected_role with
+      | _ when RoleName.equal projected_role recv_r ->
+          lazy (RecvChoiceI (choice_r, l_types))
+      | _ when RoleName.equal projected_role choice_r ->
+          lazy (SendChoiceI (choice_r, l_types))
+      | _ -> lazy (MergeI l_types) )
+  | CallG (caller, protocol, roles, g_type) -> (
+      (* Reset unguarded_tv *)
+      let next =
+        project_internal'
+          {env with unguarded_tv= Set.empty (module TypeVariableName)}
+          projected_role g_type
+      in
+      let {penv; _} = env in
+      let {static_roles; dynamic_roles; _} = Map.find_exn penv protocol in
+      let gen_acceptl next =
+        let role_elem =
+          List.findi roles ~f:(fun _ r' -> RoleName.equal projected_role r')
+        in
+        let idx, _ = Option.value_exn role_elem in
+        let role_in_proto = List.nth_exn static_roles idx in
+        lazy
+          (AcceptI
+             (role_in_proto, protocol, roles, dynamic_roles, caller, next) )
+      in
+      let gen_invitecreatel next =
+        lazy (InviteCreateI (roles, dynamic_roles, protocol, next))
+      in
+      let is_caller = RoleName.equal caller projected_role in
+      let is_participant =
+        List.mem roles projected_role ~equal:RoleName.equal
+      in
+      match projected_role with
+      | _ when is_caller && is_participant ->
+          let acceptl = gen_acceptl next in
+          gen_invitecreatel acceptl
+      | _ when is_caller -> gen_invitecreatel next
+      | _ when is_participant -> gen_acceptl next
+      | _ -> next )
+
+let rec merge_internal tvs unguarded_tv lty1 lty2 =
+  let merge_recvI_recvChoiceI msg role lty' choices =
+    match find_recv_cont_by_label msg.label choices with
+    | Some k ->
+        let k' = merge_internal tvs unguarded_tv k lty' in
+        update_recv_cont_by_label msg.label (lazy k') choices
+    | None -> lazy (RecvI (msg, role, lty')) :: choices
+  in
+  try
+    match (lty1, lty2) with
+    | (lazy lty1), (lazy lty2) when equal_internal lty1 lty2 -> lty1
+    | (lazy (RecvI (m1, r1, _))), (lazy (RecvI (m2, r2, _))) ->
+        if (not (RoleName.equal r1 r2)) || LabelName.equal m1.label m2.label
+        then raise MergeFail ;
+        RecvChoiceI (r1, [lty1; lty2])
+    | (lazy (TVarI (tv, []))), (lazy lty') when Set.mem unguarded_tv tv ->
+        lty'
+    | (lazy lty'), (lazy (TVarI (tv, []))) when Set.mem unguarded_tv tv ->
+        lty'
+    | lty', (lazy (TVarI (tv, []))) | (lazy (TVarI (tv, []))), lty' ->
+        merge_internal tvs unguarded_tv lty'
+          (Lazy.force (Map.find_exn tvs tv))
+    | (lazy (RecvChoiceI (r, ltys))), (lazy (RecvI (m', r', lty')))
+     |(lazy (RecvI (m', r', lty'))), (lazy (RecvChoiceI (r, ltys))) ->
+        if not (RoleName.equal r r') then raise MergeFail ;
+        RecvChoiceI (r, merge_recvI_recvChoiceI m' r' lty' ltys)
+    | (lazy (RecvChoiceI (r, ltys1))), (lazy (RecvChoiceI (r', ltys2))) ->
+        if not (RoleName.equal r r') then raise MergeFail ;
+        let f ltys lty =
+          match lty with
+          | (lazy (RecvI (m', r', lty'))) ->
+              merge_recvI_recvChoiceI m' r' lty' ltys
+          | _ -> assert false
+        in
+        RecvChoiceI (r, List.fold ~init:ltys2 ~f ltys1)
+    | (lazy (MergeI ls)), lty' | lty', (lazy (MergeI ls)) ->
+        let lty =
+          List.reduce_exn
+            ~f:(fun lt1 lt2 -> lazy (merge_internal tvs unguarded_tv lt1 lt2))
+            ls
+        in
+        merge_internal tvs unguarded_tv lty lty'
+    | _, _ -> raise MergeFail
+  with MergeFail ->
+    uerr
+      (UnableToMerge
+         ( show_internal (Lazy.force lty1)
+           ^ "\nand\n"
+           ^ show_internal (Lazy.force lty2)
+         , None ) )
+
+let project_internal projected_role g =
+  project_internal' new_project_env projected_role g
+
 type t =
   | RecvL of message * RoleName.t * t
   | SendL of message * RoleName.t * t
@@ -22,6 +344,64 @@ type t =
       * t
   | SilentL of VariableName.t * Expr.payload_type * t
 [@@deriving sexp_of, eq]
+
+let finalise l =
+  let empty = Set.empty (module TypeVariableName) in
+  let rec merge tvs unguarded_tv l =
+    let l = Lazy.force l in
+    match l with
+    | RecvI (m, r, l) -> lazy (RecvI (m, r, merge tvs empty l))
+    | SendI (m, r, l) -> lazy (SendI (m, r, merge tvs empty l))
+    | RecvChoiceI (r, ls) ->
+        lazy (RecvChoiceI (r, List.map ~f:(merge tvs unguarded_tv) ls))
+    | SendChoiceI (r, ls) ->
+        lazy (SendChoiceI (r, List.map ~f:(merge tvs unguarded_tv) ls))
+    | TVarI (tv, e) -> lazy (TVarI (tv, e))
+    | MuI (tv, rec_vars, l) ->
+        let rec l' =
+          lazy
+            (merge
+               (Map.add_exn tvs ~key:tv ~data:l')
+               (Set.add unguarded_tv tv) l )
+        in
+        lazy (MuI (tv, rec_vars, Lazy.force l'))
+    | EndI -> lazy EndI
+    | InviteCreateI (r1, r2, p, l) ->
+        lazy (InviteCreateI (r1, r2, p, merge tvs empty l))
+    | AcceptI (r, p, rs1, rs2, r', l) ->
+        lazy (AcceptI (r, p, rs1, rs2, r', merge tvs empty l))
+    | SilentI (v, t, l) -> lazy (SilentI (v, t, merge tvs unguarded_tv l))
+    | MergeI ls ->
+        List.reduce_exn
+          ~f:(fun lt1 lt2 -> lazy (merge_internal tvs unguarded_tv lt1 lt2))
+          ls
+  in
+  let rec aux unguarded_tv tv_usage l =
+    let l = Lazy.force l in
+    match l with
+    | RecvI (m, r, l) -> RecvL (m, r, aux empty tv_usage l)
+    | SendI (m, r, l) -> SendL (m, r, aux empty tv_usage l)
+    | RecvChoiceI (r, ls) | SendChoiceI (r, ls) ->
+        ChoiceL (r, List.map ~f:(aux unguarded_tv tv_usage) ls)
+    | TVarI (tv, e) ->
+        Map.find_exn tv_usage tv := true ;
+        TVarL (tv, e)
+    | MuI (tv, rec_vars, l) ->
+        let tv_usage = Map.add_exn tv_usage ~key:tv ~data:(ref false) in
+        let k = aux (Set.add unguarded_tv tv) tv_usage l in
+        if !(Map.find_exn tv_usage tv) then MuL (tv, rec_vars, k) else k
+    | EndI -> EndL
+    | InviteCreateI (r1, r2, p, l) ->
+        InviteCreateL (r1, r2, p, aux empty tv_usage l)
+    | AcceptI (r, p, rs1, rs2, r', l) ->
+        AcceptL (r, p, rs1, rs2, r', aux empty tv_usage l)
+    | SilentI (v, t, l) -> SilentL (v, t, aux unguarded_tv tv_usage l)
+    | MergeI _ ->
+        violationf ~here:[%here] "MergeI should be resolved already"
+  in
+  aux empty
+    (Map.empty (module TypeVariableName))
+    (merge (Map.empty (module TypeVariableName)) empty l)
 
 module LocalProtocolId = struct
   module T = struct
@@ -373,58 +753,7 @@ let rec merge projected_role lty1 lty2 =
     let error = show l1 ^ "\nand\n" ^ show l2 in
     uerr @@ Err.UnableToMerge (String.strip error, Some projected_role)
 
-(* Check whether the first message in a g choice is from choice_r to recv_r,
-   if recv_r is Some; return receive role *)
-(* In nested protocols, calls will send invitation messages all participants,
-   so need to check if any of the roles in a call is the receiver *)
-let rec check_consistent_gchoice choice_r possible_roles = function
-  | MessageG (_, send_r, recv_r_, _) ->
-      if not @@ RoleName.equal send_r choice_r then
-        uerr (RoleMismatch (choice_r, send_r)) ;
-      if
-        (not @@ Set.is_empty possible_roles)
-        && (not @@ Set.mem possible_roles recv_r_)
-      then uerr (RoleMismatch (Set.choose_exn possible_roles, recv_r_)) ;
-      Set.singleton (module RoleName) recv_r_
-  | CallG (caller_r, protocol, roles, _) ->
-      if not @@ RoleName.equal caller_r choice_r then
-        uerr (RoleMismatch (choice_r, caller_r)) ;
-      let roles_set = Set.of_list (module RoleName) roles in
-      if Set.is_empty possible_roles then roles_set
-      else
-        let intersection = Set.inter possible_roles roles_set in
-        if Set.is_empty intersection then
-          uerr (ChoiceCallRoleMismatch protocol) ;
-        intersection
-  | ChoiceG (new_choice_r, gs) ->
-      if not @@ RoleName.equal choice_r new_choice_r then
-        uerr (RoleMismatch (choice_r, new_choice_r)) ;
-      Set.union_list
-        (module RoleName)
-        (List.map ~f:(check_consistent_gchoice choice_r possible_roles) gs)
-  | MuG (_, _, g) -> check_consistent_gchoice choice_r possible_roles g
-  | TVarG (_, _, g) ->
-      check_consistent_gchoice choice_r possible_roles (Lazy.force g)
-  | g ->
-      violation ~here:[%here]
-        ( "Normalised global type always has a message in choice branches\n"
-        ^ Gtype.show g )
-
 (* Various infomation needed during projection *)
-type project_env =
-  { penv: Gtype.nested_t (* Info for nested protocols *)
-  ; rvenv: (bool * rec_var) list Map.M(TypeVariableName).t
-        (* Info for refinement variables *)
-  ; silent_vars: Set.M(VariableName).t
-        (* Info for silent variables (refinement types ) *)
-  ; unguarded_tv: Set.M(TypeVariableName).t (* Unguarded type variables *) }
-
-let new_project_env =
-  { penv= Map.empty (module ProtocolName)
-  ; rvenv= Map.empty (module TypeVariableName)
-  ; silent_vars= Set.empty (module VariableName)
-  ; unguarded_tv= Set.empty (module TypeVariableName) }
-
 let rec project' env (projected_role : RoleName.t) =
   let check_expr silent_vars e =
     let free_vars = Expr.free_var e in
@@ -594,7 +923,11 @@ let rec project' env (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
-let project projected_role g = project' new_project_env projected_role g
+let project projected_role g =
+  let internal = project_internal projected_role g in
+  (* Stdio.print_endline (show_internal (Lazy.force internal)) ; *)
+  finalise internal
+(* project' new_project_env projected_role g *)
 
 let project_nested_t (nested_t : Gtype.nested_t) =
   let project_role protocol_name all_roles gtype local_protocols

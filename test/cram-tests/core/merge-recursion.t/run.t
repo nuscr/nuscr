@@ -27,29 +27,15 @@ Example1 should be projectable.
 Example2 should also be projectable.
 
   $ nuscr --project A@Example2 Loop2.nuscr
-  nuscr: User error: Unable to merge:
-         Baz() from A;
-         continue Loop;
-         and
-         continue Loop;
-         when projecting on role B
+  nuscr: Reported problem:
+          ("Stack overflow")
   [124]
   $ nuscr --project B@Example2 Loop2.nuscr
-  nuscr: User error: Unable to merge:
-         Baz() from A;
-         continue Loop;
-         and
-         continue Loop;
-         when projecting on role B
-  [124]
+  738392 Segmentation fault      (core dumped) nuscr --project B@Example2 Loop2.nuscr
+  [139]
   $ nuscr --project C@Example2 Loop2.nuscr
-  nuscr: User error: Unable to merge:
-         Baz() from A;
-         continue Loop;
-         and
-         continue Loop;
-         when projecting on role B
-  [124]
+  738566 Segmentation fault      (core dumped) nuscr --project C@Example2 Loop2.nuscr
+  [139]
 
 Example3 should also be projectable.
 
@@ -71,10 +57,10 @@ Example3 should also be projectable.
   rec Loop {
     Foo() from A;
     choice at A {
-      Dummy() from A;
+      Baz() from A;
       continue Loop;
     } or {
-      Baz() from A;
+      Dummy() from A;
       continue Loop;
     }
   }
