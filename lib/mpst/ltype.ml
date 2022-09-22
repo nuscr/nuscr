@@ -277,47 +277,61 @@ module P = Byrefpair.ByRefPair (struct
   type t = internal Lazy.t
 end)
 
-let merge_internal tvs unguarded_tv lty1 lty2 =
+let count = ref 0
+
+let fresh () =
+  count := !count + 1 ;
+  !count
+
+let merge_internal memory tvs unguarded_tv lty1 lty2 =
   try
-    let rec aux memory lty1 lty2 =
+    let rec aux lty1 lty2 =
       let merge_recvI_recvChoiceI msg role lty' choices =
         match find_recv_cont_by_label msg.label choices with
         | Some k ->
-            let k' = aux memory k lty' in
+            let k' = aux k lty' in
             update_recv_cont_by_label msg.label (lazy k') choices
         | None -> lazy (RecvI (msg, role, lty')) :: choices
       in
       match (lty1, lty2) with
       | (lazy lty1), (lazy lty2) when equal_internal lty1 lty2 -> lty1
       | (lazy (RecvI (m1, r1, _))), (lazy (RecvI (m2, r2, _))) ->
+          Stdio.print_endline "RECV RECV" ;
           if
             (not (RoleName.equal r1 r2)) || LabelName.equal m1.label m2.label
           then raise MergeFail ;
           RecvChoiceI (r1, [lty1; lty2])
       | (lazy (TVarI (tv, []))), (lazy lty') when Set.mem unguarded_tv tv ->
+          Stdio.print_endline "Unguarded TV" ;
           lty'
       | (lazy lty'), (lazy (TVarI (tv, []))) when Set.mem unguarded_tv tv ->
+          Stdio.print_endline "Unguarded TV" ;
           lty'
-      | lty', (lazy (TVarI (tv, []))) | (lazy (TVarI (tv, []))), lty' -> (
-        match Map.find memory (lty1, lty2) with
-        | Some new_tvar -> TVarI (new_tvar, [])
-        | None ->
-            let new_tvar =
-              TypeVariableName.rename tv (TypeVariableName.user tv ^ "_")
-            in
-            let rec answer =
-              lazy
-                (aux
-                   (Map.add_exn ~key:(lty1, lty2) ~data:new_tvar memory)
-                   lty'
-                   (Lazy.force (Map.find_exn tvs tv)) )
-            in
-            MuI (new_tvar, [], answer) )
+      | lty', ((lazy (TVarI (tv, []))) as lty_var)
+       |((lazy (TVarI (tv, []))) as lty_var), lty' -> (
+          Stdio.print_endline ("HERE1 " ^ Int.to_string (Map.length !memory)) ;
+          match Map.find !memory (lty_var, lty') with
+          | Some new_tvar ->
+              Stdio.print_endline "FOUND LOOP" ;
+              TVarI (new_tvar, [])
+          | None ->
+              let new_tvar =
+                TypeVariableName.rename tv
+                  (TypeVariableName.user tv ^ "_" ^ Int.to_string (fresh ()))
+              in
+              let unfolded = Lazy.force (Map.find_exn tvs tv) in
+              memory :=
+                Map.add_exn ~key:(unfolded, lty') ~data:new_tvar !memory ;
+              let rec answer = lazy (aux lty' unfolded) in
+              Stdio.print_endline "HERE2" ;
+              MuI (new_tvar, [], answer) )
       | (lazy (RecvChoiceI (r, ltys))), (lazy (RecvI (m', r', lty')))
        |(lazy (RecvI (m', r', lty'))), (lazy (RecvChoiceI (r, ltys))) ->
+          Stdio.print_endline "RECVCHOICE RECVSINGLE" ;
           if not (RoleName.equal r r') then raise MergeFail ;
           RecvChoiceI (r, merge_recvI_recvChoiceI m' r' lty' ltys)
       | (lazy (RecvChoiceI (r, ltys1))), (lazy (RecvChoiceI (r', ltys2))) ->
+          Stdio.print_endline "RECVCHOICE RECVCHOICE" ;
           if not (RoleName.equal r r') then raise MergeFail ;
           let f ltys lty =
             match lty with
@@ -327,15 +341,14 @@ let merge_internal tvs unguarded_tv lty1 lty2 =
           in
           RecvChoiceI (r, List.fold ~init:ltys2 ~f ltys1)
       | (lazy (MergeI ls)), lty' | lty', (lazy (MergeI ls)) ->
+          Stdio.print_endline "Merging merges" ;
           let lty =
-            List.reduce_exn
-              ~f:(fun lty1 lty2 -> lazy (aux memory lty1 lty2))
-              ls
+            List.reduce_exn ~f:(fun lty1 lty2 -> lazy (aux lty1 lty2)) ls
           in
-          aux memory lty lty'
+          aux lty lty'
       | _, _ -> raise MergeFail
     in
-    aux (Map.empty (module P)) lty1 lty2
+    aux lty1 lty2
   with MergeFail ->
     uerr
       (UnableToMerge
@@ -367,6 +380,7 @@ type t =
 
 let finalise l =
   let empty = Set.empty (module TypeVariableName) in
+  let memory = ref (Map.empty (module P)) in
   let rec merge tvs unguarded_tv l =
     let l = Lazy.force l in
     match l with
@@ -392,24 +406,31 @@ let finalise l =
         lazy (AcceptI (r, p, rs1, rs2, r', merge tvs empty l))
     | SilentI (v, t, l) -> lazy (SilentI (v, t, merge tvs unguarded_tv l))
     | MergeI ls ->
+        let ls = List.map ~f:(fun l -> Lazy.from_val (Lazy.force l)) ls in
+        Stdio.print_endline "Forced all lazy types." ;
         List.reduce_exn
-          ~f:(fun lt1 lt2 -> lazy (merge_internal tvs unguarded_tv lt1 lt2))
+          ~f:(fun lt1 lt2 ->
+            Lazy.from_val (merge_internal memory tvs unguarded_tv lt1 lt2) )
           ls
   in
+  let intermediate = merge (Map.empty (module TypeVariableName)) empty l in
   let rec aux unguarded_tv tv_usage l =
     let l = Lazy.force l in
+    Stdio.print_endline ("aux:" ^ show_internal l) ;
     match l with
     | RecvI (m, r, l) -> RecvL (m, r, aux empty tv_usage l)
     | SendI (m, r, l) -> SendL (m, r, aux empty tv_usage l)
     | RecvChoiceI (r, ls) | SendChoiceI (r, ls) ->
         ChoiceL (r, List.map ~f:(aux unguarded_tv tv_usage) ls)
     | TVarI (tv, e) ->
-        Map.find_exn tv_usage tv := true ;
+        (* Map.find_exn tv_usage tv := true ; *)
         TVarL (tv, e)
     | MuI (tv, rec_vars, l) ->
-        let tv_usage = Map.add_exn tv_usage ~key:tv ~data:(ref false) in
+        (* let tv_usage = Map.add_exn tv_usage ~key:tv ~data:(ref false)
+           in *)
         let k = aux (Set.add unguarded_tv tv) tv_usage l in
-        if !(Map.find_exn tv_usage tv) then MuL (tv, rec_vars, k) else k
+        if (* !(Map.find_exn tv_usage tv) *) true then MuL (tv, rec_vars, k)
+        else k
     | EndI -> EndL
     | InviteCreateI (r1, r2, p, l) ->
         InviteCreateL (r1, r2, p, aux empty tv_usage l)
@@ -419,9 +440,7 @@ let finalise l =
     | MergeI _ ->
         violationf ~here:[%here] "MergeI should be resolved already"
   in
-  aux empty
-    (Map.empty (module TypeVariableName))
-    (merge (Map.empty (module TypeVariableName)) empty l)
+  aux empty (Map.empty (module TypeVariableName)) intermediate
 
 module LocalProtocolId = struct
   module T = struct
@@ -944,6 +963,7 @@ let rec project' env (projected_role : RoleName.t) =
       | _ -> next )
 
 let project projected_role g =
+  Stdio.print_endline ("Projection on role " ^ RoleName.user projected_role) ;
   let internal = project_internal projected_role g in
   (* Stdio.print_endline (show_internal (Lazy.force internal)) ; *)
   finalise internal
