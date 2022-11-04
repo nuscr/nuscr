@@ -53,7 +53,7 @@ let show_user_error = function
   | IncompatibleFlag (flag, pragma) ->
       sprintf "Incompatible flag: %s set with pragma: %s" flag pragma
   | MissingFlag (flag, msg) -> sprintf "Flag: %s is not set. %s" flag msg
-  | PragmaNotSet (prg, msg) -> sprintf "Pramga: %s is not set. %s" prg msg
+  | PragmaNotSet (prg, msg) -> sprintf "Pragma: %s is not set. %s" prg msg
   | LexerError msg -> "Lexer error: " ^ msg
   | ParserError interval ->
       "Parser error: An error occurred at " ^ Loc.show interval

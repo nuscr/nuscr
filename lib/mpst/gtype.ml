@@ -67,7 +67,7 @@ module Payload = struct
           uerr
             (PragmaNotSet
                ( Pragma.show Pragma.RefinementTypes
-               , "Refinement Types require RefinementTypes pramga to be set."
+               , "Refinement Types require RefinementTypes pragma to be set."
                ) )
 
   let typename_of_payload = function
