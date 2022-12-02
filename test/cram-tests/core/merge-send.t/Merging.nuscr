@@ -1,0 +1,11 @@
+protocol Merging(role A, role B, role C) {
+    choice at A {
+        Foo() from A to B;
+        Baz() from C to B;
+        Foo() from B to C;
+    } or {
+        Bar() from A to B;
+        Baz() from C to B;
+        Bar() from B to C;
+    }
+}
