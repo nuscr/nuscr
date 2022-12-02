@@ -342,6 +342,9 @@ let rec merge projected_role lty1 lty2 =
     | RecvL (_, r1, _), RecvL (_, r2, _) ->
         if not @@ RoleName.equal r1 r2 then fail () ;
         merge_recv r1 [lty1; lty2]
+    | SendL (m1, r1, lty1), SendL (m2, r2, lty2)
+      when RoleName.equal r1 r2 && equal_message m1 m2 ->
+        SendL (m1, r2, merge projected_role lty1 lty2)
     | AcceptL (_, _, _, _, caller, _), RecvL (_, r2, _) ->
         if not @@ RoleName.equal caller r2 then fail () ;
         merge_recv r2 [lty1; lty2]
