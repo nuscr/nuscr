@@ -1,8 +1,8 @@
 Nuscr should not report an error if ValidateRefinementSatisfiability is not
 enabled.
   $ nuscr UnsatisfiableDisabled.nuscr --project A@Unsat
-  Hello(x: (x:int{x > 0}) to B;
-  Bye(y: (y:int{y > x && y < 0}) from B;
+  Hello(x: (x:int{x > 0})) to B;
+  Bye(y: (y:int{y > x && y < 0})) from B;
   (end)
 
 Nuscr should report an error if ValidateRefinementSatisfiability is enabled.

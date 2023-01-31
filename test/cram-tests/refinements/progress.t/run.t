@@ -3,10 +3,10 @@ enabled.
   $ nuscr StuckDisabled.nuscr --project A@Stuck
   Num(x: int) to B;
   choice at B {
-    Pos(ignore: (ignore:unit{x > 0}) from B;
+    Pos(ignore: (ignore:unit{x > 0})) from B;
     (end)
   } or {
-    Neg(ignore: (ignore:unit{x < 0}) from B;
+    Neg(ignore: (ignore:unit{x < 0})) from B;
     (end)
   }
 
@@ -31,11 +31,11 @@ Nuscr should not report any error for the fixed protocol.
   (assert (distinct x 0))
   (check-sat)
   
-  Num(x: (x:int{x <> 0}) to B;
+  Num(x: (x:int{x <> 0})) to B;
   choice at B {
-    Pos(ignore: (ignore:unit{x > 0}) from B;
+    Pos(ignore: (ignore:unit{x > 0})) from B;
     (end)
   } or {
-    Neg(ignore: (ignore:unit{x < 0}) from B;
+    Neg(ignore: (ignore:unit{x < 0})) from B;
     (end)
   }

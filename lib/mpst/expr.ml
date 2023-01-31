@@ -112,7 +112,8 @@ module Formatting = struct
         pp_payload_type ppf t ;
         pp_print_string ppf "{" ;
         pp ppf e ;
-        pp_print_string ppf "}"
+        pp_print_string ppf "}" ;
+        pp_print_string ppf ")"
     | PTInt -> pp_print_string ppf "int"
     | PTBool -> pp_print_string ppf "bool"
     | PTString -> pp_print_string ppf "string"
