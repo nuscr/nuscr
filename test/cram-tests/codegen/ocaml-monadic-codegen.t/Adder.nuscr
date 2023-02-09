@@ -1,4 +1,3 @@
-
 protocol Adder(role C, role S) {
   choice at C {
     add(int) from C to S;

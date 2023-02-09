@@ -1,14 +1,13 @@
-
 protocol Adder(role C, role S) {
   rec loop {
-  choice at C {
-    add(int) from C to S;
-    add(int) from C to S;
-    sum(int) from S to C;
-    continue loop;
-  } or {
-    bye() from C to S;
-    bye() from S to C;
+    choice at C {
+      add(int) from C to S;
+      add(int) from C to S;
+      sum(int) from S to C;
+      continue loop;
+    } or {
+      bye() from C to S;
+      bye() from S to C;
+    }
   }
-}
 }
