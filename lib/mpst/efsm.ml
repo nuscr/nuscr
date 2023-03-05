@@ -312,7 +312,7 @@ let of_local_type lty =
         ({env with g; states_to_merge}, curr)
     | TVarL (tv, _) ->
         (env, List.Assoc.find_exn ~equal:TypeVariableName.equal env.tyvars tv)
-    | AcceptL _ | InviteCreateL _ ->
+    | AcceptL _ | InviteCreateL _ | CallL _ ->
         Err.violation ~here:[%here]
           "Nested protocols are not supported in efsm"
     | SilentL (v, ty, l) ->

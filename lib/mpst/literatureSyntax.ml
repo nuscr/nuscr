@@ -133,6 +133,7 @@ let rec from_ltype = function
       Err.unimpl ~here:[%here] "from_ltype: InviteCreateL"
   | Ltype.AcceptL _ -> Err.unimpl ~here:[%here] "from_ltype: AcceptL"
   | Ltype.SilentL _ -> Err.unimpl ~here:[%here] "from_ltype: SilentL"
+  | Ltype.CallL _ -> Err.unimpl ~here:[%here] "from_ltype: CallL"
 
 let show_cont f (label, payloads, cont) =
   let payloads =

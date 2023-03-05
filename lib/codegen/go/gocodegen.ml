@@ -373,6 +373,7 @@ let rec required_channels ~role lty =
     | InviteCreateL (dsts, _, _, k) ->
         List.map ~f:(fun dst -> (dst, role)) dsts @ go k
     | AcceptL (_, _, _, _, src, k) -> (role, src) :: go k
+    | CallL (_, _, _, _, k) -> go k
     | SilentL _ -> assert false
   in
   let cmp_pair (p1, q1) (p2, q2) =
@@ -564,9 +565,19 @@ let gen_local ~wg ~proto ~role lty =
               pure (var, [recv_stmt])
           | Some var -> pure (var, [])
         in
+        go (Some var) (stmt @ go_impl) cont
+    | CallL (who, new_proto, _, _, cont) ->
         (* get accept callback (from this role's context to who's context *)
         (* If it's a recursive call, generate it in tail position TODO:
            optimize tail recursion to loops *)
+        let var =
+          match pre with
+          | Some v -> v
+          | None ->
+              Err.uerr
+                (Err.Uncategorised
+                   "Impossible: protocol call did not receive session!" )
+        in
         if RoleName.equal role who && ProtocolName.equal proto new_proto then
           let* ctx = get_ctx_var ~proto ~role in
           let* req_chans = get_req_chans ~proto:new_proto ~role:who in
@@ -578,7 +589,7 @@ let gen_local ~wg ~proto ~role lty =
               in
               let* assign = reassign_channels proto var req_chans in
               let* _ = put_tail_rec in
-              pure ((call_stmt :: assign) @ stmt @ go_impl)
+              pure ((call_stmt :: assign) @ go_impl)
           | _ ->
               let call_stmt =
                 GoExpr
@@ -586,7 +597,7 @@ let gen_local ~wg ~proto ~role lty =
                      ( GoFnVar call_proto
                      , GoVar ctx :: GoVar wg :: proj_chans var req_chans ) )
               in
-              go None ((call_stmt :: stmt) @ go_impl) cont
+              go None (call_stmt :: go_impl) cont
         else
           let* ctx_ty = get_ctx_type ~role:who ~proto:new_proto in
           let* cb_nm =
@@ -620,9 +631,7 @@ let gen_local ~wg ~proto ~role lty =
               ~ret_ty:None ~cb_nm
           in
           let callback' = GoExpr (cb [GoVar ctx]) in
-          go None
-            ((callback' :: call_stmt :: callback :: stmt) @ go_impl)
-            cont
+          go None (callback' :: call_stmt :: callback :: go_impl) cont
     | SilentL _ -> assert false
   and go_select ifc var = function
     | [] -> pure []

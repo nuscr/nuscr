@@ -20,6 +20,8 @@ type t =
       * RoleName.t list
       * RoleName.t
       * t
+  | CallL of
+      RoleName.t * ProtocolName.t * RoleName.t list * RoleName.t list * t
   | SilentL of VariableName.t * Expr.payload_type * t
 [@@deriving sexp_of, eq]
 
@@ -175,6 +177,16 @@ module Formatting = struct
               pp_choices ls
         in
         pp_choices ls
+    | CallL (role, protocol, roles, new_roles, l) ->
+        pp_print_string ppf "call " ;
+        pp_print_string ppf (RoleName.user role) ;
+        pp_print_string ppf "@" ;
+        pp_print_string ppf (ProtocolName.user protocol) ;
+        pp_print_string ppf "(" ;
+        pp_print_string ppf (Symtable.show_roles (roles, new_roles)) ;
+        pp_print_string ppf ");" ;
+        pp_force_newline ppf () ;
+        pp ppf l
 
   let show ltype =
     let buffer = Buffer.create 1024 in
@@ -582,6 +594,14 @@ let rec project' env (projected_role : RoleName.t) =
         let role_in_proto = List.nth_exn static_roles idx in
         AcceptL (role_in_proto, protocol, roles, dynamic_roles, caller, next)
       in
+      let gen_calll next =
+        let role_elem =
+          List.findi roles ~f:(fun _ r' -> RoleName.equal projected_role r')
+        in
+        let idx, _ = Option.value_exn role_elem in
+        let role_in_proto = List.nth_exn static_roles idx in
+        CallL (role_in_proto, protocol, roles, dynamic_roles, next)
+      in
       let gen_invitecreatel next =
         InviteCreateL (roles, dynamic_roles, protocol, next)
       in
@@ -591,10 +611,13 @@ let rec project' env (projected_role : RoleName.t) =
       in
       match projected_role with
       | _ when is_caller && is_participant ->
-          let acceptl = gen_acceptl next in
+          let call_l = gen_calll next in
+          let acceptl = gen_acceptl call_l in
           gen_invitecreatel acceptl
       | _ when is_caller -> gen_invitecreatel next
-      | _ when is_participant -> gen_acceptl next
+      | _ when is_participant ->
+          let call_l = gen_calll next in
+          gen_acceptl call_l
       | _ -> next )
 
 let project projected_role g = project' new_project_env projected_role g
@@ -651,6 +674,9 @@ let make_unique_tvars ltype =
     | AcceptL (role, protocol, roles, new_roles, caller, l) ->
         let namegen, l = rename_tvars tvar_mapping namegen l in
         (namegen, AcceptL (role, protocol, roles, new_roles, caller, l))
+    | CallL (role, protocol, roles, new_roles, l) ->
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, CallL (role, protocol, roles, new_roles, l))
     | SilentL _ ->
         Err.unimpl ~here:[%here]
           "renaming recursive variables with refinements"
