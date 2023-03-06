@@ -105,3 +105,5 @@ val lookup_local_protocol :
 val lookup_protocol_id :
   local_proto_name_lookup -> LocalProtocolId.t -> LocalProtocolName.t
 (** Look up the unique name for a local protocol id *)
+
+val unfold_combine : nested_t -> nested_t

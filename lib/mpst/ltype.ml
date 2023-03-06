@@ -734,3 +734,208 @@ let make_unique_tvars ltype =
 let ensure_unique_tvars nested_t : nested_t =
   Map.map nested_t ~f:(fun (roles, ltype) ->
       (roles, make_unique_tvars ltype) )
+
+(* UPDATABLE RECURSION *)
+
+let rec erase_upd x = function
+  | RecvL (m, f, k) -> RecvL (m, f, erase_upd x k)
+  | SendL (m, f, k) -> SendL (m, f, erase_upd x k)
+  | ChoiceL (f, ks) -> ChoiceL (f, List.map ~f:(erase_upd x) ks)
+  | TVarL (v, e) -> TVarL (v, e)
+  | MuL (v, vs, k) -> MuL (v, vs, erase_upd x k)
+  | EndL -> EndL
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, erase_upd x k)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, erase_upd x k)
+  | CallL (who, proto, irs, nrs, k) ->
+      CallL (who, proto, irs, nrs, erase_upd x k)
+  | ICallL (who, proto, irs, nrs, k) ->
+      ICallL (who, proto, irs, nrs, erase_upd x k)
+  | CombineL (l, r) -> (
+    match l with
+    | TVarL (v', _) ->
+        if TypeVariableName.equal v' x then l else CombineL (l, r)
+    | _ -> CombineL (l, r) )
+  | SilentL (v, e, k) -> SilentL (v, e, erase_upd x k)
+
+let rec is_free v = function
+  | RecvL (_, _, k)
+   |SendL (_, _, k)
+   |InviteCreateL (_, _, _, k)
+   |CallL (_, _, _, _, k)
+   |ICallL (_, _, _, _, k)
+   |AcceptL (_, _, _, _, _, k)
+   |SilentL (_, _, k) ->
+      is_free v k
+  | ChoiceL (_, ks) ->
+      List.fold_left ~f:(fun a b -> a || is_free v b) ~init:false ks
+  | TVarL (v2, _) -> TypeVariableName.equal v v2
+  | EndL -> false
+  | MuL (v2, _, k) ->
+      if TypeVariableName.equal v v2 then false else is_free v k
+  | CombineL (l, r) -> is_free v l || is_free v r
+
+let rec is_updatable v = function
+  | RecvL (_, _, k)
+   |SendL (_, _, k)
+   |InviteCreateL (_, _, _, k)
+   |CallL (_, _, _, _, k)
+   |ICallL (_, _, _, _, k)
+   |AcceptL (_, _, _, _, _, k)
+   |SilentL (_, _, k) ->
+      is_updatable v k
+  | ChoiceL (_, ks) ->
+      List.fold_left ~f:(fun a b -> a || is_updatable v b) ~init:false ks
+  | TVarL (_, _) | EndL -> false
+  | MuL (v2, _, k) ->
+      if TypeVariableName.equal v v2 then false else is_updatable v k
+  | CombineL (l, _) -> is_free v l
+
+let rec lookup_var v = function
+  | [] -> None
+  | (v', k) :: ks ->
+      if TypeVariableName.equal v v' then Some k else lookup_var v ks
+
+let rec ends_with v = function
+  | AcceptL (_, _, _, _, _, k)
+   |CallL (_, _, _, _, k)
+   |ICallL (_, _, _, _, k)
+   |SilentL (_, _, k)
+   |InviteCreateL (_, _, _, k)
+   |RecvL (_, _, k)
+   |SendL (_, _, k) ->
+      ends_with v k
+  | ChoiceL (_, ks) ->
+      List.fold_left ~f:(fun a b -> a && ends_with v b) ~init:true ks
+  | TVarL (v', _) -> (
+    match v with Some vv -> TypeVariableName.equal v' vv | None -> false )
+  | MuL _ | CombineL _ ->
+      Err.uerr (Err.Uncategorised "combining recursion/inlined calls/combine")
+  | EndL -> ( match v with None -> true | _ -> false )
+
+let rec combine_branch v l r =
+  match l with
+  | RecvL (m, f, k) -> RecvL (m, f, combine_branch v k r)
+  | SendL (m, f, k) -> SendL (m, f, combine_branch v k r)
+  | ChoiceL (f, ks) ->
+      ChoiceL (f, List.map ~f:(fun k -> combine_branch v k r) ks)
+  | TVarL (vv, e) ->
+      if TypeVariableName.equal v vv then
+        if ends_with (Some v) r then r
+        else Err.uerr (Err.Uncategorised "cannot combine branches")
+      else TVarL (vv, e)
+  | MuL _ | ICallL _ | CombineL _ ->
+      Err.uerr (Err.Uncategorised "combining recursion/inlined calls/combine")
+  | EndL ->
+      if ends_with None r then r
+      else Err.uerr (Err.Uncategorised "cannot combine branches")
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, combine_branch v k r)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, combine_branch v k r)
+  | CallL (who, proto, irs, nrs, k) ->
+      CallL (who, proto, irs, nrs, combine_branch v k r)
+  | SilentL (vs, e, k) -> SilentL (vs, e, combine_branch v k r)
+
+let rec combine_branches wrap v l r =
+  match (l, r) with
+  | [], [] -> []
+  | h :: t, r :: s ->
+      combine_branch v h (wrap r) :: combine_branches wrap v t s
+  | _, _ ->
+      Err.uerr (Err.Uncategorised "combining distinct number of branches")
+
+let combine_choices wrap v l r =
+  match (l, r) with
+  | ChoiceL (f1, k1), ChoiceL (f2, k2) ->
+      if RoleName.equal f1 f2 then ChoiceL (f1, combine_branches wrap v k1 k2)
+      else Err.uerr (Err.Uncategorised "Combining distinct choices")
+  | _, _ -> combine_branch v l (wrap r)
+
+let combine_rec wrap l r =
+  match (l, r) with
+  | MuL (v1, vs, k1), MuL (v2, _, k2) ->
+      if TypeVariableName.equal v1 v2 then
+        MuL (v1, vs, combine_choices wrap v1 k1 k2)
+      else
+        Err.uerr
+          (Err.Uncategorised
+             "combining distinct recursion variables\n      is not possible"
+          )
+  | _ ->
+      Err.uerr
+        (Err.Uncategorised "combining distinct non-recursive\n  protocols")
+
+let rec do_combine env ty = function
+  | RecvL (m, f, k) -> RecvL (m, f, do_combine env ty k)
+  | SendL (m, f, k) -> SendL (m, f, do_combine env ty k)
+  | ChoiceL _ | TVarL _ | MuL _ | ICallL _ | CombineL _ ->
+      Err.unimpl ~here:[%here]
+        "Only send/recv/invite/accept allowed in RHS of updatable rec"
+  | EndL -> ty
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, do_combine env ty k)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, do_combine env ty k)
+  | CallL (who, proto, irs, nrs, k) -> (
+    match k with
+    | EndL ->
+        let local_protocol_id = LocalProtocolId.create proto who in
+        let body = Map.find_exn env local_protocol_id in
+        combine_rec (fun k -> ICallL (who, proto, irs, nrs, k)) ty (snd body)
+    | _ ->
+        Err.unimpl ~here:[%here]
+          "Protocol call must be last in updatable recursion" )
+  | SilentL (v, e, k) -> SilentL (v, e, do_combine env ty k)
+
+let rec unfold_upd env x = function
+  | RecvL (m, f, k) -> RecvL (m, f, unfold_upd env x k)
+  | SendL (m, f, k) -> SendL (m, f, unfold_upd env x k)
+  | ChoiceL (f, ks) -> ChoiceL (f, List.map ~f:(unfold_upd env x) ks)
+  | TVarL (v, e) -> (
+    match lookup_var v x with Some k -> k | None -> TVarL (v, e) )
+  | MuL (v, vs, k) ->
+      if is_updatable v k then
+        unfold_upd env ((v, MuL (v, vs, erase_upd v k)) :: x) k
+      else MuL (v, vs, unfold_upd env x k)
+  | EndL -> EndL
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, unfold_upd env x k)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, unfold_upd env x k)
+  | CallL (who, proto, irs, nrs, k) ->
+      CallL (who, proto, irs, nrs, unfold_upd env x k)
+  | ICallL (who, proto, irs, nrs, k) ->
+      ICallL (who, proto, irs, nrs, unfold_upd env x k)
+  | CombineL (l, r) -> do_combine env (unfold_upd env x l) r
+  | SilentL (v, e, k) -> SilentL (v, e, unfold_upd env x k)
+
+let unfold_decl env (lty : RoleName.t list * t) =
+  (fst lty, unfold_upd env [] (snd lty))
+
+let rec cleanup_upd x = function
+  | RecvL (m, f, k) -> RecvL (m, f, cleanup_upd x k)
+  | SendL (m, f, k) -> SendL (m, f, cleanup_upd x k)
+  | ChoiceL (f, ks) -> ChoiceL (f, List.map ~f:(cleanup_upd x) ks)
+  | TVarL (v, e) -> TVarL (v, e)
+  | MuL (v, vs, k) -> MuL (v, vs, cleanup_upd x k)
+  | EndL -> EndL
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, cleanup_upd x k)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, cleanup_upd x k)
+  | CallL (who, proto, irs, nrs, k) ->
+      CallL (who, proto, irs, nrs, cleanup_upd x k)
+  | ICallL (who, proto, irs, nrs, k) ->
+      ICallL (who, proto, irs, nrs, cleanup_upd x k)
+  | CombineL (l, r) -> ( match r with EndL -> l | _ -> CombineL (l, r) )
+  | SilentL (v, e, k) -> SilentL (v, e, cleanup_upd x k)
+
+let cleanup_combine (lty : RoleName.t list * t) =
+  (fst lty, cleanup_upd [] (snd lty))
+
+let unfold_combine (ltype : nested_t) =
+  let ltype = Map.map ltype ~f:cleanup_combine in
+  let ltype = Map.map ltype ~f:(unfold_decl ltype) in
+  ltype
