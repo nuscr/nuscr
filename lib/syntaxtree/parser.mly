@@ -19,6 +19,7 @@
 %token LSQUARE
 %token RSQUARE
 %token ARROBA
+%token WITH_KW
 
 (* For expressions *)
 %token AMPAMP
@@ -182,6 +183,8 @@ let global_continue ==
     LSQUARE; exprs = separated_list(COMMA, expr); RSQUARE; SEMICOLON ;
     { Continue(n, exprs) }
   | CONTINUE_KW ; n = tyvarname ; SEMICOLON ; { Continue(n, []) }
+  | CONTINUE_KW ; n = tyvarname ; WITH_KW ; inter = global_protocol_block ; SEMICOLON ;
+    { Combine ( [{ Loc.loc = Loc.create $loc; Loc.value = Continue (n, [])}] , inter) }
 
 let global_recursion ==
   | REC_KW ; n = tyvarname ; LSQUARE ;

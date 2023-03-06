@@ -22,6 +22,14 @@ type t =
       * t
   | CallL of
       RoleName.t * ProtocolName.t * RoleName.t list * RoleName.t list * t
+  | ICallL of
+      (* Inl[t] is a local type that occurs in an "inlined" protocol call *)
+      RoleName.t
+      * ProtocolName.t
+      * RoleName.t list
+      * RoleName.t list
+      * t
+  | CombineL of t * t
   | SilentL of VariableName.t * Expr.payload_type * t
 [@@deriving sexp_of, eq]
 
@@ -187,6 +195,32 @@ module Formatting = struct
         pp_print_string ppf ");" ;
         pp_force_newline ppf () ;
         pp ppf l
+    | ICallL (role, protocol, roles, new_roles, l) ->
+        pp_print_string ppf "[call" ;
+        pp_print_string ppf (RoleName.user role) ;
+        pp_print_string ppf "@" ;
+        pp_print_string ppf (ProtocolName.user protocol) ;
+        pp_print_string ppf "(" ;
+        pp_print_string ppf (Symtable.show_roles (roles, new_roles)) ;
+        pp_print_string ppf ")] {" ;
+        pp_force_newline ppf () ;
+        pp_open_box ppf 2 ;
+        pp_print_string ppf "  " ;
+        pp ppf l ;
+        pp_close_box ppf () ;
+        pp_force_newline ppf () ;
+        pp_print_string ppf "}"
+    | CombineL (l1, l2) ->
+        pp_print_string ppf "[" ;
+        pp ppf l1 ;
+        pp_print_string ppf "] {" ;
+        pp_force_newline ppf () ;
+        pp_open_box ppf 2 ;
+        pp_print_string ppf "  " ;
+        pp ppf l2 ;
+        pp_close_box ppf () ;
+        pp_force_newline ppf () ;
+        pp_print_string ppf "}"
 
   let show ltype =
     let buffer = Buffer.create 1024 in
@@ -619,6 +653,9 @@ let rec project' env (projected_role : RoleName.t) =
           let call_l = gen_calll next in
           gen_acceptl call_l
       | _ -> next )
+  | CombineG (g1, g2) ->
+      CombineL
+        (project' env projected_role g1, project' env projected_role g2)
 
 let project projected_role g = project' new_project_env projected_role g
 
@@ -677,6 +714,13 @@ let make_unique_tvars ltype =
     | CallL (role, protocol, roles, new_roles, l) ->
         let namegen, l = rename_tvars tvar_mapping namegen l in
         (namegen, CallL (role, protocol, roles, new_roles, l))
+    | ICallL (role, protocol, roles, new_roles, l) ->
+        let namegen, l = rename_tvars tvar_mapping namegen l in
+        (namegen, ICallL (role, protocol, roles, new_roles, l))
+    | CombineL (l1, l2) ->
+        let namegen, l1 = rename_tvars tvar_mapping namegen l1 in
+        let namegen, l2 = rename_tvars tvar_mapping namegen l2 in
+        (namegen, CombineL (l1, l2))
     | SilentL _ ->
         Err.unimpl ~here:[%here]
           "renaming recursive variables with refinements"

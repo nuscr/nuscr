@@ -78,6 +78,9 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
       | MessageG (msg, _, _, g) ->
           let messages = add_consistent_msg messages msg in
           validate_protocol_msgs messages g
+      | CombineG (g1, g2) ->
+          let m1 = validate_protocol_msgs messages g1 in
+          validate_protocol_msgs m1 g2
     in
     let protocol_names = add_unique_protocol_name protocol_names key in
     let {static_roles; dynamic_roles; gtype; _} = data in
@@ -374,6 +377,13 @@ let rec required_channels ~role lty =
         List.map ~f:(fun dst -> (dst, role)) dsts @ go k
     | AcceptL (_, _, _, _, src, k) -> (role, src) :: go k
     | CallL (_, _, _, _, k) -> go k
+    | ICallL (_, _, _, _, _) ->
+        []
+        (* Inlined calls only happen after "accept", so their channels are
+           not required*)
+    | CombineL _ ->
+        Err.unimpl ~here:[%here]
+          "Cannot generate code for local types with\n  CombineL"
     | SilentL _ -> assert false
   in
   let cmp_pair (p1, q1) (p2, q2) =
@@ -632,6 +642,11 @@ let gen_local ~wg ~proto ~role lty =
           in
           let callback' = GoExpr (cb [GoVar ctx]) in
           go None (callback' :: call_stmt :: callback :: go_impl) cont
+    | ICallL (_who, _new_proto, _, _, _cont) -> failwith "Unimplemented"
+    | CombineL _ ->
+        Err.unimpl ~here:[%here]
+          "Cannot generate code from local types containing\n\
+          \        combination operators"
     | SilentL _ -> assert false
   and go_select ifc var = function
     | [] -> pure []

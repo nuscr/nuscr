@@ -72,6 +72,7 @@ let rec from_gtype = function
           ; g_br_to= Option.value_exn receiver_role
           ; g_br_cont= List.rev conts } )
   | Gtype.CallG _ -> Err.unimpl ~here:[%here] "from_gtype: CallG"
+  | Gtype.CombineG _ -> Err.unimpl ~here:[%here] "from_gtype: CombineG"
 
 let rec from_ltype = function
   | Ltype.RecvL (m, r_from, cont) ->
@@ -134,6 +135,8 @@ let rec from_ltype = function
   | Ltype.AcceptL _ -> Err.unimpl ~here:[%here] "from_ltype: AcceptL"
   | Ltype.SilentL _ -> Err.unimpl ~here:[%here] "from_ltype: SilentL"
   | Ltype.CallL _ -> Err.unimpl ~here:[%here] "from_ltype: CallL"
+  | Ltype.ICallL _ -> Err.unimpl ~here:[%here] "from_ltype: ICallL"
+  | Ltype.CombineL _ -> Err.unimpl ~here:[%here] "from_ltype: CombineL"
 
 let show_cont f (label, payloads, cont) =
   let payloads =

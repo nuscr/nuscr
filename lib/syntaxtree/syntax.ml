@@ -126,6 +126,7 @@ and raw_global_interaction =
   (* caller * protocol * roles *)
   | Calls of
       RoleName.t * ProtocolName.t * RoleName.t list * annotation option
+  | Combine of global_interaction list * global_interaction list
 [@@deriving show {with_path= false}]
 
 type global_protocol = raw_global_protocol located
