@@ -41,7 +41,7 @@ module GoGenM = struct
     ; new_channels: (VariableName.t * goType) Map.M(RolePair).t
     ; ctx_vars: VariableName.t Map.M(LocalProtocolId).t
     ; (* Stack of variables that contain the channels *)
-      in_call: (VariableName.t * bool) option
+      in_call: (VariableName.t * LocalProtocolId.t * bool) option
     ; call_chans: (VariableName.t * bool) Map.M(LocalProtocolId).t
           (* var with chans in proto_call, is_struct? *)
     ; curr_fn: LocalProtocolId.t option }

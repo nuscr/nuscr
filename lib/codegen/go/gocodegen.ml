@@ -160,7 +160,7 @@ let get_channel ~proto ~src ~dst =
   | None ->
       let* _, (chn, _) = get_chan ~proto ~src ~dst in
       pure (GoVar chn)
-  | Some (var, b) ->
+  | Some (var, _, b) ->
       let fld = chan_fld_name src dst in
       if b then pure (GoStructProj (GoVar var, fld)) else pure (GoVar var)
 
@@ -471,19 +471,47 @@ let store_proto_chan key v =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
   let ctx = st.GoGenM.lp_ctx in
-  GoGenM.put
-    { st with
-      GoGenM.lp_ctx=
-        { ctx with
-          GoGenM.call_chans=
-            Map.update ctx.GoGenM.call_chans key ~f:(fun _ -> v) } }
+  match ctx.GoGenM.in_call with
+  | None ->
+      let* _ =
+        GoGenM.put
+          { st with
+            GoGenM.lp_ctx=
+              { ctx with
+                GoGenM.call_chans=
+                  Map.update ctx.GoGenM.call_chans key ~f:(fun _ -> v) } }
+      in
+      pure []
+  | Some (vv, kk, b) ->
+      if LocalProtocolId.equal key kk then
+        let* _ =
+          GoGenM.put
+            { st with
+              GoGenM.lp_ctx=
+                { ctx with
+                  GoGenM.call_chans=
+                    Map.update ctx.GoGenM.call_chans key ~f:(fun _ ->
+                        (vv, b) ) } }
+        in
+        pure [GoAssign (vv, GoVar (fst v))]
+      else
+        let* _ =
+          GoGenM.put
+            { st with
+              GoGenM.lp_ctx=
+                { ctx with
+                  GoGenM.call_chans=
+                    Map.update ctx.GoGenM.call_chans key ~f:(fun _ -> v) } }
+        in
+        pure []
 
 let enter_iproto key =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
   let ctx = st.GoGenM.lp_ctx in
-  let vv = Map.find_exn ctx.GoGenM.call_chans key in
-  GoGenM.put {st with GoGenM.lp_ctx= {ctx with GoGenM.in_call= Some vv}}
+  let vv, b = Map.find_exn ctx.GoGenM.call_chans key in
+  GoGenM.put
+    {st with GoGenM.lp_ctx= {ctx with GoGenM.in_call= Some (vv, key, b)}}
 
 let get_proto_chan key =
   let open GoGenM.Syntax in
@@ -619,8 +647,8 @@ let gen_local ~wg ~proto ~role lty =
         let* req_chans = get_req_chans ~proto:new_proto ~role:who in
         let is_struct = match req_chans with [_] -> false | _ -> true in
         let key = LocalProtocolId.create new_proto who in
-        let* _ = store_proto_chan key (var, is_struct) in
-        go None (stmt @ go_impl) cont
+        let* reassign = store_proto_chan key (var, is_struct) in
+        go None (reassign @ stmt @ go_impl) cont
     | CallL (who, new_proto, _, _, cont) ->
         (* get accept callback (from this role's context to who's context *)
         (* If it's a recursive call, generate it in tail position TODO:
