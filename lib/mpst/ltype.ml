@@ -426,7 +426,11 @@ let rec merge projected_role lty1 lty2 =
    if recv_r is Some; return receive role *)
 (* In nested protocols, calls will send invitation messages all participants,
    so need to check if any of the roles in a call is the receiver *)
-let rec check_consistent_gchoice choice_r possible_roles = function
+(* Check whether the first message in a g choice is from choice_r to recv_r,
+   if recv_r is Some; return receive role *)
+(* In nested protocols, calls will send invitation messages all participants,
+   so need to check if any of the roles in a call is the receiver *)
+let rec check_consistent_directed_gchoice choice_r possible_roles = function
   | MessageG (_, send_r, recv_r_, _) ->
       if not @@ RoleName.equal send_r choice_r then
         uerr (RoleMismatch (choice_r, send_r)) ;
@@ -450,10 +454,34 @@ let rec check_consistent_gchoice choice_r possible_roles = function
         uerr (RoleMismatch (choice_r, new_choice_r)) ;
       Set.union_list
         (module RoleName)
-        (List.map ~f:(check_consistent_gchoice choice_r possible_roles) gs)
-  | MuG (_, _, g) -> check_consistent_gchoice choice_r possible_roles g
+        (List.map
+           ~f:(check_consistent_directed_gchoice choice_r possible_roles)
+           gs )
+  | MuG (_, _, g) ->
+      check_consistent_directed_gchoice choice_r possible_roles g
   | TVarG (_, _, g) ->
-      check_consistent_gchoice choice_r possible_roles (Lazy.force g)
+      check_consistent_directed_gchoice choice_r possible_roles
+        (Lazy.force g)
+  | g ->
+      violation ~here:[%here]
+        ( "Normalised global type always has a message in choice branches\n"
+        ^ Gtype.show g )
+
+let rec check_consistent_gchoice choice_r = function
+  | MessageG (_, send_r, _, _) ->
+      if not @@ RoleName.equal send_r choice_r then
+        uerr (RoleMismatch (choice_r, send_r)) ;
+      ()
+  | CallG (caller_r, _, _, _) ->
+      if not @@ RoleName.equal caller_r choice_r then
+        uerr (RoleMismatch (choice_r, caller_r)) ;
+      ()
+  | ChoiceG (new_choice_r, gs) ->
+      if not @@ RoleName.equal choice_r new_choice_r then
+        uerr (RoleMismatch (choice_r, new_choice_r)) ;
+      List.iter ~f:(check_consistent_gchoice choice_r) gs
+  | MuG (_, _, g) -> check_consistent_gchoice choice_r g
+  | TVarG (_, _, g) -> check_consistent_gchoice choice_r (Lazy.force g)
   | g ->
       violation ~here:[%here]
         ( "Normalised global type always has a message in choice branches\n"
@@ -592,18 +620,26 @@ let rec project' env (projected_role : RoleName.t) =
         aux (Set.empty (module LabelName)) gtys
       in
       check_distinct_prefix g_types ;
-      let possible_roles =
-        List.fold
-          ~f:(check_consistent_gchoice choice_r)
-          ~init:(Set.empty (module RoleName))
-          g_types
+      if Pragma.nested_protocol_enabled () then
+        List.iter ~f:(check_consistent_gchoice choice_r) g_types ;
+      let recv_r =
+        if Pragma.nested_protocol_enabled () then None
+        else
+          let possible_roles =
+            List.fold
+              ~f:(check_consistent_directed_gchoice choice_r)
+              ~init:(Set.empty (module RoleName))
+              g_types
+          in
+          Some (Set.choose_exn possible_roles)
       in
-      let recv_r = Set.choose_exn possible_roles in
       let l_types = List.map ~f:(project' env projected_role) g_types in
       match projected_role with
       | _
         when RoleName.equal projected_role choice_r
-             || RoleName.equal projected_role recv_r -> (
+             || Option.is_some recv_r
+                && RoleName.equal projected_role (Option.value_exn recv_r)
+        -> (
         match l_types with
         | [ltype] -> ltype
         | _ -> ChoiceL (choice_r, l_types) )
