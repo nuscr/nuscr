@@ -150,6 +150,20 @@ let get_chan ~proto ~src ~dst =
       pure (true, (ch, ty))
   | Some (ch, ty) -> pure (false, (ch, ty))
 
+let chan_fld_name f t =
+  VariableName.of_string ("ch_" ^ RoleName.user f ^ "_" ^ RoleName.user t)
+
+let get_channel ~proto ~src ~dst =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  match st.GoGenM.lp_ctx.GoGenM.in_call with
+  | None ->
+      let* _, (chn, _) = get_chan ~proto ~src ~dst in
+      pure (GoVar chn)
+  | Some (var, b) ->
+      let fld = chan_fld_name src dst in
+      if b then pure (GoStructProj (GoVar var, fld)) else pure (GoVar var)
+
 let get_new_chan ~proto ~src ~dst =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
@@ -328,9 +342,6 @@ let get_protocol_args proto =
   let* st = GoGenM.get in
   pure (Map.find_exn st.GoGenM.role_args proto)
 
-let chan_fld_name f t =
-  VariableName.of_string ("ch_" ^ RoleName.user f ^ "_" ^ RoleName.user t)
-
 let mk_channels proto role =
   let open GoGenM.Syntax in
   let* _, nrs = get_protocol_args proto in
@@ -456,6 +467,30 @@ let reassign_channels proto var req_chans =
    (GoAssignNew (ch, GoStructProj (GoVar var, fld)) :: go xs) *) pure [] in
    go req_chans *)
 
+let store_proto_chan key v =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  GoGenM.put
+    { st with
+      GoGenM.lp_ctx=
+        { ctx with
+          GoGenM.call_chans= Map.add_exn ctx.GoGenM.call_chans ~key ~data:v
+        } }
+
+let enter_iproto key =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  let vv = Map.find_exn ctx.GoGenM.call_chans key in
+  GoGenM.put {st with GoGenM.lp_ctx= {ctx with GoGenM.in_call= Some vv}}
+
+let leave_iproto =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  GoGenM.put {st with GoGenM.lp_ctx= {ctx with GoGenM.in_call= None}}
+
 let gen_local ~wg ~proto ~role lty =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
@@ -476,10 +511,10 @@ let gen_local ~wg ~proto ~role lty =
           | Some var -> pure (var, [])
           | None ->
               let* var = fresh "x" in
-              let* _, (chan, _) = get_chan ~proto ~src:role ~dst:from in
+              let* chan = get_channel ~proto ~src:role ~dst:from in
               let* _ = record_label_name ~proto label (mk_type_decl ty) in
               let recv_stmt =
-                GoAssignNew (var, GoAssert (GoRecv (GoVar chan), GoTyVar lbl))
+                GoAssignNew (var, GoAssert (GoRecv chan, GoTyVar lbl))
               in
               pure (var, [recv_stmt])
         in
@@ -507,9 +542,9 @@ let gen_local ~wg ~proto ~role lty =
               let send_callback = GoAssignNew (var, cb []) in
               pure (var, [send_callback])
         in
-        let* _, (chan, _) = get_chan ~proto ~src:dst ~dst:role in
+        let* chan = get_channel ~proto ~src:dst ~dst:role in
         let* _ = record_label_name ~proto label (mk_type_decl ty) in
-        let send_stmt = GoSend (GoVar chan, GoVar var) in
+        let send_stmt = GoSend (chan, GoVar var) in
         go None ((send_stmt :: k) @ go_impl) cont
     | ChoiceL (who, alts) ->
         if RoleName.equal role who then
@@ -529,9 +564,9 @@ let gen_local ~wg ~proto ~role lty =
           and callback = GoAssignNew (var_x, cb []) in
           pure ([choice_stmt; callback] @ go_impl)
         else
-          let* _, (chan, _) = get_chan ~proto ~src:role ~dst:who in
+          let* chan = get_channel ~proto ~src:role ~dst:who in
           let* var = fresh "x" in
-          let recv_stmt = GoAssignNew (var, GoRecv (GoVar chan)) in
+          let recv_stmt = GoAssignNew (var, GoRecv chan) in
           let* var_v = fresh "v" in
           let* conts = go_branch var_v alts in
           let choice_stmt =
@@ -562,19 +597,23 @@ let gen_local ~wg ~proto ~role lty =
           | None ->
               let* lbl = get_protocol_call_label new_proto who in
               (* Get channel from sender and receive protocol channels *)
-              let* _, (chan, _) = get_chan ~proto ~src:role ~dst:from in
+              let* chan = get_channel ~proto ~src:role ~dst:from in
               let* var = fresh "x" in
               let recv_stmt =
                 GoAssignNew
                   ( var
                   , GoAssert
-                      ( GoRecv (GoVar chan)
+                      ( GoRecv chan
                       , GoTyVar (VariableName.of_string (LabelName.user lbl))
                       ) )
               in
               pure (var, [recv_stmt])
           | Some var -> pure (var, [])
         in
+        let* req_chans = get_req_chans ~proto:new_proto ~role:who in
+        let is_struct = match req_chans with [_] -> false | _ -> true in
+        let key = LocalProtocolId.create new_proto who in
+        let* _ = store_proto_chan key (var, is_struct) in
         go (Some var) (stmt @ go_impl) cont
     | CallL (who, new_proto, _, _, cont) ->
         (* get accept callback (from this role's context to who's context *)
@@ -642,7 +681,11 @@ let gen_local ~wg ~proto ~role lty =
           in
           let callback' = GoExpr (cb [GoVar ctx]) in
           go None (callback' :: call_stmt :: callback :: go_impl) cont
-    | ICallL (_who, _new_proto, _, _, _cont) -> failwith "Unimplemented"
+    | ICallL (who, new_proto, _, _, cont) ->
+        let* _ = enter_iproto (LocalProtocolId.create new_proto who) in
+        let* res = go pre go_impl cont in
+        let* _ = leave_iproto in
+        pure res
     | CombineL _ ->
         Err.unimpl ~here:[%here]
           "Cannot generate code from local types containing\n\
@@ -691,8 +734,8 @@ let gen_local ~wg ~proto ~role lty =
         let* flds, chs, chans = mk_channels next_proto ra in
         let* lbl = fn_lbl ra in
         let* _ = record_label_name ~proto lbl (chan_struct flds) in
-        let* _, (chan, _) = get_chan ~proto ~src:r ~dst:role in
-        let go_inv = GoSend (GoVar chan, init_chan_struct lbl chs) in
+        let* chan = get_channel ~proto ~src:r ~dst:role in
+        let go_inv = GoSend (chan, init_chan_struct lbl chs) in
         go_invite ((go_inv :: chans) @ acc) fn_lbl next_proto ras rs
     | _, _ ->
         Err.violation ~here:[%here]

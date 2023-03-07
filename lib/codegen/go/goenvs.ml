@@ -40,6 +40,10 @@ module GoGenM = struct
     { channels: (VariableName.t * goType) Map.M(RolePair).t
     ; new_channels: (VariableName.t * goType) Map.M(RolePair).t
     ; ctx_vars: VariableName.t Map.M(LocalProtocolId).t
+    ; (* Stack of variables that contain the channels *)
+      in_call: (VariableName.t * bool) option
+    ; call_chans: (VariableName.t * bool) Map.M(LocalProtocolId).t
+          (* var with chans in proto_call, is_struct? *)
     ; curr_fn: LocalProtocolId.t option }
 
   (* TODO: refactor this state, adding layers of "global", "local to function
@@ -64,6 +68,8 @@ module GoGenM = struct
     { channels= Map.empty (module RolePair)
     ; new_channels= Map.empty (module RolePair)
     ; ctx_vars= Map.empty (module LocalProtocolId)
+    ; in_call= None
+    ; call_chans= Map.empty (module LocalProtocolId)
     ; curr_fn= None }
 
   let init =
