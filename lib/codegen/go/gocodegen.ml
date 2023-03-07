@@ -475,8 +475,8 @@ let store_proto_chan key v =
     { st with
       GoGenM.lp_ctx=
         { ctx with
-          GoGenM.call_chans= Map.add_exn ctx.GoGenM.call_chans ~key ~data:v
-        } }
+          GoGenM.call_chans=
+            Map.update ctx.GoGenM.call_chans key ~f:(fun _ -> v) } }
 
 let enter_iproto key =
   let open GoGenM.Syntax in
