@@ -1018,7 +1018,7 @@ let generate_from_scr ast protocol root_dir =
   ensure_unique_identifiers global_t ;
   let local_t = Ltype.project_nested_t global_t in
   let local_t = Ltype.unfold_combine local_t in
-  Stdio.print_endline (Ltype.show_nested_t local_t) ;
+  (* Stdio.print_endline (Ltype.show_nested_t local_t); *)
   let local_t = Ltype.ensure_unique_tvars local_t in
   gen_code_alt root_dir protocol global_t local_t
 
