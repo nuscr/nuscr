@@ -196,13 +196,13 @@ module Formatting = struct
         pp_force_newline ppf () ;
         pp ppf l
     | ICallL (role, protocol, roles, new_roles, l) ->
-        pp_print_string ppf "[call" ;
+        pp_print_string ppf "{{call" ;
         pp_print_string ppf (RoleName.user role) ;
         pp_print_string ppf "@" ;
         pp_print_string ppf (ProtocolName.user protocol) ;
         pp_print_string ppf "(" ;
         pp_print_string ppf (Symtable.show_roles (roles, new_roles)) ;
-        pp_print_string ppf ")] {" ;
+        pp_print_string ppf ")}}{" ;
         pp_force_newline ppf () ;
         pp_open_box ppf 2 ;
         pp_print_string ppf "  " ;
@@ -810,8 +810,13 @@ let rec ends_with v = function
       List.fold_left ~f:(fun a b -> a && ends_with v b) ~init:true ks
   | TVarL (v', _) -> (
     match v with Some vv -> TypeVariableName.equal v' vv | None -> false )
-  | MuL _ | CombineL _ ->
-      Err.uerr (Err.Uncategorised "combining recursion/inlined calls/combine")
+  | MuL (v', _, k) -> (
+    match v with
+    (* FIXME: list of vars *)
+    | None -> ends_with None k
+    | Some vv ->
+        if TypeVariableName.equal vv v' then false else ends_with v k )
+  | CombineL (l, _) -> ends_with v l
   | EndL -> ( match v with None -> true | _ -> false )
 
 let rec combine_branch v l r =
@@ -826,7 +831,10 @@ let rec combine_branch v l r =
         else Err.uerr (Err.Uncategorised "cannot combine branches")
       else TVarL (vv, e)
   | MuL _ | ICallL _ | CombineL _ ->
-      Err.uerr (Err.Uncategorised "combining recursion/inlined calls/combine")
+      Err.uerr
+        (Err.Uncategorised
+           "in combine_branch: \n\
+           \        combining recursion/inlined calls/combine" )
   | EndL ->
       if ends_with None r then r
       else Err.uerr (Err.Uncategorised "cannot combine branches")
@@ -838,11 +846,66 @@ let rec combine_branch v l r =
       CallL (who, proto, irs, nrs, combine_branch v k r)
   | SilentL (vs, e, k) -> SilentL (vs, e, combine_branch v k r)
 
+let rec insert_prefixes l r =
+  match r with
+  | RecvL (m, f, k) -> RecvL (m, f, insert_prefixes l k)
+  | SendL (m, f, k) -> SendL (m, f, insert_prefixes l k)
+  | ChoiceL (f, ks) ->
+      ChoiceL (f, List.map ~f:(fun k -> insert_prefixes l k) ks)
+  | TVarL _ | EndL -> l
+  | MuL _ | CombineL _ ->
+      Err.uerr
+        (Err.Uncategorised
+           "in combine_branch: \n\
+           \        combining recursion/inlined calls/combine" )
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, insert_prefixes l k)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, insert_prefixes l k)
+  | CallL (who, proto, irs, nrs, k) ->
+      (* FIXME *)
+      ICallL (who, proto, irs, nrs, insert_prefixes l k)
+  | ICallL (who, proto, irs, nrs, k) ->
+      (* FIXME *)
+      ICallL (who, proto, irs, nrs, insert_prefixes l k)
+  | SilentL (vs, e, k) -> SilentL (vs, e, insert_prefixes l k)
+
+let rec redo_inline_call l r =
+  match l with
+  | RecvL (m, f, k) -> RecvL (m, f, redo_inline_call k r)
+  | SendL (m, f, k) -> SendL (m, f, redo_inline_call k r)
+  | ChoiceL (f, ks) ->
+      ChoiceL (f, List.map ~f:(fun k -> redo_inline_call k r) ks)
+  | TVarL _ | EndL -> insert_prefixes l r
+  | MuL _ | CombineL _ ->
+      Err.uerr
+        (Err.Uncategorised
+           "in redo_inline_call: \n\
+           \        combining recursion/inlined calls/combine" )
+  | InviteCreateL (irs, nrs, proto, k) ->
+      InviteCreateL (irs, nrs, proto, redo_inline_call k r)
+  | AcceptL (who, proto, irs, nrs, from, k) ->
+      AcceptL (who, proto, irs, nrs, from, redo_inline_call k r)
+  | CallL (who, proto, irs, nrs, k) ->
+      CallL (who, proto, irs, nrs, redo_inline_call k r)
+  | ICallL (who, proto, irs, nrs, k) ->
+      ICallL (who, proto, irs, nrs, redo_inline_call k r)
+  | SilentL (vs, e, k) -> SilentL (vs, e, redo_inline_call k r)
+
+let combine_seq wrap v l r =
+  match l with
+  | TVarL (vv, _) ->
+      if TypeVariableName.equal vv v then wrap r
+      else combine_branch v l (wrap r)
+  | ICallL (_, _, _, _, TVarL (vv, _)) ->
+      if TypeVariableName.equal vv v then wrap r
+      else combine_branch v l (wrap r)
+  | _ -> combine_branch v l (wrap r)
+
 let rec combine_branches wrap v l r =
   match (l, r) with
   | [], [] -> []
-  | h :: t, r :: s ->
-      combine_branch v h (wrap r) :: combine_branches wrap v t s
+  | h :: t, r :: s -> combine_seq wrap v h r :: combine_branches wrap v t s
   | _, _ ->
       Err.uerr (Err.Uncategorised "combining distinct number of branches")
 
@@ -851,23 +914,9 @@ let combine_choices wrap v l r =
   | ChoiceL (f1, k1), ChoiceL (f2, k2) ->
       if RoleName.equal f1 f2 then ChoiceL (f1, combine_branches wrap v k1 k2)
       else Err.uerr (Err.Uncategorised "Combining distinct choices")
-  | _, _ -> combine_branch v l (wrap r)
+  | _, _ -> combine_seq wrap v l r
 
-let combine_rec wrap l r =
-  match (l, r) with
-  | MuL (v1, vs, k1), MuL (v2, _, k2) ->
-      if TypeVariableName.equal v1 v2 then
-        MuL (v1, vs, combine_choices wrap v1 k1 k2)
-      else
-        Err.uerr
-          (Err.Uncategorised
-             "combining distinct recursion variables\n      is not possible"
-          )
-  | _ ->
-      Err.uerr
-        (Err.Uncategorised "combining distinct non-recursive\n  protocols")
-
-let rec do_combine env ty = function
+let rec do_combine env (ty : t) = function
   | RecvL (m, f, k) -> RecvL (m, f, do_combine env ty k)
   | SendL (m, f, k) -> SendL (m, f, do_combine env ty k)
   | ChoiceL _ | TVarL _ | MuL _ | ICallL _ | CombineL _ ->
@@ -880,39 +929,80 @@ let rec do_combine env ty = function
       AcceptL (who, proto, irs, nrs, from, do_combine env ty k)
   | CallL (who, proto, irs, nrs, k) -> (
     match k with
-    | EndL ->
+    | EndL -> (
         let local_protocol_id = LocalProtocolId.create proto who in
-        let body = Map.find_exn env local_protocol_id in
-        combine_rec (fun k -> ICallL (who, proto, irs, nrs, k)) ty (snd body)
+        let decl = Map.find_exn env local_protocol_id in
+        let body = unfold_upd env [] (snd decl) in
+        (*
+         * let body = snd decl in 
+         *)
+        let wrap k = ICallL (who, proto, irs, nrs, k) in
+        match (ty, body) with
+        | MuL (v1, vs, k1), MuL (v2, _, k2) ->
+            if TypeVariableName.equal v1 v2 then
+              MuL (v1, vs, combine_choices wrap v1 k1 k2)
+            else
+              Err.uerr
+                (Err.Uncategorised
+                   "combining distinct recursion variables is not possible"
+                )
+        (* FIXME: hack!! rework combining recursive protocols with
+         * recursive protocol calls
+         * *)
+        | MuL (v1, vs, k1), _ ->
+            let wrap k = ICallL (who, proto, irs, nrs, k) in
+            MuL (v1, vs, redo_inline_call k1 (wrap body))
+        | _, _ ->
+            Err.uerr
+              (Err.Uncategorised
+                 ( "combining distinct non-recursive protocols\n" ^ show ty
+                 ^ "\n"
+                 ^ show (wrap body) ) ) )
     | _ ->
         Err.unimpl ~here:[%here]
           "Protocol call must be last in updatable recursion" )
   | SilentL (v, e, k) -> SilentL (v, e, do_combine env ty k)
 
-let rec unfold_upd env x = function
+and unfold_upd env x = function
   | RecvL (m, f, k) -> RecvL (m, f, unfold_upd env x k)
   | SendL (m, f, k) -> SendL (m, f, unfold_upd env x k)
-  | ChoiceL (f, ks) -> ChoiceL (f, List.map ~f:(unfold_upd env x) ks)
+  | ChoiceL (f, ks) ->
+      let res = List.map ~f:(unfold_upd env x) ks in
+      ChoiceL (f, res)
   | TVarL (v, e) -> (
     match lookup_var v x with Some k -> k | None -> TVarL (v, e) )
   | MuL (v, vs, k) ->
       if is_updatable v k then
-        unfold_upd env ((v, MuL (v, vs, erase_upd v k)) :: x) k
-      else MuL (v, vs, unfold_upd env x k)
+        match k with
+        | CombineL (TVarL (_, _), r) | CombineL (EndL, r) ->
+            unfold_upd env x r
+        | _ -> unfold_upd env ((v, MuL (v, vs, erase_upd v k)) :: x) k
+      else
+        let res = unfold_upd env x k in
+        MuL (v, vs, res)
   | EndL -> EndL
   | InviteCreateL (irs, nrs, proto, k) ->
-      InviteCreateL (irs, nrs, proto, unfold_upd env x k)
+      let res = unfold_upd env x k in
+      InviteCreateL (irs, nrs, proto, res)
   | AcceptL (who, proto, irs, nrs, from, k) ->
-      AcceptL (who, proto, irs, nrs, from, unfold_upd env x k)
+      let res = unfold_upd env x k in
+      AcceptL (who, proto, irs, nrs, from, res)
   | CallL (who, proto, irs, nrs, k) ->
-      CallL (who, proto, irs, nrs, unfold_upd env x k)
+      let res = unfold_upd env x k in
+      CallL (who, proto, irs, nrs, res)
   | ICallL (who, proto, irs, nrs, k) ->
-      ICallL (who, proto, irs, nrs, unfold_upd env x k)
-  | CombineL (l, r) -> do_combine env (unfold_upd env x l) r
-  | SilentL (v, e, k) -> SilentL (v, e, unfold_upd env x k)
+      let res = unfold_upd env x k in
+      ICallL (who, proto, irs, nrs, res)
+  | CombineL (l, r) ->
+      let l' = unfold_upd env x l in
+      do_combine env l' r
+  | SilentL (v, e, k) ->
+      let res = unfold_upd env x k in
+      SilentL (v, e, res)
 
 let unfold_decl env (lty : RoleName.t list * t) =
-  (fst lty, unfold_upd env [] (snd lty))
+  let res = unfold_upd env [] (snd lty) in
+  (fst lty, res)
 
 let rec cleanup_upd x = function
   | RecvL (m, f, k) -> RecvL (m, f, cleanup_upd x k)

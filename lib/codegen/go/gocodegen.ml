@@ -485,6 +485,12 @@ let enter_iproto key =
   let vv = Map.find_exn ctx.GoGenM.call_chans key in
   GoGenM.put {st with GoGenM.lp_ctx= {ctx with GoGenM.in_call= Some vv}}
 
+let get_proto_chan key =
+  let open GoGenM.Syntax in
+  let* st = GoGenM.get in
+  let ctx = st.GoGenM.lp_ctx in
+  pure (Map.find_exn ctx.GoGenM.call_chans key)
+
 let leave_iproto =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
@@ -614,18 +620,13 @@ let gen_local ~wg ~proto ~role lty =
         let is_struct = match req_chans with [_] -> false | _ -> true in
         let key = LocalProtocolId.create new_proto who in
         let* _ = store_proto_chan key (var, is_struct) in
-        go (Some var) (stmt @ go_impl) cont
+        go None (stmt @ go_impl) cont
     | CallL (who, new_proto, _, _, cont) ->
         (* get accept callback (from this role's context to who's context *)
         (* If it's a recursive call, generate it in tail position TODO:
            optimize tail recursion to loops *)
-        let var =
-          match pre with
-          | Some v -> v
-          | None ->
-              Err.uerr
-                (Err.Uncategorised
-                   "Impossible: protocol call did not receive session!" )
+        let* var, _ =
+          get_proto_chan (LocalProtocolId.create new_proto who)
         in
         if RoleName.equal role who && ProtocolName.equal proto new_proto then
           let* ctx = get_ctx_var ~proto ~role in
@@ -1017,7 +1018,7 @@ let generate_from_scr ast protocol root_dir =
   ensure_unique_identifiers global_t ;
   let local_t = Ltype.project_nested_t global_t in
   let local_t = Ltype.unfold_combine local_t in
-  (* Stdio.print_endline (Ltype.show_local_t local_t); *)
+  Stdio.print_endline (Ltype.show_nested_t local_t) ;
   let local_t = Ltype.ensure_unique_tvars local_t in
   gen_code_alt root_dir protocol global_t local_t
 
