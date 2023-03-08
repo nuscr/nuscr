@@ -29,7 +29,7 @@ type t =
       * RoleName.t list
       * RoleName.t list
       * t
-  | CombineL of t * t
+  | CombineL of t * t list
   | SilentL of VariableName.t * Expr.payload_type * t
 [@@deriving sexp_of, eq]
 
@@ -213,14 +213,18 @@ module Formatting = struct
     | CombineL (l1, l2) ->
         pp_print_string ppf "[" ;
         pp ppf l1 ;
-        pp_print_string ppf "] {" ;
-        pp_force_newline ppf () ;
-        pp_open_box ppf 2 ;
-        pp_print_string ppf "  " ;
-        pp ppf l2 ;
-        pp_close_box ppf () ;
-        pp_force_newline ppf () ;
-        pp_print_string ppf "}"
+        pp_print_string ppf "] " ;
+        List.iter
+          ~f:(fun l ->
+            pp_print_string ppf "{" ;
+            pp_force_newline ppf () ;
+            pp_open_box ppf 2 ;
+            pp_print_string ppf "  " ;
+            pp ppf l ;
+            pp_close_box ppf () ;
+            pp_force_newline ppf () ;
+            pp_print_string ppf "}" )
+          l2
 
   let show ltype =
     let buffer = Buffer.create 1024 in
@@ -691,7 +695,8 @@ let rec project' env (projected_role : RoleName.t) =
       | _ -> next )
   | CombineG (g1, g2) ->
       CombineL
-        (project' env projected_role g1, project' env projected_role g2)
+        ( project' env projected_role g1
+        , List.map ~f:(project' env projected_role) g2 )
 
 let project projected_role g = project' new_project_env projected_role g
 
@@ -755,7 +760,9 @@ let make_unique_tvars ltype =
         (namegen, ICallL (role, protocol, roles, new_roles, l))
     | CombineL (l1, l2) ->
         let namegen, l1 = rename_tvars tvar_mapping namegen l1 in
-        let namegen, l2 = rename_tvars tvar_mapping namegen l2 in
+        let namegen, l2 =
+          List.fold_map ~init:namegen ~f:(rename_tvars tvar_mapping) l2
+        in
         (namegen, CombineL (l1, l2))
     | SilentL _ ->
         Err.unimpl ~here:[%here]
@@ -810,7 +817,9 @@ let rec is_free v = function
   | EndL -> false
   | MuL (v2, _, k) ->
       if TypeVariableName.equal v v2 then false else is_free v k
-  | CombineL (l, r) -> is_free v l || is_free v r
+  | CombineL (l, r) ->
+      is_free v l
+      || List.fold_left ~f:(fun a b -> a || is_free v b) ~init:false r
 
 let rec is_updatable v = function
   | RecvL (_, _, k)
@@ -864,13 +873,16 @@ let rec combine_branch v l r =
   | TVarL (vv, e) ->
       if TypeVariableName.equal v vv then
         if ends_with (Some v) r then r
-        else Err.uerr (Err.Uncategorised "cannot combine branches")
+        else
+          Err.uerr
+            (Err.Uncategorised ("cannot combine branches\n" ^ "v\n" ^ show r))
       else TVarL (vv, e)
-  | MuL _ | ICallL _ | CombineL _ ->
+  | MuL _ | CombineL _ ->
       Err.uerr
         (Err.Uncategorised
-           "in combine_branch: \n\
-           \        combining recursion/inlined calls/combine" )
+           ( "in combine_branch: \n\
+             \        combining recursion/inlined calls/combine:\n" ^ show l
+           ^ "\n" ^ show r ) )
   | EndL ->
       if ends_with None r then r
       else Err.uerr (Err.Uncategorised "cannot combine branches")
@@ -880,6 +892,8 @@ let rec combine_branch v l r =
       AcceptL (who, proto, irs, nrs, from, combine_branch v k r)
   | CallL (who, proto, irs, nrs, k) ->
       CallL (who, proto, irs, nrs, combine_branch v k r)
+  | ICallL (who, proto, irs, nrs, k) ->
+      ICallL (who, proto, irs, nrs, combine_branch v k r)
   | SilentL (vs, e, k) -> SilentL (vs, e, combine_branch v k r)
 
 let rec insert_prefixes l r =
@@ -889,11 +903,13 @@ let rec insert_prefixes l r =
   | ChoiceL (f, ks) ->
       ChoiceL (f, List.map ~f:(fun k -> insert_prefixes l k) ks)
   | TVarL _ | EndL -> l
-  | MuL _ | CombineL _ ->
+  | MuL (v, vs, k) -> MuL (v, vs, insert_prefixes l k)
+  | CombineL _ ->
       Err.uerr
         (Err.Uncategorised
-           "in combine_branch: \n\
-           \        combining recursion/inlined calls/combine" )
+           ( "in combine_branch: \n\
+             \        combining recursion/inlined calls/combine:\n" ^ show r
+           ) )
   | InviteCreateL (irs, nrs, proto, k) ->
       InviteCreateL (irs, nrs, proto, insert_prefixes l k)
   | AcceptL (who, proto, irs, nrs, from, k) ->
@@ -943,12 +959,19 @@ let rec combine_branches wrap v l r =
   | [], [] -> []
   | h :: t, r :: s -> combine_seq wrap v h r :: combine_branches wrap v t s
   | _, _ ->
-      Err.uerr (Err.Uncategorised "combining distinct number of branches")
+      Err.uerr
+        (Err.Uncategorised
+           ( "combining distinct number of branches\n"
+           ^ String.concat ~sep:"\n" (List.map ~f:show l)
+           ^ "\n\n"
+           ^ String.concat ~sep:"\n" (List.map ~f:show r) ) )
 
 let combine_choices wrap v l r =
   match (l, r) with
   | ChoiceL (f1, k1), ChoiceL (f2, k2) ->
-      if RoleName.equal f1 f2 then ChoiceL (f1, combine_branches wrap v k1 k2)
+      if RoleName.equal f1 f2 then
+        ChoiceL (f1, combine_branches wrap v k1 (List.rev k2))
+        (* FIXME: where are branches reversed? *)
       else Err.uerr (Err.Uncategorised "Combining distinct choices")
   | _, _ -> combine_seq wrap v l r
 
@@ -1010,8 +1033,10 @@ and unfold_upd env x = function
   | MuL (v, vs, k) ->
       if is_updatable v k then
         match k with
-        | CombineL (TVarL (_, _), r) | CombineL (EndL, r) ->
+        | CombineL (TVarL (_, _), [r]) | CombineL (EndL, [r]) ->
             unfold_upd env x r
+        | CombineL (TVarL (_, _), _) | CombineL (EndL, _) ->
+            Err.unimpl ~here:[%here] "multiple calls in local type combine"
         | _ -> unfold_upd env ((v, MuL (v, vs, erase_upd v k)) :: x) k
       else
         let res = unfold_upd env x k in
@@ -1029,9 +1054,13 @@ and unfold_upd env x = function
   | ICallL (who, proto, irs, nrs, k) ->
       let res = unfold_upd env x k in
       ICallL (who, proto, irs, nrs, res)
-  | CombineL (l, r) ->
+  | CombineL (l, r) -> (
       let l' = unfold_upd env x l in
-      do_combine env l' r
+      match r with
+      | [r] -> do_combine env l' r
+      | _ ->
+          Err.unimpl ~here:[%here]
+            ("combining multiple calls\n\t" ^ show (CombineL (l, r))) )
   | SilentL (v, e, k) ->
       let res = unfold_upd env x k in
       SilentL (v, e, res)
@@ -1055,7 +1084,12 @@ let rec cleanup_upd x = function
       CallL (who, proto, irs, nrs, cleanup_upd x k)
   | ICallL (who, proto, irs, nrs, k) ->
       ICallL (who, proto, irs, nrs, cleanup_upd x k)
-  | CombineL (l, r) -> ( match r with EndL -> l | _ -> CombineL (l, r) )
+  | CombineL (l, r) -> (
+    match
+      List.filter ~f:(fun r -> match r with EndL -> false | _ -> true) r
+    with
+    | [] -> l
+    | r -> CombineL (l, r) )
   | SilentL (v, e, k) -> SilentL (v, e, cleanup_upd x k)
 
 let cleanup_combine (lty : RoleName.t list * t) =

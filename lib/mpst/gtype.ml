@@ -22,7 +22,7 @@ type t =
   | ChoiceG of RoleName.t * t list
   | EndG
   | CallG of RoleName.t * ProtocolName.t * RoleName.t list * t
-  | CombineG of t * t
+  | CombineG of t * t list
 [@@deriving sexp_of]
 
 let rec evaluate_lazy_gtype = function
@@ -38,7 +38,7 @@ let rec evaluate_lazy_gtype = function
   | EndG -> EndG
   | CallG (r, p, rs, g) -> CallG (r, p, rs, evaluate_lazy_gtype g)
   | CombineG (g1, g2) ->
-      CombineG (evaluate_lazy_gtype g1, evaluate_lazy_gtype g2)
+      CombineG (evaluate_lazy_gtype g1, List.map ~f:evaluate_lazy_gtype g2)
 
 type nested_global_info =
   { static_roles: RoleName.t list
@@ -159,14 +159,17 @@ module Formatting = struct
         pp ppf g1 ;
         pp_print_string ppf "} <*> " ;
         pp_force_newline ppf () ;
-        pp_print_string ppf "{" ;
-        pp_force_newline ppf () ;
-        pp_open_box ppf 2 ;
-        pp_print_string ppf "  " ;
-        pp ppf g2 ;
-        pp_close_box ppf () ;
-        pp_force_newline ppf () ;
-        pp_print_string ppf "}"
+        List.iter
+          ~f:(fun g ->
+            pp_print_string ppf "{" ;
+            pp_force_newline ppf () ;
+            pp_open_box ppf 2 ;
+            pp_print_string ppf "  " ;
+            pp ppf g ;
+            pp_close_box ppf () ;
+            pp_force_newline ppf () ;
+            pp_print_string ppf "}" )
+          g2
 
   let show gtype =
     let buffer = Buffer.create 1024 in
@@ -336,10 +339,11 @@ let of_protocol (global_protocol : Syntax.global_protocol) =
       | Combine (g1, g2) ->
           assert_empty rest ;
           let cont1 = conv_interactions env g1 in
-          let cont2 = conv_interactions env g2 in
-          ( CombineG (fst cont1, fst cont2)
-          , Set.union_list (module TypeVariableName) [snd cont1; snd cont2]
-          ) )
+          let cont2 = List.map ~f:(conv_interactions env) g2 in
+          ( CombineG (fst cont1, List.map ~f:fst cont2)
+          , Set.union_list
+              (module TypeVariableName)
+              (snd cont1 :: List.map ~f:snd cont2) ) )
   in
   let gtype, free_names = conv_interactions init_conv_env interactions in
   match Set.choose free_names with
@@ -387,7 +391,9 @@ let rec substitute g tvar g_sub =
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, substitute g_ tvar g_sub)
   | CombineG (g1, g2) ->
-      CombineG (substitute g1 tvar g_sub, substitute g2 tvar g_sub)
+      CombineG
+        ( substitute g1 tvar g_sub
+        , List.map ~f:(fun g -> substitute g tvar g_sub) g2 )
 
 let rec unfold = function
   | MuG (tvar, _, g_) as g -> substitute g_ tvar g
@@ -402,7 +408,7 @@ let rec normalise = function
   | MuG (tvar, rec_vars, g_) -> unfold (MuG (tvar, rec_vars, normalise g_))
   | CallG (caller, protocol, roles, g_) ->
       CallG (caller, protocol, roles, normalise g_)
-  | CombineG (g1, g2) -> CombineG (normalise g1, normalise g2)
+  | CombineG (g1, g2) -> CombineG (normalise g1, List.map ~f:normalise g2)
 
 let normalise_nested_t (nested_t : nested_t) =
   let normalise_protocol ~key ~data acc =
@@ -629,7 +635,9 @@ let add_missing_payload_field_names nested_t =
         let g = add_missing_payload_names g in
         CallG (caller, proto_name, roles, g)
     | CombineG (g1, g2) ->
-        CombineG (add_missing_payload_names g1, add_missing_payload_names g2)
+        CombineG
+          ( add_missing_payload_names g1
+          , List.map ~f:add_missing_payload_names g2 )
   in
   Map.map nested_t ~f:(fun ({gtype; _} as nested) ->
       {nested with gtype= add_missing_payload_names gtype} )

@@ -80,7 +80,7 @@ let ensure_unique_identifiers (global_t : Gtype.nested_t) =
           validate_protocol_msgs messages g
       | CombineG (g1, g2) ->
           let m1 = validate_protocol_msgs messages g1 in
-          validate_protocol_msgs m1 g2
+          List.fold ~init:m1 ~f:validate_protocol_msgs g2
     in
     let protocol_names = add_unique_protocol_name protocol_names key in
     let {static_roles; dynamic_roles; gtype; _} = data in
@@ -153,15 +153,18 @@ let get_chan ~proto ~src ~dst =
 let chan_fld_name f t =
   VariableName.of_string ("ch_" ^ RoleName.user f ^ "_" ^ RoleName.user t)
 
-let get_channel ~proto ~src ~dst =
+let get_channel ~is_send ~proto ~src ~dst =
   let open GoGenM.Syntax in
   let* st = GoGenM.get in
   match st.GoGenM.lp_ctx.GoGenM.in_call with
   | None ->
       let* _, (chn, _) = get_chan ~proto ~src ~dst in
       pure (GoVar chn)
-  | Some (var, _, b) ->
-      let fld = chan_fld_name src dst in
+  | Some (var, proto, b) ->
+      let rr = LocalProtocolId.get_role proto in
+      let fld =
+        if is_send then chan_fld_name src rr else chan_fld_name rr dst
+      in
       if b then pure (GoStructProj (GoVar var, fld)) else pure (GoVar var)
 
 let get_new_chan ~proto ~src ~dst =
@@ -545,7 +548,9 @@ let gen_local ~wg ~proto ~role lty =
           | Some var -> pure (var, [])
           | None ->
               let* var = fresh "x" in
-              let* chan = get_channel ~proto ~src:role ~dst:from in
+              let* chan =
+                get_channel ~is_send:false ~proto ~src:role ~dst:from
+              in
               let* _ = record_label_name ~proto label (mk_type_decl ty) in
               let recv_stmt =
                 GoAssignNew (var, GoAssert (GoRecv chan, GoTyVar lbl))
@@ -576,7 +581,7 @@ let gen_local ~wg ~proto ~role lty =
               let send_callback = GoAssignNew (var, cb []) in
               pure (var, [send_callback])
         in
-        let* chan = get_channel ~proto ~src:dst ~dst:role in
+        let* chan = get_channel ~is_send:true ~proto ~src:dst ~dst:role in
         let* _ = record_label_name ~proto label (mk_type_decl ty) in
         let send_stmt = GoSend (chan, GoVar var) in
         go None ((send_stmt :: k) @ go_impl) cont
@@ -598,7 +603,7 @@ let gen_local ~wg ~proto ~role lty =
           and callback = GoAssignNew (var_x, cb []) in
           pure ([choice_stmt; callback] @ go_impl)
         else
-          let* chan = get_channel ~proto ~src:role ~dst:who in
+          let* chan = get_channel ~is_send:false ~proto ~src:role ~dst:who in
           let* var = fresh "x" in
           let recv_stmt = GoAssignNew (var, GoRecv chan) in
           let* var_v = fresh "v" in
@@ -631,7 +636,9 @@ let gen_local ~wg ~proto ~role lty =
           | None ->
               let* lbl = get_protocol_call_label new_proto who in
               (* Get channel from sender and receive protocol channels *)
-              let* chan = get_channel ~proto ~src:role ~dst:from in
+              let* chan =
+                get_channel ~is_send:false ~proto ~src:role ~dst:from
+              in
               let* var = fresh "x" in
               let recv_stmt =
                 GoAssignNew
@@ -763,7 +770,7 @@ let gen_local ~wg ~proto ~role lty =
         let* flds, chs, chans = mk_channels next_proto ra in
         let* lbl = fn_lbl ra in
         let* _ = record_label_name ~proto lbl (chan_struct flds) in
-        let* chan = get_channel ~proto ~src:r ~dst:role in
+        let* chan = get_channel ~is_send:true ~proto ~src:r ~dst:role in
         let go_inv = GoSend (chan, init_chan_struct lbl chs) in
         go_invite ((go_inv :: chans) @ acc) fn_lbl next_proto ras rs
     | _, _ ->

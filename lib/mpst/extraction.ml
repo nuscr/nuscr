@@ -19,7 +19,7 @@ let rec swap_role swap_role_f {value; loc} =
     | Combine (g1, g2) ->
         Combine
           ( List.map ~f:(swap_role swap_role_f) g1
-          , List.map ~f:(swap_role swap_role_f) g2 )
+          , List.map ~f:(List.map ~f:(swap_role swap_role_f)) g2 )
     | Continue (rec_name, exprs) -> Continue (rec_name, exprs)
     | Choice (role, gs) ->
         Choice
@@ -320,7 +320,8 @@ let rename_nested_protocols (scr_module : scr_module) =
             Loc.value=
               Combine
                 ( List.map ~f:(update_interaction known) g1
-                , List.map ~f:(update_interaction known) g2 ) }
+                , List.map ~f:(List.map ~f:(update_interaction known)) g2 )
+          }
       | Do _ | MessageTransfer _ | Continue _ -> i
     in
     let proto = protocol.value in
