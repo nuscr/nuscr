@@ -126,6 +126,7 @@ and raw_global_interaction =
   (* caller * protocol * roles *)
   | Calls of
       RoleName.t * ProtocolName.t * RoleName.t list * annotation option
+  (* Combine the interactions of two (recursive) protocols *)
   | Combine of global_interaction list * global_interaction list list
 [@@deriving show {with_path= false}]
 
