@@ -186,19 +186,19 @@ let gen_run_expr ~monad start g =
                       ; Pat.variant label
                           (Some
                              ( if List.is_empty payload_ty then [%pat? ()]
-                             else [%pat? payload] ) ) ]
+                               else [%pat? payload] ) ) ]
                 ; pc_guard= None
                 ; pc_rhs=
                     ( if monad then
-                      [%expr
-                        let* () = [%e send_label] in
-                        let* () = [%e send_payload] in
-                        [%e next_state] env]
-                    else
-                      [%expr
-                        [%e send_label] ;
-                        [%e send_payload] ;
-                        [%e next_state] env] ) }
+                        [%expr
+                          let* () = [%e send_label] in
+                          let* () = [%e send_payload] in
+                          [%e next_state] env]
+                      else
+                        [%expr
+                          [%e send_label] ;
+                          [%e send_payload] ;
+                          [%e next_state] env] ) }
             | `Recv _ ->
                 let recv_payload = comm_payload `Recv payload_ty in
                 let recv_callback_name = mk_receive_callback st label in
@@ -207,15 +207,15 @@ let gen_run_expr ~monad start g =
                 ; pc_guard= None
                 ; pc_rhs=
                     ( if monad then
-                      [%expr
-                        let* payload = [%e recv_payload] in
-                        let env = [%e recv_callback] env payload in
-                        [%e next_state] env]
-                    else
-                      [%expr
-                        let payload = [%e recv_payload] in
-                        let env = [%e recv_callback] env payload in
-                        [%e next_state] env] ) }
+                        [%expr
+                          let* payload = [%e recv_payload] in
+                          let env = [%e recv_callback] env payload in
+                          [%e next_state] env]
+                      else
+                        [%expr
+                          let payload = [%e recv_payload] in
+                          let env = [%e recv_callback] env payload in
+                          [%e next_state] env] ) }
           in
           let match_cases = List.map ~f:mk_match_case transitions in
           let impossible_case =

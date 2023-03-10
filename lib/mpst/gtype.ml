@@ -467,8 +467,8 @@ let validate_refinements_exn t =
   in
   let rec aux env =
     ( if Pragma.validate_refinement_satisfiability () then
-      let tyenv, _, _ = env in
-      Expr.ensure_satisfiable tyenv ) ;
+        let tyenv, _, _ = env in
+        Expr.ensure_satisfiable tyenv ) ;
     function
     | EndG -> ()
     | MessageG (m, role_send, role_recv, g) ->
