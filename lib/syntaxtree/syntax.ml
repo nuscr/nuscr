@@ -71,7 +71,7 @@ let show_payloadt = function
       sprintf "%s: %s" (VariableName.user n) (PayloadTypeName.user n')
   | PayloadRTy ty -> show_ty ty
 
-let pp_payloadt fmt p = Caml.Format.fprintf fmt "%s" (show_payloadt p)
+let pp_payloadt fmt p = Stdlib.Format.fprintf fmt "%s" (show_payloadt p)
 
 type message =
   | Message of {name: LabelName.t; payload: payloadt list}
@@ -84,7 +84,7 @@ let show_message = function
         (String.concat ~sep:", " (List.map ~f:show_payloadt payload))
   | MessageName n -> LabelName.user n
 
-let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
+let pp_message fmt m = Stdlib.Format.fprintf fmt "%s" (show_message m)
 
 let sexp_of_message m = Sexp.Atom (show_message m)
 

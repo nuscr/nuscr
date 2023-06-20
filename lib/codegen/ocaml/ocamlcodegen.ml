@@ -316,8 +316,8 @@ let gen_ast ?(monad = false) ((proto, role) : ProtocolName.t * RoleName.t)
 
 let gen_code ?(monad = false) (proto, role) e =
   let buffer = Buffer.create 4196 in
-  let formatter = Caml.Format.formatter_of_buffer buffer in
+  let formatter = Stdlib.Format.formatter_of_buffer buffer in
   let ast = gen_ast ~monad (proto, role) e in
   Pprintast.structure formatter ast ;
-  Caml.Format.pp_print_flush formatter () ;
+  Stdlib.Format.pp_print_flush formatter () ;
   Buffer.contents buffer

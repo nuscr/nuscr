@@ -220,9 +220,9 @@ let role_proto =
         Error (`Msg "Role and protocol have to be for the form role@protocol")
   in
   let print fmt (r, p) =
-    Caml.Format.pp_print_string fmt (RoleName.user r) ;
-    Caml.Format.pp_print_char fmt '@' ;
-    Caml.Format.pp_print_string fmt (ProtocolName.user p)
+    Stdlib.Format.pp_print_string fmt (RoleName.user r) ;
+    Stdlib.Format.pp_print_char fmt '@' ;
+    Stdlib.Format.pp_print_string fmt (ProtocolName.user p)
   in
   Arg.conv (parse, print)
 

@@ -62,7 +62,7 @@ let rec equal_payload_type_basic t1 t2 =
   | _, _ -> false
 
 module Formatting = struct
-  open! Caml.Format
+  open! Stdlib.Format
 
   let binop_level = function
     | And | Or -> 0

@@ -46,7 +46,7 @@ type nested_global_info =
 type nested_t = nested_global_info Map.M(ProtocolName).t
 
 module Formatting = struct
-  open! Caml.Format
+  open! Stdlib.Format
 
   let pp_rec_var ppf {rv_name; rv_roles; rv_ty; rv_init_expr} =
     fprintf ppf "%s<%s>:@ %s@ =@ %s"

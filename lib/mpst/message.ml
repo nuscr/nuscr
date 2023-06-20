@@ -43,7 +43,7 @@ let show_payload = function
   | PDelegate (proto, role) ->
       Printf.sprintf "%s @ %s" (ProtocolName.user proto) (RoleName.user role)
 
-let pp_payload fmt p = Caml.Format.fprintf fmt "%s" (show_payload p)
+let pp_payload fmt p = Stdlib.Format.fprintf fmt "%s" (show_payload p)
 
 let of_syntax_payload (payload : Syntax.payloadt) =
   let open Syntax in
@@ -73,7 +73,7 @@ let show_message {label; payload} =
   Printf.sprintf "%s(%s)" (LabelName.user label)
     (String.concat ~sep:", " (List.map ~f:show_payload payload))
 
-let pp_message fmt m = Caml.Format.fprintf fmt "%s" (show_message m)
+let pp_message fmt m = Stdlib.Format.fprintf fmt "%s" (show_message m)
 
 let of_syntax_message (message : Syntax.message) =
   let open Syntax in

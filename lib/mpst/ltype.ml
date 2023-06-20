@@ -42,7 +42,7 @@ end
 type nested_t = (RoleName.t list * t) Map.M(LocalProtocolId).t
 
 module Formatting = struct
-  open! Caml.Format
+  open! Stdlib.Format
 
   let rec pp_roles ppf = function
     | [] -> ()

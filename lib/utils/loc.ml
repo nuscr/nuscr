@@ -18,7 +18,7 @@ let show (startp, endp) : string =
   in
   sprintf "%s to %s%s" (show_position startp) (show_position endp) filename
 
-let pp fmt loc = Caml.Format.fprintf fmt "%s" (show loc)
+let pp fmt loc = Stdlib.Format.fprintf fmt "%s" (show loc)
 
 let create p = p
 

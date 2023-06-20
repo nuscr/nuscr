@@ -81,7 +81,7 @@ type state = int
 
 let show (g, rec_var_info) =
   let buffer = Buffer.create 4196 in
-  let formatter = Caml.Format.formatter_of_buffer buffer in
+  let formatter = Stdlib.Format.formatter_of_buffer buffer in
   let module Display = struct
     include G
 
@@ -104,7 +104,7 @@ let show (g, rec_var_info) =
   end in
   let module DotOutput = Graphviz.Dot (Display) in
   DotOutput.fprint_graph formatter g ;
-  Caml.Format.pp_print_flush formatter () ;
+  Stdlib.Format.pp_print_flush formatter () ;
   Buffer.contents buffer
 
 type conv_env =

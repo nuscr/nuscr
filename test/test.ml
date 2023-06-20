@@ -21,10 +21,10 @@ let avoid =
 let get_files (dir : string) : string list =
   let rec loop res = function
     | [] -> res
-    | f :: fs when Caml.Sys.is_directory f ->
+    | f :: fs when Stdlib.Sys.is_directory f ->
         let fs' =
-          Caml.Sys.readdir f |> Array.to_list
-          |> List.map ~f:(Caml.Filename.concat f)
+          Stdlib.Sys.readdir f |> Array.to_list
+          |> List.map ~f:(Stdlib.Filename.concat f)
         in
         loop res (fs' @ fs)
     | f :: fs -> loop (f :: res) fs
@@ -33,11 +33,11 @@ let get_files (dir : string) : string list =
 
 let get_scribble_files (dir : string) : string list =
   let fs = get_files dir in
-  List.filter ~f:(fun f -> Caml.Filename.check_suffix f ".nuscr") fs
+  List.filter ~f:(fun f -> Stdlib.Filename.check_suffix f ".nuscr") fs
 
 let get_scribble_test_files (dir : string) (avoid : string list) :
     string list =
-  let is_avoid f = List.exists ~f:(Caml.Filename.check_suffix f) avoid in
+  let is_avoid f = List.exists ~f:(Stdlib.Filename.check_suffix f) avoid in
   let fs = get_scribble_files dir in
   List.filter ~f:(fun f -> not (is_avoid f)) fs
 
@@ -69,7 +69,9 @@ let process_files fns =
       try
         let run fn in_channel =
           let is_negative_test =
-            Caml.Filename.check_suffix (Caml.Filename.dirname fn) "errors"
+            Stdlib.Filename.check_suffix
+              (Stdlib.Filename.dirname fn)
+              "errors"
           in
           try
             In_channel.seek in_channel 0L ;
@@ -100,8 +102,8 @@ let process_files fns =
 (* test the parser *)
 let () =
   try
-    let pwd = Caml.Sys.getenv "PWD" in
-    let dirs = List.map ~f:(Caml.Filename.concat pwd) dirs in
+    let pwd = Stdlib.Sys.getenv "PWD" in
+    let dirs = List.map ~f:(Stdlib.Filename.concat pwd) dirs in
     let files =
       List.map ~f:(fun dir -> get_scribble_test_files dir avoid) dirs
       |> List.concat
@@ -110,7 +112,7 @@ let () =
     let ok, err, errors = process_files files in
     let report = write_report dirs ok err errors in
     print_endline (if err = 0 then "Ok" else "Not ok\n" ^ report) ;
-    if err <> 0 then Caml.exit 1
+    if err <> 0 then Stdlib.exit 1
   with e ->
     "Unexpected:\n" ^ Exn.to_string e |> print_endline ;
-    Caml.exit 1
+    Stdlib.exit 1
