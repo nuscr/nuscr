@@ -42,7 +42,7 @@ type t =
       * RoleName.t list
       * RoleName.t
       * t
-      (** accept role\@Proto(roles...; new roles...) from X; t, used only in
+      (** accept role@Proto(roles...; new roles...) from X; t, used only in
           Nested Protocols extension *)
   | SilentL of VariableName.t * Expr.payload_type * t
       (** Used with refinement types to indicate knowledge obtained via a

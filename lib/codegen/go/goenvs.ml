@@ -853,12 +853,12 @@ end = struct
     let imports, var_name_gen, setup_env =
       List.fold all_payloads ~init:(imports, var_name_gen, setup_env)
         ~f:(fun
-             ( imports
-             , var_name_gen
-             , ( {chan_vars; data_chan_vars; channel_envs; setup_channels; _}
-               as setup_env ) )
-             payload
-           ->
+            ( imports
+            , var_name_gen
+            , ( {chan_vars; data_chan_vars; channel_envs; setup_channels; _}
+                as setup_env ) )
+            payload
+          ->
           let imports, payload_type =
             match payload with
             | None ->

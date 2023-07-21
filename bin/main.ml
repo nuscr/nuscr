@@ -130,8 +130,7 @@ let main args global_actions local_actions =
           | ShowGlobalTypeSexp ->
               Nuscrlib.generate_sexp ast ~protocol |> print_endline
           | ShowGlobalTypeProtobuf ->
-              Nuscrlib.get_global_type_protobuf ~protocol ast |> print_string
-          )
+              Nuscrlib.get_global_type_protobuf ~protocol ast |> print_string )
         global_actions
     in
     let () =

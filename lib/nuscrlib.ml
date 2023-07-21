@@ -113,9 +113,9 @@ module Toplevel = struct
     let enumerated =
       Map.mapi nested_t
         ~f:(fun
-             ~key:protocol
-             ~data:{Gtype.static_roles; Gtype.dynamic_roles; _}
-           ->
+            ~key:protocol
+            ~data:{Gtype.static_roles; Gtype.dynamic_roles; _}
+          ->
           List.map (static_roles @ dynamic_roles) ~f:(fun role ->
               (protocol, role) ) )
     in

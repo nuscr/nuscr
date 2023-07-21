@@ -113,8 +113,7 @@ let compute_var_map start g rec_var_info =
     Map.iteri
       ~f:(fun ~key:st ~data ->
         print_endline
-          (Printf.sprintf "State %d has variables: %s" st (show_vars data))
-        )
+          (Printf.sprintf "State %d has variables: %s" st (show_vars data)) )
       var_map ;
   var_map
 
@@ -631,9 +630,10 @@ let generate_run_fns buffer start g var_map rec_var_info =
             if List.is_empty rvs then []
             else
               List.map
-                ~f:(fun ( is_silent
-                        , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _}
-                        ) ->
+                ~f:(fun
+                    ( is_silent
+                    , {Gtype.rv_name; Gtype.rv_ty; Gtype.rv_init_expr; _} )
+                  ->
                   let rv_name = VariableName.user rv_name in
                   let value =
                     if is_silent then

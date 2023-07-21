@@ -412,33 +412,32 @@ let validate_refinements_exn t =
   let encode_progress_clause env payloads =
     let e =
       List.fold ~init:(Expr.Sexp.Atom "true")
-        ~f:
-          (fun e -> function
-            | PValue (None, _) -> e
-            | PValue (Some v, ty) ->
-                let sort = Expr.smt_sort_of_type ty in
-                let e =
-                  match ty with
-                  | Expr.PTRefined (v_, _, refinement) ->
-                      if VariableName.equal v v_ then
-                        Expr.Sexp.List
-                          [ Expr.Sexp.Atom "and"
-                          ; Expr.sexp_of_expr refinement
-                          ; e ]
-                      else
-                        Err.violationf ~here:[%here]
-                          "TODO: Handle the case where refinement and \
-                           payload variables are different"
-                  | _ -> e
-                in
-                Expr.Sexp.List
-                  [ Expr.Sexp.Atom "exists"
-                  ; Expr.Sexp.List
-                      [ Expr.Sexp.List
-                          [ Expr.Sexp.Atom (VariableName.user v)
-                          ; Expr.Sexp.Atom sort ] ]
-                  ; e ]
-            | PDelegate _ -> (* Not supported *) e )
+        ~f:(fun e -> function
+          | PValue (None, _) -> e
+          | PValue (Some v, ty) ->
+              let sort = Expr.smt_sort_of_type ty in
+              let e =
+                match ty with
+                | Expr.PTRefined (v_, _, refinement) ->
+                    if VariableName.equal v v_ then
+                      Expr.Sexp.List
+                        [ Expr.Sexp.Atom "and"
+                        ; Expr.sexp_of_expr refinement
+                        ; e ]
+                    else
+                      Err.violationf ~here:[%here]
+                        "TODO: Handle the case where refinement and payload \
+                         variables are different"
+                | _ -> e
+              in
+              Expr.Sexp.List
+                [ Expr.Sexp.Atom "exists"
+                ; Expr.Sexp.List
+                    [ Expr.Sexp.List
+                        [ Expr.Sexp.Atom (VariableName.user v)
+                        ; Expr.Sexp.Atom sort ] ]
+                ; e ]
+          | PDelegate _ -> (* Not supported *) e )
         payloads
     in
     let env =
