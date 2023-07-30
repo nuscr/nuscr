@@ -1,4 +1,20 @@
-module CB_C = struct
+module type Monad = sig
+  type 'a t
+
+  val return : 'a -> 'a t
+
+  val bind : 'a t -> ('a -> 'b t) -> 'b t
+end
+
+module Identity = struct
+  type 'a t = 'a
+
+  let return x = x
+
+  let bind x f = f x
+end
+
+module CB_C (M : Monad) = struct
   let num1 = ref 0
 
   let num2 = ref 0
@@ -8,48 +24,39 @@ module CB_C = struct
   let state0Send = function
     | 0 ->
         Printf.printf "C: Sending bye\n" ;
-        (0, `bye ())
+        M.return (0, `bye ())
     | x ->
         Printf.printf "C: Sending add\n" ;
         let num = Random.int 100 in
         num1 := num ;
-        (x - 1, `add num)
+        M.return (x - 1, `add num)
 
   let state3Send x =
     let num = Random.int 100 in
     num2 := num ;
-    (x, `add num)
+    M.return (x, `add num)
 
   let state4Receivesum x sum =
     Printf.printf "C: Sum of %d and %d is %d\n" !num1 !num2 sum ;
-    x
+    M.return x
 
   let state6Receivebye x () =
     Printf.printf "C: Received Bye\n" ;
-    x
+    M.return x
 end
 
-module CB_S = struct
+module CB_S (M : Monad) = struct
   type t = int * int
 
-  let state0Receiveadd (_, y) x = (x, y)
-  let state0Receivebye env () = env
+  let state0Receiveadd (_, y) x = M.return (x, y)
 
-  let state3Receiveadd (x, _) y = (x, y)
+  let state0Receivebye env () = M.return env
 
-  let state4Send (x, y) = ((0, 0), `sum (x + y))
+  let state3Receiveadd (x, _) y = M.return (x, y)
 
-  let state6Send env = (env, `bye ())
-end
-(* module CI = C.Impl_Adder_C (CB_C) (Lwt)
- * module SI = S.Impl_Adder_S (CB_S) (Lwt) *)
+  let state4Send (x, y) = M.return ((0, 0), `sum (x + y))
 
-module Identity = struct
-  type 'a t = 'a
-
-  let return x = x
-
-  let bind x f = f x
+  let state6Send env = M.return (env, `bye ())
 end
 
 module CI = C.Impl_Adder_C (CB_C) (Identity)
