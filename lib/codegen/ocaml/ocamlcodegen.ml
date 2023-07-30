@@ -142,7 +142,9 @@ let gen_run_expr ~monad start g =
     let run_state_expr_inner =
       match state_action_type g st with
       | `Terminal -> if monad then [%expr M.return env] else [%expr env]
-      | `Mixed -> failwith "Impossible"
+      | `Mixed ->
+          Err.violation ~here:[%here]
+            "Mixed state in CFSM should be impossible"
       | (`Send role | `Recv role) as action ->
           let transitions = get_transitions g st in
           let role = Exp.variant (RoleName.user role) None in
@@ -171,7 +173,8 @@ let gen_run_expr ~monad start g =
                   | `Recv -> [%expr ()]
                 in
                 [%expr [%e comm_payload_func] [%e arg]]
-            | _ -> failwith "TODO"
+            | _ ->
+                Err.unimpl ~here:[%here] "TODO: Support more than 1 payload"
           in
           let mk_match_case (_, label, payload_ty, next) =
             let next_state = mk_run_state_ident next in
