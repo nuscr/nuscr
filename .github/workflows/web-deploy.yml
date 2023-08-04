@@ -3,7 +3,7 @@ name: Deploy web
 on:
   push:
     branches:
-      - 'master'
+      - 'release'
       - 'develop'
 
 jobs:
@@ -48,8 +48,8 @@ jobs:
           target-folder: dev
           single-commit: true
 
-      - name: Deploy docs (master)
-        if: github.event_name == 'push' && github.ref_name == 'master'
+      - name: Deploy docs (release)
+        if: github.event_name == 'push' && github.ref_name == 'release'
         uses: JamesIves/github-pages-deploy-action@v4.3.4
         with:
           folder: _site
