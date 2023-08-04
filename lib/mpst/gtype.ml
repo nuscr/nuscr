@@ -457,12 +457,13 @@ let validate_refinements_exn t =
       | CallG _ -> (* Not supported *) []
     in
     let first_messages = List.concat_map ~f:gather_first_message gs in
-    let encoded =
-      List.fold ~init:encoded ~f:encode_progress_clause first_messages
-    in
-    match Expr.check_sat encoded with
-    | `Unsat -> ()
-    | _ -> uerr StuckRefinement
+    if not (List.is_empty first_messages) then
+      let encoded =
+        List.fold ~init:encoded ~f:encode_progress_clause first_messages
+      in
+      match Expr.check_sat encoded with
+      | `Unsat -> ()
+      | _ -> uerr StuckRefinement
   in
   let rec aux env =
     ( if Pragma.validate_refinement_satisfiability () then
@@ -499,6 +500,7 @@ let validate_refinements_exn t =
           | PDelegate _ -> unimpl ~here:[%here] "Delegation as payload"
         in
         let env = List.fold ~init:env ~f payloads in
+        if Pragma.validate_refinement_progress () then ensure_progress env [g] ;
         aux env g
     | ChoiceG (_, gs) ->
         List.iter ~f:(aux env) gs ;
