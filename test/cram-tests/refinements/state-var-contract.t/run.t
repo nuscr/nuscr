@@ -28,6 +28,7 @@ Print FSM for C@Contract
     9 -> 10 [label="P?confirm()", ];
     
     }
+  
 Print State Variables:
   $ nuscr --gencode-fstar C@Contract Contract.nuscr
   module Generated

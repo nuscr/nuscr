@@ -412,6 +412,7 @@ Show HigherLower FSM and State variables.
     2 -> 9 [label="B?win()<ignore: (ignore:unit{n <> x && t = 1})>", ];
     
     }
+  
   digraph G {
     0;
     1;
@@ -439,6 +440,7 @@ Show HigherLower FSM and State variables.
     13 -> 14 [label="A!win()", ];
     
     }
+  
   digraph G {
     0 [label="!silent t<B>: (t:int{0 < t}) =
   t0", ];
@@ -455,6 +457,7 @@ Show HigherLower FSM and State variables.
     2 -> 8 [label="B?lose(ignore: (ignore:unit{n <> x && t = 1}))", ];
     
     }
+  
   State 0 has variables: (empty)
   State 1 has variables: {n: (n:int{0 <= n && n < 100})}
   State 2 has variables: {n: (n:int{0 <= n && n < 100}); t0: (t0:int{0 < t0}); t: (t:int{0 < t})}

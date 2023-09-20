@@ -13,6 +13,7 @@ Expecting recursion expressions to be correctly attached.
     5 -> 6 [label="A!Total(sum: (sum:int{sum = count}))", ];
     
     }
+  
 
 Var info should be as follows:
 0 should have rec var: count

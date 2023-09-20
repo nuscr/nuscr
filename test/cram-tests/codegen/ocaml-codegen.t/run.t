@@ -15,6 +15,7 @@ Show EFSM for Client and Server
     6 -> 7 [label="S?bye()", ];
     
     }
+  
   $ nuscr --fsm=S@Adder Adder.nuscr
   digraph G {
     0;
@@ -31,6 +32,7 @@ Show EFSM for Client and Server
     6 -> 7 [label="C!bye()", ];
     
     }
+  
 Generate OCaml code for Adders Client
   $ nuscr --gencode-ocaml=C@Adder Adder.nuscr > C.ml
 Generate OCaml code for Adders Server
