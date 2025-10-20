@@ -9,14 +9,14 @@ jobs:
     strategy:
       matrix:
         ocaml-version:
-          - 5
-          - 4
+          - "5.1"
+          - "4.14"
 
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: ocaml/setup-ocaml@v3

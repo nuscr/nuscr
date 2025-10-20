@@ -22,6 +22,7 @@
 (documentation "https://nuscr.dev/nuscr/docs/")
 
 (package
+ (version 1.0.0)
  (name nuscr)
  (synopsis
    "A tool to manipulate and validate Scribble-style multiparty protocols")
