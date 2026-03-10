@@ -94,6 +94,7 @@ type local_action_verb =
   | GencodeGo
   | GencodeOcaml
   | GencodeOcamlMonadic
+  | GencodeRust
 
 type global_action = global_action_verb * string (* protocol *)
 
@@ -181,6 +182,9 @@ let main args global_actions local_actions =
               |> print_endline
           | GencodeOcamlMonadic ->
               Nuscrlib.generate_ocaml_code ~monad:true ast ~protocol ~role
+              |> print_endline 
+          | GencodeRust -> 
+              Nuscrlib.generate_rust_monitor_code ast ~protocol ~role
               |> print_endline )
         local_actions
     in
@@ -303,8 +307,17 @@ let gencode_go =
     value & opt_all role_proto []
     & info ["gencode-go"] ~doc ~docv:"ROLE@PROTO" )
 
+let gencode_rust =
+  let doc =
+    "Generate Rust code for specified protocol and role. \
+     <role_name>@<protocol_name>"
+  in
+  Arg.(
+    value & opt_all role_proto []
+    & info ["gencode-rust"] ~doc ~docv:"ROLE@PROTO" )
+
 let mk_local_actions project project_mpstk project_tex project_protobuf fsm
-    gencode_fstar gencode_go gencode_ocaml gencode_ocaml_monadic =
+    gencode_fstar gencode_go gencode_ocaml gencode_ocaml_monadic gencode_rust =
   let project = List.map ~f:(fun (r, p) -> (Project, r, p)) project in
   let project_mpstk =
     List.map ~f:(fun (r, p) -> (ProjectMpstk, r, p)) project_mpstk
@@ -330,6 +343,11 @@ let mk_local_actions project project_mpstk project_tex project_protobuf fsm
       ~f:(fun (r, p) -> (GencodeOcamlMonadic, r, p))
       gencode_ocaml_monadic
   in
+  let gencode_rust = 
+    List.map
+      ~f:(fun (r,p) -> (GencodeRust, r, p))
+      gencode_rust
+  in
   List.concat
     [ project
     ; project_mpstk
@@ -339,7 +357,8 @@ let mk_local_actions project project_mpstk project_tex project_protobuf fsm
     ; gencode_fstar
     ; gencode_go
     ; gencode_ocaml
-    ; gencode_ocaml_monadic ]
+    ; gencode_ocaml_monadic
+    ; gencode_rust ]
 
 let sexp_global_type =
   let doc =
@@ -437,7 +456,7 @@ let cmd =
     Term.(
       const mk_local_actions $ project $ project_mpstk $ project_tex
       $ project_protobuf $ fsm $ gencode_fstar $ gencode_go $ gencode_ocaml
-      $ gencode_monadic_ocaml )
+      $ gencode_monadic_ocaml $ gencode_rust )
   in
   let term =
     Term.(ret (const main $ args $ global_actions $ local_actions))
