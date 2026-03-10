@@ -19,22 +19,25 @@ let collect_labels g =
   G.fold_edges_e f g (Set.empty (module String))
 
 (* Generators *)
-let generate_derive buffer = 
+let generate_big_derive buffer = 
   Buffer.add_string buffer "#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n"
 
+let generate_small_derive buffer = 
+  Buffer.add_string buffer "#[derive(Debug, Clone, PartialEq, Eq)]\n"
+
 let generate_states buffer g =
-  generate_derive buffer;
+  generate_big_derive buffer;
   Buffer.add_string buffer "enum State {\n";
   G.iter_vertex (fun label ->
     Buffer.add_string buffer
-    ("\    " ^ (upper_camel_case @@ Int.to_string label) ^ ",\n")
+    ("\    S" ^ (Int.to_string label) ^ ",\n")
   ) g;
   Buffer.add_string buffer "}\n"
 
 let generate_labels buffer g = 
   let labels = collect_labels g in
-  generate_derive buffer;
-  Buffer.add_string buffer "enum Label {\n";
+  generate_big_derive buffer;
+  Buffer.add_string buffer "pub enum Label {\n";
   Set.iter labels ~f:(fun label ->
     Buffer.add_string buffer
     ("\    " ^ (upper_camel_case label) ^ ",\n")
@@ -42,22 +45,22 @@ let generate_labels buffer g =
   Buffer.add_string buffer "}\n"
 
 let generate_support_types buffer = 
-  generate_derive buffer;
+  generate_big_derive buffer;
   Buffer.add_string buffer 
-  "enum Direction {\n\
+  "pub enum Direction {\n\
   \    Send,\n\
   \    Recv,\n\
    }\n\
   \n";
-  generate_derive buffer;
+  generate_big_derive buffer;
   Buffer.add_string buffer 
-  "struct Action {\n\
+  "pub struct Action {\n\
   \    dir: Direction,\n\
   \    label: Label,\n\
    }\n"
 
 let generate_monitor buffer protocol_name = 
-  generate_derive buffer;
+  generate_small_derive buffer;
   Buffer.add_string buffer 
   ("pub struct " ^ protocol_name ^ "Monitor {\n\
   \    state: State,\n\
@@ -66,9 +69,9 @@ let generate_monitor buffer protocol_name =
 let generate_transitions buffer start g protocol_name =
   Buffer.add_string buffer 
   ("impl " ^ protocol_name ^ "Monitor {\n\
-  \    pub fn new() ->  Self {\n\
+  \    pub fn new() -> Self {\n\
   \        Self {\n\
-  \            state: State::" ^ upper_camel_case @@ Int.to_string start ^ "\n\
+  \            state: State::S" ^ (Int.to_string start) ^ "\n\
   \        }\n\
   \    }\n\
   \n\
@@ -78,25 +81,26 @@ let generate_transitions buffer start g protocol_name =
   G.iter_edges_e (fun (src, a, dst) ->
     match a with
     | SendA (_, m, _) ->
-        Buffer.add_string buffer
-          (Printf.sprintf
-             "            (State::%s, Direction::Send, Label::%s) \
-              => { self.state = State::%s; true }\n"
-             (int_to_name src)
-             (upper_camel_case (LabelName.user m.label))
-             (int_to_name dst))
+      Buffer.add_string buffer
+        (Printf.sprintf
+          "            (State::S%s, Direction::Send, Label::%s) \
+            => { self.state = State::S%s; true }\n"
+          (int_to_name src)
+          (upper_camel_case (LabelName.user m.label))
+          (int_to_name dst))
     | RecvA (_, m, _) ->
-        Buffer.add_string buffer
-          (Printf.sprintf
-             "            (State::%s, Direction::Recv, Label::%s) \
-              => { self.state = State::%s; true }\n"
-             (int_to_name src)
-             (upper_camel_case (LabelName.user m.label))
-             (int_to_name dst))
+      Buffer.add_string buffer
+        (Printf.sprintf
+          "            (State::S%s, Direction::Recv, Label::%s) \
+          => { self.state = State::S%s; true }\n"
+          (int_to_name src)
+          (upper_camel_case (LabelName.user m.label))
+          (int_to_name dst))
     | Epsilon -> ()
   ) g ;
   Buffer.add_string buffer
-  "        }\n\
+  "            _ => false
+  \        }\n\
   \    }\n\
   }\n"
 
