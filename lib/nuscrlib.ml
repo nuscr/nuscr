@@ -193,6 +193,11 @@ module Toplevel = struct
     let lt = project_role ast ~protocol ~role in
     let efsm = Efsm.of_local_type lt in
     Fstarcodegen.gen_code efsm
+
+  let generate_rust_monitor_code ast ~protocol ~role = 
+    let lt = project_role ast ~protocol ~role in
+    let efsm = Efsm.of_local_type lt in
+    Rustcodegen.gen_code efsm ~protocol
 end
 
 include Toplevel
