@@ -97,6 +97,8 @@ let payload_slice_pattern payloads =
   in
   "[" ^ String.concat ~sep:", " patterns ^ "]"
 
+let payload_constraints _ = "true"
+
 let generate_transitions buffer start g protocol_name =
   Buffer.add_string buffer 
   ("impl " ^ protocol_name ^ "Monitor {\n\
@@ -119,14 +121,15 @@ let generate_transitions buffer start g protocol_name =
         (Printf.sprintf
           "            (State::S%s, Direction::%s, Label::%s) => \
            match action.payloads.as_slice() {\n\
-           \                %s => { self.state = State::S%s; true }\n\
+           \                %s => { self.state = State::S%s; %s }\n\
            \                _ => false\n\
            \            },\n"
           (int_to_name src)
           dir
           (upper_camel_case (LabelName.user m.label))
           (payload_slice_pattern m.payload)
-          (int_to_name dst))
+          (int_to_name dst)
+          (payload_constraints m.payload))
     | Epsilon -> ()
   ) g ;
   Buffer.add_string buffer
