@@ -1,5 +1,6 @@
 open! Base
 open Names
+open Gtype
 open Efsm
 open Message
 
@@ -29,7 +30,7 @@ let compute_var_map start g rec_var_info =
     | None ->
         let rec_vars =
           Option.value ~default:[] (Map.find rec_var_info curr_st)
-          |> List.map ~f:(fun (_, (rv : Gtype.rec_var)) -> (rv.rv_name, rv.rv_ty))
+          |> List.map ~f:(fun (_, rv) -> (rv.rv_name, rv.rv_ty))
         in
         let vars = List.fold ~f:append_var ~init:vars rec_vars in
         let acc = Map.set acc ~key:curr_st ~data:vars in
@@ -62,12 +63,25 @@ let generate_big_derive buffer =
 let generate_small_derive buffer =
   Buffer.add_string buffer "#[derive(Debug, Clone, PartialEq, Eq)]\n"
 
-let generate_states buffer g =
-  generate_big_derive buffer;
+let generate_state_enum buffer var_map g =
+  generate_small_derive buffer;
   Buffer.add_string buffer "enum State {\n";
-  G.iter_vertex (fun label ->
-    Buffer.add_string buffer
-    ("\    S" ^ (Int.to_string label) ^ ",\n")
+  G.iter_vertex (fun state ->
+    let vars = Map.find_exn var_map state in
+    match vars with
+    | [] ->
+        Buffer.add_string buffer
+          (Printf.sprintf "    S%d,\n" state)
+    | _ ->
+        let fields =
+          List.map vars ~f:(fun (v, ty) ->
+            Printf.sprintf "%s: %s"
+              (VariableName.user v)
+              (Rustexpr.rust_type_of_payload_type ty))
+        in
+        Buffer.add_string buffer
+          (Printf.sprintf "    S%d { %s },\n" state
+             (String.concat ~sep:", " fields))
   ) g;
   Buffer.add_string buffer "}\n"
 
@@ -106,18 +120,13 @@ let generate_support_types buffer =
   \    payloads: Vec<Value>,\n\
    }\n"
 
-let generate_monitor buffer protocol_name start_rec_vars =
+let generate_monitor buffer protocol_name =
   generate_small_derive buffer;
   Buffer.add_string buffer
-    ("pub struct " ^ protocol_name ^ "Monitor {\n\
-    \    state: State,\n");
-  List.iter start_rec_vars ~f:(fun (rv : Gtype.rec_var) ->
-    Rustexpr.validate_rust_ident rv.rv_name;
-    Buffer.add_string buffer
-      (Printf.sprintf "    %s: %s,\n"
-         (VariableName.user rv.rv_name)
-         (Rustexpr.rust_type_of_payload_type rv.rv_ty)));
-  Buffer.add_string buffer "}\n"
+    (Printf.sprintf
+       "pub struct %sMonitor {\n\
+       \    state: State,\n\
+        }\n" protocol_name)
 
 
 let generate_transitions buffer start g protocol_name start_rec_vars =
@@ -126,7 +135,7 @@ let generate_transitions buffer start g protocol_name start_rec_vars =
   \    pub fn new() -> Self {\n\
   \        Self {\n\
   \            state: State::S" ^ (Int.to_string start) ^ ",\n");
-  List.iter start_rec_vars ~f:(fun (rv : Gtype.rec_var) ->
+  List.iter start_rec_vars ~f:(fun rv ->
     Buffer.add_string buffer
       (Printf.sprintf "            %s: %s,\n"
          (VariableName.user rv.rv_name)
@@ -168,7 +177,7 @@ let generate_transitions buffer start g protocol_name start_rec_vars =
 
 let gen_code (start, (g, rec_var_info)) ~protocol =
   Map.iter rec_var_info ~f:(fun data ->
-    List.iter data ~f:(fun (is_silent, (rv : Gtype.rec_var)) ->
+    List.iter data ~f:(fun (is_silent, rv) ->
       if is_silent then
         Err.unimpl ~here:[%here]
           (Printf.sprintf "Rust codegen for silent recursion variable '%s'"
@@ -179,13 +188,14 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
   in
   let buffer = Buffer.create 4096 in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
-  generate_states buffer g;
+  let var_map = compute_var_map start g rec_var_info in
+  generate_state_enum buffer var_map g;
   Buffer.add_string buffer "\n";
   generate_labels buffer g;
   Buffer.add_string buffer "\n";
   generate_support_types buffer;
   Buffer.add_string buffer "\n";
-  generate_monitor buffer protocol_name start_rec_vars;
+  generate_monitor buffer protocol_name;
   Buffer.add_string buffer "\n";
   generate_transitions buffer start g protocol_name start_rec_vars;
   Buffer.contents buffer
