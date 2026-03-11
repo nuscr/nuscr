@@ -217,7 +217,7 @@ let generate_step_fn buffer g var_map rec_var_info =
   Buffer.add_string buffer
     "\n\
     \    pub fn step(&mut self, action: &Action) -> bool {\n\
-    \        match (&self.state, &action.dir, &action.label) {\n";
+    \        match (self.state.clone(), &action.dir, &action.label) {\n";
   G.iter_edges_e (fun (src, a, dst) ->
     match a with
     | SendA (_, m, rannot) | RecvA (_, m, rannot) ->
@@ -250,6 +250,14 @@ let generate_step_fn buffer g var_map rec_var_info =
              "                match action.payloads.as_slice() {\n\
              \                    %s => {\n"
              (Rustexpr.payload_slice_pattern m.payload));
+
+        (* Clone payload bindings from slice refs to owned values *)
+        let payload_vars = find_payload_vars m in
+        List.iter payload_vars ~f:(fun (v, _) ->
+          let name = VariableName.user v in
+          Buffer.add_string buffer
+            (Printf.sprintf "                        let %s = %s.clone();\n"
+               name name));
 
         (* Payload constraints *)
         Option.iter (Rustexpr.payload_constraints m.payload) ~f:(fun c ->
