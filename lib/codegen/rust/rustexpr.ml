@@ -1,0 +1,64 @@
+open! Base
+open Names
+open Syntax.Exprs
+
+let rust_show_binop = function
+  | Add -> "+" | Minus -> "-"
+  | Eq -> "==" | Neq -> "!="
+  | Lt -> "<" | Gt -> ">"
+  | Leq -> "<=" | Geq -> ">="
+  | And -> "&&" | Or -> "||"
+
+let rec rust_show_expr = function
+  | Var v -> VariableName.user v
+  | Int i -> Int.to_string i
+  | Bool b -> if b then "true" else "false"
+  | String s -> "\"" ^ s ^ "\""
+  | Binop (op, l, r) ->
+      Printf.sprintf "(%s) %s (%s)"
+        (rust_show_expr l) (rust_show_binop op) (rust_show_expr r)
+  | Unop (Neg, e) -> Printf.sprintf "-(%s)" (rust_show_expr e)
+  | Unop (Not, e) -> Printf.sprintf "!(%s)" (rust_show_expr e)
+  | Unop (StrLen, e) -> Printf.sprintf "(%s).len() as i64" (rust_show_expr e)
+
+let rust_keywords = Set.of_list (module String)
+  [ "as"; "break"; "const"; "continue"; "crate"; "else"; "enum"; "extern"
+  ; "false"; "fn"; "for"; "if"; "impl"; "in"; "let"; "loop"; "match"; "mod"
+  ; "move"; "mut"; "pub"; "ref"; "return"; "self"; "Self"; "static"; "struct"
+  ; "super"; "trait"; "true"; "type"; "unsafe"; "use"; "where"; "while" ]
+
+let validate_rust_ident v =
+  if Set.mem rust_keywords (VariableName.user v) then
+    Err.uerr (Err.RustKeywordConflict v)
+
+let rec rust_value_pattern name_opt = function
+  | Expr.PTInt ->
+      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
+      Printf.sprintf "Value::Int(%s)" b
+  | Expr.PTBool ->
+      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
+      Printf.sprintf "Value::Bool(%s)" b
+  | Expr.PTString ->
+      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
+      Printf.sprintf "Value::String(%s)" b
+  | Expr.PTUnit -> "Value::Unit"
+  | Expr.PTRefined (_, t, _) -> rust_value_pattern name_opt t
+  | Expr.PTAbstract n ->
+      Err.unimpl ~here:[%here]
+        (Printf.sprintf
+           "abstract payload type '%s' is not supported in Rust codegen; \
+            use bool, int, string or unit"
+           (PayloadTypeName.user n))
+
+let payload_slice_pattern payloads =
+  let open Message in
+  let patterns =
+    List.filter_map payloads ~f:(function
+      | PValue (name_opt, ty) ->
+          Option.iter name_opt ~f:validate_rust_ident;
+          Some (rust_value_pattern name_opt ty)
+      | PDelegate _ -> None)
+  in
+  "[" ^ String.concat ~sep:", " patterns ^ "]"
+
+let payload_constraints _ = "true"

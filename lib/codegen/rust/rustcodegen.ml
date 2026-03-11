@@ -4,7 +4,7 @@ open Efsm
 open Message
 
 (* Helpers *)
-let upper_camel_case s:string = 
+let upper_camel_case s:string =
   Stdlib.String.capitalize_ascii @@ Stdlib.String.lowercase_ascii s
 
 let int_to_name i = upper_camel_case @@ Int.to_string i
@@ -19,10 +19,10 @@ let collect_labels g =
   G.fold_edges_e f g (Set.empty (module String))
 
 (* Generators *)
-let generate_big_derive buffer = 
+let generate_big_derive buffer =
   Buffer.add_string buffer "#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n"
 
-let generate_small_derive buffer = 
+let generate_small_derive buffer =
   Buffer.add_string buffer "#[derive(Debug, Clone, PartialEq, Eq)]\n"
 
 let generate_states buffer g =
@@ -34,7 +34,7 @@ let generate_states buffer g =
   ) g;
   Buffer.add_string buffer "}\n"
 
-let generate_labels buffer g = 
+let generate_labels buffer g =
   let labels = collect_labels g in
   generate_big_derive buffer;
   Buffer.add_string buffer "pub enum Label {\n";
@@ -44,9 +44,9 @@ let generate_labels buffer g =
   );
   Buffer.add_string buffer "}\n"
 
-let generate_support_types buffer = 
+let generate_support_types buffer =
   generate_big_derive buffer;
-  Buffer.add_string buffer 
+  Buffer.add_string buffer
   "pub enum Direction {\n\
   \    Send,\n\
   \    Recv,\n\
@@ -69,56 +69,16 @@ let generate_support_types buffer =
   \    payloads: Vec<Value>,\n\
    }\n"
 
-let generate_monitor buffer protocol_name = 
+let generate_monitor buffer protocol_name =
   generate_small_derive buffer;
-  Buffer.add_string buffer 
+  Buffer.add_string buffer
   ("pub struct " ^ protocol_name ^ "Monitor {\n\
   \    state: State,\n\
   }\n")
 
-let rust_keywords = Set.of_list (module String)
-  [ "as"; "break"; "const"; "continue"; "crate"; "else"; "enum"; "extern"
-  ; "false"; "fn"; "for"; "if"; "impl"; "in"; "let"; "loop"; "match"; "mod"
-  ; "move"; "mut"; "pub"; "ref"; "return"; "self"; "Self"; "static"; "struct"
-  ; "super"; "trait"; "true"; "type"; "unsafe"; "use"; "where"; "while" ]
-
-let validate_rust_ident v =
-  if Set.mem rust_keywords (VariableName.user v) then
-    Err.uerr (Err.RustKeywordConflict v)
-
-let rec rust_value_pattern name_opt = function
-  | Expr.PTInt ->
-      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
-      Printf.sprintf "Value::Int(%s)" b
-  | Expr.PTBool ->
-      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
-      Printf.sprintf "Value::Bool(%s)" b
-  | Expr.PTString ->
-      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
-      Printf.sprintf "Value::String(%s)" b
-  | Expr.PTUnit -> "Value::Unit"
-  | Expr.PTRefined (_, t, _) -> rust_value_pattern name_opt t
-  | Expr.PTAbstract n ->
-      Err.unimpl ~here:[%here]
-        (Printf.sprintf
-           "abstract payload type '%s' is not supported in Rust codegen; \
-            use bool, int, string or unit"
-           (PayloadTypeName.user n))
-
-let payload_slice_pattern payloads =
-  let patterns =
-    List.filter_map payloads ~f:(function
-      | PValue (name_opt, ty) ->
-          Option.iter name_opt ~f:validate_rust_ident;
-          Some (rust_value_pattern name_opt ty)
-      | PDelegate _ -> None)
-  in
-  "[" ^ String.concat ~sep:", " patterns ^ "]"
-
-let payload_constraints _ = "true"
 
 let generate_transitions buffer start g protocol_name =
-  Buffer.add_string buffer 
+  Buffer.add_string buffer
   ("impl " ^ protocol_name ^ "Monitor {\n\
   \    pub fn new() -> Self {\n\
   \        Self {\n\
@@ -145,9 +105,9 @@ let generate_transitions buffer start g protocol_name =
           (int_to_name src)
           dir
           (upper_camel_case (LabelName.user m.label))
-          (payload_slice_pattern m.payload)
+          (Rustexpr.payload_slice_pattern m.payload)
           (int_to_name dst)
-          (payload_constraints m.payload))
+          (Rustexpr.payload_constraints m.payload))
     | Epsilon -> ()
   ) g ;
   Buffer.add_string buffer

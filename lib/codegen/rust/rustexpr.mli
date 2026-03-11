@@ -1,0 +1,19 @@
+(** Compile nuscr expressions and types to Rust syntax fragments *)
+
+open Names
+open Message
+
+val rust_show_expr : Expr.t -> string
+(** Compile an expression AST to a Rust expression string *)
+
+val validate_rust_ident : VariableName.t -> unit
+(** Raise if the variable name clashes with a Rust keyword *)
+
+val rust_value_pattern : VariableName.t option -> Expr.payload_type -> string
+(** Build a Rust pattern for matching a Value enum variant *)
+
+val payload_slice_pattern : payload list -> string
+(** Build a Rust slice pattern for a message's payload list *)
+
+val payload_constraints : payload list -> string
+(** Extract refinement predicates from payloads, conjoined with && *)
