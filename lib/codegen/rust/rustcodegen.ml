@@ -52,11 +52,21 @@ let generate_support_types buffer =
   \    Recv,\n\
    }\n\
   \n";
-  generate_big_derive buffer;
-  Buffer.add_string buffer 
+  generate_small_derive buffer;
+  Buffer.add_string buffer
+  "pub enum Value {\n\
+  \    Int(i64),\n\
+  \    Bool(bool),\n\
+  \    String(String),\n\
+  \    Unit,\n\
+   }\n\
+  \n";
+  generate_small_derive buffer;
+  Buffer.add_string buffer
   "pub struct Action {\n\
   \    dir: Direction,\n\
   \    label: Label,\n\
+  \    payloads: Vec<Value>,\n\
    }\n"
 
 let generate_monitor buffer protocol_name = 
@@ -102,10 +112,32 @@ let generate_transitions buffer start g protocol_name =
   "            _ => false
   \        }\n\
   \    }\n\
+  \
+  \    fn 
   }\n"
+
+let rec has_abstract_payload_type = function
+  | Expr.PTAbstract _ -> true
+  | Expr.PTRefined (_, t, _) -> has_abstract_payload_type t
+  | _ -> false
+
+let validate_no_abstract_payloads g =
+  G.iter_edges_e (fun (_, a, _) ->
+    match a with
+    | SendA (_, m, _) | RecvA (_, m, _) ->
+        List.iter m.payload ~f:(function
+          | PValue (_, ty) when has_abstract_payload_type ty ->
+              Err.unimpl ~here:[%here]
+                (Printf.sprintf
+                   "abstract payload type '%s' is not supported in Rust codegen \n use bool, int, string or unit"
+                   (PayloadTypeName.user (Expr.payload_typename_of_payload_type ty)))
+          | _ -> ())
+    | Epsilon -> ()
+  ) g
 
 (* let gen_code (start, (g, rec_var_info)) ~protocol =  *)
 let gen_code (start, (g,_)) ~protocol =
+  validate_no_abstract_payloads g;
   let buffer = Buffer.create 4096 in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
   generate_states buffer g;
