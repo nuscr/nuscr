@@ -1,7 +1,7 @@
 Generate Rust monitor for Client
   $ nuscr --gencode-rust=C@Adder Adder.nuscr > C_monitor.rs
   $ cat C_monitor.rs
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0,
       S3,
@@ -45,35 +45,53 @@ Generate Rust monitor for Client
   
   impl AdderMonitor {
       pub fn new() -> Self {
-          Self {
-              state: State::S0,
-          }
+          Self { state: State::S0 }
       }
   
       pub fn step(&mut self, action: &Action) -> bool {
-          match (self.state, action.dir, action.label) {
-              (State::S0, Direction::Send, Label::Add) => match action.payloads.as_slice() {
-                  [Value::Int(_)] => { self.state = State::S3; true }
-                  _ => false
-              },
-              (State::S0, Direction::Send, Label::Bye) => match action.payloads.as_slice() {
-                  [] => { self.state = State::S6; true }
-                  _ => false
-              },
-              (State::S3, Direction::Send, Label::Add) => match action.payloads.as_slice() {
-                  [Value::Int(_)] => { self.state = State::S4; true }
-                  _ => false
-              },
-              (State::S4, Direction::Recv, Label::Sum) => match action.payloads.as_slice() {
-                  [Value::Int(_)] => { self.state = State::S0; true }
-                  _ => false
-              },
-              (State::S6, Direction::Recv, Label::Bye) => match action.payloads.as_slice() {
-                  [] => { self.state = State::S7; true }
-                  _ => false
-              },
+          match (self.state.clone(), &action.dir, &action.label) {
+              (State::S0, Direction::Send, Label::Add) =>
+                  match action.payloads.as_slice() {
+                      [Value::Int(_)] => {
+                          self.state = State::S3;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S0, Direction::Send, Label::Bye) =>
+                  match action.payloads.as_slice() {
+                      [] => {
+                          self.state = State::S6;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S3, Direction::Send, Label::Add) =>
+                  match action.payloads.as_slice() {
+                      [Value::Int(_)] => {
+                          self.state = State::S4;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S4, Direction::Recv, Label::Sum) =>
+                  match action.payloads.as_slice() {
+                      [Value::Int(_)] => {
+                          self.state = State::S0;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S6, Direction::Recv, Label::Bye) =>
+                  match action.payloads.as_slice() {
+                      [] => {
+                          self.state = State::S7;
+                          true
+                      }
+                      _ => false
+                  },
               _ => false
-            }
+          }
       }
   }
   
@@ -81,7 +99,7 @@ Generate Rust monitor for Client
 Generate Rust monitor for Server
   $ nuscr --gencode-rust=S@Adder Adder.nuscr > S_monitor.rs
   $ cat S_monitor.rs
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0,
       S3,
@@ -125,35 +143,53 @@ Generate Rust monitor for Server
   
   impl AdderMonitor {
       pub fn new() -> Self {
-          Self {
-              state: State::S0,
-          }
+          Self { state: State::S0 }
       }
   
       pub fn step(&mut self, action: &Action) -> bool {
-          match (self.state, action.dir, action.label) {
-              (State::S0, Direction::Recv, Label::Add) => match action.payloads.as_slice() {
-                  [Value::Int(_)] => { self.state = State::S3; true }
-                  _ => false
-              },
-              (State::S0, Direction::Recv, Label::Bye) => match action.payloads.as_slice() {
-                  [] => { self.state = State::S6; true }
-                  _ => false
-              },
-              (State::S3, Direction::Recv, Label::Add) => match action.payloads.as_slice() {
-                  [Value::Int(_)] => { self.state = State::S4; true }
-                  _ => false
-              },
-              (State::S4, Direction::Send, Label::Sum) => match action.payloads.as_slice() {
-                  [Value::Int(_)] => { self.state = State::S0; true }
-                  _ => false
-              },
-              (State::S6, Direction::Send, Label::Bye) => match action.payloads.as_slice() {
-                  [] => { self.state = State::S7; true }
-                  _ => false
-              },
+          match (self.state.clone(), &action.dir, &action.label) {
+              (State::S0, Direction::Recv, Label::Add) =>
+                  match action.payloads.as_slice() {
+                      [Value::Int(_)] => {
+                          self.state = State::S3;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S0, Direction::Recv, Label::Bye) =>
+                  match action.payloads.as_slice() {
+                      [] => {
+                          self.state = State::S6;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S3, Direction::Recv, Label::Add) =>
+                  match action.payloads.as_slice() {
+                      [Value::Int(_)] => {
+                          self.state = State::S4;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S4, Direction::Send, Label::Sum) =>
+                  match action.payloads.as_slice() {
+                      [Value::Int(_)] => {
+                          self.state = State::S0;
+                          true
+                      }
+                      _ => false
+                  },
+              (State::S6, Direction::Send, Label::Bye) =>
+                  match action.payloads.as_slice() {
+                      [] => {
+                          self.state = State::S7;
+                          true
+                      }
+                      _ => false
+                  },
               _ => false
-            }
+          }
       }
   }
   
