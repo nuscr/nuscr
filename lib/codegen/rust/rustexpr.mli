@@ -18,5 +18,6 @@ val rust_value_pattern : VariableName.t option -> Expr.payload_type -> string
 val payload_slice_pattern : payload list -> string
 (** Build a Rust slice pattern for a message's payload list *)
 
-val payload_constraints : payload list -> string
-(** Extract refinement predicates from payloads, conjoined with && *)
+val payload_constraints : payload list -> string option
+(** Extract refinement predicates from payloads, conjoined with &&.
+    Returns [None] when no payloads carry refinements. *)

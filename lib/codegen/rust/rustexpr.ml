@@ -82,5 +82,5 @@ let payload_constraints payloads =
       | _ -> None)
   in
   match preds with
-  | [] -> "true"
-  | _ -> String.concat ~sep:" && " preds
+  | [] -> None
+  | _ -> Some (String.concat ~sep:" && " preds)
