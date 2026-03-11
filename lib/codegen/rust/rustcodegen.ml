@@ -76,6 +76,27 @@ let generate_monitor buffer protocol_name =
   \    state: State,\n\
   }\n")
 
+let rec rust_value_pattern = function
+  | Expr.PTInt -> "Value::Int(_)"
+  | Expr.PTBool -> "Value::Bool(_)"
+  | Expr.PTString -> "Value::String(_)"
+  | Expr.PTUnit -> "Value::Unit"
+  | Expr.PTRefined (_, t, _) -> rust_value_pattern t
+  | Expr.PTAbstract n ->
+      Err.unimpl ~here:[%here]
+        (Printf.sprintf
+           "abstract payload type '%s' is not supported in Rust codegen; \
+            use bool, int, string or unit"
+           (PayloadTypeName.user n))
+
+let payload_slice_pattern payloads =
+  let patterns =
+    List.filter_map payloads ~f:(function
+      | PValue (_, ty) -> Some (rust_value_pattern ty)
+      | PDelegate _ -> None)
+  in
+  "[" ^ String.concat ~sep:", " patterns ^ "]"
+
 let generate_transitions buffer start g protocol_name =
   Buffer.add_string buffer 
   ("impl " ^ protocol_name ^ "Monitor {\n\
@@ -90,21 +111,21 @@ let generate_transitions buffer start g protocol_name =
   ");
   G.iter_edges_e (fun (src, a, dst) ->
     match a with
-    | SendA (_, m, _) ->
+    | SendA (_, m, _) | RecvA (_, m, _) ->
+      let dir = match a with
+        | SendA _ -> "Send" | RecvA _ -> "Recv" | Epsilon -> assert false
+      in
       Buffer.add_string buffer
         (Printf.sprintf
-          "            (State::S%s, Direction::Send, Label::%s) \
-            => { self.state = State::S%s; true }\n"
+          "            (State::S%s, Direction::%s, Label::%s) => \
+           match action.payloads.as_slice() {\n\
+           \                %s => { self.state = State::S%s; true }\n\
+           \                _ => false\n\
+           \            },\n"
           (int_to_name src)
+          dir
           (upper_camel_case (LabelName.user m.label))
-          (int_to_name dst))
-    | RecvA (_, m, _) ->
-      Buffer.add_string buffer
-        (Printf.sprintf
-          "            (State::S%s, Direction::Recv, Label::%s) \
-          => { self.state = State::S%s; true }\n"
-          (int_to_name src)
-          (upper_camel_case (LabelName.user m.label))
+          (payload_slice_pattern m.payload)
           (int_to_name dst))
     | Epsilon -> ()
   ) g ;
@@ -112,32 +133,11 @@ let generate_transitions buffer start g protocol_name =
   "            _ => false
   \        }\n\
   \    }\n\
-  \
-  \    fn 
   }\n"
 
-let rec has_abstract_payload_type = function
-  | Expr.PTAbstract _ -> true
-  | Expr.PTRefined (_, t, _) -> has_abstract_payload_type t
-  | _ -> false
-
-let validate_no_abstract_payloads g =
-  G.iter_edges_e (fun (_, a, _) ->
-    match a with
-    | SendA (_, m, _) | RecvA (_, m, _) ->
-        List.iter m.payload ~f:(function
-          | PValue (_, ty) when has_abstract_payload_type ty ->
-              Err.unimpl ~here:[%here]
-                (Printf.sprintf
-                   "abstract payload type '%s' is not supported in Rust codegen \n use bool, int, string or unit"
-                   (PayloadTypeName.user (Expr.payload_typename_of_payload_type ty)))
-          | _ -> ())
-    | Epsilon -> ()
-  ) g
 
 (* let gen_code (start, (g, rec_var_info)) ~protocol =  *)
 let gen_code (start, (g,_)) ~protocol =
-  validate_no_abstract_payloads g;
   let buffer = Buffer.create 4096 in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
   generate_states buffer g;
