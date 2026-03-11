@@ -1,0 +1,14 @@
+(*# RefinementTypes #*)
+
+global protocol SilentCounter(role A, role B) {
+  rec loop [counter<B>: (counter: int{counter < 100}) = 0] {
+    choice at A {
+      inc(x: int{x > 0}) from A to B;
+      ack(r: int{r = counter + x}) from B to A;
+      continue loop [r];
+    } or {
+      done() from A to B;
+      done() from B to A;
+    }
+  }
+}
