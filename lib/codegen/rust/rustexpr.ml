@@ -21,6 +21,19 @@ let rec rust_show_expr = function
   | Unop (Not, e) -> Printf.sprintf "!(%s)" (rust_show_expr e)
   | Unop (StrLen, e) -> Printf.sprintf "(%s).len() as i64" (rust_show_expr e)
 
+let rec rust_type_of_payload_type = function
+  | Expr.PTInt -> "i64"
+  | Expr.PTBool -> "bool"
+  | Expr.PTString -> "String"
+  | Expr.PTUnit -> "()"
+  | Expr.PTRefined (_, t, _) -> rust_type_of_payload_type t
+  | Expr.PTAbstract n ->
+      Err.unimpl ~here:[%here]
+        (Printf.sprintf
+           "abstract payload type '%s' is not supported in Rust codegen; \
+            use bool, int, string or unit"
+           (PayloadTypeName.user n))
+
 let rust_keywords = Set.of_list (module String)
   [ "as"; "break"; "const"; "continue"; "crate"; "else"; "enum"; "extern"
   ; "false"; "fn"; "for"; "if"; "impl"; "in"; "let"; "loop"; "match"; "mod"

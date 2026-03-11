@@ -6,6 +6,9 @@ open Message
 val rust_show_expr : Expr.t -> string
 (** Compile an expression AST to a Rust expression string *)
 
+val rust_type_of_payload_type : Expr.payload_type -> string
+(** Map a payload type to its Rust type name, stripping refinements *)
+
 val validate_rust_ident : VariableName.t -> unit
 (** Raise if the variable name clashes with a Rust keyword *)
 
