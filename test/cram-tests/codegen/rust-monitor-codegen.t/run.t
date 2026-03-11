@@ -23,10 +23,19 @@ Generate Rust monitor for Client
       Recv,
   }
   
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  #[derive(Debug, Clone, PartialEq, Eq)]
+  pub enum Value {
+      Int(i64),
+      Bool(bool),
+      String(String),
+      Unit,
+  }
+  
+  #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
       dir: Direction,
       label: Label,
+      payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,11 +52,26 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state, action.dir, action.label) {
-              (State::S0, Direction::Send, Label::Add) => { self.state = State::S3; true }
-              (State::S0, Direction::Send, Label::Bye) => { self.state = State::S6; true }
-              (State::S3, Direction::Send, Label::Add) => { self.state = State::S4; true }
-              (State::S4, Direction::Recv, Label::Sum) => { self.state = State::S0; true }
-              (State::S6, Direction::Recv, Label::Bye) => { self.state = State::S7; true }
+              (State::S0, Direction::Send, Label::Add) => match action.payloads.as_slice() {
+                  [Value::Int(_)] => { self.state = State::S3; true }
+                  _ => false
+              },
+              (State::S0, Direction::Send, Label::Bye) => match action.payloads.as_slice() {
+                  [] => { self.state = State::S6; true }
+                  _ => false
+              },
+              (State::S3, Direction::Send, Label::Add) => match action.payloads.as_slice() {
+                  [Value::Int(_)] => { self.state = State::S4; true }
+                  _ => false
+              },
+              (State::S4, Direction::Recv, Label::Sum) => match action.payloads.as_slice() {
+                  [Value::Int(_)] => { self.state = State::S0; true }
+                  _ => false
+              },
+              (State::S6, Direction::Recv, Label::Bye) => match action.payloads.as_slice() {
+                  [] => { self.state = State::S7; true }
+                  _ => false
+              },
               _ => false
             }
       }
@@ -79,10 +103,19 @@ Generate Rust monitor for Server
       Recv,
   }
   
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  #[derive(Debug, Clone, PartialEq, Eq)]
+  pub enum Value {
+      Int(i64),
+      Bool(bool),
+      String(String),
+      Unit,
+  }
+  
+  #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
       dir: Direction,
       label: Label,
+      payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,11 +132,26 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state, action.dir, action.label) {
-              (State::S0, Direction::Recv, Label::Add) => { self.state = State::S3; true }
-              (State::S0, Direction::Recv, Label::Bye) => { self.state = State::S6; true }
-              (State::S3, Direction::Recv, Label::Add) => { self.state = State::S4; true }
-              (State::S4, Direction::Send, Label::Sum) => { self.state = State::S0; true }
-              (State::S6, Direction::Send, Label::Bye) => { self.state = State::S7; true }
+              (State::S0, Direction::Recv, Label::Add) => match action.payloads.as_slice() {
+                  [Value::Int(_)] => { self.state = State::S3; true }
+                  _ => false
+              },
+              (State::S0, Direction::Recv, Label::Bye) => match action.payloads.as_slice() {
+                  [] => { self.state = State::S6; true }
+                  _ => false
+              },
+              (State::S3, Direction::Recv, Label::Add) => match action.payloads.as_slice() {
+                  [Value::Int(_)] => { self.state = State::S4; true }
+                  _ => false
+              },
+              (State::S4, Direction::Send, Label::Sum) => match action.payloads.as_slice() {
+                  [Value::Int(_)] => { self.state = State::S0; true }
+                  _ => false
+              },
+              (State::S6, Direction::Send, Label::Bye) => match action.payloads.as_slice() {
+                  [] => { self.state = State::S7; true }
+                  _ => false
+              },
               _ => false
             }
       }
