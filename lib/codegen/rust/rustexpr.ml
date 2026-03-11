@@ -1,6 +1,7 @@
 open! Base
 open Names
 open Syntax.Exprs
+open Message
 
 let rust_show_binop = function
   | Add -> "+" | Minus -> "-"
@@ -64,7 +65,6 @@ let rec rust_value_pattern name_opt = function
            (PayloadTypeName.user n))
 
 let payload_slice_pattern payloads =
-  let open Message in
   let patterns =
     List.filter_map payloads ~f:(function
       | PValue (name_opt, ty) ->
@@ -74,4 +74,13 @@ let payload_slice_pattern payloads =
   in
   "[" ^ String.concat ~sep:", " patterns ^ "]"
 
-let payload_constraints _ = "true"
+let payload_constraints payloads =
+  let preds =
+    List.filter_map payloads ~f:(function
+      | PValue (Some _, Expr.PTRefined (_, _, pred)) ->
+          Some (rust_show_expr pred)
+      | _ -> None)
+  in
+  match preds with
+  | [] -> "true"
+  | _ -> String.concat ~sep:" && " preds
