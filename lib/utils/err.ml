@@ -42,6 +42,7 @@ type user_error =
   | UnsatisfiableRefinement (* TODO: Extra Message for error reporting *)
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
+  | RustKeywordConflict of VariableName.t
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed
@@ -140,6 +141,9 @@ let show_user_error = function
       sprintf "Unguarded type variable %s at %s"
         (TypeVariableName.user tv)
         (Loc.show (TypeVariableName.where tv))
+  | RustKeywordConflict v ->
+      sprintf "Payload variable '%s' is a Rust keyword; rename it in the protocol"
+        (VariableName.user v)
 
 let unimpl ~here desc = UnImplemented (desc, here) |> raise
 
