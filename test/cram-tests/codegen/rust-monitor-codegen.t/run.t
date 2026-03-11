@@ -46,7 +46,7 @@ Generate Rust monitor for Client
   impl AdderMonitor {
       pub fn new() -> Self {
           Self {
-              state: State::S0
+              state: State::S0,
           }
       }
   
@@ -126,7 +126,7 @@ Generate Rust monitor for Server
   impl AdderMonitor {
       pub fn new() -> Self {
           Self {
-              state: State::S0
+              state: State::S0,
           }
       }
   

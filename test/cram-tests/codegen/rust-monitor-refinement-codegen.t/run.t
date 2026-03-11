@@ -40,12 +40,14 @@ Generate Rust monitor for Client
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct RunningsumMonitor {
       state: State,
+      total: i64,
   }
   
   impl RunningsumMonitor {
       pub fn new() -> Self {
           Self {
-              state: State::S0
+              state: State::S0,
+              total: 0,
           }
       }
   
@@ -115,12 +117,14 @@ Generate Rust monitor for Server
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct RunningsumMonitor {
       state: State,
+      total: i64,
   }
   
   impl RunningsumMonitor {
       pub fn new() -> Self {
           Self {
-              state: State::S0
+              state: State::S0,
+              total: 0,
           }
       }
   
@@ -151,23 +155,23 @@ Generate Rust monitor for Server
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
   warning: unused variable: `x`
-    --> C_monitor.rs:52:29
+    --> C_monitor.rs:54:29
      |
-  52 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
+  54 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
      |                             ^ help: if this is intentional, prefix it with an underscore: `_x`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
   
   warning: unused variable: `y`
-    --> C_monitor.rs:52:44
+    --> C_monitor.rs:54:44
      |
-  52 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
+  54 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
      |                                            ^ help: if this is intentional, prefix it with an underscore: `_y`
   
   warning: unused variable: `r`
-    --> C_monitor.rs:60:29
+    --> C_monitor.rs:62:29
      |
-  60 |                 [Value::Int(r)] => { self.state = State::S0; true }
+  62 |                 [Value::Int(r)] => { self.state = State::S0; true }
      |                             ^ help: if this is intentional, prefix it with an underscore: `_r`
   
   warning: 3 warnings emitted
@@ -176,23 +180,23 @@ Compile Client monitor
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
   warning: unused variable: `x`
-    --> S_monitor.rs:52:29
+    --> S_monitor.rs:54:29
      |
-  52 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
+  54 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
      |                             ^ help: if this is intentional, prefix it with an underscore: `_x`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
   
   warning: unused variable: `y`
-    --> S_monitor.rs:52:44
+    --> S_monitor.rs:54:44
      |
-  52 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
+  54 |                 [Value::Int(x), Value::Int(y)] => { self.state = State::S3; true }
      |                                            ^ help: if this is intentional, prefix it with an underscore: `_y`
   
   warning: unused variable: `r`
-    --> S_monitor.rs:60:29
+    --> S_monitor.rs:62:29
      |
-  60 |                 [Value::Int(r)] => { self.state = State::S0; true }
+  62 |                 [Value::Int(r)] => { self.state = State::S0; true }
      |                             ^ help: if this is intentional, prefix it with an underscore: `_r`
   
   warning: 3 warnings emitted
