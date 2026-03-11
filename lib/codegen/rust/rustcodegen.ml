@@ -129,24 +129,45 @@ let generate_monitor buffer protocol_name =
         }\n" protocol_name)
 
 
-let generate_transitions buffer start g protocol_name start_rec_vars =
+let generate_constructor buffer start var_map rec_var_info =
+  let start_vars = Map.find_exn var_map start in
+  let start_rv_info =
+    Option.value ~default:[] (Map.find rec_var_info start)
+  in
+  List.iter start_vars ~f:(fun (v, _) ->
+    let is_rec_var =
+      List.exists start_rv_info
+        ~f:(fun (_, rv) -> VariableName.equal v rv.rv_name)
+    in
+    if not is_rec_var then
+      Err.violationf ~here:[%here]
+        "Payload variable '%s' at start state has no initial value"
+        (VariableName.user v));
+  Buffer.add_string buffer "    pub fn new() -> Self {\n";
+  (match start_vars with
+   | [] ->
+       Buffer.add_string buffer
+         (Printf.sprintf "        Self { state: State::S%d }\n" start)
+   | _ ->
+       let inits =
+         List.map start_vars ~f:(fun (v, _) ->
+           let (_, rv) = List.find_exn start_rv_info
+             ~f:(fun (_, rv) -> VariableName.equal v rv.rv_name)
+           in
+           Printf.sprintf "%s: %s"
+             (VariableName.user v)
+             (Rustexpr.rust_show_expr rv.rv_init_expr))
+       in
+       Buffer.add_string buffer
+         (Printf.sprintf "        Self { state: State::S%d { %s } }\n"
+            start (String.concat ~sep:", " inits)));
+  Buffer.add_string buffer "    }\n"
+
+let generate_step_fn buffer g =
   Buffer.add_string buffer
-  ("impl " ^ protocol_name ^ "Monitor {\n\
-  \    pub fn new() -> Self {\n\
-  \        Self {\n\
-  \            state: State::S" ^ (Int.to_string start) ^ ",\n");
-  List.iter start_rec_vars ~f:(fun rv ->
-    Buffer.add_string buffer
-      (Printf.sprintf "            %s: %s,\n"
-         (VariableName.user rv.rv_name)
-         (Rustexpr.rust_show_expr rv.rv_init_expr)));
-  Buffer.add_string buffer
-  ("        }\n\
-  \    }\n\
-  \n\
-  \    pub fn step(&mut self, action: &Action) -> bool {\n\
-  \        match (self.state, action.dir, action.label) {\n\
-  ");
+    "\n\
+    \    pub fn step(&mut self, action: &Action) -> bool {\n\
+    \        match (self.state, action.dir, action.label) {\n";
   G.iter_edges_e (fun (src, a, dst) ->
     match a with
     | SendA (_, m, _) | RecvA (_, m, _) ->
@@ -169,10 +190,16 @@ let generate_transitions buffer start g protocol_name start_rec_vars =
     | Epsilon -> ()
   ) g ;
   Buffer.add_string buffer
-  "            _ => false
-  \        }\n\
-  \    }\n\
-  }\n"
+    "            _ => false\n\
+    \        }\n\
+    \    }\n"
+
+let generate_impl buffer start g protocol_name var_map rec_var_info =
+  Buffer.add_string buffer
+    (Printf.sprintf "impl %sMonitor {\n" protocol_name);
+  generate_constructor buffer start var_map rec_var_info;
+  generate_step_fn buffer g;
+  Buffer.add_string buffer "}\n"
 
 
 let gen_code (start, (g, rec_var_info)) ~protocol =
@@ -182,10 +209,6 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
         Err.unimpl ~here:[%here]
           (Printf.sprintf "Rust codegen for silent recursion variable '%s'"
              (VariableName.user rv.rv_name))));
-  let start_rec_vars =
-    List.map ~f:snd
-      (Option.value ~default:[] (Map.find rec_var_info start))
-  in
   let buffer = Buffer.create 4096 in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
   let var_map = compute_var_map start g rec_var_info in
@@ -197,5 +220,5 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
   Buffer.add_string buffer "\n";
   generate_monitor buffer protocol_name;
   Buffer.add_string buffer "\n";
-  generate_transitions buffer start g protocol_name start_rec_vars;
+  generate_impl buffer start g protocol_name var_map rec_var_info;
   Buffer.contents buffer
