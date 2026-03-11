@@ -76,12 +76,28 @@ let generate_monitor buffer protocol_name =
   \    state: State,\n\
   }\n")
 
-let rec rust_value_pattern = function
-  | Expr.PTInt -> "Value::Int(_)"
-  | Expr.PTBool -> "Value::Bool(_)"
-  | Expr.PTString -> "Value::String(_)"
+let rust_keywords = Set.of_list (module String)
+  [ "as"; "break"; "const"; "continue"; "crate"; "else"; "enum"; "extern"
+  ; "false"; "fn"; "for"; "if"; "impl"; "in"; "let"; "loop"; "match"; "mod"
+  ; "move"; "mut"; "pub"; "ref"; "return"; "self"; "Self"; "static"; "struct"
+  ; "super"; "trait"; "true"; "type"; "unsafe"; "use"; "where"; "while" ]
+
+let validate_rust_ident v =
+  if Set.mem rust_keywords (VariableName.user v) then
+    Err.uerr (Err.RustKeywordConflict v)
+
+let rec rust_value_pattern name_opt = function
+  | Expr.PTInt ->
+      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
+      Printf.sprintf "Value::Int(%s)" b
+  | Expr.PTBool ->
+      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
+      Printf.sprintf "Value::Bool(%s)" b
+  | Expr.PTString ->
+      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
+      Printf.sprintf "Value::String(%s)" b
   | Expr.PTUnit -> "Value::Unit"
-  | Expr.PTRefined (_, t, _) -> rust_value_pattern t
+  | Expr.PTRefined (_, t, _) -> rust_value_pattern name_opt t
   | Expr.PTAbstract n ->
       Err.unimpl ~here:[%here]
         (Printf.sprintf
@@ -92,7 +108,9 @@ let rec rust_value_pattern = function
 let payload_slice_pattern payloads =
   let patterns =
     List.filter_map payloads ~f:(function
-      | PValue (_, ty) -> Some (rust_value_pattern ty)
+      | PValue (name_opt, ty) ->
+          Option.iter name_opt ~f:validate_rust_ident;
+          Some (rust_value_pattern name_opt ty)
       | PDelegate _ -> None)
   in
   "[" ^ String.concat ~sep:", " patterns ^ "]"
