@@ -4,8 +4,7 @@ open Names
 open Message
 open Efsm
 
-let upper_camel_case s : string =
-  Stdlib.String.capitalize_ascii @@ Stdlib.String.lowercase_ascii s
+let upper_camel_case s = Stdlib.String.capitalize_ascii s
 
 let find_payload_vars m =
   List.filter_map m.payload ~f:(function

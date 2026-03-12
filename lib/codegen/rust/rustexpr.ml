@@ -77,10 +77,16 @@ let rust_keywords =
     ; "unsafe"
     ; "use"
     ; "where"
-    ; "while" ]
+    ; "while"
+    ; "state"
+    ; "action"
+    ; "self"
+    ; "label"
+    ; "dir" ]
 
 let rust_validate_identifier v =
-  if Set.mem rust_keywords (VariableName.user v) then
+  let name = VariableName.user v in
+  if Set.mem rust_keywords name || String.is_prefix name ~prefix:"new_" then
     Err.uerr (Err.RustKeywordConflict v)
 
 let rec rust_value_pattern_of_payload name_opt = function
@@ -108,7 +114,12 @@ let rust_payload_slice_pattern payloads =
       | PValue (name_opt, ty) ->
           Option.iter name_opt ~f:rust_validate_identifier ;
           Some (rust_value_pattern_of_payload name_opt ty)
-      | PDelegate _ -> None )
+      | PDelegate (protocol, role) ->
+          Err.unimpl ~here:[%here]
+            (Printf.sprintf
+               "in Rust codegen, delegation to another protocol'%s'@'%s'"
+               (ProtocolName.user protocol)
+               (RoleName.user role) ) )
   in
   "[" ^ String.concat ~sep:", " patterns ^ "]"
 
