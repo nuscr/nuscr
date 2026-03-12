@@ -4,67 +4,8 @@ open Gtype
 open Efsm
 open Message
 open Syntax
+open Rustefsm
 
-(* Helpers *)
-let upper_camel_case s:string =
-  Stdlib.String.capitalize_ascii @@ Stdlib.String.lowercase_ascii s
-
-let find_payload_vars m =
-  List.filter_map m.payload ~f:(function
-    | PValue (Some v, ty) -> Some (v, ty)
-    | _ -> None)
-
-let append_var lst ((v, _) as entry) =
-  if List.exists lst ~f:(fun (v_, _) -> VariableName.equal v v_) then lst
-  else lst @ [entry]
-
-let rm_silent_var rec_var_info =
-  Map.map rec_var_info ~f:(fun data ->
-    List.map data ~f:(fun (is_silent, rv) ->
-      if is_silent then
-        Err.unimpl ~here:[%here]
-          (Printf.sprintf "Rust codegen for silent recursion variable '%s'"
-            (VariableName.user rv.rv_name))
-      else rv))
-
-(* Walk the EFSM graph from [start], accumulating rec vars and named payload
-   vars along each path. Each state is visited at most once: when choice
-   branches merge into a single state, session-type merging guarantees
-   identical variable scopes on every path, so the first visit suffices. *)
-let compute_var_map start g rec_var_info =
-  let rec aux acc (curr_st, vars) =
-    match Map.find acc curr_st with
-    | Some _ -> acc
-    | None ->
-        let rec_vars =
-          Option.value ~default:[] (Map.find rec_var_info curr_st)
-          |> List.map ~f:(fun rv -> (rv.rv_name, rv.rv_ty))
-        in
-        let vars = List.fold ~f:append_var ~init:vars rec_vars in
-        let acc = Map.set acc ~key:curr_st ~data:vars in
-        G.fold_succ_e (fun (_, action, next_st) acc ->
-          match action with
-          | SendA (_, m, _) | RecvA (_, m, _) ->
-              let payload_vars = find_payload_vars m in
-              let vars = List.fold ~f:append_var ~init:vars payload_vars in
-              aux acc (next_st, vars)
-          | Epsilon ->
-              Err.violation ~here:[%here]
-                "Epsilon transitions should not appear in EFSM outputs"
-        ) g curr_st acc
-  in
-  aux (Map.empty (module Int)) (start, [])
-
-let collect_labels g =
-  let f (_, a, _) acc =
-    match a with
-    | SendA (_, m, _) | RecvA (_, m, _) ->
-        Set.add acc (LabelName.user m.label)
-    | Epsilon -> acc
-  in
-  G.fold_edges_e f g (Set.empty (module String))
-
-(* Generators *)
 let generate_big_derive buffer =
   Buffer.add_string buffer "#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n"
 
@@ -174,10 +115,7 @@ let generate_constructor buffer start var_map rec_var_info =
        (fmt_state_variant start inits))
 
 
-(* Match rec_expr_updates positionally to the rec vars at the destination
-   state. Returns (rv_name, new_binding_name, update_expr, rv_ty) tuples.
-   Silent vars have been rejected earlier, so all dst rec vars are non-silent
-   and the update count must match. *)
+(* Precondition: silent vars have been stripped by [rm_silent_var]. *)
 let compute_rec_var_updates rannot dst_rv_info =
   let n_updates = List.length rannot.rec_expr_updates in
   let n_rec_vars = List.length dst_rv_info in
@@ -193,8 +131,6 @@ let compute_rec_var_updates rannot dst_rv_info =
     let binding = "new_" ^ VariableName.user rv.rv_name in
     (rv.rv_name, binding, e, rv.rv_ty))
 
-(* Rec vars at dst that are neither carried from src nor updated by the
-   transition — these are newly entering scope and get their init expr. *)
 let find_new_rec_vars src_vars dst_rv_info rec_var_updates =
   List.filter_map dst_rv_info ~f:(fun rv ->
     let in_src = List.exists src_vars
@@ -205,22 +141,21 @@ let find_new_rec_vars src_vars dst_rv_info rec_var_updates =
       Some (rv.rv_name, Rustexpr.rust_show_expr rv.rv_init_expr)
     else None)
 
-(* Build the field initializer list for the destination state variant.
-   Each dst var is either: an updated rec var (new_x), a newly initialized
-   rec var, or carried through unchanged (shorthand field init). *)
 let build_dst_field_inits dst_vars rec_var_updates new_rec_vars =
   List.map dst_vars ~f:(fun (v, _) ->
     let name = VariableName.user v in
-    match List.find rec_var_updates
-            ~f:(fun (rv, _, _, _) -> VariableName.equal v rv) with
-    | Some (_, binding, _, _) ->
-        Printf.sprintf "%s: %s" name binding
-    | None ->
-    match List.find new_rec_vars
-            ~f:(fun (rv, _) -> VariableName.equal v rv) with
-    | Some (_, init_expr) ->
-        Printf.sprintf "%s: %s" name init_expr
-    | None -> name)
+    let updated_binding =
+      List.find_map rec_var_updates
+        ~f:(fun (rv, binding, _, _) -> Option.some_if (VariableName.equal v rv) binding)
+    in
+    let init_expr =
+      List.find_map new_rec_vars
+        ~f:(fun (rv, expr) -> Option.some_if (VariableName.equal v rv) expr)
+    in
+    match updated_binding, init_expr with
+    | Some binding, _ -> Printf.sprintf "%s: %s" name binding
+    | None, Some expr  -> Printf.sprintf "%s: %s" name expr
+    | None, None       -> name)
 
 let generate_step_fn buffer g var_map rec_var_info =
   Buffer.add_string buffer
