@@ -6,14 +6,13 @@ open Message
 open Syntax
 open Rustefsm
 
-let generate_big_derive buffer =
-  Buffer.add_string buffer "#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n"
-
-let generate_small_derive buffer =
-  Buffer.add_string buffer "#[derive(Debug, Clone, PartialEq, Eq)]\n"
+let generate_derive buffer ~copy =
+  let copy_str = if copy then ", Copy" else "" in
+  Buffer.add_string buffer
+    (Printf.sprintf "#[derive(Debug, Clone%s, PartialEq, Eq)]\n" copy_str)
 
 let generate_state_enum buffer var_map g =
-  generate_small_derive buffer ;
+  generate_derive ~copy:false buffer ;
   Buffer.add_string buffer "enum State {\n" ;
   G.iter_vertex
     (fun state ->
@@ -34,17 +33,17 @@ let generate_state_enum buffer var_map g =
 
 let generate_labels buffer g =
   let labels = collect_labels g in
-  generate_big_derive buffer ;
+  generate_derive ~copy:true buffer ;
   Buffer.add_string buffer "pub enum Label {\n" ;
   Set.iter labels ~f:(fun label ->
       Buffer.add_string buffer ("    " ^ upper_camel_case label ^ ",\n") ) ;
   Buffer.add_string buffer "}\n"
 
 let generate_support_types buffer =
-  generate_big_derive buffer ;
+  generate_derive ~copy:true buffer ;
   Buffer.add_string buffer
     "pub enum Direction {\n    Send,\n    Recv,\n}\n\n" ;
-  generate_small_derive buffer ;
+  generate_derive ~copy:false buffer ;
   Buffer.add_string buffer
     "pub enum Value {\n\
     \    Int(i64),\n\
@@ -52,7 +51,7 @@ let generate_support_types buffer =
     \    String(String),\n\
     \    Unit,\n\
      }\n\n" ;
-  generate_small_derive buffer ;
+  generate_derive ~copy:false buffer ;
   Buffer.add_string buffer
     "pub struct Action {\n\
     \    dir: Direction,\n\
@@ -61,7 +60,7 @@ let generate_support_types buffer =
      }\n"
 
 let generate_monitor_struct buffer protocol_name =
-  generate_small_derive buffer ;
+  generate_derive ~copy:false buffer ;
   Buffer.add_string buffer
     (Printf.sprintf "pub struct %sMonitor {\n    state: State,\n}\n"
        protocol_name )
@@ -101,7 +100,8 @@ let generate_constructor buffer start var_map rec_var_info =
        \    }\n"
        (fmt_state_variant start inits) )
 
-(* Precondition: silent vars have been stripped by [rm_silent_var]. *)
+(* Precondition: silent vars have been stripped by [rm_silent_var]. Also:
+   rec_expr_updates and dst_rv_info are paired positionally *)
 let compute_rec_var_updates rannot dst_rv_info =
   let n_updates = List.length rannot.rec_expr_updates in
   let n_rec_vars = List.length dst_rv_info in
