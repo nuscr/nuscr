@@ -80,7 +80,6 @@ let rust_keywords =
     ; "while"
     ; "state"
     ; "action"
-    ; "self"
     ; "label"
     ; "dir" ]
 
