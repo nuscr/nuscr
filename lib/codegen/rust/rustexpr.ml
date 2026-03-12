@@ -4,11 +4,16 @@ open Syntax.Exprs
 open Message
 
 let rust_show_binop = function
-  | Add -> "+" | Minus -> "-"
-  | Eq -> "==" | Neq -> "!="
-  | Lt -> "<" | Gt -> ">"
-  | Leq -> "<=" | Geq -> ">="
-  | And -> "&&" | Or -> "||"
+  | Add -> "+"
+  | Minus -> "-"
+  | Eq -> "=="
+  | Neq -> "!="
+  | Lt -> "<"
+  | Gt -> ">"
+  | Leq -> "<="
+  | Geq -> ">="
+  | And -> "&&"
+  | Or -> "||"
 
 let rec rust_show_expr = function
   | Var v -> VariableName.user v
@@ -16,8 +21,8 @@ let rec rust_show_expr = function
   | Bool b -> if b then "true" else "false"
   | String s -> "\"" ^ s ^ "\""
   | Binop (op, l, r) ->
-      Printf.sprintf "(%s) %s (%s)"
-        (rust_show_expr l) (rust_show_binop op) (rust_show_expr r)
+      Printf.sprintf "(%s) %s (%s)" (rust_show_expr l) (rust_show_binop op)
+        (rust_show_expr r)
   | Unop (Neg, e) -> Printf.sprintf "-(%s)" (rust_show_expr e)
   | Unop (Not, e) -> Printf.sprintf "!(%s)" (rust_show_expr e)
   | Unop (StrLen, e) -> Printf.sprintf "(%s).len() as i64" (rust_show_expr e)
@@ -31,14 +36,48 @@ let rec rust_type_of_payload_type = function
   | Expr.PTAbstract n ->
       Err.unimpl ~here:[%here]
         (Printf.sprintf
-           "in Rust codegen use bool, int, string or unit, abstract payload type '%s'"
-           (PayloadTypeName.user n))
+           "in Rust codegen use bool, int, string or unit, abstract payload \
+            type '%s'"
+           (PayloadTypeName.user n) )
 
-let rust_keywords = Set.of_list (module String)
-  [ "as"; "break"; "const"; "continue"; "crate"; "else"; "enum"; "extern"
-  ; "false"; "fn"; "for"; "if"; "impl"; "in"; "let"; "loop"; "match"; "mod"
-  ; "move"; "mut"; "pub"; "ref"; "return"; "self"; "Self"; "static"; "struct"
-  ; "super"; "trait"; "true"; "type"; "unsafe"; "use"; "where"; "while" ]
+let rust_keywords =
+  Set.of_list
+    (module String)
+    [ "as"
+    ; "break"
+    ; "const"
+    ; "continue"
+    ; "crate"
+    ; "else"
+    ; "enum"
+    ; "extern"
+    ; "false"
+    ; "fn"
+    ; "for"
+    ; "if"
+    ; "impl"
+    ; "in"
+    ; "let"
+    ; "loop"
+    ; "match"
+    ; "mod"
+    ; "move"
+    ; "mut"
+    ; "pub"
+    ; "ref"
+    ; "return"
+    ; "self"
+    ; "Self"
+    ; "static"
+    ; "struct"
+    ; "super"
+    ; "trait"
+    ; "true"
+    ; "type"
+    ; "unsafe"
+    ; "use"
+    ; "where"
+    ; "while" ]
 
 let rust_validate_identifier v =
   if Set.mem rust_keywords (VariableName.user v) then
@@ -59,16 +98,17 @@ let rec rust_value_pattern_of_payload name_opt = function
   | Expr.PTAbstract n ->
       Err.unimpl ~here:[%here]
         (Printf.sprintf
-           "in Rust codegen use bool, int, string or unit, abstract payload type '%s'"
-           (PayloadTypeName.user n))
+           "in Rust codegen use bool, int, string or unit, abstract payload \
+            type '%s'"
+           (PayloadTypeName.user n) )
 
 let rust_payload_slice_pattern payloads =
   let patterns =
     List.filter_map payloads ~f:(function
       | PValue (name_opt, ty) ->
-          Option.iter name_opt ~f:rust_validate_identifier;
+          Option.iter name_opt ~f:rust_validate_identifier ;
           Some (rust_value_pattern_of_payload name_opt ty)
-      | PDelegate _ -> None)
+      | PDelegate _ -> None )
   in
   "[" ^ String.concat ~sep:", " patterns ^ "]"
 
@@ -77,8 +117,6 @@ let rust_payload_constraints payloads =
     List.filter_map payloads ~f:(function
       | PValue (Some _, Expr.PTRefined (_, _, pred)) ->
           Some (rust_show_expr pred)
-      | _ -> None)
+      | _ -> None )
   in
-  match preds with
-  | [] -> None
-  | _ -> Some (String.concat ~sep:" && " preds)
+  match preds with [] -> None | _ -> Some (String.concat ~sep:" && " preds)
