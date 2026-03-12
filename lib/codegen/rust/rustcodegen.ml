@@ -18,6 +18,15 @@ let append_var lst ((v, _) as entry) =
   if List.exists lst ~f:(fun (v_, _) -> VariableName.equal v v_) then lst
   else lst @ [entry]
 
+let rm_silent_var rec_var_info =
+  Map.map rec_var_info ~f:(fun data ->
+    List.map data ~f:(fun (is_silent, rv) ->
+      if is_silent then
+        Err.unimpl ~here:[%here]
+          (Printf.sprintf "Rust codegen for silent recursion variable '%s'"
+            (VariableName.user rv.rv_name))
+      else rv))
+
 (* Walk the EFSM graph from [start], accumulating rec vars and named payload
    vars along each path. Each state is visited at most once: when choice
    branches merge into a single state, session-type merging guarantees
@@ -29,7 +38,7 @@ let compute_var_map start g rec_var_info =
     | None ->
         let rec_vars =
           Option.value ~default:[] (Map.find rec_var_info curr_st)
-          |> List.map ~f:(fun (_, rv) -> (rv.rv_name, rv.rv_ty))
+          |> List.map ~f:(fun rv -> (rv.rv_name, rv.rv_ty))
         in
         let vars = List.fold ~f:append_var ~init:vars rec_vars in
         let acc = Map.set acc ~key:curr_st ~data:vars in
@@ -119,7 +128,7 @@ let generate_support_types buffer =
   \    payloads: Vec<Value>,\n\
    }\n"
 
-let generate_monitor buffer protocol_name =
+let generate_monitor_struct buffer protocol_name =
   generate_small_derive buffer;
   Buffer.add_string buffer
     (Printf.sprintf
@@ -142,7 +151,7 @@ let generate_constructor buffer start var_map rec_var_info =
   List.iter start_vars ~f:(fun (v, _) ->
     let is_rec_var =
       List.exists start_rv_info
-        ~f:(fun (_, rv) -> VariableName.equal v rv.rv_name)
+        ~f:(fun rv -> VariableName.equal v rv.rv_name)
     in
     if not is_rec_var then
       Err.violationf ~here:[%here]
@@ -150,8 +159,8 @@ let generate_constructor buffer start var_map rec_var_info =
         (VariableName.user v));
   let inits =
     List.map start_vars ~f:(fun (v, _) ->
-      let (_, rv) = List.find_exn start_rv_info
-        ~f:(fun (_, rv) -> VariableName.equal v rv.rv_name)
+      let rv = List.find_exn start_rv_info
+        ~f:(fun rv -> VariableName.equal v rv.rv_name)
       in
       Printf.sprintf "%s: %s"
         (VariableName.user v)
@@ -180,14 +189,14 @@ let compute_rec_var_updates rannot dst_rv_info =
     List.zip_exn rannot.rec_expr_updates
       (List.take dst_rv_info n_updates)
   in
-  List.map paired ~f:(fun (e, (_, rv)) ->
+  List.map paired ~f:(fun (e, rv) ->
     let binding = "new_" ^ VariableName.user rv.rv_name in
     (rv.rv_name, binding, e, rv.rv_ty))
 
 (* Rec vars at dst that are neither carried from src nor updated by the
    transition — these are newly entering scope and get their init expr. *)
 let find_new_rec_vars src_vars dst_rv_info rec_var_updates =
-  List.filter_map dst_rv_info ~f:(fun (_, rv) ->
+  List.filter_map dst_rv_info ~f:(fun rv ->
     let in_src = List.exists src_vars
       ~f:(fun (v, _) -> VariableName.equal v rv.rv_name) in
     let has_update = List.exists rec_var_updates
@@ -232,7 +241,7 @@ let generate_step_fn buffer g var_map rec_var_info =
         let rec_var_updates = compute_rec_var_updates rannot dst_rv_info in
         let new_rec_vars =
           find_new_rec_vars src_vars dst_rv_info rec_var_updates in
-        let field_inits =
+        let dst_field_inits =
           build_dst_field_inits dst_vars rec_var_updates new_rec_vars in
         let src_fields =
           List.map src_vars ~f:(fun (v, _) -> VariableName.user v) in
@@ -249,7 +258,7 @@ let generate_step_fn buffer g var_map rec_var_info =
           (Printf.sprintf
              "                match action.payloads.as_slice() {\n\
              \                    %s => {\n"
-             (Rustexpr.payload_slice_pattern m.payload));
+             (Rustexpr.rust_payload_slice_pattern m.payload));
 
         (* Clone payload bindings from slice refs to owned values *)
         let payload_vars = find_payload_vars m in
@@ -260,7 +269,7 @@ let generate_step_fn buffer g var_map rec_var_info =
                name name));
 
         (* Payload constraints *)
-        Option.iter (Rustexpr.payload_constraints m.payload) ~f:(fun c ->
+        Option.iter (Rustexpr.rust_payload_constraints m.payload) ~f:(fun c ->
           Buffer.add_string buffer
             (Printf.sprintf
                "                        if !(%s) { return false; }\n" c));
@@ -293,7 +302,7 @@ let generate_step_fn buffer g var_map rec_var_info =
              \                    }\n\
              \                    _ => false\n\
              \                },\n"
-             (fmt_state_variant dst field_inits))
+             (fmt_state_variant dst dst_field_inits))
     | Epsilon -> ()
   ) g;
   Buffer.add_string buffer
@@ -310,22 +319,18 @@ let generate_impl buffer start g protocol_name var_map rec_var_info =
 
 
 let gen_code (start, (g, rec_var_info)) ~protocol =
-  Map.iter rec_var_info ~f:(fun data ->
-    List.iter data ~f:(fun (is_silent, rv) ->
-      if is_silent then
-        Err.unimpl ~here:[%here]
-          (Printf.sprintf "Rust codegen for silent recursion variable '%s'"
-             (VariableName.user rv.rv_name))));
-  let buffer = Buffer.create 4096 in
-  let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
+  let rec_var_info = rm_silent_var rec_var_info in
   let var_map = compute_var_map start g rec_var_info in
+  let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
+
+  let buffer = Buffer.create 4096 in
   generate_state_enum buffer var_map g;
   Buffer.add_string buffer "\n";
   generate_labels buffer g;
   Buffer.add_string buffer "\n";
   generate_support_types buffer;
   Buffer.add_string buffer "\n";
-  generate_monitor buffer protocol_name;
+  generate_monitor_struct buffer protocol_name;
   Buffer.add_string buffer "\n";
   generate_impl buffer start g protocol_name var_map rec_var_info;
   Buffer.contents buffer
