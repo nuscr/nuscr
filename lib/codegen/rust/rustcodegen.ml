@@ -175,7 +175,7 @@ let generate_constructor buffer start var_map rec_var_info =
 
 
 (* Match rec_expr_updates positionally to the rec vars at the destination
-   state. Returns (rv_name, let_binding_name, update_expr, rv_ty) tuples.
+   state. Returns (rv_name, new_binding_name, update_expr, rv_ty) tuples.
    Silent vars have been rejected earlier, so all dst rec vars are non-silent
    and the update count must match. *)
 let compute_rec_var_updates rannot dst_rv_info =
@@ -230,21 +230,14 @@ let generate_step_fn buffer g var_map rec_var_info =
   G.iter_edges_e (fun (src, a, dst) ->
     match a with
     | SendA (_, m, rannot) | RecvA (_, m, rannot) ->
-        let dir = match a with
-          | SendA _ -> "Send" | RecvA _ -> "Recv" | Epsilon -> assert false
-        in
+        let dir = match a with SendA _ -> "Send" | RecvA _ -> "Recv" | Epsilon -> assert false in
         let src_vars = Map.find_exn var_map src in
         let dst_vars = Map.find_exn var_map dst in
-        let dst_rv_info =
-          Option.value ~default:[] (Map.find rec_var_info dst)
-        in
+        let dst_rv_info = Option.value ~default:[] (Map.find rec_var_info dst) in
         let rec_var_updates = compute_rec_var_updates rannot dst_rv_info in
-        let new_rec_vars =
-          find_new_rec_vars src_vars dst_rv_info rec_var_updates in
-        let dst_field_inits =
-          build_dst_field_inits dst_vars rec_var_updates new_rec_vars in
-        let src_fields =
-          List.map src_vars ~f:(fun (v, _) -> VariableName.user v) in
+        let new_rec_vars = find_new_rec_vars src_vars dst_rv_info rec_var_updates in
+        let dst_field_inits = build_dst_field_inits dst_vars rec_var_updates new_rec_vars in
+        let src_fields = List.map src_vars ~f:(fun (v, _) -> VariableName.user v) in
 
         (* State + direction + label *)
         Buffer.add_string buffer
