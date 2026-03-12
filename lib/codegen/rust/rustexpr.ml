@@ -31,8 +31,7 @@ let rec rust_type_of_payload_type = function
   | Expr.PTAbstract n ->
       Err.unimpl ~here:[%here]
         (Printf.sprintf
-           "abstract payload type '%s' is not supported in Rust codegen; \
-            use bool, int, string or unit"
+           "in Rust codegen use bool, int, string or unit, abstract payload type '%s'"
            (PayloadTypeName.user n))
 
 let rust_keywords = Set.of_list (module String)
@@ -41,11 +40,11 @@ let rust_keywords = Set.of_list (module String)
   ; "move"; "mut"; "pub"; "ref"; "return"; "self"; "Self"; "static"; "struct"
   ; "super"; "trait"; "true"; "type"; "unsafe"; "use"; "where"; "while" ]
 
-let validate_rust_ident v =
+let rust_validate_identifier v =
   if Set.mem rust_keywords (VariableName.user v) then
     Err.uerr (Err.RustKeywordConflict v)
 
-let rec rust_value_pattern name_opt = function
+let rec rust_value_pattern_of_payload name_opt = function
   | Expr.PTInt ->
       let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
       Printf.sprintf "Value::Int(%s)" b
@@ -56,25 +55,24 @@ let rec rust_value_pattern name_opt = function
       let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
       Printf.sprintf "Value::String(%s)" b
   | Expr.PTUnit -> "Value::Unit"
-  | Expr.PTRefined (_, t, _) -> rust_value_pattern name_opt t
+  | Expr.PTRefined (_, t, _) -> rust_value_pattern_of_payload name_opt t
   | Expr.PTAbstract n ->
       Err.unimpl ~here:[%here]
         (Printf.sprintf
-           "abstract payload type '%s' is not supported in Rust codegen; \
-            use bool, int, string or unit"
+           "in Rust codegen use bool, int, string or unit, abstract payload type '%s'"
            (PayloadTypeName.user n))
 
-let payload_slice_pattern payloads =
+let rust_payload_slice_pattern payloads =
   let patterns =
     List.filter_map payloads ~f:(function
       | PValue (name_opt, ty) ->
-          Option.iter name_opt ~f:validate_rust_ident;
-          Some (rust_value_pattern name_opt ty)
+          Option.iter name_opt ~f:rust_validate_identifier;
+          Some (rust_value_pattern_of_payload name_opt ty)
       | PDelegate _ -> None)
   in
   "[" ^ String.concat ~sep:", " patterns ^ "]"
 
-let payload_constraints payloads =
+let rust_payload_constraints payloads =
   let preds =
     List.filter_map payloads ~f:(function
       | PValue (Some _, Expr.PTRefined (_, _, pred)) ->
