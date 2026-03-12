@@ -38,11 +38,11 @@ Generate Rust monitor for Client
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct RunningsumMonitor {
+  pub struct RunningSumMonitor {
       state: State,
   }
   
-  impl RunningsumMonitor {
+  impl RunningSumMonitor {
       pub fn new() -> Self {
           Self { state: State::S0 { total: 0 } }
       }
@@ -134,11 +134,11 @@ Generate Rust monitor for Server
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct RunningsumMonitor {
+  pub struct RunningSumMonitor {
       state: State,
   }
   
-  impl RunningsumMonitor {
+  impl RunningSumMonitor {
       pub fn new() -> Self {
           Self { state: State::S0 { total: 0 } }
       }
