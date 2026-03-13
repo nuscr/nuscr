@@ -1,8 +1,6 @@
 Generate Rust monitor for Client
   $ nuscr --gencode-rust=C@RunningSum RunningSum.nuscr > C_monitor.rs
   $ cat C_monitor.rs
-  #![allow(unused_variables)]
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { total: i64 },
@@ -34,9 +32,9 @@ Generate Rust monitor for Client
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
-      dir: Direction,
-      label: Label,
-      payloads: Vec<Value>,
+      pub dir: Direction,
+      pub label: Label,
+      pub payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,8 +97,6 @@ Generate Rust monitor for Client
 Generate Rust monitor for Server
   $ nuscr --gencode-rust=S@RunningSum RunningSum.nuscr > S_monitor.rs
   $ cat S_monitor.rs
-  #![allow(unused_variables)]
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { total: i64 },
@@ -132,9 +128,9 @@ Generate Rust monitor for Server
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
-      dir: Direction,
-      label: Label,
-      payloads: Vec<Value>,
+      pub dir: Direction,
+      pub label: Label,
+      pub payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
