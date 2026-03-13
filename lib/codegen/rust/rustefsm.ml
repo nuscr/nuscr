@@ -1,8 +1,8 @@
 open! Base
-open Gtype
 open Names
-open Message
+open Gtype
 open Efsm
+open Message
 
 let upper_camel_case s = Stdlib.String.capitalize_ascii s
 
@@ -62,3 +62,62 @@ let collect_labels g =
     | Epsilon -> acc
   in
   G.fold_edges_e f g (Set.empty (module String))
+
+(* ── unit tests ─────────────────────────────────────────────────── *) 
+
+let g = G.add_vertex G.empty 0
+let action var_string = SendA (
+  RoleName.of_string "A",
+  {
+    label = LabelName.of_string "L" ;
+    payload = [PValue (Some (VariableName.of_string var_string), Expr.PTInt)]
+  },
+  {
+    silent_vars = [] ;  
+    rec_expr_updates = []
+  }
+)
+
+let print_var_map var_map = 
+  Map.iteri var_map ~f:(fun ~key:state ~data:vars ->
+    let vars = List.map vars ~f:(fun (var,_) ->
+      VariableName.user var) in
+    let vars = String.concat ~sep:"," vars in
+    Stdlib.Printf.printf "%d: [%s] " state vars)
+
+let%expect_test "Empty graph" = 
+  let start = 0 in
+  let rec_var_info = Map.empty (module Int) in
+
+  print_var_map @@ compute_var_map start g rec_var_info ;
+  [%expect {| 0: [] |}]
+
+let%expect_test "Single send with payload" =
+  let start = 0 in
+  let g = G.add_vertex g 1 in
+  let g = G.add_edge_e g @@ G.E.create 0 (action "x") 1 in
+  let rec_var_info = Map.empty (module Int) in
+  print_var_map @@ compute_var_map start g rec_var_info ;
+  [%expect {| 0: [] 1: [x] |}]
+
+
+let%expect_test "Chain send with payload" =
+  let start = 0 in
+  let g = G.add_vertex g 1 in
+  let g = G.add_vertex g 2 in
+  let g = G.add_vertex g 3 in
+  let g = G.add_edge_e g @@ G.E.create 0 (action "x") 1 in
+  let g = G.add_edge_e g @@ G.E.create 1 (action "y") 2 in
+  let g = G.add_edge_e g @@ G.E.create 2 (action "z") 3 in
+  let rec_var_info = Map.empty (module Int) in
+  print_var_map @@ compute_var_map start g rec_var_info ;
+  [%expect {| 0: [] 1: [x] 2: [x,y] 3: [x,y,z] |}]
+
+(* 
+│ 4. Rec vars at a state                                                                                                                                                 │
+│ 5. Rec vars + payload vars combined                                                                                                                                    │
+│ 6. Cycle (terminates)                                                                                                                                                  │
+│ 7. Duplicate var name (dedup)                                                                                                                                          │
+│ 8. Unnamed payload (filtered out)                                                                                                                                      │
+│ 9. Branching (both branches)     
+*)
