@@ -173,11 +173,10 @@ let generate_step_fn buffer g var_map rec_var_info =
           let dst_field_inits =
             build_dst_field_inits dst_vars rec_var_updates new_rec_vars
           in
-          (* This generates unused variables when they are not either:
-             1. Passed to next state
-             2. Free variable in rec_var_update
-             3. Free variable in payload_constraint
-             For now, I have added a warning supression *)
+          (* This generates unused variables when they are not either: 1.
+             Passed to next state 2. Free variable in rec_var_update 3. Free
+             variable in payload_constraint For now, I have added a warning
+             supression *)
           let src_fields =
             List.map src_vars ~f:(fun (v, _) -> VariableName.user v)
           in
