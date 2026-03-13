@@ -1,0 +1,6 @@
+(*# RefinementTypes #*)
+
+global protocol MultiPayload(role C, role S) {
+  req(a: int{a > 0}, b: int{b > 0 && b < a}) from C to S;
+  resp(d: int{d = a - b}) from S to C;
+}

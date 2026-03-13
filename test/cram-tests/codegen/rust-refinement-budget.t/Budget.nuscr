@@ -1,0 +1,14 @@
+(*# RefinementTypes #*)
+
+global protocol Budget(role C, role S) {
+  rec loop [budget<C, S>: (budget: int{budget >= 0}) = 1000] {
+    choice at C {
+      spend(amount: int{amount > 0 && amount <= budget}) from C to S;
+      ok() from S to C;
+      continue loop [budget - amount];
+    } or {
+      done() from C to S;
+      done() from S to C;
+    }
+  }
+}

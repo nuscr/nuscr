@@ -19,7 +19,7 @@ let rec rust_show_expr = function
   | Var v -> VariableName.user v
   | Int i -> Int.to_string i
   | Bool b -> if b then "true" else "false"
-  | String s -> "\"" ^ s ^ "\""
+  | String s -> "\"" ^ s ^ "\".to_string()"
   | Binop (op, l, r) ->
       Printf.sprintf "(%s) %s (%s)" (rust_show_expr l) (rust_show_binop op)
         (rust_show_expr r)

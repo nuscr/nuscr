@@ -65,7 +65,6 @@ let collect_labels g =
 
 (* ── unit tests ─────────────────────────────────────────────────── *)
 open Syntax
-
 let g = G.add_vertex G.empty 0
 
 let make_rec_var_info key names =
@@ -107,6 +106,7 @@ let%expect_test "Empty graph" =
   let rec_var_info = Map.empty (module Int) in
 
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [] |}]
 
 let%expect_test "Single send with payload" =
@@ -115,6 +115,7 @@ let%expect_test "Single send with payload" =
   let g = G.add_edge_e g @@ G.E.create 0 (action (Some "x")) 1 in
   let rec_var_info = Map.empty (module Int) in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [] 1: [x] |}]
 
 
@@ -128,6 +129,7 @@ let%expect_test "Chain send with payload" =
   let g = G.add_edge_e g @@ G.E.create 2 (action (Some "z")) 3 in
   let rec_var_info = Map.empty (module Int) in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [] 1: [x] 2: [x,y] 3: [x,y,z] |}]
 
 let%expect_test "Single send with payload with refined type" =
@@ -137,6 +139,7 @@ let%expect_test "Single send with payload with refined type" =
   let g = G.add_edge_e g @@ G.E.create 0 action 1 in
   let rec_var_info = Map.empty (module Int) in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [] 1: [x] |}]
 
 let%expect_test "Single send with rec var" =
@@ -145,6 +148,7 @@ let%expect_test "Single send with rec var" =
   let g = G.add_edge_e g @@ G.E.create 0 (action None) 1 in
   let rec_var_info = make_rec_var_info 0 ["r"] in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [r] 1: [r] |}]
 
 let%expect_test "Single send with rec var + payload var" =
@@ -153,6 +157,7 @@ let%expect_test "Single send with rec var + payload var" =
   let g = G.add_edge_e g @@ G.E.create 0 (action (Some "x")) 1 in
   let rec_var_info = make_rec_var_info 0 ["r"] in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [r] 1: [r,x] |}]
 
 (* The var_map does not contain "y" after the cycle, since 
@@ -164,6 +169,7 @@ let%expect_test "Cycle with rec var + payload var" =
   let g = G.add_edge_e g @@ G.E.create 1 (action (Some "y")) 0 in
   let rec_var_info = make_rec_var_info 0 ["r"] in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [r] 1: [r,x] |}]
 
 let%expect_test "Branch with rec var + payload var" =
@@ -174,6 +180,7 @@ let%expect_test "Branch with rec var + payload var" =
   let g = G.add_edge_e g @@ G.E.create 0 (action (Some "y")) 2 in
   let rec_var_info = make_rec_var_info 2 ["r"] in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [] 1: [x] 2: [y,r] |}]
 
 let%expect_test "Unreachable state with rec var + payload var" =
@@ -185,4 +192,5 @@ let%expect_test "Unreachable state with rec var + payload var" =
   let g = G.add_edge_e g @@ G.E.create 2 (action (Some "y")) 3 in
   let rec_var_info = make_rec_var_info 1 ["r"] in
   print_var_map @@ compute_var_map start g rec_var_info ;
+  [@warning "-40"];
   [%expect {| 0: [] 1: [x,r] |}]
