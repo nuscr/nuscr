@@ -81,13 +81,12 @@ let make_rec_var_info key names =
 (* refined = true only for var_string = Some "x" *)
 let action ?(refined = false) var_string =
   let ty =
-    match refined with
-    | true ->
-        Expr.PTRefined
-          ( VariableName.of_string "x"
-          , Expr.PTInt
-          , Binop (Gt, Var (VariableName.of_string "x"), Int 0) )
-    | _ -> Expr.PTInt
+    if refined then
+      Expr.PTRefined
+        ( VariableName.of_string "x"
+        , Expr.PTInt
+        , Binop (Gt, Var (VariableName.of_string "x"), Int 0) )
+    else Expr.PTInt
   in
   let payload =
     Option.fold var_string ~init:[] ~f:(fun _ s ->
