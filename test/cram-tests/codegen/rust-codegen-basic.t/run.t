@@ -1,6 +1,8 @@
 Generate Rust monitor for Client
   $ nuscr --gencode-rust=C@Adder Adder.nuscr > C_monitor.rs
   $ cat C_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0,
@@ -99,6 +101,8 @@ Generate Rust monitor for Client
 Generate Rust monitor for Server
   $ nuscr --gencode-rust=S@Adder Adder.nuscr > S_monitor.rs
   $ cat S_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0,

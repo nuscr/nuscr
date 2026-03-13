@@ -1,6 +1,8 @@
 Generate Rust monitor for Client (three-branch choice)
   $ nuscr --gencode-rust=C@ThreeWay ThreeWay.nuscr > C_monitor.rs
   $ cat C_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { n: i64 },
@@ -116,6 +118,8 @@ Generate Rust monitor for Client (three-branch choice)
 Generate Rust monitor for Server (three-branch choice)
   $ nuscr --gencode-rust=S@ThreeWay ThreeWay.nuscr > S_monitor.rs
   $ cat S_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { n: i64 },
@@ -230,38 +234,6 @@ Generate Rust monitor for Server (three-branch choice)
 
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
-  warning: unused variable: `x`
-    --> C_monitor.rs:79:29
-     |
-  79 |             (State::S3 { n, x }, Direction::Recv, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
-     |
-     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-  
-  warning: unused variable: `x`
-    --> C_monitor.rs:89:29
-     |
-  89 |             (State::S5 { n, x }, Direction::Recv, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
-  
-  warning: 2 warnings emitted
-  
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
-  warning: unused variable: `x`
-    --> S_monitor.rs:79:29
-     |
-  79 |             (State::S3 { n, x }, Direction::Send, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
-     |
-     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-  
-  warning: unused variable: `x`
-    --> S_monitor.rs:89:29
-     |
-  89 |             (State::S5 { n, x }, Direction::Send, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
-  
-  warning: 2 warnings emitted
-  
