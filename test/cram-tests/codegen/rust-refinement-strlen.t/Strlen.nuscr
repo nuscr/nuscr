@@ -1,0 +1,14 @@
+(*# RefinementTypes #*)
+
+global protocol Strlen(role C, role S) {
+  rec loop [token<C, S>: (token: string{len(token) >= 4}) = "init"] {
+    choice at C {
+      update(tok2: string{len(tok2) >= 4}) from C to S;
+      ack() from S to C;
+      continue loop [tok2];
+    } or {
+      quit() from C to S;
+      quit() from S to C;
+    }
+  }
+}

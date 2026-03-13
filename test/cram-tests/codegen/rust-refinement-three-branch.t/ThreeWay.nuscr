@@ -1,0 +1,18 @@
+(*# RefinementTypes #*)
+
+global protocol ThreeWay(role C, role S) {
+  rec loop [n<C, S>: (n: int{n >= 0}) = 0] {
+    choice at C {
+      low(x: int{x < 10}) from C to S;
+      ack() from S to C;
+      continue loop [n + 1];
+    } or {
+      mid(x: int{x >= 10 && x < 100}) from C to S;
+      ack() from S to C;
+      continue loop [n + 1];
+    } or {
+      bye() from C to S;
+      bye() from S to C;
+    }
+  }
+}
