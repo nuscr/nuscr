@@ -247,7 +247,6 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
   let var_map = compute_var_map start g rec_var_info in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
   let buffer = Buffer.create 4096 in
-  Buffer.add_string buffer "#![allow(unused_variables)]\n\n" ;
   generate_state_enum buffer var_map g ;
   Buffer.add_string buffer "\n" ;
   generate_labels buffer g ;
