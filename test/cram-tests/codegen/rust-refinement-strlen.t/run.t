@@ -1,8 +1,6 @@
 Generate Rust monitor for Client (strlen: string type + len(), documents codegen gap)
   $ nuscr --gencode-rust=C@Strlen Strlen.nuscr > C_monitor.rs
   $ cat C_monitor.rs
-  #![allow(unused_variables)]
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { token: String },
@@ -34,9 +32,9 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
-      dir: Direction,
-      label: Label,
-      payloads: Vec<Value>,
+      pub dir: Direction,
+      pub label: Label,
+      pub payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,8 +94,6 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
 Generate Rust monitor for Server (strlen: string type + len(), documents codegen gap)
   $ nuscr --gencode-rust=S@Strlen Strlen.nuscr > S_monitor.rs
   $ cat S_monitor.rs
-  #![allow(unused_variables)]
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { token: String },
@@ -129,9 +125,9 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
-      dir: Direction,
-      label: Label,
-      payloads: Vec<Value>,
+      pub dir: Direction,
+      pub label: Label,
+      pub payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
@@ -189,6 +185,26 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
+  warning: unused variable: `token`
+    --> C_monitor.rs:67:26
+     |
+  67 |             (State::S3 { token, tok2 }, Direction::Recv, Label::Ack) =>
+     |                          ^^^^^ help: try ignoring the field: `token: _`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: 1 warning emitted
+  
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
+  warning: unused variable: `token`
+    --> S_monitor.rs:67:26
+     |
+  67 |             (State::S3 { token, tok2 }, Direction::Send, Label::Ack) =>
+     |                          ^^^^^ help: try ignoring the field: `token: _`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: 1 warning emitted
+  

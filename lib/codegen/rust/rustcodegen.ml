@@ -54,9 +54,9 @@ let generate_support_types buffer =
   generate_derive ~copy:false buffer ;
   Buffer.add_string buffer
     "pub struct Action {\n\
-    \    dir: Direction,\n\
-    \    label: Label,\n\
-    \    payloads: Vec<Value>,\n\
+    \    pub dir: Direction,\n\
+    \    pub label: Label,\n\
+    \    pub payloads: Vec<Value>,\n\
      }\n"
 
 let generate_monitor_struct buffer protocol_name =

@@ -1,8 +1,6 @@
 Generate Rust monitor for Client (multi payload, cross-payload reference)
   $ nuscr --gencode-rust=C@MultiPayload MultiPayload.nuscr > C_monitor.rs
   $ cat C_monitor.rs
-  #![allow(unused_variables)]
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0,
@@ -32,9 +30,9 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
-      dir: Direction,
-      label: Label,
-      payloads: Vec<Value>,
+      pub dir: Direction,
+      pub label: Label,
+      pub payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,8 +77,6 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
 Generate Rust monitor for Server (nested arith, cross-payload reference)
   $ nuscr --gencode-rust=S@MultiPayload MultiPayload.nuscr > S_monitor.rs
   $ cat S_monitor.rs
-  #![allow(unused_variables)]
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0,
@@ -110,9 +106,9 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct Action {
-      dir: Direction,
-      label: Label,
-      payloads: Vec<Value>,
+      pub dir: Direction,
+      pub label: Label,
+      pub payloads: Vec<Value>,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
