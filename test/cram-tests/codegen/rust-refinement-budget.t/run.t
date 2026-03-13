@@ -1,6 +1,8 @@
 Generate Rust monitor for Client (budget: rec var in send guard, subtraction update)
   $ nuscr --gencode-rust=C@Budget Budget.nuscr > C_monitor.rs
   $ cat C_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { budget: i64 },
@@ -94,6 +96,8 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
 Generate Rust monitor for Server (budget: rec var in send guard, subtraction update)
   $ nuscr --gencode-rust=S@Budget Budget.nuscr > S_monitor.rs
   $ cat S_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { budget: i64 },

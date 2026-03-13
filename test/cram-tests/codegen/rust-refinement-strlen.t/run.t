@@ -1,6 +1,8 @@
 Generate Rust monitor for Client (strlen: string type + len(), documents codegen gap)
   $ nuscr --gencode-rust=C@Strlen Strlen.nuscr > C_monitor.rs
   $ cat C_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { token: String },
@@ -44,7 +46,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   
   impl StrlenMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 { token: "init" } }
+          Self { state: State::S0 { token: "init".to_string() } }
       }
   
       pub fn step(&mut self, action: &Action) -> bool {
@@ -94,6 +96,8 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
 Generate Rust monitor for Server (strlen: string type + len(), documents codegen gap)
   $ nuscr --gencode-rust=S@Strlen Strlen.nuscr > S_monitor.rs
   $ cat S_monitor.rs
+  #![allow(unused_variables)]
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum State {
       S0 { token: String },
@@ -137,7 +141,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   
   impl StrlenMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 { token: "init" } }
+          Self { state: State::S0 { token: "init".to_string() } }
       }
   
       pub fn step(&mut self, action: &Action) -> bool {
