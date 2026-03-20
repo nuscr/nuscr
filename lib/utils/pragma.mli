@@ -11,6 +11,7 @@ type t =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | GuardedUniqueness
 [@@deriving show]
 
 val pragma_of_string : string -> t
@@ -59,6 +60,12 @@ val validate_refinement_progress : unit -> bool
 (** Validate whether a refined global type satisfies progress semantically *)
 
 val set_validate_refinement_progress : bool -> unit
+(** Set validate_refinement_progress *)
+
+val guarded_uniqueness : unit -> bool
+(** Allow non-distinct labels in a choice *)
+
+val set_guarded_uniqueness : bool -> unit
 (** Set validate_refinement_progress *)
 
 val verbose : unit -> bool
