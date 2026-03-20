@@ -16,3 +16,10 @@ val typename_of_payload : payload -> PayloadTypeName.t
 val of_syntax_payload : Syntax.payloadt -> payload
 
 val of_syntax_message : Syntax.message -> message
+
+val extract_message_guard : message -> Expr.t option
+
+val guards_disjoint : payload list -> Syntax.expr -> Syntax.expr -> bool
+
+val split_guard :
+  Base.Set.M(VariableName).t -> Expr.t -> Expr.t option * Expr.t option
