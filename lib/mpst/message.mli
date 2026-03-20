@@ -17,6 +17,8 @@ val of_syntax_payload : Syntax.payloadt -> payload
 
 val of_syntax_message : Syntax.message -> message
 
+val payloads_compatible : payload list -> payload list -> bool
+
 val extract_message_guard : message -> Expr.t option
 
 val guards_disjoint : payload list -> Syntax.expr -> Syntax.expr -> bool
