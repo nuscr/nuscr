@@ -1,0 +1,9 @@
+(*# RefinementTypes, GuardedUniqueness #*)
+
+global protocol Dup(role A, role B) {
+  choice at A {
+    Msg(x: int{x >= 0}) from A to B;
+  } or {
+    Msg(x: int{x <= 0}) from A to B;
+  }
+}
