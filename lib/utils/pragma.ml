@@ -9,6 +9,7 @@ type t =
   | ReceiverValidateRefinements
   | ValidateRefinementSatisfiability
   | ValidateRefinementProgress
+  | GuardedUniqueness
 [@@deriving show]
 
 let pragma_of_string str : t =
@@ -21,6 +22,7 @@ let pragma_of_string str : t =
   | "ReceiverValidateRefinements" -> ReceiverValidateRefinements
   | "ValidateRefinementSatisfiability" -> ValidateRefinementSatisfiability
   | "ValidateRefinementProgress" -> ValidateRefinementProgress
+  | "GuardedUniqueness" -> GuardedUniqueness
   | prg -> Err.UnknownPragma prg |> Err.uerr
 
 type pragmas = (t * string option) list [@@deriving show]
@@ -33,6 +35,7 @@ type config =
   ; receiver_validate_refinements: bool
   ; validate_refinement_satisfiability: bool
   ; validate_refinement_progress: bool
+  ; guarded_uniquenss_enabled: bool
   ; verbose: bool }
 
 let default =
@@ -43,6 +46,7 @@ let default =
   ; receiver_validate_refinements= false
   ; validate_refinement_satisfiability= false
   ; validate_refinement_progress= false
+  ; guarded_uniquenss_enabled= false
   ; verbose= false }
 
 let config = ref default
@@ -84,6 +88,11 @@ let validate_refinement_progress () = !config.validate_refinement_progress
 let set_validate_refinement_progress validate_refinement_progress =
   config := {!config with validate_refinement_progress}
 
+let guarded_uniqueness () = !config.guarded_uniquenss_enabled
+
+let set_guarded_uniqueness guarded_uniquenss_enabled =
+  config := {!config with guarded_uniquenss_enabled}
+
 let verbose () = !config.verbose
 
 let set_verbose verbose = config := {!config with verbose}
@@ -115,6 +124,14 @@ let validate_config () =
       (Err.PragmaNotSet
          ( show RefinementTypes
          , "This is required by ValidateRefinementSatisfiabiltiy" ) ) ;
+  if
+    !config.guarded_uniquenss_enabled
+    && not !config.refinement_type_enabled
+  then
+    Err.uerr
+      (Err.PragmaNotSet
+         ( show RefinementTypes
+         , "This is required by GuardedUniqueness" ) ) ;
   if !config.refinement_type_enabled && !config.nested_protocol_enabled then
     Err.uerr
       (Err.IncompatibleFlag (show RefinementTypes, show NestedProtocols))
@@ -130,6 +147,7 @@ let load_from_pragmas pragmas =
     | ValidateRefinementSatisfiability, _ ->
         set_validate_refinement_satisfiability true
     | ValidateRefinementProgress, _ -> set_validate_refinement_progress true
+    | GuardedUniqueness, _ -> set_guarded_uniqueness true
     | ShowPragmas, _ | PrintUsage, _ -> ()
   in
   List.iter ~f:process_global_pragma pragmas ;
