@@ -66,7 +66,7 @@ val guarded_uniqueness : unit -> bool
 (** Allow non-distinct labels in a choice *)
 
 val set_guarded_uniqueness : bool -> unit
-(** Set validate_refinement_progress *)
+(** Set guarded_uniqueness_enabled *)
 
 val verbose : unit -> bool
 (** Whether to produce verbose outputs *)
