@@ -555,7 +555,7 @@ let rec project' env (projected_role : RoleName.t) =
             List.iter existing ~f:(fun prev_guard -> 
               match (prev_guard, guard) with
               | Some g1, Some g2 -> 
-                if Message.guards_disjoint m.payload g1 g2 then uerr (DuplicateLabel l)
+                if not (Message.guards_disjoint m.payload g1 g2) then uerr (DuplicateLabel l)
               | _ -> uerr (DuplicateLabel l)) ;
             aux (Map.add_multi acc ~key:l ~data:guard) rest
           | CallG (caller, protocol, roles, _) :: rest ->
