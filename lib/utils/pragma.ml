@@ -35,7 +35,7 @@ type config =
   ; receiver_validate_refinements: bool
   ; validate_refinement_satisfiability: bool
   ; validate_refinement_progress: bool
-  ; guarded_uniquenss_enabled: bool
+  ; guarded_uniqueness_enabled: bool
   ; verbose: bool }
 
 let default =
@@ -46,7 +46,7 @@ let default =
   ; receiver_validate_refinements= false
   ; validate_refinement_satisfiability= false
   ; validate_refinement_progress= false
-  ; guarded_uniquenss_enabled= false
+  ; guarded_uniqueness_enabled= false
   ; verbose= false }
 
 let config = ref default
@@ -88,10 +88,10 @@ let validate_refinement_progress () = !config.validate_refinement_progress
 let set_validate_refinement_progress validate_refinement_progress =
   config := {!config with validate_refinement_progress}
 
-let guarded_uniqueness () = !config.guarded_uniquenss_enabled
+let guarded_uniqueness () = !config.guarded_uniqueness_enabled
 
-let set_guarded_uniqueness guarded_uniquenss_enabled =
-  config := {!config with guarded_uniquenss_enabled}
+let set_guarded_uniqueness guarded_uniqueness_enabled =
+  config := {!config with guarded_uniqueness_enabled}
 
 let verbose () = !config.verbose
 
@@ -125,7 +125,7 @@ let validate_config () =
          ( show RefinementTypes
          , "This is required by ValidateRefinementSatisfiabiltiy" ) ) ;
   if
-    !config.guarded_uniquenss_enabled
+    !config.guarded_uniqueness_enabled
     && not !config.refinement_type_enabled
   then
     Err.uerr

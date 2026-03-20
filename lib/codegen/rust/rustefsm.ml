@@ -1,4 +1,4 @@
-[@@@warning "-40"]
+[@@@warning "-40-70"]
 open! Base
 open Names
 open Gtype
