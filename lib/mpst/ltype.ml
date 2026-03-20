@@ -545,7 +545,37 @@ let rec project' env (projected_role : RoleName.t) =
         in
         aux (Set.empty (module LabelName)) gtys
       in
-      check_distinct_prefix g_types ;
+      let check_guarded_prefix gtys =
+        let rec aux acc = function
+          | [] -> ()
+          | MessageG (m,_,_,_) :: rest -> 
+            let l = m.label in
+            let guard = Message.extract_message_guard m in
+            let existing = Map.find acc l |> Option.value ~default:[] in
+            List.iter existing ~f:(fun prev_guard -> 
+              match (prev_guard, guard) with
+              | Some g1, Some g2 -> 
+                if Message.guards_disjoint m.payload g1 g2 then uerr (DuplicateLabel l)
+              | _ -> uerr (DuplicateLabel l)) ;
+            aux (Map.add_multi acc ~key:l ~data:guard) rest
+          | CallG (caller, protocol, roles, _) :: rest ->
+              let l = call_label caller protocol roles in
+              if Map.mem acc l then uerr (DuplicateLabel l)
+              else aux acc rest
+          | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
+          | MuG (_, _, g) :: rest -> aux acc (g :: rest)
+          | TVarG (_, _, g) :: rest -> aux acc (Lazy.force g :: rest)
+          | _ ->
+              violation ~here:[%here]
+                "Normalised global type always has a message in choice \
+                 branches"
+        in
+        aux (Map.empty (module LabelName)) gtys
+      in
+      if Pragma.guarded_uniqueness () then 
+        check_guarded_prefix g_types 
+      else 
+        check_distinct_prefix g_types ;
       let possible_roles =
         List.fold
           ~f:(check_consistent_gchoice choice_r)
