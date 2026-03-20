@@ -88,6 +88,19 @@ let payload_bound_vars payloads =
       | PValue (Some v, _) -> Set.add acc v
       | _ -> acc )
 
+let payloads_compatible p1 p2 =
+  let compatible_field f1 f2 =
+    match (f1, f2) with
+    | PValue (n1, t1), PValue (n2, t2) ->
+        Option.equal VariableName.equal n1 n2
+        && Expr.equal_payload_type_basic t1 t2
+    | PDelegate (pn1, rn1), PDelegate (pn2, rn2) ->
+        ProtocolName.equal pn1 pn2 && RoleName.equal rn1 rn2
+    | _ -> false
+  in
+  List.length p1 = List.length p2
+  && List.for_all2_exn p1 p2 ~f:compatible_field
+
 let flatten_and expr =
   let rec aux = function
     | Syntax.Exprs.Binop (Syntax.Exprs.And, l, r) -> aux l @ aux r

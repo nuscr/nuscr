@@ -59,6 +59,9 @@ type payload_type =
           'x:ty\{e\}' where [e] is a predicate on [x]. *)
 [@@deriving sexp_of, eq, ord, show]
 
+val equal_payload_type_basic : payload_type -> payload_type -> bool
+(** Compare payload types ignoring refinements *)
+
 val payload_typename_of_payload_type : payload_type -> PayloadTypeName.t
 (** Extract [PayloadTypeName] from a [payload_type] *)
 

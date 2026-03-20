@@ -548,16 +548,18 @@ let rec project' env (projected_role : RoleName.t) =
       let check_guarded_prefix gtys =
         let rec aux acc = function
           | [] -> ()
-          | MessageG (m,_,_,_) :: rest -> 
+          | MessageG (m,_,_,_) :: rest ->
             let l = m.label in
-            let guard = Message.extract_message_guard m in
             let existing = Map.find acc l |> Option.value ~default:[] in
-            List.iter existing ~f:(fun prev_guard -> 
-              match (prev_guard, guard) with
-              | Some g1, Some g2 -> 
-                if not (Message.guards_disjoint m.payload g1 g2) then uerr (DuplicateLabel l)
-              | _ -> uerr (DuplicateLabel l)) ;
-            aux (Map.add_multi acc ~key:l ~data:guard) rest
+            List.iter existing ~f:(fun prev_m ->
+              if not (Message.payloads_compatible prev_m.payload m.payload) then
+                uerr (DuplicateLabel l)
+              else
+                match (Message.extract_message_guard prev_m, Message.extract_message_guard m) with
+                | Some g1, Some g2 ->
+                  if not (Message.guards_disjoint m.payload g1 g2) then uerr (DuplicateLabel l)
+                | _ -> uerr (DuplicateLabel l)) ;
+            aux (Map.add_multi acc ~key:l ~data:m) rest
           | CallG (caller, protocol, roles, _) :: rest ->
               let l = call_label caller protocol roles in
               if Map.mem acc l then uerr (DuplicateLabel l)
