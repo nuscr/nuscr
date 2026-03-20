@@ -133,9 +133,13 @@ let extract_message_guard {payload; _} =
   conjoin guards
 
 let guards_disjoint payloads g1 g2 =
+  let base_type = function
+    | Expr.PTRefined (_, t, _) -> t
+    | t -> t
+  in
   let env =
     List.fold payloads ~init:Expr.new_typing_env ~f:(fun env -> function
-      | PValue (Some v, ty) -> Expr.env_append env v ty
+      | PValue (Some v, ty) -> Expr.env_append env v (base_type ty)
       | _ -> env )
   in
   let script = Expr.encode_env env in
