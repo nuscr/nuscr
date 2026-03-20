@@ -35,6 +35,13 @@ type user_error =
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
   | RustKeywordConflict of VariableName.t
+  | GuardedChoiceError of LabelName.t * guard_error
+[@@deriving sexp_of]
+
+and guard_error =
+  | IncompatiblePayloads
+  | MissingGuard
+  | OverlappingGuards
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed
