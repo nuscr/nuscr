@@ -553,12 +553,13 @@ let rec project' env (projected_role : RoleName.t) =
             let existing = Map.find acc l |> Option.value ~default:[] in
             List.iter existing ~f:(fun prev_m ->
               if not (Message.payloads_compatible prev_m.payload m.payload) then
-                uerr (DuplicateLabel l)
+                uerr (GuardedChoiceError (l, IncompatiblePayloads))
               else
                 match (Message.extract_message_guard prev_m, Message.extract_message_guard m) with
                 | Some g1, Some g2 ->
-                  if not (Message.guards_disjoint m.payload g1 g2) then uerr (DuplicateLabel l)
-                | _ -> uerr (DuplicateLabel l)) ;
+                  if not (Message.guards_disjoint m.payload g1 g2) then
+                    uerr (GuardedChoiceError (l, OverlappingGuards))
+                | _ -> uerr (GuardedChoiceError (l, MissingGuard))) ;
             aux (Map.add_multi acc ~key:l ~data:m) rest
           | CallG (caller, protocol, roles, _) :: rest ->
               let l = call_label caller protocol roles in
