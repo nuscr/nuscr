@@ -51,7 +51,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0 { budget }, Direction::Send, Label::Spend) =>
                   match action.payloads.as_slice() {
                       [Value::Int(amount)] => {
@@ -147,7 +147,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0 { budget }, Direction::Recv, Label::Spend) =>
                   match action.payloads.as_slice() {
                       [Value::Int(amount)] => {

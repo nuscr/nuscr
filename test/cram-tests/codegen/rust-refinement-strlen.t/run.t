@@ -51,7 +51,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0 { token }, Direction::Send, Label::Update) =>
                   match action.payloads.as_slice() {
                       [Value::String(tok2)] => {
@@ -147,7 +147,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0 { token }, Direction::Recv, Label::Update) =>
                   match action.payloads.as_slice() {
                       [Value::String(tok2)] => {
