@@ -2,6 +2,7 @@ Generate Rust monitor for Client
   $ nuscr --gencode-rust=C@RunningSum RunningSum.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
@@ -50,7 +51,6 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { total }, Direction::Send, Label::Add) =>
                   match action.payloads.as_slice() {
@@ -61,7 +61,7 @@ Generate Rust monitor for Client
                           self.state = State::S3 { total, x, y };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { total }, Direction::Send, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -69,7 +69,7 @@ Generate Rust monitor for Client
                           self.state = State::S5 { total };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { total, x, y }, Direction::Recv, Label::Sum) =>
                   match action.payloads.as_slice() {
@@ -81,7 +81,7 @@ Generate Rust monitor for Client
                           self.state = State::S0 { total: new_total };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { total }, Direction::Recv, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -89,9 +89,9 @@ Generate Rust monitor for Client
                           self.state = State::S6 { total };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }
@@ -101,6 +101,7 @@ Generate Rust monitor for Server
   $ nuscr --gencode-rust=S@RunningSum RunningSum.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
@@ -149,7 +150,6 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { total }, Direction::Recv, Label::Add) =>
                   match action.payloads.as_slice() {
@@ -160,7 +160,7 @@ Generate Rust monitor for Server
                           self.state = State::S3 { total, x, y };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { total }, Direction::Recv, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -168,7 +168,7 @@ Generate Rust monitor for Server
                           self.state = State::S5 { total };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { total, x, y }, Direction::Send, Label::Sum) =>
                   match action.payloads.as_slice() {
@@ -180,7 +180,7 @@ Generate Rust monitor for Server
                           self.state = State::S0 { total: new_total };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { total }, Direction::Send, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -188,9 +188,9 @@ Generate Rust monitor for Server
                           self.state = State::S6 { total };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }

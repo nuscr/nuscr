@@ -2,6 +2,7 @@ Generate Rust monitor for Client (three-branch choice)
   $ nuscr --gencode-rust=C@ThreeWay ThreeWay.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { n: i64 },
       S3 { n: i64, x: i64 },
@@ -52,7 +53,6 @@ Generate Rust monitor for Client (three-branch choice)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { n }, Direction::Send, Label::Low) =>
                   match action.payloads.as_slice() {
@@ -62,7 +62,7 @@ Generate Rust monitor for Client (three-branch choice)
                           self.state = State::S3 { n, x };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { n }, Direction::Send, Label::Mid) =>
                   match action.payloads.as_slice() {
@@ -72,7 +72,7 @@ Generate Rust monitor for Client (three-branch choice)
                           self.state = State::S5 { n, x };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { n }, Direction::Send, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -80,7 +80,7 @@ Generate Rust monitor for Client (three-branch choice)
                           self.state = State::S7 { n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { n, x }, Direction::Recv, Label::Ack) =>
                   match action.payloads.as_slice() {
@@ -90,7 +90,7 @@ Generate Rust monitor for Client (three-branch choice)
                           self.state = State::S0 { n: new_n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { n, x }, Direction::Recv, Label::Ack) =>
                   match action.payloads.as_slice() {
@@ -100,7 +100,7 @@ Generate Rust monitor for Client (three-branch choice)
                           self.state = State::S0 { n: new_n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S7 { n }, Direction::Recv, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -108,9 +108,9 @@ Generate Rust monitor for Client (three-branch choice)
                           self.state = State::S8 { n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }
@@ -120,6 +120,7 @@ Generate Rust monitor for Server (three-branch choice)
   $ nuscr --gencode-rust=S@ThreeWay ThreeWay.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { n: i64 },
       S3 { n: i64, x: i64 },
@@ -170,7 +171,6 @@ Generate Rust monitor for Server (three-branch choice)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { n }, Direction::Recv, Label::Low) =>
                   match action.payloads.as_slice() {
@@ -180,7 +180,7 @@ Generate Rust monitor for Server (three-branch choice)
                           self.state = State::S3 { n, x };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { n }, Direction::Recv, Label::Mid) =>
                   match action.payloads.as_slice() {
@@ -190,7 +190,7 @@ Generate Rust monitor for Server (three-branch choice)
                           self.state = State::S5 { n, x };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { n }, Direction::Recv, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -198,7 +198,7 @@ Generate Rust monitor for Server (three-branch choice)
                           self.state = State::S7 { n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { n, x }, Direction::Send, Label::Ack) =>
                   match action.payloads.as_slice() {
@@ -208,7 +208,7 @@ Generate Rust monitor for Server (three-branch choice)
                           self.state = State::S0 { n: new_n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { n, x }, Direction::Send, Label::Ack) =>
                   match action.payloads.as_slice() {
@@ -218,7 +218,7 @@ Generate Rust monitor for Server (three-branch choice)
                           self.state = State::S0 { n: new_n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S7 { n }, Direction::Send, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -226,9 +226,9 @@ Generate Rust monitor for Server (three-branch choice)
                           self.state = State::S8 { n };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }

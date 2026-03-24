@@ -2,6 +2,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   $ nuscr --gencode-rust=C@Budget Budget.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { budget: i64 },
       S3 { budget: i64, amount: i64 },
@@ -50,7 +51,6 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { budget }, Direction::Send, Label::Spend) =>
                   match action.payloads.as_slice() {
@@ -60,7 +60,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                           self.state = State::S3 { budget, amount };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { budget }, Direction::Send, Label::Done) =>
                   match action.payloads.as_slice() {
@@ -68,7 +68,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                           self.state = State::S5 { budget };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { budget, amount }, Direction::Recv, Label::Ok) =>
                   match action.payloads.as_slice() {
@@ -78,7 +78,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                           self.state = State::S0 { budget: new_budget };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { budget }, Direction::Recv, Label::Done) =>
                   match action.payloads.as_slice() {
@@ -86,9 +86,9 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                           self.state = State::S6 { budget };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }
@@ -98,6 +98,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   $ nuscr --gencode-rust=S@Budget Budget.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { budget: i64 },
       S3 { budget: i64, amount: i64 },
@@ -146,7 +147,6 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { budget }, Direction::Recv, Label::Spend) =>
                   match action.payloads.as_slice() {
@@ -156,7 +156,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                           self.state = State::S3 { budget, amount };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { budget }, Direction::Recv, Label::Done) =>
                   match action.payloads.as_slice() {
@@ -164,7 +164,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                           self.state = State::S5 { budget };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { budget, amount }, Direction::Send, Label::Ok) =>
                   match action.payloads.as_slice() {
@@ -174,7 +174,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                           self.state = State::S0 { budget: new_budget };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { budget }, Direction::Send, Label::Done) =>
                   match action.payloads.as_slice() {
@@ -182,9 +182,9 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                           self.state = State::S6 { budget };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }

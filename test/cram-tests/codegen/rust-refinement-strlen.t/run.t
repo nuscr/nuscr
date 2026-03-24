@@ -2,6 +2,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   $ nuscr --gencode-rust=C@Strlen Strlen.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { token: String },
       S3 { token: String, tok2: String },
@@ -50,7 +51,6 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { token }, Direction::Send, Label::Update) =>
                   match action.payloads.as_slice() {
@@ -60,7 +60,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
                           self.state = State::S3 { token, tok2 };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { token }, Direction::Send, Label::Quit) =>
                   match action.payloads.as_slice() {
@@ -68,7 +68,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
                           self.state = State::S5 { token };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { token, tok2 }, Direction::Recv, Label::Ack) =>
                   match action.payloads.as_slice() {
@@ -78,7 +78,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
                           self.state = State::S0 { token: new_token };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { token }, Direction::Recv, Label::Quit) =>
                   match action.payloads.as_slice() {
@@ -86,9 +86,9 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
                           self.state = State::S6 { token };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }
@@ -98,6 +98,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   $ nuscr --gencode-rust=S@Strlen Strlen.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0 { token: String },
       S3 { token: String, tok2: String },
@@ -146,7 +147,6 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0 { token }, Direction::Recv, Label::Update) =>
                   match action.payloads.as_slice() {
@@ -156,7 +156,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
                           self.state = State::S3 { token, tok2 };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0 { token }, Direction::Recv, Label::Quit) =>
                   match action.payloads.as_slice() {
@@ -164,7 +164,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
                           self.state = State::S5 { token };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3 { token, tok2 }, Direction::Send, Label::Ack) =>
                   match action.payloads.as_slice() {
@@ -174,7 +174,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
                           self.state = State::S0 { token: new_token };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S5 { token }, Direction::Send, Label::Quit) =>
                   match action.payloads.as_slice() {
@@ -182,9 +182,9 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
                           self.state = State::S6 { token };
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }

@@ -2,6 +2,7 @@ Generate Rust monitor for Client
   $ nuscr --gencode-rust=C@Adder Adder.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0,
       S3,
@@ -51,7 +52,6 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0, Direction::Send, Label::Add) =>
                   match action.payloads.as_slice() {
@@ -59,7 +59,7 @@ Generate Rust monitor for Client
                           self.state = State::S3;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0, Direction::Send, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -67,7 +67,7 @@ Generate Rust monitor for Client
                           self.state = State::S6;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3, Direction::Send, Label::Add) =>
                   match action.payloads.as_slice() {
@@ -75,7 +75,7 @@ Generate Rust monitor for Client
                           self.state = State::S4;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S4, Direction::Recv, Label::Sum) =>
                   match action.payloads.as_slice() {
@@ -83,7 +83,7 @@ Generate Rust monitor for Client
                           self.state = State::S0;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S6, Direction::Recv, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -91,9 +91,9 @@ Generate Rust monitor for Client
                           self.state = State::S7;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }
@@ -103,6 +103,7 @@ Generate Rust monitor for Server
   $ nuscr --gencode-rust=S@Adder Adder.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
+  #[allow(dead_code)]
   enum State {
       S0,
       S3,
@@ -152,7 +153,6 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-  
                   (State::Error, _, _) => true,
               (State::S0, Direction::Recv, Label::Add) =>
                   match action.payloads.as_slice() {
@@ -160,7 +160,7 @@ Generate Rust monitor for Server
                           self.state = State::S3;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S0, Direction::Recv, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -168,7 +168,7 @@ Generate Rust monitor for Server
                           self.state = State::S6;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S3, Direction::Recv, Label::Add) =>
                   match action.payloads.as_slice() {
@@ -176,7 +176,7 @@ Generate Rust monitor for Server
                           self.state = State::S4;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S4, Direction::Send, Label::Sum) =>
                   match action.payloads.as_slice() {
@@ -184,7 +184,7 @@ Generate Rust monitor for Server
                           self.state = State::S0;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
               (State::S6, Direction::Send, Label::Bye) =>
                   match action.payloads.as_slice() {
@@ -192,9 +192,9 @@ Generate Rust monitor for Server
                           self.state = State::S7;
                           true
                       }
-                      _ => false
+                      _ => { self.state = State::Error; false }
                   },
-              _ => false
+              _ => { self.state = State::Error; false }
           }
       }
   }
@@ -202,34 +202,6 @@ Generate Rust monitor for Server
 
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
-  warning: variant `Error` is never constructed
-   --> C_monitor.rs:8:5
-    |
-  2 | enum State {
-    |      ----- variant in this enum
-  ...
-  8 |     Error,
-    |     ^^^^^
-    |
-    = note: `State` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
-    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-  
-  warning: 1 warning emitted
-  
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
-  warning: variant `Error` is never constructed
-   --> S_monitor.rs:8:5
-    |
-  2 | enum State {
-    |      ----- variant in this enum
-  ...
-  8 |     Error,
-    |     ^^^^^
-    |
-    = note: `State` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
-    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-  
-  warning: 1 warning emitted
-  
