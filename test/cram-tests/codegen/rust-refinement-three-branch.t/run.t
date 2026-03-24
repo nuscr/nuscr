@@ -12,104 +12,49 @@ Generate Rust monitor for Client (three-branch choice)
       Error,
   }
   
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Label {
-      Ack,
-      Bye,
-      Low,
-      Mid,
-  }
-  
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Direction {
-      Send,
-      Recv,
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub enum Value {
-      Int(i64),
-      Bool(bool),
-      String(String),
-      Unit,
-  }
+  pub struct ThreeWayMonitor { state: State }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Action {
-      pub dir: Direction,
-      pub label: Label,
-      pub payloads: Vec<Value>,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct ThreeWayMonitor {
-      state: State,
-  }
-  
-  impl ThreeWayMonitor {
-      pub fn new() -> Self {
+  impl Monitor for ThreeWayMonitor {
+      fn new() -> Self {
           Self { state: State::S0 { n: 0 } }
       }
   
-      pub fn step(&mut self, action: &Action) -> bool {
-          match (self.state.clone(), &action.dir, &action.label) {
-              (State::Error, _, _) => true,
-              (State::S0 { n }, Direction::Send, Label::Low) =>
-                  match action.payloads.as_slice() {
-                      [Value::Int(x)] => {
-                          let x = x.clone();
-                          if !((x) < (10)) { self.state = State::Error; return false; }
-                          self.state = State::S3 { n, x };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S0 { n }, Direction::Send, Label::Mid) =>
-                  match action.payloads.as_slice() {
-                      [Value::Int(x)] => {
-                          let x = x.clone();
-                          if !(((x) >= (10)) && ((x) < (100))) { self.state = State::Error; return false; }
-                          self.state = State::S5 { n, x };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S0 { n }, Direction::Send, Label::Bye) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          self.state = State::S7 { n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S3 { n, x }, Direction::Recv, Label::Ack) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
-                          self.state = State::S0 { n: new_n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S5 { n, x }, Direction::Recv, Label::Ack) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
-                          self.state = State::S0 { n: new_n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S7 { n }, Direction::Recv, Label::Bye) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          self.state = State::S8 { n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
+      fn accepts(&self, _action: &Action) -> bool { true }
+  
+      fn step(&mut self, action: &Action) -> bool {
+          match (&self.state, action) {
+              (State::Error, _) => true,
+              (State::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
+                  if !((x) < (10)) { self.state = State::Error; return false; }
+                  self.state = State::S3 { n, x };
+                  true
+              }
+              (State::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
+                  if !(((x) >= (10)) && ((x) < (100))) { self.state = State::Error; return false; }
+                  self.state = State::S5 { n, x };
+                  true
+              }
+              (State::S0 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+                  self.state = State::S7 { n };
+                  true
+              }
+              (State::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+                  let new_n = (n) + (1);
+                  if !((new_n) >= (0)) { self.state = State::Error; return false; }
+                  self.state = State::S0 { n: new_n };
+                  true
+              }
+              (State::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+                  let new_n = (n) + (1);
+                  if !((new_n) >= (0)) { self.state = State::Error; return false; }
+                  self.state = State::S0 { n: new_n };
+                  true
+              }
+              (State::S7 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+                  self.state = State::S8 { n };
+                  true
+              }
               _ => { self.state = State::Error; false }
           }
       }
@@ -130,104 +75,49 @@ Generate Rust monitor for Server (three-branch choice)
       Error,
   }
   
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Label {
-      Ack,
-      Bye,
-      Low,
-      Mid,
-  }
-  
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Direction {
-      Send,
-      Recv,
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub enum Value {
-      Int(i64),
-      Bool(bool),
-      String(String),
-      Unit,
-  }
+  pub struct ThreeWayMonitor { state: State }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Action {
-      pub dir: Direction,
-      pub label: Label,
-      pub payloads: Vec<Value>,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct ThreeWayMonitor {
-      state: State,
-  }
-  
-  impl ThreeWayMonitor {
-      pub fn new() -> Self {
+  impl Monitor for ThreeWayMonitor {
+      fn new() -> Self {
           Self { state: State::S0 { n: 0 } }
       }
   
-      pub fn step(&mut self, action: &Action) -> bool {
-          match (self.state.clone(), &action.dir, &action.label) {
-              (State::Error, _, _) => true,
-              (State::S0 { n }, Direction::Recv, Label::Low) =>
-                  match action.payloads.as_slice() {
-                      [Value::Int(x)] => {
-                          let x = x.clone();
-                          if !((x) < (10)) { self.state = State::Error; return false; }
-                          self.state = State::S3 { n, x };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S0 { n }, Direction::Recv, Label::Mid) =>
-                  match action.payloads.as_slice() {
-                      [Value::Int(x)] => {
-                          let x = x.clone();
-                          if !(((x) >= (10)) && ((x) < (100))) { self.state = State::Error; return false; }
-                          self.state = State::S5 { n, x };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S0 { n }, Direction::Recv, Label::Bye) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          self.state = State::S7 { n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S3 { n, x }, Direction::Send, Label::Ack) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
-                          self.state = State::S0 { n: new_n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S5 { n, x }, Direction::Send, Label::Ack) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
-                          self.state = State::S0 { n: new_n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
-              (State::S7 { n }, Direction::Send, Label::Bye) =>
-                  match action.payloads.as_slice() {
-                      [] => {
-                          self.state = State::S8 { n };
-                          true
-                      }
-                      _ => { self.state = State::Error; false }
-                  },
+      fn accepts(&self, _action: &Action) -> bool { true }
+  
+      fn step(&mut self, action: &Action) -> bool {
+          match (&self.state, action) {
+              (State::Error, _) => true,
+              (State::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
+                  if !((x) < (10)) { self.state = State::Error; return false; }
+                  self.state = State::S3 { n, x };
+                  true
+              }
+              (State::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
+                  if !(((x) >= (10)) && ((x) < (100))) { self.state = State::Error; return false; }
+                  self.state = State::S5 { n, x };
+                  true
+              }
+              (State::S0 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+                  self.state = State::S7 { n };
+                  true
+              }
+              (State::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
+                  let new_n = (n) + (1);
+                  if !((new_n) >= (0)) { self.state = State::Error; return false; }
+                  self.state = State::S0 { n: new_n };
+                  true
+              }
+              (State::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
+                  let new_n = (n) + (1);
+                  if !((new_n) >= (0)) { self.state = State::Error; return false; }
+                  self.state = State::S0 { n: new_n };
+                  true
+              }
+              (State::S7 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+                  self.state = State::S8 { n };
+                  true
+              }
               _ => { self.state = State::Error; false }
           }
       }
@@ -236,38 +126,252 @@ Generate Rust monitor for Server (three-branch choice)
 
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
-  warning: unused variable: `x`
-    --> C_monitor.rs:82:29
+  error[E0405]: cannot find trait `Monitor` in this scope
+    --> C_monitor.rs:15:6
      |
-  82 |             (State::S3 { n, x }, Direction::Recv, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
+  15 | impl Monitor for ThreeWayMonitor {
+     |      ^^^^^^^ not found in this scope
+  
+  error[E0425]: cannot find type `Action` in this scope
+     --> C_monitor.rs:20:33
+      |
+   20 |     fn accepts(&self, _action: &Action) -> bool { true }
+      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
+      |
+     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+      |
+  600 | pub enum Option<T> {
+      | ------------------ similarly named enum `Option` defined here
+  
+  error[E0425]: cannot find type `Action` in this scope
+     --> C_monitor.rs:22:33
+      |
+   22 |     fn step(&mut self, action: &Action) -> bool {
+      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
+      |
+     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+      |
+  600 | pub enum Option<T> {
+      | ------------------ similarly named enum `Option` defined here
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> C_monitor.rs:25:31
      |
-     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+  25 |             (State::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
   
-  warning: unused variable: `x`
-    --> C_monitor.rs:92:29
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> C_monitor.rs:25:50
      |
-  92 |             (State::S5 { n, x }, Direction::Recv, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
+  25 |             (State::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
   
-  warning: 2 warnings emitted
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> C_monitor.rs:30:31
+     |
+  30 |             (State::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
   
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> C_monitor.rs:30:50
+     |
+  30 |             (State::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> C_monitor.rs:35:31
+     |
+  35 |             (State::S0 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> C_monitor.rs:35:50
+     |
+  35 |             (State::S0 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> C_monitor.rs:39:34
+     |
+  39 |             (State::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+     |                                  ^^^^^^
+     |                                  |
+     |                                  use of undeclared type `Action`
+     |                                  help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> C_monitor.rs:39:53
+     |
+  39 |             (State::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+     |                                                     ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> C_monitor.rs:45:34
+     |
+  45 |             (State::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+     |                                  ^^^^^^
+     |                                  |
+     |                                  use of undeclared type `Action`
+     |                                  help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> C_monitor.rs:45:53
+     |
+  45 |             (State::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+     |                                                     ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> C_monitor.rs:51:31
+     |
+  51 |             (State::S7 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> C_monitor.rs:51:50
+     |
+  51 |             (State::S7 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error: aborting due to 15 previous errors
+  
+  Some errors have detailed explanations: E0405, E0425, E0433.
+  For more information about an error, try `rustc --explain E0405`.
+  [1]
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
-  warning: unused variable: `x`
-    --> S_monitor.rs:82:29
+  error[E0405]: cannot find trait `Monitor` in this scope
+    --> S_monitor.rs:15:6
      |
-  82 |             (State::S3 { n, x }, Direction::Send, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
+  15 | impl Monitor for ThreeWayMonitor {
+     |      ^^^^^^^ not found in this scope
+  
+  error[E0425]: cannot find type `Action` in this scope
+     --> S_monitor.rs:20:33
+      |
+   20 |     fn accepts(&self, _action: &Action) -> bool { true }
+      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
+      |
+     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+      |
+  600 | pub enum Option<T> {
+      | ------------------ similarly named enum `Option` defined here
+  
+  error[E0425]: cannot find type `Action` in this scope
+     --> S_monitor.rs:22:33
+      |
+   22 |     fn step(&mut self, action: &Action) -> bool {
+      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
+      |
+     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
+      |
+  600 | pub enum Option<T> {
+      | ------------------ similarly named enum `Option` defined here
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> S_monitor.rs:25:31
      |
-     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+  25 |             (State::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
   
-  warning: unused variable: `x`
-    --> S_monitor.rs:92:29
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> S_monitor.rs:25:50
      |
-  92 |             (State::S5 { n, x }, Direction::Send, Label::Ack) =>
-     |                             ^ help: try ignoring the field: `x: _`
+  25 |             (State::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
   
-  warning: 2 warnings emitted
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> S_monitor.rs:30:31
+     |
+  30 |             (State::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
   
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> S_monitor.rs:30:50
+     |
+  30 |             (State::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> S_monitor.rs:35:31
+     |
+  35 |             (State::S0 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> S_monitor.rs:35:50
+     |
+  35 |             (State::S0 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> S_monitor.rs:39:34
+     |
+  39 |             (State::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
+     |                                  ^^^^^^
+     |                                  |
+     |                                  use of undeclared type `Action`
+     |                                  help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> S_monitor.rs:39:53
+     |
+  39 |             (State::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
+     |                                                     ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> S_monitor.rs:45:34
+     |
+  45 |             (State::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
+     |                                  ^^^^^^
+     |                                  |
+     |                                  use of undeclared type `Action`
+     |                                  help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> S_monitor.rs:45:53
+     |
+  45 |             (State::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
+     |                                                     ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> S_monitor.rs:51:31
+     |
+  51 |             (State::S7 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+     |                               ^^^^^^
+     |                               |
+     |                               use of undeclared type `Action`
+     |                               help: an enum with a similar name exists: `Option`
+  
+  error[E0433]: failed to resolve: use of undeclared type `Direction`
+    --> S_monitor.rs:51:50
+     |
+  51 |             (State::S7 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+     |                                                  ^^^^^^^^^ use of undeclared type `Direction`
+  
+  error: aborting due to 15 previous errors
+  
+  Some errors have detailed explanations: E0405, E0425, E0433.
+  For more information about an error, try `rustc --explain E0405`.
+  [1]

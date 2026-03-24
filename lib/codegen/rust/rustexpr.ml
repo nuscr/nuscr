@@ -107,20 +107,25 @@ let rec rust_value_pattern_of_payload name_opt = function
             type '%s'"
            (PayloadTypeName.user n) )
 
-let rust_payload_slice_pattern payloads =
-  let patterns =
-    List.filter_map payloads ~f:(function
-      | PValue (name_opt, ty) ->
-          Option.iter name_opt ~f:rust_validate_identifier ;
-          Some (rust_value_pattern_of_payload name_opt ty)
+let rust_action_pattern dir label payload =
+  let field_bindings =
+    List.filter_map payload ~f:(function
+      | PValue (Some v, _) -> rust_validate_identifier v ; Some (VariableName.user v)
+      | PValue (None, _) -> None
       | PDelegate (protocol, role) ->
           Err.unimpl ~here:[%here]
             (Printf.sprintf
-               "in Rust codegen, delegation to another protocol'%s'@'%s'"
+               "in Rust codegen, delegation to another protocol '%s'@'%s'"
                (ProtocolName.user protocol)
                (RoleName.user role) ) )
   in
-  "[" ^ String.concat ~sep:", " patterns ^ "]"
+  let fields =
+    Printf.sprintf "dir: Direction::%s, %s" dir
+      ( match field_bindings with
+      | [] -> ".."
+      | _ -> String.concat ~sep:", " field_bindings ^ ", .." )
+  in
+  Printf.sprintf "Action::%s { %s }" label fields
 
 let rust_payload_constraints payloads =
   let preds =
