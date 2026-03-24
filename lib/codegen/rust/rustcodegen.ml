@@ -13,6 +13,7 @@ let generate_derive buffer ~copy =
 
 let generate_state_enum buffer var_map g =
   generate_derive ~copy:false buffer ;
+  Buffer.add_string buffer "#[allow(dead_code)]\n" ;
   Buffer.add_string buffer "enum State {\n" ;
   G.iter_vertex
     (fun state ->
@@ -151,7 +152,7 @@ let generate_step_fn buffer g var_map rec_var_info =
   Buffer.add_string buffer
     "\n\
     \    pub fn step(&mut self, action: &Action) -> bool {\n\
-    \        match (self.state.clone(), &action.dir, &action.label) {\n
+    \        match (self.state.clone(), &action.dir, &action.label) {
     \            (State::Error, _, _) => true,\n" ;
   G.iter_edges_e
     (fun (src, a, dst) ->
@@ -230,12 +231,12 @@ let generate_step_fn buffer g var_map rec_var_info =
                "                        self.state = State::%s;\n\
                \                        true\n\
                \                    }\n\
-               \                    _ => false\n\
+               \                    _ => self.state = State::Error; false\n\
                \                },\n"
                (fmt_state_variant dst dst_field_inits) )
       | Epsilon -> () )
     g ;
-  Buffer.add_string buffer "            _ => false\n        }\n    }\n"
+  Buffer.add_string buffer "            _ => self.state = State::Error; false\n        }\n    }\n"
 
 let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer
