@@ -8,6 +8,7 @@ Generate Rust monitor for Client (three-branch choice)
       S5 { n: i64, x: i64 },
       S7 { n: i64 },
       S8 { n: i64 },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,11 +52,13 @@ Generate Rust monitor for Client (three-branch choice)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { n }, Direction::Send, Label::Low) =>
                   match action.payloads.as_slice() {
                       [Value::Int(x)] => {
                           let x = x.clone();
-                          if !((x) < (10)) { return false; }
+                          if !((x) < (10)) { self.state = State::Error; return false; }
                           self.state = State::S3 { n, x };
                           true
                       }
@@ -65,7 +68,7 @@ Generate Rust monitor for Client (three-branch choice)
                   match action.payloads.as_slice() {
                       [Value::Int(x)] => {
                           let x = x.clone();
-                          if !(((x) >= (10)) && ((x) < (100))) { return false; }
+                          if !(((x) >= (10)) && ((x) < (100))) { self.state = State::Error; return false; }
                           self.state = State::S5 { n, x };
                           true
                       }
@@ -83,7 +86,7 @@ Generate Rust monitor for Client (three-branch choice)
                   match action.payloads.as_slice() {
                       [] => {
                           let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { return false; }
+                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
                           self.state = State::S0 { n: new_n };
                           true
                       }
@@ -93,7 +96,7 @@ Generate Rust monitor for Client (three-branch choice)
                   match action.payloads.as_slice() {
                       [] => {
                           let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { return false; }
+                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
                           self.state = State::S0 { n: new_n };
                           true
                       }
@@ -123,6 +126,7 @@ Generate Rust monitor for Server (three-branch choice)
       S5 { n: i64, x: i64 },
       S7 { n: i64 },
       S8 { n: i64 },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -166,11 +170,13 @@ Generate Rust monitor for Server (three-branch choice)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { n }, Direction::Recv, Label::Low) =>
                   match action.payloads.as_slice() {
                       [Value::Int(x)] => {
                           let x = x.clone();
-                          if !((x) < (10)) { return false; }
+                          if !((x) < (10)) { self.state = State::Error; return false; }
                           self.state = State::S3 { n, x };
                           true
                       }
@@ -180,7 +186,7 @@ Generate Rust monitor for Server (three-branch choice)
                   match action.payloads.as_slice() {
                       [Value::Int(x)] => {
                           let x = x.clone();
-                          if !(((x) >= (10)) && ((x) < (100))) { return false; }
+                          if !(((x) >= (10)) && ((x) < (100))) { self.state = State::Error; return false; }
                           self.state = State::S5 { n, x };
                           true
                       }
@@ -198,7 +204,7 @@ Generate Rust monitor for Server (three-branch choice)
                   match action.payloads.as_slice() {
                       [] => {
                           let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { return false; }
+                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
                           self.state = State::S0 { n: new_n };
                           true
                       }
@@ -208,7 +214,7 @@ Generate Rust monitor for Server (three-branch choice)
                   match action.payloads.as_slice() {
                       [] => {
                           let new_n = (n) + (1);
-                          if !((new_n) >= (0)) { return false; }
+                          if !((new_n) >= (0)) { self.state = State::Error; return false; }
                           self.state = State::S0 { n: new_n };
                           true
                       }
@@ -231,17 +237,17 @@ Generate Rust monitor for Server (three-branch choice)
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
   warning: unused variable: `x`
-    --> C_monitor.rs:79:29
+    --> C_monitor.rs:82:29
      |
-  79 |             (State::S3 { n, x }, Direction::Recv, Label::Ack) =>
+  82 |             (State::S3 { n, x }, Direction::Recv, Label::Ack) =>
      |                             ^ help: try ignoring the field: `x: _`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
   
   warning: unused variable: `x`
-    --> C_monitor.rs:89:29
+    --> C_monitor.rs:92:29
      |
-  89 |             (State::S5 { n, x }, Direction::Recv, Label::Ack) =>
+  92 |             (State::S5 { n, x }, Direction::Recv, Label::Ack) =>
      |                             ^ help: try ignoring the field: `x: _`
   
   warning: 2 warnings emitted
@@ -250,17 +256,17 @@ Compile Client monitor
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
   warning: unused variable: `x`
-    --> S_monitor.rs:79:29
+    --> S_monitor.rs:82:29
      |
-  79 |             (State::S3 { n, x }, Direction::Send, Label::Ack) =>
+  82 |             (State::S3 { n, x }, Direction::Send, Label::Ack) =>
      |                             ^ help: try ignoring the field: `x: _`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
   
   warning: unused variable: `x`
-    --> S_monitor.rs:89:29
+    --> S_monitor.rs:92:29
      |
-  89 |             (State::S5 { n, x }, Direction::Send, Label::Ack) =>
+  92 |             (State::S5 { n, x }, Direction::Send, Label::Ack) =>
      |                             ^ help: try ignoring the field: `x: _`
   
   warning: 2 warnings emitted

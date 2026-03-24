@@ -7,6 +7,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
       S3 { token: String, tok2: String },
       S5 { token: String },
       S6 { token: String },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,11 +50,13 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { token }, Direction::Send, Label::Update) =>
                   match action.payloads.as_slice() {
                       [Value::String(tok2)] => {
                           let tok2 = tok2.clone();
-                          if !(((tok2).len() as i64) >= (4)) { return false; }
+                          if !(((tok2).len() as i64) >= (4)) { self.state = State::Error; return false; }
                           self.state = State::S3 { token, tok2 };
                           true
                       }
@@ -71,7 +74,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
                   match action.payloads.as_slice() {
                       [] => {
                           let new_token = tok2;
-                          if !(((new_token).len() as i64) >= (4)) { return false; }
+                          if !(((new_token).len() as i64) >= (4)) { self.state = State::Error; return false; }
                           self.state = State::S0 { token: new_token };
                           true
                       }
@@ -100,6 +103,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
       S3 { token: String, tok2: String },
       S5 { token: String },
       S6 { token: String },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -142,11 +146,13 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { token }, Direction::Recv, Label::Update) =>
                   match action.payloads.as_slice() {
                       [Value::String(tok2)] => {
                           let tok2 = tok2.clone();
-                          if !(((tok2).len() as i64) >= (4)) { return false; }
+                          if !(((tok2).len() as i64) >= (4)) { self.state = State::Error; return false; }
                           self.state = State::S3 { token, tok2 };
                           true
                       }
@@ -164,7 +170,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
                   match action.payloads.as_slice() {
                       [] => {
                           let new_token = tok2;
-                          if !(((new_token).len() as i64) >= (4)) { return false; }
+                          if !(((new_token).len() as i64) >= (4)) { self.state = State::Error; return false; }
                           self.state = State::S0 { token: new_token };
                           true
                       }
@@ -186,9 +192,9 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
   warning: unused variable: `token`
-    --> C_monitor.rs:67:26
+    --> C_monitor.rs:70:26
      |
-  67 |             (State::S3 { token, tok2 }, Direction::Recv, Label::Ack) =>
+  70 |             (State::S3 { token, tok2 }, Direction::Recv, Label::Ack) =>
      |                          ^^^^^ help: try ignoring the field: `token: _`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -199,9 +205,9 @@ Compile Client monitor
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
   warning: unused variable: `token`
-    --> S_monitor.rs:67:26
+    --> S_monitor.rs:70:26
      |
-  67 |             (State::S3 { token, tok2 }, Direction::Send, Label::Ack) =>
+  70 |             (State::S3 { token, tok2 }, Direction::Send, Label::Ack) =>
      |                          ^^^^^ help: try ignoring the field: `token: _`
      |
      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default

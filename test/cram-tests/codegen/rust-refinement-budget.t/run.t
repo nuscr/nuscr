@@ -7,6 +7,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
       S3 { budget: i64, amount: i64 },
       S5 { budget: i64 },
       S6 { budget: i64 },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,11 +50,13 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { budget }, Direction::Send, Label::Spend) =>
                   match action.payloads.as_slice() {
                       [Value::Int(amount)] => {
                           let amount = amount.clone();
-                          if !(((amount) > (0)) && ((amount) <= (budget))) { return false; }
+                          if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = State::Error; return false; }
                           self.state = State::S3 { budget, amount };
                           true
                       }
@@ -71,7 +74,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                   match action.payloads.as_slice() {
                       [] => {
                           let new_budget = (budget) - (amount);
-                          if !((new_budget) >= (0)) { return false; }
+                          if !((new_budget) >= (0)) { self.state = State::Error; return false; }
                           self.state = State::S0 { budget: new_budget };
                           true
                       }
@@ -100,6 +103,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
       S3 { budget: i64, amount: i64 },
       S5 { budget: i64 },
       S6 { budget: i64 },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -142,11 +146,13 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { budget }, Direction::Recv, Label::Spend) =>
                   match action.payloads.as_slice() {
                       [Value::Int(amount)] => {
                           let amount = amount.clone();
-                          if !(((amount) > (0)) && ((amount) <= (budget))) { return false; }
+                          if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = State::Error; return false; }
                           self.state = State::S3 { budget, amount };
                           true
                       }
@@ -164,7 +170,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                   match action.payloads.as_slice() {
                       [] => {
                           let new_budget = (budget) - (amount);
-                          if !((new_budget) >= (0)) { return false; }
+                          if !((new_budget) >= (0)) { self.state = State::Error; return false; }
                           self.state = State::S0 { budget: new_budget };
                           true
                       }
