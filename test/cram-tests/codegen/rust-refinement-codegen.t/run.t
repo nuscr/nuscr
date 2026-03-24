@@ -7,6 +7,7 @@ Generate Rust monitor for Client
       S3 { total: i64, x: i64, y: i64 },
       S5 { total: i64 },
       S6 { total: i64 },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,12 +50,14 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { total }, Direction::Send, Label::Add) =>
                   match action.payloads.as_slice() {
                       [Value::Int(x), Value::Int(y)] => {
                           let x = x.clone();
                           let y = y.clone();
-                          if !((x) > (0) && (y) > (0)) { return false; }
+                          if !((x) > (0) && (y) > (0)) { self.state = State::Error; return false; }
                           self.state = State::S3 { total, x, y };
                           true
                       }
@@ -72,9 +75,9 @@ Generate Rust monitor for Client
                   match action.payloads.as_slice() {
                       [Value::Int(r)] => {
                           let r = r.clone();
-                          if !((r) == ((x) + (y))) { return false; }
+                          if !((r) == ((x) + (y))) { self.state = State::Error; return false; }
                           let new_total = (total) + (r);
-                          if !((new_total) < (100)) { return false; }
+                          if !((new_total) < (100)) { self.state = State::Error; return false; }
                           self.state = State::S0 { total: new_total };
                           true
                       }
@@ -103,6 +106,7 @@ Generate Rust monitor for Server
       S3 { total: i64, x: i64, y: i64 },
       S5 { total: i64 },
       S6 { total: i64 },
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -145,12 +149,14 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0 { total }, Direction::Recv, Label::Add) =>
                   match action.payloads.as_slice() {
                       [Value::Int(x), Value::Int(y)] => {
                           let x = x.clone();
                           let y = y.clone();
-                          if !((x) > (0) && (y) > (0)) { return false; }
+                          if !((x) > (0) && (y) > (0)) { self.state = State::Error; return false; }
                           self.state = State::S3 { total, x, y };
                           true
                       }
@@ -168,9 +174,9 @@ Generate Rust monitor for Server
                   match action.payloads.as_slice() {
                       [Value::Int(r)] => {
                           let r = r.clone();
-                          if !((r) == ((x) + (y))) { return false; }
+                          if !((r) == ((x) + (y))) { self.state = State::Error; return false; }
                           let new_total = (total) + (r);
-                          if !((new_total) < (100)) { return false; }
+                          if !((new_total) < (100)) { self.state = State::Error; return false; }
                           self.state = State::S0 { total: new_total };
                           true
                       }

@@ -29,6 +29,7 @@ let generate_state_enum buffer var_map g =
             (Printf.sprintf "    S%d { %s },\n" state
                (String.concat ~sep:", " fields) ) )
     g ;
+  Buffer.add_string buffer "    Error,\n";
   Buffer.add_string buffer "}\n"
 
 let generate_labels buffer g =
@@ -150,7 +151,8 @@ let generate_step_fn buffer g var_map rec_var_info =
   Buffer.add_string buffer
     "\n\
     \    pub fn step(&mut self, action: &Action) -> bool {\n\
-    \        match (self.state.clone(), &action.dir, &action.label) {\n" ;
+    \        match (self.state.clone(), &action.dir, &action.label) {\n
+    \            (State::Error, _, _) => true,\n" ;
   G.iter_edges_e
     (fun (src, a, dst) ->
       match a with
@@ -201,7 +203,7 @@ let generate_step_fn buffer g var_map rec_var_info =
             ~f:(fun c ->
               Buffer.add_string buffer
                 (Printf.sprintf
-                   "                        if !(%s) { return false; }\n" c ) ) ;
+                   "                        if !(%s) { self.state = State::Error; return false; }\n" c ) ) ;
           (* Rec var update let-bindings *)
           List.iter rec_var_updates ~f:(fun (_, binding, expr, _) ->
               Buffer.add_string buffer
@@ -219,7 +221,7 @@ let generate_step_fn buffer g var_map rec_var_info =
                   in
                   Buffer.add_string buffer
                     (Printf.sprintf
-                       "                        if !(%s) { return false; }\n"
+                       "                        if !(%s) { self.state = State::Error; return false; }\n"
                        (Rustexpr.rust_show_expr pred) )
               | _ -> () ) ;
           (* Transition to next state *)

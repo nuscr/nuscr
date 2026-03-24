@@ -8,6 +8,7 @@ Generate Rust monitor for Client
       S4,
       S6,
       S7,
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,6 +51,8 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0, Direction::Send, Label::Add) =>
                   match action.payloads.as_slice() {
                       [Value::Int(_)] => {
@@ -106,6 +109,7 @@ Generate Rust monitor for Server
       S4,
       S6,
       S7,
+      Error,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -148,6 +152,8 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
+  
+                  (State::Error, _, _) => true,
               (State::S0, Direction::Recv, Label::Add) =>
                   match action.payloads.as_slice() {
                       [Value::Int(_)] => {
@@ -196,6 +202,34 @@ Generate Rust monitor for Server
 
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
+  warning: variant `Error` is never constructed
+   --> C_monitor.rs:8:5
+    |
+  2 | enum State {
+    |      ----- variant in this enum
+  ...
+  8 |     Error,
+    |     ^^^^^
+    |
+    = note: `State` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: 1 warning emitted
+  
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
+  warning: variant `Error` is never constructed
+   --> S_monitor.rs:8:5
+    |
+  2 | enum State {
+    |      ----- variant in this enum
+  ...
+  8 |     Error,
+    |     ^^^^^
+    |
+    = note: `State` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: 1 warning emitted
+  
