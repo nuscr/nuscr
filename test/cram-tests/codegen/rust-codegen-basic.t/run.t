@@ -52,7 +52,7 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0, Direction::Send, Label::Add) =>
                   match action.payloads.as_slice() {
                       [Value::Int(_)] => {
@@ -153,7 +153,7 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0, Direction::Recv, Label::Add) =>
                   match action.payloads.as_slice() {
                       [Value::Int(_)] => {

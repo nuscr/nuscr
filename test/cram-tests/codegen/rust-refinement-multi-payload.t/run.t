@@ -49,7 +49,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0, Direction::Send, Label::Req) =>
                   match action.payloads.as_slice() {
                       [Value::Int(a), Value::Int(b)] => {
@@ -128,7 +128,7 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (self.state.clone(), &action.dir, &action.label) {
-                  (State::Error, _, _) => true,
+              (State::Error, _, _) => true,
               (State::S0, Direction::Recv, Label::Req) =>
                   match action.payloads.as_slice() {
                       [Value::Int(a), Value::Int(b)] => {
