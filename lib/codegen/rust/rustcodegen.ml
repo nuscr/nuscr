@@ -25,7 +25,7 @@ let generate_state_enum buffer var_map g =
           let fields =
             List.map vars ~f:(fun (v, ty) ->
                 Printf.sprintf "%s: %s" (VariableName.user v)
-                  (Rustexpr.rust_type_of_payload_type ty) )
+                  (rust_type_of_payload_type ty) )
           in
           Buffer.add_string buffer
             (Printf.sprintf "    S%d { %s },\n" state
@@ -66,7 +66,7 @@ let generate_constructor buffer start var_map rec_var_info =
               VariableName.equal v rv.rv_name )
         in
         Printf.sprintf "%s: %s" (VariableName.user v)
-          (Rustexpr.rust_show_expr rv.rv_init_expr) )
+          (rust_show_expr rv.rv_init_expr) )
   in
   Buffer.add_string buffer
     (Printf.sprintf
@@ -102,7 +102,7 @@ let find_new_rec_vars src_vars dst_rv_info rec_var_updates =
             VariableName.equal name rv.rv_name )
       in
       if (not in_src) && not has_update then
-        Some (rv.rv_name, Rustexpr.rust_show_expr rv.rv_init_expr)
+        Some (rv.rv_name, rust_show_expr rv.rv_init_expr)
       else None )
 
 let build_dst_field_inits dst_vars rec_var_updates new_rec_vars =
