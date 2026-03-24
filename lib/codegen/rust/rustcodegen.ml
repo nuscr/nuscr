@@ -152,7 +152,7 @@ let generate_step_fn buffer g var_map rec_var_info =
   Buffer.add_string buffer
     "\n\
     \    pub fn step(&mut self, action: &Action) -> bool {\n\
-    \        match (self.state.clone(), &action.dir, &action.label) {
+    \        match (self.state.clone(), &action.dir, &action.label) {\n\
     \            (State::Error, _, _) => true,\n" ;
   G.iter_edges_e
     (fun (src, a, dst) ->
