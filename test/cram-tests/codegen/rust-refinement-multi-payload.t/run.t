@@ -1,6 +1,23 @@
 Generate Rust monitor for Client (multi payload, cross-payload reference)
   $ nuscr --gencode-rust-test=C@MultiPayload MultiPayload.nuscr > C_monitor.rs
   $ cat C_monitor.rs
+  pub enum Direction {
+      Recv,
+      Send,
+  }
+  
+  #[allow(dead_code)]
+  pub enum Action {
+      Req { dir: Direction, a: i64, b: i64 },
+      Resp { dir: Direction, d: i64 },
+  }
+  
+  pub trait Monitor {
+      fn new() -> Self;
+      fn accepts(&self, action: &Action) -> bool;
+      fn step(&mut self, action: &Action) -> bool;
+  }
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -13,6 +30,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct MultiPayloadMonitor { state: State }
   
+  #[allow(unused_variables)]
   impl Monitor for MultiPayloadMonitor {
       fn new() -> Self {
           Self { state: State::S0 }
@@ -24,11 +42,16 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
+                  let a = a.clone();
+                  let b = b.clone();
                   if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = State::Error; return false; }
                   self.state = State::S1 { a, b };
                   true
               }
               (State::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
+                  let a = a.clone();
+                  let b = b.clone();
+                  let d = d.clone();
                   if !((d) == ((a) - (b))) { self.state = State::Error; return false; }
                   self.state = State::S2 { a, b, d };
                   true
@@ -42,6 +65,23 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
 Generate Rust monitor for Server (nested arith, cross-payload reference)
   $ nuscr --gencode-rust-test=S@MultiPayload MultiPayload.nuscr > S_monitor.rs
   $ cat S_monitor.rs
+  pub enum Direction {
+      Recv,
+      Send,
+  }
+  
+  #[allow(dead_code)]
+  pub enum Action {
+      Req { dir: Direction, a: i64, b: i64 },
+      Resp { dir: Direction, d: i64 },
+  }
+  
+  pub trait Monitor {
+      fn new() -> Self;
+      fn accepts(&self, action: &Action) -> bool;
+      fn step(&mut self, action: &Action) -> bool;
+  }
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -54,6 +94,7 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct MultiPayloadMonitor { state: State }
   
+  #[allow(unused_variables)]
   impl Monitor for MultiPayloadMonitor {
       fn new() -> Self {
           Self { state: State::S0 }
@@ -65,11 +106,16 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
+                  let a = a.clone();
+                  let b = b.clone();
                   if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = State::Error; return false; }
                   self.state = State::S1 { a, b };
                   true
               }
               (State::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
+                  let a = a.clone();
+                  let b = b.clone();
+                  let d = d.clone();
                   if !((d) == ((a) - (b))) { self.state = State::Error; return false; }
                   self.state = State::S2 { a, b, d };
                   true
@@ -82,132 +128,6 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
 
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
-  error[E0405]: cannot find trait `Monitor` in this scope
-    --> C_monitor.rs:13:6
-     |
-  13 | impl Monitor for MultiPayloadMonitor {
-     |      ^^^^^^^ not found in this scope
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> C_monitor.rs:18:33
-      |
-   18 |     fn accepts(&self, _action: &Action) -> bool { true }
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> C_monitor.rs:20:33
-      |
-   20 |     fn step(&mut self, action: &Action) -> bool {
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:23:25
-     |
-  23 |             (State::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:23:44
-     |
-  23 |             (State::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:28:34
-     |
-  28 |             (State::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
-     |                                  ^^^^^^
-     |                                  |
-     |                                  use of undeclared type `Action`
-     |                                  help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:28:54
-     |
-  28 |             (State::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
-     |                                                      ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error: aborting due to 7 previous errors
-  
-  Some errors have detailed explanations: E0405, E0425, E0433.
-  For more information about an error, try `rustc --explain E0405`.
-  [1]
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
-  error[E0405]: cannot find trait `Monitor` in this scope
-    --> S_monitor.rs:13:6
-     |
-  13 | impl Monitor for MultiPayloadMonitor {
-     |      ^^^^^^^ not found in this scope
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> S_monitor.rs:18:33
-      |
-   18 |     fn accepts(&self, _action: &Action) -> bool { true }
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> S_monitor.rs:20:33
-      |
-   20 |     fn step(&mut self, action: &Action) -> bool {
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:23:25
-     |
-  23 |             (State::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:23:44
-     |
-  23 |             (State::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:28:34
-     |
-  28 |             (State::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
-     |                                  ^^^^^^
-     |                                  |
-     |                                  use of undeclared type `Action`
-     |                                  help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:28:54
-     |
-  28 |             (State::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
-     |                                                      ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error: aborting due to 7 previous errors
-  
-  Some errors have detailed explanations: E0405, E0425, E0433.
-  For more information about an error, try `rustc --explain E0405`.
-  [1]

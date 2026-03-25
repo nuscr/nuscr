@@ -1,6 +1,24 @@
 Generate Rust monitor for Client
   $ nuscr --gencode-rust-test=C@Adder Adder.nuscr > C_monitor.rs
   $ cat C_monitor.rs
+  pub enum Direction {
+      Recv,
+      Send,
+  }
+  
+  #[allow(dead_code)]
+  pub enum Action {
+      Add { dir: Direction },
+      Bye { dir: Direction },
+      Sum { dir: Direction },
+  }
+  
+  pub trait Monitor {
+      fn new() -> Self;
+      fn accepts(&self, action: &Action) -> bool;
+      fn step(&mut self, action: &Action) -> bool;
+  }
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -15,6 +33,7 @@ Generate Rust monitor for Client
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct AdderMonitor { state: State }
   
+  #[allow(unused_variables)]
   impl Monitor for AdderMonitor {
       fn new() -> Self {
           Self { state: State::S0 }
@@ -54,6 +73,24 @@ Generate Rust monitor for Client
 Generate Rust monitor for Server
   $ nuscr --gencode-rust-test=S@Adder Adder.nuscr > S_monitor.rs
   $ cat S_monitor.rs
+  pub enum Direction {
+      Recv,
+      Send,
+  }
+  
+  #[allow(dead_code)]
+  pub enum Action {
+      Add { dir: Direction },
+      Bye { dir: Direction },
+      Sum { dir: Direction },
+  }
+  
+  pub trait Monitor {
+      fn new() -> Self;
+      fn accepts(&self, action: &Action) -> bool;
+      fn step(&mut self, action: &Action) -> bool;
+  }
+  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -68,6 +105,7 @@ Generate Rust monitor for Server
   #[derive(Debug, Clone, PartialEq, Eq)]
   pub struct AdderMonitor { state: State }
   
+  #[allow(unused_variables)]
   impl Monitor for AdderMonitor {
       fn new() -> Self {
           Self { state: State::S0 }
@@ -106,222 +144,6 @@ Generate Rust monitor for Server
 
 Compile Client monitor
   $ rustc --edition 2021 --crate-type lib C_monitor.rs -o C_monitor.rlib
-  error[E0405]: cannot find trait `Monitor` in this scope
-    --> C_monitor.rs:15:6
-     |
-  15 | impl Monitor for AdderMonitor {
-     |      ^^^^^^^ not found in this scope
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> C_monitor.rs:20:33
-      |
-   20 |     fn accepts(&self, _action: &Action) -> bool { true }
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> C_monitor.rs:22:33
-      |
-   22 |     fn step(&mut self, action: &Action) -> bool {
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:25:25
-     |
-  25 |             (State::S0, Action::Add { dir: Direction::Send, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:25:44
-     |
-  25 |             (State::S0, Action::Add { dir: Direction::Send, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:29:25
-     |
-  29 |             (State::S0, Action::Bye { dir: Direction::Send, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:29:44
-     |
-  29 |             (State::S0, Action::Bye { dir: Direction::Send, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:33:25
-     |
-  33 |             (State::S3, Action::Add { dir: Direction::Send, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:33:44
-     |
-  33 |             (State::S3, Action::Add { dir: Direction::Send, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:37:25
-     |
-  37 |             (State::S4, Action::Sum { dir: Direction::Recv, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:37:44
-     |
-  37 |             (State::S4, Action::Sum { dir: Direction::Recv, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> C_monitor.rs:41:25
-     |
-  41 |             (State::S6, Action::Bye { dir: Direction::Recv, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> C_monitor.rs:41:44
-     |
-  41 |             (State::S6, Action::Bye { dir: Direction::Recv, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error: aborting due to 13 previous errors
-  
-  Some errors have detailed explanations: E0405, E0425, E0433.
-  For more information about an error, try `rustc --explain E0405`.
-  [1]
 
 Compile Server monitor
   $ rustc --edition 2021 --crate-type lib S_monitor.rs -o S_monitor.rlib
-  error[E0405]: cannot find trait `Monitor` in this scope
-    --> S_monitor.rs:15:6
-     |
-  15 | impl Monitor for AdderMonitor {
-     |      ^^^^^^^ not found in this scope
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> S_monitor.rs:20:33
-      |
-   20 |     fn accepts(&self, _action: &Action) -> bool { true }
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0425]: cannot find type `Action` in this scope
-     --> S_monitor.rs:22:33
-      |
-   22 |     fn step(&mut self, action: &Action) -> bool {
-      |                                 ^^^^^^ help: an enum with a similar name exists: `Option`
-      |
-     ::: /home/remco/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:600:1
-      |
-  600 | pub enum Option<T> {
-      | ------------------ similarly named enum `Option` defined here
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:25:25
-     |
-  25 |             (State::S0, Action::Add { dir: Direction::Recv, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:25:44
-     |
-  25 |             (State::S0, Action::Add { dir: Direction::Recv, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:29:25
-     |
-  29 |             (State::S0, Action::Bye { dir: Direction::Recv, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:29:44
-     |
-  29 |             (State::S0, Action::Bye { dir: Direction::Recv, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:33:25
-     |
-  33 |             (State::S3, Action::Add { dir: Direction::Recv, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:33:44
-     |
-  33 |             (State::S3, Action::Add { dir: Direction::Recv, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:37:25
-     |
-  37 |             (State::S4, Action::Sum { dir: Direction::Send, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:37:44
-     |
-  37 |             (State::S4, Action::Sum { dir: Direction::Send, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Action`
-    --> S_monitor.rs:41:25
-     |
-  41 |             (State::S6, Action::Bye { dir: Direction::Send, .. }) => {
-     |                         ^^^^^^
-     |                         |
-     |                         use of undeclared type `Action`
-     |                         help: an enum with a similar name exists: `Option`
-  
-  error[E0433]: failed to resolve: use of undeclared type `Direction`
-    --> S_monitor.rs:41:44
-     |
-  41 |             (State::S6, Action::Bye { dir: Direction::Send, .. }) => {
-     |                                            ^^^^^^^^^ use of undeclared type `Direction`
-  
-  error: aborting due to 13 previous errors
-  
-  Some errors have detailed explanations: E0405, E0425, E0433.
-  For more information about an error, try `rustc --explain E0405`.
-  [1]

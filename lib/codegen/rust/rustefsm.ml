@@ -64,6 +64,19 @@ let collect_labels g =
   in
   G.fold_edges_e f g (Set.empty (module String))
 
+let collect_labels_with_fields g =
+  let f (_, a, _) acc =
+    match a with
+    | SendA (_, m, _) | RecvA (_, m, _) ->
+        let label = upper_camel_case (LabelName.user m.label) in
+        let vars = find_payload_vars m in
+        let existing = Option.value ~default:[] (Map.find acc label) in
+        let merged = List.fold ~f:append_var ~init:existing vars in
+        Map.set acc ~key:label ~data:merged
+    | Epsilon -> acc
+  in
+  G.fold_edges_e f g (Map.empty (module String))
+
 (* ── unit tests ─────────────────────────────────────────────────── *)
 open Syntax
 
