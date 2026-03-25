@@ -13,12 +13,6 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
       Spend { dir: Direction, amount: i64 },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -33,12 +27,12 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   pub struct BudgetMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for BudgetMonitor {
-      fn new() -> Self {
+  impl BudgetMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 { budget: 1000 } }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ok { dir: Direction::Recv, .. } => true,
               Action::Bye { dir: Direction::Send, x, .. } => {
@@ -54,7 +48,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
@@ -108,12 +102,6 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
       Spend { dir: Direction, amount: i64 },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -128,12 +116,12 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   pub struct BudgetMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for BudgetMonitor {
-      fn new() -> Self {
+  impl BudgetMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 { budget: 1000 } }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => {
                   let x = x.clone();
@@ -149,7 +137,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {

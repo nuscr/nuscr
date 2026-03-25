@@ -12,12 +12,6 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
       Resp { dir: Direction, d: i64 },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -31,12 +25,12 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
   pub struct MultiPayloadMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for MultiPayloadMonitor {
-      fn new() -> Self {
+  impl MultiPayloadMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Resp { dir: Direction::Recv, d, .. } => true,
               Action::Req { dir: Direction::Send, a, b, .. } => {
@@ -48,7 +42,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
@@ -86,12 +80,6 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
       Resp { dir: Direction, d: i64 },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -105,12 +93,12 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
   pub struct MultiPayloadMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for MultiPayloadMonitor {
-      fn new() -> Self {
+  impl MultiPayloadMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, a, b, .. } => {
                   let a = a.clone();
@@ -122,7 +110,7 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {

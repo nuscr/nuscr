@@ -13,12 +13,6 @@ Generate Rust monitor for Client
       Sum { dir: Direction },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -34,12 +28,12 @@ Generate Rust monitor for Client
   pub struct AdderMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for AdderMonitor {
-      fn new() -> Self {
+  impl AdderMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, .. } => true,
               Action::Sum { dir: Direction::Recv, .. } => true,
@@ -49,7 +43,7 @@ Generate Rust monitor for Client
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0, Action::Add { dir: Direction::Send, .. }) => {
@@ -93,12 +87,6 @@ Generate Rust monitor for Server
       Sum { dir: Direction },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -114,12 +102,12 @@ Generate Rust monitor for Server
   pub struct AdderMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for AdderMonitor {
-      fn new() -> Self {
+  impl AdderMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Add { dir: Direction::Recv, .. } => true,
               Action::Bye { dir: Direction::Recv, .. } => true,
@@ -129,7 +117,7 @@ Generate Rust monitor for Server
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0, Action::Add { dir: Direction::Recv, .. }) => {
