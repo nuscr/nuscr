@@ -70,7 +70,7 @@ let generate_constructor buffer start var_map rec_var_info =
   in
   Buffer.add_string buffer
     (Printf.sprintf
-       "    fn new() -> Self {\n\
+       "    pub fn new() -> Self {\n\
        \        Self { state: State::%s }\n\
        \    }\n"
        (fmt_state_variant start inits) )
@@ -124,7 +124,7 @@ let build_dst_field_inits dst_vars rec_var_updates new_rec_vars =
 let generate_step_fn buffer g var_map rec_var_info =
   Buffer.add_string buffer
     "\n\
-    \    fn step(&mut self, action: &Action) -> bool {\n\
+    \    pub fn step(&mut self, action: &Action) -> bool {\n\
     \        match (&self.state, action) {\n\
     \            (State::Error, _) => true,\n" ;
   G.iter_edges_e
@@ -208,7 +208,7 @@ let generate_accepts_fn buffer g =
   let arms = collect_accepts_arms g in
   Buffer.add_string buffer
     "\n\
-    \    fn accepts(&self, action: &Action) -> bool {\n\
+    \    pub fn accepts(&self, action: &Action) -> bool {\n\
     \        match action {\n" ;
   Map.iteri arms ~f:(fun ~key ~data:(payload, guards) ->
       let dir = String.prefix key (String.index_exn key ':') in
@@ -255,7 +255,7 @@ let generate_accepts_fn buffer g =
 
 let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer
-    (Printf.sprintf "#[allow(unused_variables)]\nimpl Monitor for %sMonitor {\n" protocol_name) ;
+    (Printf.sprintf "#[allow(unused_variables)]\nimpl %sMonitor {\n" protocol_name) ;
   generate_constructor buffer start var_map rec_var_info ;
   generate_accepts_fn buffer g ;
   generate_step_fn buffer g var_map rec_var_info ;
@@ -295,13 +295,6 @@ let generate_action buffer g =
            (String.concat ~sep:", " all_fields) ) ) ;
   Buffer.add_string buffer "}\n"
 
-let generate_monitor_trait buffer =
-  Buffer.add_string buffer "pub trait Monitor {\n\
-  \    fn new() -> Self;\n\
-  \    fn accepts(&self, action: &Action) -> bool;\n\
-  \    fn step(&mut self, action: &Action) -> bool;\n" ;
-  Buffer.add_string buffer "}\n"
-
 let gen_test_code (start, (g, rec_var_info)) ~protocol =
   let rec_var_info = rm_silent_var rec_var_info in
   let var_map = compute_var_map start g rec_var_info in
@@ -310,8 +303,6 @@ let gen_test_code (start, (g, rec_var_info)) ~protocol =
   generate_direction buffer ;
   Buffer.add_string buffer "\n" ;
   generate_action buffer g ;
-  Buffer.add_string buffer "\n" ;
-  generate_monitor_trait buffer ;
   Buffer.add_string buffer "\n" ;
   generate_state_enum buffer var_map g ;
   Buffer.add_string buffer "\n" ;

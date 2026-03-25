@@ -13,12 +13,6 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
       Update { dir: Direction, tok2: String },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -33,12 +27,12 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   pub struct StrlenMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for StrlenMonitor {
-      fn new() -> Self {
+  impl StrlenMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 { token: "init".to_string() } }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
               Action::Quit { dir: Direction::Recv, .. } => true,
@@ -51,7 +45,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0 { token }, Action::Update { dir: Direction::Send, tok2, .. }) => {
@@ -100,12 +94,6 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
       Update { dir: Direction, tok2: String },
   }
   
-  pub trait Monitor {
-      fn new() -> Self;
-      fn accepts(&self, action: &Action) -> bool;
-      fn step(&mut self, action: &Action) -> bool;
-  }
-  
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
   enum State {
@@ -120,12 +108,12 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
   pub struct StrlenMonitor { state: State }
   
   #[allow(unused_variables)]
-  impl Monitor for StrlenMonitor {
-      fn new() -> Self {
+  impl StrlenMonitor {
+      pub fn new() -> Self {
           Self { state: State::S0 { token: "init".to_string() } }
       }
   
-      fn accepts(&self, action: &Action) -> bool {
+      pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Quit { dir: Direction::Recv, .. } => true,
               Action::Update { dir: Direction::Recv, tok2, .. } => {
@@ -138,7 +126,7 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
           }
       }
   
-      fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (State::Error, _) => true,
               (State::S0 { token }, Action::Update { dir: Direction::Recv, tok2, .. }) => {
