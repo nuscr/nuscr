@@ -232,3 +232,6 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
   Buffer.add_string buffer "\n" ;
   generate_impl buffer start g protocol_name var_map rec_var_info ;
   Buffer.contents buffer
+
+let gen_test_code (start, (g, rec_var_info)) ~protocol =
+  gen_code (start, (g, rec_var_info)) ~protocol

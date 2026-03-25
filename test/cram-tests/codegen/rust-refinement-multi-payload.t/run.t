@@ -1,5 +1,5 @@
 Generate Rust monitor for Client (multi payload, cross-payload reference)
-  $ nuscr --gencode-rust=C@MultiPayload MultiPayload.nuscr > C_monitor.rs
+  $ nuscr --gencode-rust-test=C@MultiPayload MultiPayload.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
@@ -40,7 +40,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
   
 
 Generate Rust monitor for Server (nested arith, cross-payload reference)
-  $ nuscr --gencode-rust=S@MultiPayload MultiPayload.nuscr > S_monitor.rs
+  $ nuscr --gencode-rust-test=S@MultiPayload MultiPayload.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]

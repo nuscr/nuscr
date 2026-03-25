@@ -1,5 +1,5 @@
 Generate Rust monitor for Client
-  $ nuscr --gencode-rust=C@RunningSum RunningSum.nuscr > C_monitor.rs
+  $ nuscr --gencode-rust-test=C@RunningSum RunningSum.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
@@ -51,7 +51,7 @@ Generate Rust monitor for Client
   
 
 Generate Rust monitor for Server
-  $ nuscr --gencode-rust=S@RunningSum RunningSum.nuscr > S_monitor.rs
+  $ nuscr --gencode-rust-test=S@RunningSum RunningSum.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]

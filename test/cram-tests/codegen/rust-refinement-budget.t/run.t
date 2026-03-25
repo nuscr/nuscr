@@ -1,5 +1,5 @@
 Generate Rust monitor for Client (budget: rec var in send guard, subtraction update)
-  $ nuscr --gencode-rust=C@Budget Budget.nuscr > C_monitor.rs
+  $ nuscr --gencode-rust-test=C@Budget Budget.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
@@ -50,7 +50,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   
 
 Generate Rust monitor for Server (budget: rec var in send guard, subtraction update)
-  $ nuscr --gencode-rust=S@Budget Budget.nuscr > S_monitor.rs
+  $ nuscr --gencode-rust-test=S@Budget Budget.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
