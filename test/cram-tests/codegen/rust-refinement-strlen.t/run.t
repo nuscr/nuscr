@@ -1,5 +1,5 @@
 Generate Rust monitor for Client (strlen: string type + len(), documents codegen gap)
-  $ nuscr --gencode-rust=C@Strlen Strlen.nuscr > C_monitor.rs
+  $ nuscr --gencode-rust-test=C@Strlen Strlen.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
@@ -51,7 +51,7 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
   
 
 Generate Rust monitor for Server (strlen: string type + len(), documents codegen gap)
-  $ nuscr --gencode-rust=S@Strlen Strlen.nuscr > S_monitor.rs
+  $ nuscr --gencode-rust-test=S@Strlen Strlen.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]

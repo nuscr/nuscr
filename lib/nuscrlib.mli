@@ -112,6 +112,9 @@ val generate_fstar_code :
 val generate_rust_monitor_code :
     scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
 
+val generate_rust_test_code :
+    scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
+
 module Pragma = Pragma
 module Expr = Expr
 module Gtype = Gtype

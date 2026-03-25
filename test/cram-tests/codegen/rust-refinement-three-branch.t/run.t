@@ -1,5 +1,5 @@
 Generate Rust monitor for Client (three-branch choice)
-  $ nuscr --gencode-rust=C@ThreeWay ThreeWay.nuscr > C_monitor.rs
+  $ nuscr --gencode-rust-test=C@ThreeWay ThreeWay.nuscr > C_monitor.rs
   $ cat C_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
@@ -62,7 +62,7 @@ Generate Rust monitor for Client (three-branch choice)
   
 
 Generate Rust monitor for Server (three-branch choice)
-  $ nuscr --gencode-rust=S@ThreeWay ThreeWay.nuscr > S_monitor.rs
+  $ nuscr --gencode-rust-test=S@ThreeWay ThreeWay.nuscr > S_monitor.rs
   $ cat S_monitor.rs
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
