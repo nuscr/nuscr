@@ -4,6 +4,7 @@ open Names
 open Gtype
 open Efsm
 open Message
+open Rustexpr
 
 let upper_camel_case s = Stdlib.String.capitalize_ascii s
 
@@ -64,12 +65,19 @@ let collect_labels g =
   in
   G.fold_edges_e f g (Set.empty (module String))
 
+let stripped_payload_fields m =
+  List.filter_map m.payload ~f:(function
+    | PValue (Some v, ty) ->
+        let stripped = strip_trailing_underscores (VariableName.user v) in
+        Some (VariableName.of_string stripped, ty)
+    | _ -> None )
+
 let collect_labels_with_fields g =
   let f (_, a, _) acc =
     match a with
     | SendA (_, m, _) | RecvA (_, m, _) ->
         let label = upper_camel_case (LabelName.user m.label) in
-        let vars = find_payload_vars m in
+        let vars = stripped_payload_fields m in
         let existing = Option.value ~default:[] (Map.find acc label) in
         let merged = List.fold ~f:append_var ~init:existing vars in
         Map.set acc ~key:label ~data:merged

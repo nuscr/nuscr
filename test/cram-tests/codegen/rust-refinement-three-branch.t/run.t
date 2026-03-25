@@ -9,7 +9,7 @@ Generate Rust monitor for Client (three-branch choice)
   #[allow(dead_code)]
   pub enum Action {
       Ack { dir: Direction },
-      Bye { dir: Direction },
+      Bye { dir: Direction, x: i64 },
       Low { dir: Direction, x: i64 },
       Mid { dir: Direction, x: i64 },
   }
@@ -26,8 +26,8 @@ Generate Rust monitor for Client (three-branch choice)
       S0 { n: i64 },
       S3 { n: i64, x: i64 },
       S5 { n: i64, x: i64 },
-      S7 { n: i64 },
-      S8 { n: i64 },
+      S7 { n: i64, x: i64 },
+      S8 { n: i64, x: i64, x_: i64 },
       Error,
   }
   
@@ -59,9 +59,10 @@ Generate Rust monitor for Client (three-branch choice)
                   self.state = State::S5 { n, x };
                   true
               }
-              (State::S0 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+              (State::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let n = n.clone();
-                  self.state = State::S7 { n };
+                  let x = x.clone();
+                  self.state = State::S7 { n, x };
                   true
               }
               (State::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
@@ -80,9 +81,11 @@ Generate Rust monitor for Client (three-branch choice)
                   self.state = State::S0 { n: new_n };
                   true
               }
-              (State::S7 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (State::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let n = n.clone();
-                  self.state = State::S8 { n };
+                  let x = x.clone();
+                  let x_ = x_.clone();
+                  self.state = State::S8 { n, x, x_ };
                   true
               }
               _ => { self.state = State::Error; false }
@@ -102,7 +105,7 @@ Generate Rust monitor for Server (three-branch choice)
   #[allow(dead_code)]
   pub enum Action {
       Ack { dir: Direction },
-      Bye { dir: Direction },
+      Bye { dir: Direction, x: i64 },
       Low { dir: Direction, x: i64 },
       Mid { dir: Direction, x: i64 },
   }
@@ -119,8 +122,8 @@ Generate Rust monitor for Server (three-branch choice)
       S0 { n: i64 },
       S3 { n: i64, x: i64 },
       S5 { n: i64, x: i64 },
-      S7 { n: i64 },
-      S8 { n: i64 },
+      S7 { n: i64, x: i64 },
+      S8 { n: i64, x: i64, x_: i64 },
       Error,
   }
   
@@ -152,9 +155,10 @@ Generate Rust monitor for Server (three-branch choice)
                   self.state = State::S5 { n, x };
                   true
               }
-              (State::S0 { n }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (State::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let n = n.clone();
-                  self.state = State::S7 { n };
+                  let x = x.clone();
+                  self.state = State::S7 { n, x };
                   true
               }
               (State::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
@@ -173,9 +177,11 @@ Generate Rust monitor for Server (three-branch choice)
                   self.state = State::S0 { n: new_n };
                   true
               }
-              (State::S7 { n }, Action::Bye { dir: Direction::Send, .. }) => {
+              (State::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let n = n.clone();
-                  self.state = State::S8 { n };
+                  let x = x.clone();
+                  let x_ = x_.clone();
+                  self.state = State::S8 { n, x, x_ };
                   true
               }
               _ => { self.state = State::Error; false }
