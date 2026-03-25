@@ -11,8 +11,8 @@ global protocol ThreeWay(role C, role S) {
       ack() from S to C;
       continue loop [n + 1];
     } or {
-      bye() from C to S;
-      bye() from S to C;
+      bye(x:int) from C to S;
+      bye(x_:int) from S to C;
     }
   }
 }
