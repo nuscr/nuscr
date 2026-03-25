@@ -125,13 +125,11 @@ let validate_config () =
          ( show RefinementTypes
          , "This is required by ValidateRefinementSatisfiabiltiy" ) ) ;
   if
-    !config.guarded_uniqueness_enabled
-    && not !config.refinement_type_enabled
+    !config.guarded_uniqueness_enabled && not !config.refinement_type_enabled
   then
     Err.uerr
       (Err.PragmaNotSet
-         ( show RefinementTypes
-         , "This is required by GuardedUniqueness" ) ) ;
+         (show RefinementTypes, "This is required by GuardedUniqueness") ) ;
   if !config.refinement_type_enabled && !config.nested_protocol_enabled then
     Err.uerr
       (Err.IncompatibleFlag (show RefinementTypes, show NestedProtocols))

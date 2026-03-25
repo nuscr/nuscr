@@ -26,13 +26,13 @@ val compute_var_map :
 val collect_labels : G.t -> Set.M(String).t
 
 val collect_labels_with_fields :
-     G.t
-  -> (VariableName.t * Expr.payload_type) list Map.M(String).t
+  G.t -> (VariableName.t * Expr.payload_type) list Map.M(String).t
 (** Collect every unique label in the EFSM and, for each, the union of all
     named payload fields across all edges that use that label. *)
 
 val collect_accepts_arms :
      G.t
-  -> ((VariableName.t * Expr.payload_type) list * Expr.t list) Map.M(String).t
+  -> ((VariableName.t * Expr.payload_type) list * Expr.t list)
+     Map.M(String).t
 (** Group EFSM edges by "dir:label" key. For each group, collect the union of
     payload variables and the list of message guards. *)

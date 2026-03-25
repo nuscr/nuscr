@@ -46,10 +46,7 @@ type user_error =
   | GuardedChoiceError of LabelName.t * guard_error
 [@@deriving sexp_of]
 
-and guard_error =
-  | IncompatiblePayloads
-  | MissingGuard
-  | OverlappingGuards
+and guard_error = IncompatiblePayloads | MissingGuard | OverlappingGuards
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed
@@ -149,19 +146,22 @@ let show_user_error = function
         (TypeVariableName.user tv)
         (Loc.show (TypeVariableName.where tv))
   | RustKeywordConflict v ->
-      sprintf "Payload variable '%s' is a Rust keyword; rename it in the protocol"
+      sprintf
+        "Payload variable '%s' is a Rust keyword; rename it in the protocol"
         (VariableName.user v)
   | GuardedChoiceError (l, reason) ->
-      let reason_str = match reason with
+      let reason_str =
+        match reason with
         | IncompatiblePayloads ->
             "payloads must match in arity, variable names, and base types \
              across all branches sharing the same label"
         | MissingGuard ->
-            "all branches sharing the same label must have a guard predicate \
-             (a refinement whose free variables are all payload-bound)"
+            "all branches sharing the same label must have a guard \
+             predicate (a refinement whose free variables are all \
+             payload-bound)"
         | OverlappingGuards ->
-            "guard predicates overlap: there exist payload values that satisfy \
-             multiple branches"
+            "guard predicates overlap: there exist payload values that \
+             satisfy multiple branches"
       in
       sprintf "Guarded choice error for label %s at %s: %s"
         (LabelName.user l)

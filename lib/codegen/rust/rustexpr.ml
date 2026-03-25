@@ -107,8 +107,7 @@ let rec rust_value_pattern_of_payload name_opt = function
             type '%s'"
            (PayloadTypeName.user n) )
 
-let strip_trailing_underscores s =
-  String.rstrip s ~drop:(Char.equal '_')
+let strip_trailing_underscores s = String.rstrip s ~drop:(Char.equal '_')
 
 let rust_action_pattern dir label payload =
   let field_bindings =
@@ -117,8 +116,9 @@ let rust_action_pattern dir label payload =
           rust_validate_identifier v ;
           let name = VariableName.user v in
           let stripped = strip_trailing_underscores name in
-          Some (if String.equal name stripped then name
-                else Printf.sprintf "%s: %s" stripped name)
+          Some
+            ( if String.equal name stripped then name
+              else Printf.sprintf "%s: %s" stripped name )
       | PValue (None, _) -> None
       | PDelegate (protocol, role) ->
           Err.unimpl ~here:[%here]

@@ -13,8 +13,8 @@ val rust_validate_identifier : VariableName.t -> unit
 (** Raise if the variable name clashes with a Rust keyword *)
 
 val strip_trailing_underscores : string -> string
-(** Remove trailing underscores from a name, mapping scope-suffixed
-    payload names (e.g. [x_], [x__]) back to the base field name [x]. *)
+(** Remove trailing underscores from a name, mapping scope-suffixed payload
+    names (e.g. [x_], [x__]) back to the base field name [x]. *)
 
 val rust_value_pattern_of_payload :
   VariableName.t option -> Expr.payload_type -> string

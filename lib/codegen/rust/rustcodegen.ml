@@ -31,14 +31,13 @@ let generate_state_enum buffer var_map g =
             (Printf.sprintf "    S%d { %s },\n" state
                (String.concat ~sep:", " fields) ) )
     g ;
-  Buffer.add_string buffer "    Error,\n";
+  Buffer.add_string buffer "    Error,\n" ;
   Buffer.add_string buffer "}\n"
 
 let generate_monitor_struct buffer protocol_name =
   generate_derive ~copy:false buffer ;
   Buffer.add_string buffer
-    (Printf.sprintf "pub struct %sMonitor { state: State }\n"
-       protocol_name )
+    (Printf.sprintf "pub struct %sMonitor { state: State }\n" protocol_name)
 
 let fmt_state_variant state fields =
   match fields with
@@ -135,8 +134,10 @@ let generate_step_fn buffer g var_map rec_var_info =
             match a with
             | SendA _ -> "Send"
             | RecvA _ -> "Recv"
-            | Epsilon -> Err.violationf ~here:[%here]
-                "Found Epsilon transition in EFSM, not supported in Rust codegen" ;
+            | Epsilon ->
+                Err.violationf ~here:[%here]
+                  "Found Epsilon transition in EFSM, not supported in Rust \
+                   codegen"
           in
           let src_vars = Map.find_exn var_map src in
           let dst_vars = Map.find_exn var_map dst in
@@ -159,25 +160,26 @@ let generate_step_fn buffer g var_map rec_var_info =
             (Printf.sprintf "            (State::%s, %s) => {\n"
                (fmt_state_variant src src_fields)
                (rust_action_pattern dir label m.payload) ) ;
-          (* Clone all bound variables (references from &self.state and &Action) *)
+          (* Clone all bound variables (references from &self.state and
+             &Action) *)
           let payload_vars = find_payload_vars m in
           let all_bindings = src_vars @ payload_vars in
           List.iter all_bindings ~f:(fun (v, _) ->
               let name = VariableName.user v in
               Buffer.add_string buffer
-                (Printf.sprintf
-                    "                let %s = %s.clone();\n" name name ) ) ;
+                (Printf.sprintf "                let %s = %s.clone();\n" name
+                   name ) ) ;
           (* Payload constraints *)
-          Option.iter (rust_payload_constraints m.payload)
-            ~f:(fun c ->
+          Option.iter (rust_payload_constraints m.payload) ~f:(fun c ->
               Buffer.add_string buffer
                 (Printf.sprintf
-                   "                if !(%s) { self.state = State::Error; return false; }\n" c ) ) ;
+                   "                if !(%s) { self.state = State::Error; \
+                    return false; }\n"
+                   c ) ) ;
           (* Rec var update let-bindings *)
           List.iter rec_var_updates ~f:(fun (_, binding, expr, _) ->
               Buffer.add_string buffer
-                (Printf.sprintf "                let %s = %s;\n"
-                   binding
+                (Printf.sprintf "                let %s = %s;\n" binding
                    (rust_show_expr expr) ) ) ;
           (* Rec var type constraints (on updated values only) *)
           List.iter rec_var_updates ~f:(fun (_, binding, _, rv_ty) ->
@@ -190,7 +192,8 @@ let generate_step_fn buffer g var_map rec_var_info =
                   in
                   Buffer.add_string buffer
                     (Printf.sprintf
-                       "                if !(%s) { self.state = State::Error; return false; }\n"
+                       "                if !(%s) { self.state = \
+                        State::Error; return false; }\n"
                        (rust_show_expr pred) )
               | _ -> () ) ;
           (* Transition to next state *)
@@ -202,7 +205,10 @@ let generate_step_fn buffer g var_map rec_var_info =
                (fmt_state_variant dst dst_field_inits) )
       | Epsilon -> () )
     g ;
-  Buffer.add_string buffer "            _ => { self.state = State::Error; false }\n        }\n    }\n"
+  Buffer.add_string buffer
+    "            _ => { self.state = State::Error; false }\n\
+    \        }\n\
+    \    }\n"
 
 let generate_accepts_fn buffer g =
   let arms = collect_accepts_arms g in
@@ -225,16 +231,16 @@ let generate_accepts_fn buffer g =
           Buffer.add_string buffer
             (Printf.sprintf "            %s => {\n" pattern) ;
           let payload_names =
-            Set.of_list (module VariableName)
-              (List.map payload ~f:fst)
+            Set.of_list (module VariableName) (List.map payload ~f:fst)
           in
           List.iter payload ~f:(fun (v, _) ->
               let name = VariableName.user v in
               Buffer.add_string buffer
-                (Printf.sprintf
-                    "                let %s = %s.clone();\n" name name ) ) ;
+                (Printf.sprintf "                let %s = %s.clone();\n" name
+                   name ) ) ;
           let guard_fvs =
-            List.fold guards ~init:(Set.empty (module VariableName))
+            List.fold guards
+              ~init:(Set.empty (module VariableName))
               ~f:(fun acc e -> Set.union acc (Expr.free_var e))
           in
           Set.iter guard_fvs ~f:(fun v ->
@@ -242,20 +248,19 @@ let generate_accepts_fn buffer g =
                 let name = VariableName.user v in
                 let stripped = strip_trailing_underscores name in
                 Buffer.add_string buffer
-                  (Printf.sprintf
-                      "                let %s = %s.clone();\n" name stripped ) ) ;
+                  (Printf.sprintf "                let %s = %s.clone();\n"
+                     name stripped ) ) ;
           let disjoined =
-            List.map guards ~f:rust_show_expr
-            |> String.concat ~sep:" || "
+            List.map guards ~f:rust_show_expr |> String.concat ~sep:" || "
           in
           Buffer.add_string buffer
-            (Printf.sprintf
-               "                %s\n            }\n" disjoined) ) ;
+            (Printf.sprintf "                %s\n            }\n" disjoined) ) ;
   Buffer.add_string buffer "            _ => false,\n        }\n    }\n"
 
 let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer
-    (Printf.sprintf "#[allow(unused_variables)]\nimpl %sMonitor {\n" protocol_name) ;
+    (Printf.sprintf "#[allow(unused_variables)]\nimpl %sMonitor {\n"
+       protocol_name ) ;
   generate_constructor buffer start var_map rec_var_info ;
   generate_accepts_fn buffer g ;
   generate_step_fn buffer g var_map rec_var_info ;
@@ -274,9 +279,7 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
   Buffer.contents buffer
 
 let generate_direction buffer =
-  Buffer.add_string buffer "pub enum Direction {\n\
-  \    Recv,\n\
-  \    Send,\n" ;
+  Buffer.add_string buffer "pub enum Direction {\n    Recv,\n    Send,\n" ;
   Buffer.add_string buffer "}\n"
 
 let generate_action buffer g =

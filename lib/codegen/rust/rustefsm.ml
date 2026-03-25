@@ -1,4 +1,5 @@
 [@@@warning "-40-70"]
+
 open! Base
 open Names
 open Gtype
@@ -93,19 +94,21 @@ let collect_accepts_arms g =
           let dir = match a with SendA _ -> "Send" | _ -> "Recv" in
           let label = upper_camel_case (LabelName.user m.label) in
           let key = dir ^ ":" ^ label in
-          let (payload, guards) =
+          let payload, guards =
             Option.value ~default:([], []) (Map.find acc key)
           in
           let payload =
             List.fold ~f:append_var ~init:payload (stripped_payload_fields m)
           in
-          let guards = match extract_message_guard m with
+          let guards =
+            match extract_message_guard m with
             | None -> guards
             | Some e -> guards @ [e]
           in
           Map.set acc ~key ~data:(payload, guards)
       | Epsilon -> acc )
-    g (Map.empty (module String))
+    g
+    (Map.empty (module String))
 
 (* ── unit tests ─────────────────────────────────────────────────── *)
 open Syntax
