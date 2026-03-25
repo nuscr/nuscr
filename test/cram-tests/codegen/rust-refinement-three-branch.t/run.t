@@ -40,7 +40,21 @@ Generate Rust monitor for Client (three-branch choice)
           Self { state: State::S0 { n: 0 } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Ack { dir: Direction::Recv, .. } => true,
+              Action::Bye { dir: Direction::Send, x, .. } => true,
+              Action::Low { dir: Direction::Send, x, .. } => {
+                  let x = x.clone();
+                  (x) < (10)
+              }
+              Action::Mid { dir: Direction::Send, x, .. } => {
+                  let x = x.clone();
+                  ((x) >= (10)) && ((x) < (100))
+              }
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -81,7 +95,7 @@ Generate Rust monitor for Client (three-branch choice)
                   self.state = State::S0 { n: new_n };
                   true
               }
-              (State::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
+              (State::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let n = n.clone();
                   let x = x.clone();
                   let x_ = x_.clone();
@@ -136,7 +150,21 @@ Generate Rust monitor for Server (three-branch choice)
           Self { state: State::S0 { n: 0 } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Bye { dir: Direction::Recv, x, .. } => true,
+              Action::Low { dir: Direction::Recv, x, .. } => {
+                  let x = x.clone();
+                  (x) < (10)
+              }
+              Action::Mid { dir: Direction::Recv, x, .. } => {
+                  let x = x.clone();
+                  ((x) >= (10)) && ((x) < (100))
+              }
+              Action::Ack { dir: Direction::Send, .. } => true,
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -177,7 +205,7 @@ Generate Rust monitor for Server (three-branch choice)
                   self.state = State::S0 { n: new_n };
                   true
               }
-              (State::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
+              (State::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let n = n.clone();
                   let x = x.clone();
                   let x_ = x_.clone();

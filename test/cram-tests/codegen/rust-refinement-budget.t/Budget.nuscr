@@ -7,8 +7,8 @@ global protocol Budget(role C, role S) {
       ok() from S to C;
       continue loop [budget - amount];
     } or {
-      done() from C to S;
-      done() from S to C;
+      bye(x:int{x > 0}) from C to S;
+      bye(x_:int{x_ = 0}) from C to S;
     }
   }
 }
