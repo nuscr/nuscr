@@ -548,23 +548,27 @@ let rec project' env (projected_role : RoleName.t) =
       let check_guarded_prefix gtys =
         let rec aux acc = function
           | [] -> ()
-          | MessageG (m,_,_,_) :: rest ->
-            let l = m.label in
-            let existing = Map.find acc l |> Option.value ~default:[] in
-            List.iter existing ~f:(fun prev_m ->
-              if not (Message.payloads_compatible prev_m.payload m.payload) then
-                uerr (GuardedChoiceError (l, IncompatiblePayloads))
-              else
-                match (Message.extract_message_guard prev_m, Message.extract_message_guard m) with
-                | Some g1, Some g2 ->
-                  if not (Message.guards_disjoint m.payload g1 g2) then
-                    uerr (GuardedChoiceError (l, OverlappingGuards))
-                | _ -> uerr (GuardedChoiceError (l, MissingGuard))) ;
-            aux (Map.add_multi acc ~key:l ~data:m) rest
+          | MessageG (m, _, _, _) :: rest ->
+              let l = m.label in
+              let existing = Map.find acc l |> Option.value ~default:[] in
+              List.iter existing ~f:(fun prev_m ->
+                  if
+                    not
+                      (Message.payloads_compatible prev_m.payload m.payload)
+                  then uerr (GuardedChoiceError (l, IncompatiblePayloads))
+                  else
+                    match
+                      ( Message.extract_message_guard prev_m
+                      , Message.extract_message_guard m )
+                    with
+                    | Some g1, Some g2 ->
+                        if not (Message.guards_disjoint m.payload g1 g2) then
+                          uerr (GuardedChoiceError (l, OverlappingGuards))
+                    | _ -> uerr (GuardedChoiceError (l, MissingGuard)) ) ;
+              aux (Map.add_multi acc ~key:l ~data:m) rest
           | CallG (caller, protocol, roles, _) :: rest ->
               let l = call_label caller protocol roles in
-              if Map.mem acc l then uerr (DuplicateLabel l)
-              else aux acc rest
+              if Map.mem acc l then uerr (DuplicateLabel l) else aux acc rest
           | ChoiceG (_, gs) :: rest -> aux acc (gs @ rest)
           | MuG (_, _, g) :: rest -> aux acc (g :: rest)
           | TVarG (_, _, g) :: rest -> aux acc (Lazy.force g :: rest)
@@ -575,10 +579,8 @@ let rec project' env (projected_role : RoleName.t) =
         in
         aux (Map.empty (module LabelName)) gtys
       in
-      if Pragma.guarded_uniqueness () then 
-        check_guarded_prefix g_types 
-      else 
-        check_distinct_prefix g_types ;
+      if Pragma.guarded_uniqueness () then check_guarded_prefix g_types
+      else check_distinct_prefix g_types ;
       let possible_roles =
         List.fold
           ~f:(check_consistent_gchoice choice_r)

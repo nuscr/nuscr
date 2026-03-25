@@ -38,10 +38,7 @@ type user_error =
   | GuardedChoiceError of LabelName.t * guard_error
 [@@deriving sexp_of]
 
-and guard_error =
-  | IncompatiblePayloads
-  | MissingGuard
-  | OverlappingGuards
+and guard_error = IncompatiblePayloads | MissingGuard | OverlappingGuards
 [@@deriving sexp_of]
 
 (** UserError is a user error and should be reported back so it can be fixed
