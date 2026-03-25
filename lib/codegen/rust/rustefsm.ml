@@ -85,6 +85,28 @@ let collect_labels_with_fields g =
   in
   G.fold_edges_e f g (Map.empty (module String))
 
+let collect_accepts_arms g =
+  G.fold_edges_e
+    (fun (_, a, _) acc ->
+      match a with
+      | SendA (_, m, _) | RecvA (_, m, _) ->
+          let dir = match a with SendA _ -> "Send" | _ -> "Recv" in
+          let label = upper_camel_case (LabelName.user m.label) in
+          let key = dir ^ ":" ^ label in
+          let (payload, guards) =
+            Option.value ~default:([], []) (Map.find acc key)
+          in
+          let payload =
+            List.fold ~f:append_var ~init:payload (stripped_payload_fields m)
+          in
+          let guards = match extract_message_guard m with
+            | None -> guards
+            | Some e -> guards @ [e]
+          in
+          Map.set acc ~key ~data:(payload, guards)
+      | Epsilon -> acc )
+    g (Map.empty (module String))
+
 (* ── unit tests ─────────────────────────────────────────────────── *)
 open Syntax
 

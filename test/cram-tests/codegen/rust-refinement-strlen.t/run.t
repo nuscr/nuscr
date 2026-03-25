@@ -38,7 +38,18 @@ Generate Rust monitor for Client (strlen: string type + len(), documents codegen
           Self { state: State::S0 { token: "init".to_string() } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Ack { dir: Direction::Recv, .. } => true,
+              Action::Quit { dir: Direction::Recv, .. } => true,
+              Action::Quit { dir: Direction::Send, .. } => true,
+              Action::Update { dir: Direction::Send, tok2, .. } => {
+                  let tok2 = tok2.clone();
+                  ((tok2).len() as i64) >= (4)
+              }
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -114,7 +125,18 @@ Generate Rust monitor for Server (strlen: string type + len(), documents codegen
           Self { state: State::S0 { token: "init".to_string() } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Quit { dir: Direction::Recv, .. } => true,
+              Action::Update { dir: Direction::Recv, tok2, .. } => {
+                  let tok2 = tok2.clone();
+                  ((tok2).len() as i64) >= (4)
+              }
+              Action::Ack { dir: Direction::Send, .. } => true,
+              Action::Quit { dir: Direction::Send, .. } => true,
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {

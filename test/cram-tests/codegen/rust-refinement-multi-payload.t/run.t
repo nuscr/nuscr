@@ -36,7 +36,17 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           Self { state: State::S0 }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Resp { dir: Direction::Recv, d, .. } => true,
+              Action::Req { dir: Direction::Send, a, b, .. } => {
+                  let a = a.clone();
+                  let b = b.clone();
+                  ((a) > (0)) && (((b) > (0)) && ((b) < (a)))
+              }
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -100,7 +110,17 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           Self { state: State::S0 }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Req { dir: Direction::Recv, a, b, .. } => {
+                  let a = a.clone();
+                  let b = b.clone();
+                  ((a) > (0)) && (((b) > (0)) && ((b) < (a)))
+              }
+              Action::Resp { dir: Direction::Send, d, .. } => true,
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {

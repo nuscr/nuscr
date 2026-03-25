@@ -8,7 +8,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   
   #[allow(dead_code)]
   pub enum Action {
-      Done { dir: Direction },
+      Bye { dir: Direction, x: i64 },
       Ok { dir: Direction },
       Spend { dir: Direction, amount: i64 },
   }
@@ -24,8 +24,8 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   enum State {
       S0 { budget: i64 },
       S3 { budget: i64, amount: i64 },
-      S5 { budget: i64 },
-      S6 { budget: i64 },
+      S5 { budget: i64, x: i64 },
+      S6 { budget: i64, x: i64, x_: i64 },
       Error,
   }
   
@@ -38,7 +38,21 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           Self { state: State::S0 { budget: 1000 } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Ok { dir: Direction::Recv, .. } => true,
+              Action::Bye { dir: Direction::Send, x, .. } => {
+                  let x = x.clone();
+                  let x_ = x.clone();
+                  (x) > (0) || (x_) == (0)
+              }
+              Action::Spend { dir: Direction::Send, amount, .. } => {
+                  let amount = amount.clone();
+                  (amount) > (0)
+              }
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -50,9 +64,11 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                   self.state = State::S3 { budget, amount };
                   true
               }
-              (State::S0 { budget }, Action::Done { dir: Direction::Send, .. }) => {
+              (State::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let budget = budget.clone();
-                  self.state = State::S5 { budget };
+                  let x = x.clone();
+                  if !((x) > (0)) { self.state = State::Error; return false; }
+                  self.state = State::S5 { budget, x };
                   true
               }
               (State::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
@@ -63,9 +79,12 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
                   self.state = State::S0 { budget: new_budget };
                   true
               }
-              (State::S5 { budget }, Action::Done { dir: Direction::Recv, .. }) => {
+              (State::S5 { budget, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let budget = budget.clone();
-                  self.state = State::S6 { budget };
+                  let x = x.clone();
+                  let x_ = x_.clone();
+                  if !((x_) == (0)) { self.state = State::Error; return false; }
+                  self.state = State::S6 { budget, x, x_ };
                   true
               }
               _ => { self.state = State::Error; false }
@@ -84,7 +103,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   
   #[allow(dead_code)]
   pub enum Action {
-      Done { dir: Direction },
+      Bye { dir: Direction, x: i64 },
       Ok { dir: Direction },
       Spend { dir: Direction, amount: i64 },
   }
@@ -100,8 +119,8 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   enum State {
       S0 { budget: i64 },
       S3 { budget: i64, amount: i64 },
-      S5 { budget: i64 },
-      S6 { budget: i64 },
+      S5 { budget: i64, x: i64 },
+      S6 { budget: i64, x: i64, x_: i64 },
       Error,
   }
   
@@ -114,7 +133,21 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
           Self { state: State::S0 { budget: 1000 } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Bye { dir: Direction::Recv, x, .. } => {
+                  let x = x.clone();
+                  let x_ = x.clone();
+                  (x) > (0) || (x_) == (0)
+              }
+              Action::Spend { dir: Direction::Recv, amount, .. } => {
+                  let amount = amount.clone();
+                  (amount) > (0)
+              }
+              Action::Ok { dir: Direction::Send, .. } => true,
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -126,9 +159,11 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                   self.state = State::S3 { budget, amount };
                   true
               }
-              (State::S0 { budget }, Action::Done { dir: Direction::Recv, .. }) => {
+              (State::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let budget = budget.clone();
-                  self.state = State::S5 { budget };
+                  let x = x.clone();
+                  if !((x) > (0)) { self.state = State::Error; return false; }
+                  self.state = State::S5 { budget, x };
                   true
               }
               (State::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {
@@ -139,9 +174,12 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
                   self.state = State::S0 { budget: new_budget };
                   true
               }
-              (State::S5 { budget }, Action::Done { dir: Direction::Send, .. }) => {
+              (State::S5 { budget, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let budget = budget.clone();
-                  self.state = State::S6 { budget };
+                  let x = x.clone();
+                  let x_ = x_.clone();
+                  if !((x_) == (0)) { self.state = State::Error; return false; }
+                  self.state = State::S6 { budget, x, x_ };
                   true
               }
               _ => { self.state = State::Error; false }

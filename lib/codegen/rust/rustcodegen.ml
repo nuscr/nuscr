@@ -204,16 +204,60 @@ let generate_step_fn buffer g var_map rec_var_info =
     g ;
   Buffer.add_string buffer "            _ => { self.state = State::Error; false }\n        }\n    }\n"
 
-let generate_accepts_fn buffer =
+let generate_accepts_fn buffer g =
+  let arms = collect_accepts_arms g in
   Buffer.add_string buffer
     "\n\
-    \    fn accepts(&self, _action: &Action) -> bool { true }\n"
+    \    fn accepts(&self, action: &Action) -> bool {\n\
+    \        match action {\n" ;
+  Map.iteri arms ~f:(fun ~key ~data:(payload, guards) ->
+      let dir = String.prefix key (String.index_exn key ':') in
+      let label = String.drop_prefix key (String.index_exn key ':' + 1) in
+      let payload_list =
+        List.map payload ~f:(fun (v, ty) -> PValue (Some v, ty))
+      in
+      let pattern = rust_action_pattern dir label payload_list in
+      match guards with
+      | [] ->
+          Buffer.add_string buffer
+            (Printf.sprintf "            %s => true,\n" pattern)
+      | _ ->
+          Buffer.add_string buffer
+            (Printf.sprintf "            %s => {\n" pattern) ;
+          let payload_names =
+            Set.of_list (module VariableName)
+              (List.map payload ~f:fst)
+          in
+          List.iter payload ~f:(fun (v, _) ->
+              let name = VariableName.user v in
+              Buffer.add_string buffer
+                (Printf.sprintf
+                    "                let %s = %s.clone();\n" name name ) ) ;
+          let guard_fvs =
+            List.fold guards ~init:(Set.empty (module VariableName))
+              ~f:(fun acc e -> Set.union acc (Expr.free_var e))
+          in
+          Set.iter guard_fvs ~f:(fun v ->
+              if not (Set.mem payload_names v) then
+                let name = VariableName.user v in
+                let stripped = strip_trailing_underscores name in
+                Buffer.add_string buffer
+                  (Printf.sprintf
+                      "                let %s = %s.clone();\n" name stripped ) ) ;
+          let disjoined =
+            List.map guards ~f:rust_show_expr
+            |> String.concat ~sep:" || "
+          in
+          Buffer.add_string buffer
+            (Printf.sprintf
+               "                %s\n            }\n" disjoined) ) ;
+  Buffer.add_string buffer "            _ => false,\n        }\n    }\n"
 
 let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer
     (Printf.sprintf "#[allow(unused_variables)]\nimpl Monitor for %sMonitor {\n" protocol_name) ;
   generate_constructor buffer start var_map rec_var_info ;
-  generate_accepts_fn buffer ;
+  generate_accepts_fn buffer g ;
   generate_step_fn buffer g var_map rec_var_info ;
   Buffer.add_string buffer "}\n"
 

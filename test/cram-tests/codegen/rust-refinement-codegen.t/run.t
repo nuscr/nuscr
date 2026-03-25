@@ -38,7 +38,19 @@ Generate Rust monitor for Client
           Self { state: State::S0 { total: 0 } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Bye { dir: Direction::Recv, .. } => true,
+              Action::Sum { dir: Direction::Recv, r, .. } => true,
+              Action::Add { dir: Direction::Send, x, y, .. } => {
+                  let x = x.clone();
+                  let y = y.clone();
+                  ((x) > (0)) && ((y) > (0))
+              }
+              Action::Bye { dir: Direction::Send, .. } => true,
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
@@ -118,7 +130,19 @@ Generate Rust monitor for Server
           Self { state: State::S0 { total: 0 } }
       }
   
-      fn accepts(&self, _action: &Action) -> bool { true }
+      fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Add { dir: Direction::Recv, x, y, .. } => {
+                  let x = x.clone();
+                  let y = y.clone();
+                  ((x) > (0)) && ((y) > (0))
+              }
+              Action::Bye { dir: Direction::Recv, .. } => true,
+              Action::Bye { dir: Direction::Send, .. } => true,
+              Action::Sum { dir: Direction::Send, r, .. } => true,
+              _ => false,
+          }
+      }
   
       fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
