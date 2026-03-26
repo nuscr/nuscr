@@ -15,7 +15,7 @@ Generate Rust monitor for Client
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum AdderState {
       S0,
       S3,
       S4,
@@ -25,12 +25,12 @@ Generate Rust monitor for Client
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct AdderMonitor { state: State }
+  pub struct AdderMonitor { state: AdderState }
   
   #[allow(unused_variables)]
   impl AdderMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 }
+          Self { state: AdderState::S0 }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -45,28 +45,28 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0, Action::Add { dir: Direction::Send, .. }) => {
-                  self.state = State::S3;
+              (AdderState::Error, _) => true,
+              (AdderState::S0, Action::Add { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S3;
                   true
               }
-              (State::S0, Action::Bye { dir: Direction::Send, .. }) => {
-                  self.state = State::S6;
+              (AdderState::S0, Action::Bye { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S6;
                   true
               }
-              (State::S3, Action::Add { dir: Direction::Send, .. }) => {
-                  self.state = State::S4;
+              (AdderState::S3, Action::Add { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S4;
                   true
               }
-              (State::S4, Action::Sum { dir: Direction::Recv, .. }) => {
-                  self.state = State::S0;
+              (AdderState::S4, Action::Sum { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S0;
                   true
               }
-              (State::S6, Action::Bye { dir: Direction::Recv, .. }) => {
-                  self.state = State::S7;
+              (AdderState::S6, Action::Bye { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S7;
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = AdderState::Error; false }
           }
       }
   }
@@ -89,7 +89,7 @@ Generate Rust monitor for Server
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum AdderState {
       S0,
       S3,
       S4,
@@ -99,12 +99,12 @@ Generate Rust monitor for Server
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct AdderMonitor { state: State }
+  pub struct AdderMonitor { state: AdderState }
   
   #[allow(unused_variables)]
   impl AdderMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 }
+          Self { state: AdderState::S0 }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -119,28 +119,28 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0, Action::Add { dir: Direction::Recv, .. }) => {
-                  self.state = State::S3;
+              (AdderState::Error, _) => true,
+              (AdderState::S0, Action::Add { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S3;
                   true
               }
-              (State::S0, Action::Bye { dir: Direction::Recv, .. }) => {
-                  self.state = State::S6;
+              (AdderState::S0, Action::Bye { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S6;
                   true
               }
-              (State::S3, Action::Add { dir: Direction::Recv, .. }) => {
-                  self.state = State::S4;
+              (AdderState::S3, Action::Add { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S4;
                   true
               }
-              (State::S4, Action::Sum { dir: Direction::Send, .. }) => {
-                  self.state = State::S0;
+              (AdderState::S4, Action::Sum { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S0;
                   true
               }
-              (State::S6, Action::Bye { dir: Direction::Send, .. }) => {
-                  self.state = State::S7;
+              (AdderState::S6, Action::Bye { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S7;
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = AdderState::Error; false }
           }
       }
   }
@@ -156,7 +156,7 @@ Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=C@Adder Adder.nuscr
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum AdderState {
       S0,
       S3,
       S4,
@@ -166,12 +166,12 @@ Production codegen (no support types, not compiled)
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct AdderMonitor { state: State }
+  pub struct AdderMonitor { state: AdderState }
   
   #[allow(unused_variables)]
   impl AdderMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 }
+          Self { state: AdderState::S0 }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -186,28 +186,28 @@ Production codegen (no support types, not compiled)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0, Action::Add { dir: Direction::Send, .. }) => {
-                  self.state = State::S3;
+              (AdderState::Error, _) => true,
+              (AdderState::S0, Action::Add { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S3;
                   true
               }
-              (State::S0, Action::Bye { dir: Direction::Send, .. }) => {
-                  self.state = State::S6;
+              (AdderState::S0, Action::Bye { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S6;
                   true
               }
-              (State::S3, Action::Add { dir: Direction::Send, .. }) => {
-                  self.state = State::S4;
+              (AdderState::S3, Action::Add { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S4;
                   true
               }
-              (State::S4, Action::Sum { dir: Direction::Recv, .. }) => {
-                  self.state = State::S0;
+              (AdderState::S4, Action::Sum { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S0;
                   true
               }
-              (State::S6, Action::Bye { dir: Direction::Recv, .. }) => {
-                  self.state = State::S7;
+              (AdderState::S6, Action::Bye { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S7;
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = AdderState::Error; false }
           }
       }
   }
@@ -216,7 +216,7 @@ Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=S@Adder Adder.nuscr
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum AdderState {
       S0,
       S3,
       S4,
@@ -226,12 +226,12 @@ Production codegen (no support types, not compiled)
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct AdderMonitor { state: State }
+  pub struct AdderMonitor { state: AdderState }
   
   #[allow(unused_variables)]
   impl AdderMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 }
+          Self { state: AdderState::S0 }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -246,28 +246,28 @@ Production codegen (no support types, not compiled)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0, Action::Add { dir: Direction::Recv, .. }) => {
-                  self.state = State::S3;
+              (AdderState::Error, _) => true,
+              (AdderState::S0, Action::Add { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S3;
                   true
               }
-              (State::S0, Action::Bye { dir: Direction::Recv, .. }) => {
-                  self.state = State::S6;
+              (AdderState::S0, Action::Bye { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S6;
                   true
               }
-              (State::S3, Action::Add { dir: Direction::Recv, .. }) => {
-                  self.state = State::S4;
+              (AdderState::S3, Action::Add { dir: Direction::Recv, .. }) => {
+                  self.state = AdderState::S4;
                   true
               }
-              (State::S4, Action::Sum { dir: Direction::Send, .. }) => {
-                  self.state = State::S0;
+              (AdderState::S4, Action::Sum { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S0;
                   true
               }
-              (State::S6, Action::Bye { dir: Direction::Send, .. }) => {
-                  self.state = State::S7;
+              (AdderState::S6, Action::Bye { dir: Direction::Send, .. }) => {
+                  self.state = AdderState::S7;
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = AdderState::Error; false }
           }
       }
   }
