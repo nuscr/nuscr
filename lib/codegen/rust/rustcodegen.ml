@@ -12,10 +12,10 @@ let generate_derive buffer ~copy =
   Buffer.add_string buffer
     (Printf.sprintf "#[derive(Debug, Clone%s, PartialEq, Eq)]\n" copy_str)
 
-let generate_state_enum buffer var_map g =
+let generate_state_enum buffer var_map g protocol_name =
   generate_derive ~copy:false buffer ;
   Buffer.add_string buffer "#[allow(dead_code)]\n" ;
-  Buffer.add_string buffer "enum State {\n" ;
+  Buffer.add_string buffer (Printf.sprintf "enum %sState {\n" protocol_name) ;
   G.iter_vertex
     (fun state ->
       let vars = Map.find_exn var_map state in
@@ -37,14 +37,15 @@ let generate_state_enum buffer var_map g =
 let generate_monitor_struct buffer protocol_name =
   generate_derive ~copy:false buffer ;
   Buffer.add_string buffer
-    (Printf.sprintf "pub struct %sMonitor { state: State }\n" protocol_name)
+    (Printf.sprintf "pub struct %sMonitor { state: %sState }\n" protocol_name
+       protocol_name )
 
 let fmt_state_variant state fields =
   match fields with
   | [] -> Printf.sprintf "S%d" state
   | _ -> Printf.sprintf "S%d { %s }" state (String.concat ~sep:", " fields)
 
-let generate_constructor buffer start var_map rec_var_info =
+let generate_constructor buffer start var_map rec_var_info protocol_name =
   let start_vars = Map.find_exn var_map start in
   let start_rv_info =
     Option.value ~default:[] (Map.find rec_var_info start)
@@ -70,8 +71,9 @@ let generate_constructor buffer start var_map rec_var_info =
   Buffer.add_string buffer
     (Printf.sprintf
        "    pub fn new() -> Self {\n\
-       \        Self { state: State::%s }\n\
+       \        Self { state: %sState::%s }\n\
        \    }\n"
+       protocol_name
        (fmt_state_variant start inits) )
 
 (* Precondition: silent vars have been stripped by [rm_silent_var]. Also:
@@ -120,12 +122,14 @@ let build_dst_field_inits dst_vars rec_var_updates new_rec_vars =
       | None, Some expr -> Printf.sprintf "%s: %s" name expr
       | None, None -> name )
 
-let generate_step_fn buffer g var_map rec_var_info =
+let generate_step_fn buffer g var_map rec_var_info protocol_name =
   Buffer.add_string buffer
-    "\n\
-    \    pub fn step(&mut self, action: &Action) -> bool {\n\
-    \        match (&self.state, action) {\n\
-    \            (State::Error, _) => true,\n" ;
+    (Printf.sprintf
+       "\n\
+       \    pub fn step(&mut self, action: &Action) -> bool {\n\
+       \        match (&self.state, action) {\n\
+       \            (%sState::Error, _) => true,\n"
+       protocol_name ) ;
   G.iter_edges_e
     (fun (src, a, dst) ->
       match a with
@@ -157,7 +161,8 @@ let generate_step_fn buffer g var_map rec_var_info =
           let label = upper_camel_case (LabelName.user m.label) in
           (* State + Action variant with direction and field bindings *)
           Buffer.add_string buffer
-            (Printf.sprintf "            (State::%s, %s) => {\n"
+            (Printf.sprintf "            (%sState::%s, %s) => {\n"
+               protocol_name
                (fmt_state_variant src src_fields)
                (rust_action_pattern dir label m.payload) ) ;
           (* Clone all bound variables (references from &self.state and
@@ -173,9 +178,9 @@ let generate_step_fn buffer g var_map rec_var_info =
           Option.iter (rust_payload_constraints m.payload) ~f:(fun c ->
               Buffer.add_string buffer
                 (Printf.sprintf
-                   "                if !(%s) { self.state = State::Error; \
+                   "                if !(%s) { self.state = %sState::Error; \
                     return false; }\n"
-                   c ) ) ;
+                   c protocol_name ) ) ;
           (* Rec var update let-bindings *)
           List.iter rec_var_updates ~f:(fun (_, binding, expr, _) ->
               Buffer.add_string buffer
@@ -193,22 +198,25 @@ let generate_step_fn buffer g var_map rec_var_info =
                   Buffer.add_string buffer
                     (Printf.sprintf
                        "                if !(%s) { self.state = \
-                        State::Error; return false; }\n"
-                       (rust_show_expr pred) )
+                        %sState::Error; return false; }\n"
+                       (rust_show_expr pred) protocol_name )
               | _ -> () ) ;
           (* Transition to next state *)
           Buffer.add_string buffer
             (Printf.sprintf
-               "                self.state = State::%s;\n\
+               "                self.state = %sState::%s;\n\
                \                true\n\
                \            }\n"
+               protocol_name
                (fmt_state_variant dst dst_field_inits) )
       | Epsilon -> () )
     g ;
   Buffer.add_string buffer
-    "            _ => { self.state = State::Error; false }\n\
-    \        }\n\
-    \    }\n"
+    (Printf.sprintf
+       "            _ => { self.state = %sState::Error; false }\n\
+       \        }\n\
+       \    }\n"
+       protocol_name )
 
 let generate_accepts_fn buffer g =
   let arms = collect_accepts_arms g in
@@ -261,9 +269,9 @@ let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer
     (Printf.sprintf "#[allow(unused_variables)]\nimpl %sMonitor {\n"
        protocol_name ) ;
-  generate_constructor buffer start var_map rec_var_info ;
+  generate_constructor buffer start var_map rec_var_info protocol_name ;
   generate_accepts_fn buffer g ;
-  generate_step_fn buffer g var_map rec_var_info ;
+  generate_step_fn buffer g var_map rec_var_info protocol_name ;
   Buffer.add_string buffer "}\n"
 
 let gen_code (start, (g, rec_var_info)) ~protocol =
@@ -271,7 +279,7 @@ let gen_code (start, (g, rec_var_info)) ~protocol =
   let var_map = compute_var_map start g rec_var_info in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
   let buffer = Buffer.create 4096 in
-  generate_state_enum buffer var_map g ;
+  generate_state_enum buffer var_map g protocol_name ;
   Buffer.add_string buffer "\n" ;
   generate_monitor_struct buffer protocol_name ;
   Buffer.add_string buffer "\n" ;
@@ -307,7 +315,7 @@ let gen_test_code (start, (g, rec_var_info)) ~protocol =
   Buffer.add_string buffer "\n" ;
   generate_action buffer g ;
   Buffer.add_string buffer "\n" ;
-  generate_state_enum buffer var_map g ;
+  generate_state_enum buffer var_map g protocol_name ;
   Buffer.add_string buffer "\n" ;
   generate_monitor_struct buffer protocol_name ;
   Buffer.add_string buffer "\n" ;

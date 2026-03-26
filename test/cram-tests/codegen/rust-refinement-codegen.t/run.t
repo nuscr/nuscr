@@ -15,7 +15,7 @@ Generate Rust monitor for Client
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
       S5 { total: i64 },
@@ -24,12 +24,12 @@ Generate Rust monitor for Client
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct RunningSumMonitor { state: State }
+  pub struct RunningSumMonitor { state: RunningSumState }
   
   #[allow(unused_variables)]
   impl RunningSumMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 { total: 0 } }
+          Self { state: RunningSumState::S0 { total: 0 } }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -48,37 +48,37 @@ Generate Rust monitor for Client
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0 { total }, Action::Add { dir: Direction::Send, x, y, .. }) => {
+              (RunningSumState::Error, _) => true,
+              (RunningSumState::S0 { total }, Action::Add { dir: Direction::Send, x, y, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
-                  if !((x) > (0) && (y) > (0)) { self.state = State::Error; return false; }
-                  self.state = State::S3 { total, x, y };
+                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (State::S0 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, .. }) => {
                   let total = total.clone();
-                  self.state = State::S5 { total };
+                  self.state = RunningSumState::S5 { total };
                   true
               }
-              (State::S3 { total, x, y }, Action::Sum { dir: Direction::Recv, r, .. }) => {
+              (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Recv, r, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
                   let r = r.clone();
-                  if !((r) == ((x) + (y))) { self.state = State::Error; return false; }
+                  if !((r) == ((x) + (y))) { self.state = RunningSumState::Error; return false; }
                   let new_total = (total) + (r);
-                  if !((new_total) < (100)) { self.state = State::Error; return false; }
-                  self.state = State::S0 { total: new_total };
+                  if !((new_total) < (100)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (State::S5 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
                   let total = total.clone();
-                  self.state = State::S6 { total };
+                  self.state = RunningSumState::S6 { total };
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = RunningSumState::Error; false }
           }
       }
   }
@@ -101,7 +101,7 @@ Generate Rust monitor for Server
   
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
       S5 { total: i64 },
@@ -110,12 +110,12 @@ Generate Rust monitor for Server
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct RunningSumMonitor { state: State }
+  pub struct RunningSumMonitor { state: RunningSumState }
   
   #[allow(unused_variables)]
   impl RunningSumMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 { total: 0 } }
+          Self { state: RunningSumState::S0 { total: 0 } }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -134,37 +134,37 @@ Generate Rust monitor for Server
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0 { total }, Action::Add { dir: Direction::Recv, x, y, .. }) => {
+              (RunningSumState::Error, _) => true,
+              (RunningSumState::S0 { total }, Action::Add { dir: Direction::Recv, x, y, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
-                  if !((x) > (0) && (y) > (0)) { self.state = State::Error; return false; }
-                  self.state = State::S3 { total, x, y };
+                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (State::S0 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
                   let total = total.clone();
-                  self.state = State::S5 { total };
+                  self.state = RunningSumState::S5 { total };
                   true
               }
-              (State::S3 { total, x, y }, Action::Sum { dir: Direction::Send, r, .. }) => {
+              (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Send, r, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
                   let r = r.clone();
-                  if !((r) == ((x) + (y))) { self.state = State::Error; return false; }
+                  if !((r) == ((x) + (y))) { self.state = RunningSumState::Error; return false; }
                   let new_total = (total) + (r);
-                  if !((new_total) < (100)) { self.state = State::Error; return false; }
-                  self.state = State::S0 { total: new_total };
+                  if !((new_total) < (100)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (State::S5 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Send, .. }) => {
                   let total = total.clone();
-                  self.state = State::S6 { total };
+                  self.state = RunningSumState::S6 { total };
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = RunningSumState::Error; false }
           }
       }
   }
@@ -180,7 +180,7 @@ Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=C@RunningSum RunningSum.nuscr
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
       S5 { total: i64 },
@@ -189,12 +189,12 @@ Production codegen (no support types, not compiled)
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct RunningSumMonitor { state: State }
+  pub struct RunningSumMonitor { state: RunningSumState }
   
   #[allow(unused_variables)]
   impl RunningSumMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 { total: 0 } }
+          Self { state: RunningSumState::S0 { total: 0 } }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -213,37 +213,37 @@ Production codegen (no support types, not compiled)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0 { total }, Action::Add { dir: Direction::Send, x, y, .. }) => {
+              (RunningSumState::Error, _) => true,
+              (RunningSumState::S0 { total }, Action::Add { dir: Direction::Send, x, y, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
-                  if !((x) > (0) && (y) > (0)) { self.state = State::Error; return false; }
-                  self.state = State::S3 { total, x, y };
+                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (State::S0 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, .. }) => {
                   let total = total.clone();
-                  self.state = State::S5 { total };
+                  self.state = RunningSumState::S5 { total };
                   true
               }
-              (State::S3 { total, x, y }, Action::Sum { dir: Direction::Recv, r, .. }) => {
+              (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Recv, r, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
                   let r = r.clone();
-                  if !((r) == ((x) + (y))) { self.state = State::Error; return false; }
+                  if !((r) == ((x) + (y))) { self.state = RunningSumState::Error; return false; }
                   let new_total = (total) + (r);
-                  if !((new_total) < (100)) { self.state = State::Error; return false; }
-                  self.state = State::S0 { total: new_total };
+                  if !((new_total) < (100)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (State::S5 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
                   let total = total.clone();
-                  self.state = State::S6 { total };
+                  self.state = RunningSumState::S6 { total };
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = RunningSumState::Error; false }
           }
       }
   }
@@ -252,7 +252,7 @@ Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=S@RunningSum RunningSum.nuscr
   #[derive(Debug, Clone, PartialEq, Eq)]
   #[allow(dead_code)]
-  enum State {
+  enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
       S5 { total: i64 },
@@ -261,12 +261,12 @@ Production codegen (no support types, not compiled)
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct RunningSumMonitor { state: State }
+  pub struct RunningSumMonitor { state: RunningSumState }
   
   #[allow(unused_variables)]
   impl RunningSumMonitor {
       pub fn new() -> Self {
-          Self { state: State::S0 { total: 0 } }
+          Self { state: RunningSumState::S0 { total: 0 } }
       }
   
       pub fn accepts(&self, action: &Action) -> bool {
@@ -285,37 +285,37 @@ Production codegen (no support types, not compiled)
   
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
-              (State::Error, _) => true,
-              (State::S0 { total }, Action::Add { dir: Direction::Recv, x, y, .. }) => {
+              (RunningSumState::Error, _) => true,
+              (RunningSumState::S0 { total }, Action::Add { dir: Direction::Recv, x, y, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
-                  if !((x) > (0) && (y) > (0)) { self.state = State::Error; return false; }
-                  self.state = State::S3 { total, x, y };
+                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (State::S0 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
                   let total = total.clone();
-                  self.state = State::S5 { total };
+                  self.state = RunningSumState::S5 { total };
                   true
               }
-              (State::S3 { total, x, y }, Action::Sum { dir: Direction::Send, r, .. }) => {
+              (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Send, r, .. }) => {
                   let total = total.clone();
                   let x = x.clone();
                   let y = y.clone();
                   let r = r.clone();
-                  if !((r) == ((x) + (y))) { self.state = State::Error; return false; }
+                  if !((r) == ((x) + (y))) { self.state = RunningSumState::Error; return false; }
                   let new_total = (total) + (r);
-                  if !((new_total) < (100)) { self.state = State::Error; return false; }
-                  self.state = State::S0 { total: new_total };
+                  if !((new_total) < (100)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (State::S5 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Send, .. }) => {
                   let total = total.clone();
-                  self.state = State::S6 { total };
+                  self.state = RunningSumState::S6 { total };
                   true
               }
-              _ => { self.state = State::Error; false }
+              _ => { self.state = RunningSumState::Error; false }
           }
       }
   }
