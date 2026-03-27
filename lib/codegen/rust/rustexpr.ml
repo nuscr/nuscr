@@ -19,24 +19,30 @@ let rec rust_show_expr = function
   | Var v -> VariableName.user v
   | Int i -> Int.to_string i
   | Bool b -> if b then "true" else "false"
-  | String s -> "\"" ^ s ^ "\".to_string()"
+  | String _ -> 
+    Err.unimpl ~here:[%here]
+           "in Rust codegen use bool, int or unit, string type"
   | Binop (op, l, r) ->
       Printf.sprintf "(%s) %s (%s)" (rust_show_expr l) (rust_show_binop op)
         (rust_show_expr r)
   | Unop (Neg, e) -> Printf.sprintf "-(%s)" (rust_show_expr e)
   | Unop (Not, e) -> Printf.sprintf "!(%s)" (rust_show_expr e)
-  | Unop (StrLen, e) -> Printf.sprintf "(%s).len() as i64" (rust_show_expr e)
+  | Unop (StrLen, _) -> 
+    Err.unimpl ~here:[%here]
+           "in Rust codegen use bool, int or unit, string type"
 
 let rec rust_type_of_payload_type = function
   | Expr.PTInt -> "i64"
   | Expr.PTBool -> "bool"
-  | Expr.PTString -> "String"
+  | Expr.PTString -> 
+    Err.unimpl ~here:[%here]
+           "in Rust codegen use bool, int or unit, string type"
   | Expr.PTUnit -> "()"
   | Expr.PTRefined (_, t, _) -> rust_type_of_payload_type t
   | Expr.PTAbstract n ->
       Err.unimpl ~here:[%here]
         (Printf.sprintf
-           "in Rust codegen use bool, int, string or unit, abstract payload \
+           "in Rust codegen use bool, int or unit, abstract payload \
             type '%s'"
            (PayloadTypeName.user n) )
 
@@ -96,8 +102,8 @@ let rec rust_value_pattern_of_payload name_opt = function
       let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
       Printf.sprintf "Value::Bool(%s)" b
   | Expr.PTString ->
-      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
-      Printf.sprintf "Value::String(%s)" b
+    Err.unimpl ~here:[%here]
+           "in Rust codegen use bool, int or unit, string type"
   | Expr.PTUnit -> "Value::Unit"
   | Expr.PTRefined (_, t, _) -> rust_value_pattern_of_payload name_opt t
   | Expr.PTAbstract n ->
