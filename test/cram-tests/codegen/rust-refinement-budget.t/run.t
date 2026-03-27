@@ -13,7 +13,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
       Spend { dir: Direction, amount: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum BudgetState {
       S0 { budget: i64 },
@@ -36,12 +36,12 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           match action {
               Action::Ok { dir: Direction::Recv, .. } => true,
               Action::Bye { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x) > (0) || (x_) == (0)
               }
               Action::Spend { dir: Direction::Send, amount, .. } => {
-                  let amount = amount.clone();
+                  let amount = *amount;
                   (amount) > (0)
               }
               _ => false,
@@ -52,31 +52,31 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
+                  let budget = *budget;
+                  let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   let new_budget = (budget) - (amount);
                   if !((new_budget) >= (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S0 { budget: new_budget };
                   true
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let budget = *budget;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S6 { budget, x, x_ };
                   true
@@ -102,7 +102,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
       Spend { dir: Direction, amount: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum BudgetState {
       S0 { budget: i64 },
@@ -124,12 +124,12 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x) > (0) || (x_) == (0)
               }
               Action::Spend { dir: Direction::Recv, amount, .. } => {
-                  let amount = amount.clone();
+                  let amount = *amount;
                   (amount) > (0)
               }
               Action::Ok { dir: Direction::Send, .. } => true,
@@ -141,31 +141,31 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
+                  let budget = *budget;
+                  let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   let new_budget = (budget) - (amount);
                   if !((new_budget) >= (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S0 { budget: new_budget };
                   true
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let budget = *budget;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S6 { budget, x, x_ };
                   true
@@ -184,7 +184,7 @@ Compile Server monitor
 
 Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=C@Budget Budget.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum BudgetState {
       S0 { budget: i64 },
@@ -207,12 +207,12 @@ Production codegen (no support types, not compiled)
           match action {
               Action::Ok { dir: Direction::Recv, .. } => true,
               Action::Bye { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x) > (0) || (x_) == (0)
               }
               Action::Spend { dir: Direction::Send, amount, .. } => {
-                  let amount = amount.clone();
+                  let amount = *amount;
                   (amount) > (0)
               }
               _ => false,
@@ -223,31 +223,31 @@ Production codegen (no support types, not compiled)
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
+                  let budget = *budget;
+                  let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   let new_budget = (budget) - (amount);
                   if !((new_budget) >= (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S0 { budget: new_budget };
                   true
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let budget = *budget;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S6 { budget, x, x_ };
                   true
@@ -259,7 +259,7 @@ Production codegen (no support types, not compiled)
   
 
   $ nuscr --gencode-rust=S@Budget Budget.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum BudgetState {
       S0 { budget: i64 },
@@ -281,12 +281,12 @@ Production codegen (no support types, not compiled)
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x) > (0) || (x_) == (0)
               }
               Action::Spend { dir: Direction::Recv, amount, .. } => {
-                  let amount = amount.clone();
+                  let amount = *amount;
                   (amount) > (0)
               }
               Action::Ok { dir: Direction::Send, .. } => true,
@@ -298,31 +298,31 @@ Production codegen (no support types, not compiled)
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
+                  let budget = *budget;
+                  let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {
-                  let budget = budget.clone();
-                  let amount = amount.clone();
+                  let budget = *budget;
+                  let amount = *amount;
                   let new_budget = (budget) - (amount);
                   if !((new_budget) >= (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S0 { budget: new_budget };
                   true
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
-                  let budget = budget.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let budget = *budget;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S6 { budget, x, x_ };
                   true

@@ -13,7 +13,7 @@ let generate_derive buffer ~copy =
     (Printf.sprintf "#[derive(Debug, Clone%s, PartialEq, Eq)]\n" copy_str)
 
 let generate_state_enum buffer var_map g protocol_name =
-  generate_derive ~copy:false buffer ;
+  generate_derive ~copy:true buffer ;
   Buffer.add_string buffer "#[allow(dead_code)]\n" ;
   Buffer.add_string buffer (Printf.sprintf "enum %sState {\n" protocol_name) ;
   G.iter_vertex
@@ -172,7 +172,7 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
           List.iter all_bindings ~f:(fun (v, _) ->
               let name = VariableName.user v in
               Buffer.add_string buffer
-                (Printf.sprintf "                let %s = %s.clone();\n" name
+                (Printf.sprintf "                let %s = *%s;\n" name
                    name ) ) ;
           (* Payload constraints *)
           Option.iter (rust_payload_constraints m.payload) ~f:(fun c ->
@@ -244,7 +244,7 @@ let generate_accepts_fn buffer g =
           List.iter payload ~f:(fun (v, _) ->
               let name = VariableName.user v in
               Buffer.add_string buffer
-                (Printf.sprintf "                let %s = %s.clone();\n" name
+                (Printf.sprintf "                let %s = *%s;\n" name
                    name ) ) ;
           let guard_fvs =
             List.fold guards
@@ -256,7 +256,7 @@ let generate_accepts_fn buffer g =
                 let name = VariableName.user v in
                 let stripped = strip_trailing_underscores name in
                 Buffer.add_string buffer
-                  (Printf.sprintf "                let %s = %s.clone();\n"
+                  (Printf.sprintf "                let %s = %s;\n"
                      name stripped ) ) ;
           let disjoined =
             List.map guards ~f:rust_show_expr |> String.concat ~sep:" || "

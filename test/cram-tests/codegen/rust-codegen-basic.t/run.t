@@ -13,7 +13,7 @@ Generate Rust monitor for Client
       Sum { dir: Direction },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum AdderState {
       S0,
@@ -87,7 +87,7 @@ Generate Rust monitor for Server
       Sum { dir: Direction },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum AdderState {
       S0,
@@ -154,7 +154,7 @@ Compile Server monitor
 
 Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=C@Adder Adder.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum AdderState {
       S0,
@@ -214,7 +214,7 @@ Production codegen (no support types, not compiled)
   
 
   $ nuscr --gencode-rust=S@Adder Adder.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum AdderState {
       S0,

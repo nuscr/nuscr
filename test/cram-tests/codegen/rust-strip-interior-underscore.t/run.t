@@ -12,7 +12,7 @@ Interior underscores preserved, only trailing underscore stripped
       Req { dir: Direction, foo_bar: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum InteriorState {
       S0,
@@ -33,7 +33,7 @@ Interior underscores preserved, only trailing underscore stripped
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Send, foo_bar, .. } => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   (foo_bar) > (0)
               }
               _ => false,
@@ -44,14 +44,14 @@ Interior underscores preserved, only trailing underscore stripped
           match (&self.state, action) {
               (InteriorState::Error, _) => true,
               (InteriorState::S0, Action::Req { dir: Direction::Send, foo_bar, .. }) => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   if !((foo_bar) > (0)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S1 { foo_bar };
                   true
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Send, foo_bar: foo_bar_, .. }) => {
-                  let foo_bar = foo_bar.clone();
-                  let foo_bar_ = foo_bar_.clone();
+                  let foo_bar = *foo_bar;
+                  let foo_bar_ = *foo_bar_;
                   if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
                   true
@@ -74,7 +74,7 @@ Interior underscores preserved, only trailing underscore stripped
       Req { dir: Direction, foo_bar: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum InteriorState {
       S0,
@@ -95,7 +95,7 @@ Interior underscores preserved, only trailing underscore stripped
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, foo_bar, .. } => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   (foo_bar) > (0)
               }
               _ => false,
@@ -106,14 +106,14 @@ Interior underscores preserved, only trailing underscore stripped
           match (&self.state, action) {
               (InteriorState::Error, _) => true,
               (InteriorState::S0, Action::Req { dir: Direction::Recv, foo_bar, .. }) => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   if !((foo_bar) > (0)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S1 { foo_bar };
                   true
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Recv, foo_bar: foo_bar_, .. }) => {
-                  let foo_bar = foo_bar.clone();
-                  let foo_bar_ = foo_bar_.clone();
+                  let foo_bar = *foo_bar;
+                  let foo_bar_ = *foo_bar_;
                   if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
                   true
@@ -130,7 +130,7 @@ Compile both monitors
 
 Production codegen
   $ nuscr --gencode-rust=C@Interior Interior.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum InteriorState {
       S0,
@@ -151,7 +151,7 @@ Production codegen
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Send, foo_bar, .. } => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   (foo_bar) > (0)
               }
               _ => false,
@@ -162,14 +162,14 @@ Production codegen
           match (&self.state, action) {
               (InteriorState::Error, _) => true,
               (InteriorState::S0, Action::Req { dir: Direction::Send, foo_bar, .. }) => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   if !((foo_bar) > (0)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S1 { foo_bar };
                   true
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Send, foo_bar: foo_bar_, .. }) => {
-                  let foo_bar = foo_bar.clone();
-                  let foo_bar_ = foo_bar_.clone();
+                  let foo_bar = *foo_bar;
+                  let foo_bar_ = *foo_bar_;
                   if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
                   true
@@ -180,7 +180,7 @@ Production codegen
   }
   
   $ nuscr --gencode-rust=S@Interior Interior.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum InteriorState {
       S0,
@@ -201,7 +201,7 @@ Production codegen
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, foo_bar, .. } => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   (foo_bar) > (0)
               }
               _ => false,
@@ -212,14 +212,14 @@ Production codegen
           match (&self.state, action) {
               (InteriorState::Error, _) => true,
               (InteriorState::S0, Action::Req { dir: Direction::Recv, foo_bar, .. }) => {
-                  let foo_bar = foo_bar.clone();
+                  let foo_bar = *foo_bar;
                   if !((foo_bar) > (0)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S1 { foo_bar };
                   true
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Recv, foo_bar: foo_bar_, .. }) => {
-                  let foo_bar = foo_bar.clone();
-                  let foo_bar_ = foo_bar_.clone();
+                  let foo_bar = *foo_bar;
+                  let foo_bar_ = *foo_bar_;
                   if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return false; }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
                   true

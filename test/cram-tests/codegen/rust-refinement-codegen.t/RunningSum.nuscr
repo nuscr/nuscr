@@ -7,7 +7,7 @@ global protocol RunningSum(role C, role S) {
       sum(r: int{r = x + y}) from S to C;
       continue loop [total + r];
     } or {
-      bye() from C to S;
+      bye(x_:int{x_ > 0}) from C to S;
       bye() from S to C;
     }
   }

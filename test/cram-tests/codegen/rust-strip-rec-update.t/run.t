@@ -14,7 +14,7 @@ Underscored payload variable feeding rec var update in choice branch
       Req { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecUpdateState {
       S0 { total: i64 },
@@ -36,7 +36,7 @@ Underscored payload variable feeding rec var update in choice branch
               Action::Err { dir: Direction::Recv, .. } => true,
               Action::Ok { dir: Direction::Recv, x, .. } => true,
               Action::Req { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               _ => false,
@@ -47,24 +47,24 @@ Underscored payload variable feeding rec var update in choice branch
           match (&self.state, action) {
               (RecUpdateState::Error, _) => true,
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Send, x, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S2 { total, x };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Recv, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   let new_total = total;
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S0 { total: new_total };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Recv, x: x_, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let total = *total;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (x)) { self.state = RecUpdateState::Error; return false; }
                   let new_total = (total) + (x_);
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
@@ -91,7 +91,7 @@ Underscored payload variable feeding rec var update in choice branch
       Req { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecUpdateState {
       S0 { total: i64 },
@@ -111,7 +111,7 @@ Underscored payload variable feeding rec var update in choice branch
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               Action::Err { dir: Direction::Send, .. } => true,
@@ -124,24 +124,24 @@ Underscored payload variable feeding rec var update in choice branch
           match (&self.state, action) {
               (RecUpdateState::Error, _) => true,
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Recv, x, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S2 { total, x };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Send, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   let new_total = total;
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S0 { total: new_total };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Send, x: x_, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let total = *total;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (x)) { self.state = RecUpdateState::Error; return false; }
                   let new_total = (total) + (x_);
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
@@ -160,7 +160,7 @@ Compile both monitors
 
 Production codegen
   $ nuscr --gencode-rust=C@RecUpdate RecUpdate.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecUpdateState {
       S0 { total: i64 },
@@ -182,7 +182,7 @@ Production codegen
               Action::Err { dir: Direction::Recv, .. } => true,
               Action::Ok { dir: Direction::Recv, x, .. } => true,
               Action::Req { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               _ => false,
@@ -193,24 +193,24 @@ Production codegen
           match (&self.state, action) {
               (RecUpdateState::Error, _) => true,
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Send, x, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S2 { total, x };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Recv, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   let new_total = total;
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S0 { total: new_total };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Recv, x: x_, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let total = *total;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (x)) { self.state = RecUpdateState::Error; return false; }
                   let new_total = (total) + (x_);
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
@@ -223,7 +223,7 @@ Production codegen
   }
   
   $ nuscr --gencode-rust=S@RecUpdate RecUpdate.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecUpdateState {
       S0 { total: i64 },
@@ -243,7 +243,7 @@ Production codegen
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               Action::Err { dir: Direction::Send, .. } => true,
@@ -256,24 +256,24 @@ Production codegen
           match (&self.state, action) {
               (RecUpdateState::Error, _) => true,
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Recv, x, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S2 { total, x };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Send, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
+                  let total = *total;
+                  let x = *x;
                   let new_total = total;
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }
                   self.state = RecUpdateState::S0 { total: new_total };
                   true
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Send, x: x_, .. }) => {
-                  let total = total.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let total = *total;
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) == (x)) { self.state = RecUpdateState::Error; return false; }
                   let new_total = (total) + (x_);
                   if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return false; }

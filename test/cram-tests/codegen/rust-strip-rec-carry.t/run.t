@@ -14,7 +14,7 @@ Underscored variable carried across loop iterations via rec var update
       Step { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecCarryState {
       S0,
@@ -36,12 +36,12 @@ Underscored variable carried across loop iterations via rec var update
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
               Action::Init { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               Action::Step { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x_) > (0)
               }
               _ => false,
@@ -52,23 +52,23 @@ Underscored variable carried across loop iterations via rec var update
           match (&self.state, action) {
               (RecCarryState::Error, _) => true,
               (RecCarryState::S0, Action::Init { dir: Direction::Send, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: x };
                   true
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Send, x: x_, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   if !((x_) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S3 { x, acc, x_ };
                   true
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   let new_acc = (acc) + (x_);
                   if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
@@ -94,7 +94,7 @@ Underscored variable carried across loop iterations via rec var update
       Step { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecCarryState {
       S0,
@@ -115,12 +115,12 @@ Underscored variable carried across loop iterations via rec var update
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Init { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               Action::Step { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x_) > (0)
               }
               Action::Ack { dir: Direction::Send, .. } => true,
@@ -132,23 +132,23 @@ Underscored variable carried across loop iterations via rec var update
           match (&self.state, action) {
               (RecCarryState::Error, _) => true,
               (RecCarryState::S0, Action::Init { dir: Direction::Recv, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: x };
                   true
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Recv, x: x_, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   if !((x_) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S3 { x, acc, x_ };
                   true
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Send, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   let new_acc = (acc) + (x_);
                   if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
@@ -166,7 +166,7 @@ Compile both monitors
 
 Production codegen
   $ nuscr --gencode-rust=C@RecCarry RecCarry.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecCarryState {
       S0,
@@ -188,12 +188,12 @@ Production codegen
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
               Action::Init { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               Action::Step { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x_) > (0)
               }
               _ => false,
@@ -204,23 +204,23 @@ Production codegen
           match (&self.state, action) {
               (RecCarryState::Error, _) => true,
               (RecCarryState::S0, Action::Init { dir: Direction::Send, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: x };
                   true
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Send, x: x_, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   if !((x_) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S3 { x, acc, x_ };
                   true
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   let new_acc = (acc) + (x_);
                   if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
@@ -232,7 +232,7 @@ Production codegen
   }
   
   $ nuscr --gencode-rust=S@RecCarry RecCarry.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecCarryState {
       S0,
@@ -253,12 +253,12 @@ Production codegen
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Init { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               Action::Step { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
-                  let x_ = x.clone();
+                  let x = *x;
+                  let x_ = x;
                   (x_) > (0)
               }
               Action::Ack { dir: Direction::Send, .. } => true,
@@ -270,23 +270,23 @@ Production codegen
           match (&self.state, action) {
               (RecCarryState::Error, _) => true,
               (RecCarryState::S0, Action::Init { dir: Direction::Recv, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: x };
                   true
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Recv, x: x_, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   if !((x_) > (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S3 { x, acc, x_ };
                   true
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Send, .. }) => {
-                  let x = x.clone();
-                  let acc = acc.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let acc = *acc;
+                  let x_ = *x_;
                   let new_acc = (acc) + (x_);
                   if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return false; }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
