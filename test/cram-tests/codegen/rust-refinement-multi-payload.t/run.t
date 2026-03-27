@@ -12,7 +12,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
       Resp { dir: Direction, d: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum MultiPayloadState {
       S0,
@@ -34,8 +34,8 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           match action {
               Action::Resp { dir: Direction::Recv, d, .. } => true,
               Action::Req { dir: Direction::Send, a, b, .. } => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   ((a) > (0)) && (((b) > (0)) && ((b) < (a)))
               }
               _ => false,
@@ -46,16 +46,16 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           match (&self.state, action) {
               (MultiPayloadState::Error, _) => true,
               (MultiPayloadState::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S1 { a, b };
                   true
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
-                  let d = d.clone();
+                  let a = *a;
+                  let b = *b;
+                  let d = *d;
                   if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S2 { a, b, d };
                   true
@@ -80,7 +80,7 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
       Resp { dir: Direction, d: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum MultiPayloadState {
       S0,
@@ -101,8 +101,8 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, a, b, .. } => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   ((a) > (0)) && (((b) > (0)) && ((b) < (a)))
               }
               Action::Resp { dir: Direction::Send, d, .. } => true,
@@ -114,16 +114,16 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           match (&self.state, action) {
               (MultiPayloadState::Error, _) => true,
               (MultiPayloadState::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S1 { a, b };
                   true
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
-                  let d = d.clone();
+                  let a = *a;
+                  let b = *b;
+                  let d = *d;
                   if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S2 { a, b, d };
                   true
@@ -142,7 +142,7 @@ Compile Server monitor
 
 Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=C@MultiPayload MultiPayload.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum MultiPayloadState {
       S0,
@@ -164,8 +164,8 @@ Production codegen (no support types, not compiled)
           match action {
               Action::Resp { dir: Direction::Recv, d, .. } => true,
               Action::Req { dir: Direction::Send, a, b, .. } => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   ((a) > (0)) && (((b) > (0)) && ((b) < (a)))
               }
               _ => false,
@@ -176,16 +176,16 @@ Production codegen (no support types, not compiled)
           match (&self.state, action) {
               (MultiPayloadState::Error, _) => true,
               (MultiPayloadState::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S1 { a, b };
                   true
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
-                  let d = d.clone();
+                  let a = *a;
+                  let b = *b;
+                  let d = *d;
                   if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S2 { a, b, d };
                   true
@@ -197,7 +197,7 @@ Production codegen (no support types, not compiled)
   
 
   $ nuscr --gencode-rust=S@MultiPayload MultiPayload.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum MultiPayloadState {
       S0,
@@ -218,8 +218,8 @@ Production codegen (no support types, not compiled)
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, a, b, .. } => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   ((a) > (0)) && (((b) > (0)) && ((b) < (a)))
               }
               Action::Resp { dir: Direction::Send, d, .. } => true,
@@ -231,16 +231,16 @@ Production codegen (no support types, not compiled)
           match (&self.state, action) {
               (MultiPayloadState::Error, _) => true,
               (MultiPayloadState::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
+                  let a = *a;
+                  let b = *b;
                   if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S1 { a, b };
                   true
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
-                  let a = a.clone();
-                  let b = b.clone();
-                  let d = d.clone();
+                  let a = *a;
+                  let b = *b;
+                  let d = *d;
                   if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return false; }
                   self.state = MultiPayloadState::S2 { a, b, d };
                   true

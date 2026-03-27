@@ -12,7 +12,7 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
       Ping { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum DeepNestState {
       S0,
@@ -34,7 +34,7 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               _ => false,
@@ -45,22 +45,22 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           match (&self.state, action) {
               (DeepNestState::Error, _) => true,
               (DeepNestState::S0, Action::Ping { dir: Direction::Send, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S1 { x };
                   true
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Send, x: x_, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) > (x)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S2 { x, x_ };
                   true
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Send, x: x__, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
-                  let x__ = x__.clone();
+                  let x = *x;
+                  let x_ = *x_;
+                  let x__ = *x__;
                   if !((x__) > (x_)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S3 { x, x_, x__ };
                   true
@@ -83,7 +83,7 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
       Ping { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum DeepNestState {
       S0,
@@ -105,7 +105,7 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               _ => false,
@@ -116,22 +116,22 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           match (&self.state, action) {
               (DeepNestState::Error, _) => true,
               (DeepNestState::S0, Action::Ping { dir: Direction::Recv, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S1 { x };
                   true
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Recv, x: x_, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) > (x)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S2 { x, x_ };
                   true
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Recv, x: x__, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
-                  let x__ = x__.clone();
+                  let x = *x;
+                  let x_ = *x_;
+                  let x__ = *x__;
                   if !((x__) > (x_)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S3 { x, x_, x__ };
                   true
@@ -148,7 +148,7 @@ Compile both monitors
 
 Production codegen
   $ nuscr --gencode-rust=C@DeepNest DeepNest.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum DeepNestState {
       S0,
@@ -170,7 +170,7 @@ Production codegen
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               _ => false,
@@ -181,22 +181,22 @@ Production codegen
           match (&self.state, action) {
               (DeepNestState::Error, _) => true,
               (DeepNestState::S0, Action::Ping { dir: Direction::Send, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S1 { x };
                   true
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Send, x: x_, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) > (x)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S2 { x, x_ };
                   true
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Send, x: x__, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
-                  let x__ = x__.clone();
+                  let x = *x;
+                  let x_ = *x_;
+                  let x__ = *x__;
                   if !((x__) > (x_)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S3 { x, x_, x__ };
                   true
@@ -207,7 +207,7 @@ Production codegen
   }
   
   $ nuscr --gencode-rust=S@DeepNest DeepNest.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum DeepNestState {
       S0,
@@ -229,7 +229,7 @@ Production codegen
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) > (0)
               }
               _ => false,
@@ -240,22 +240,22 @@ Production codegen
           match (&self.state, action) {
               (DeepNestState::Error, _) => true,
               (DeepNestState::S0, Action::Ping { dir: Direction::Recv, x, .. }) => {
-                  let x = x.clone();
+                  let x = *x;
                   if !((x) > (0)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S1 { x };
                   true
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Recv, x: x_, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let x = *x;
+                  let x_ = *x_;
                   if !((x_) > (x)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S2 { x, x_ };
                   true
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Recv, x: x__, .. }) => {
-                  let x = x.clone();
-                  let x_ = x_.clone();
-                  let x__ = x__.clone();
+                  let x = *x;
+                  let x_ = *x_;
+                  let x__ = *x__;
                   if !((x__) > (x_)) { self.state = DeepNestState::Error; return false; }
                   self.state = DeepNestState::S3 { x, x_, x__ };
                   true

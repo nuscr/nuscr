@@ -14,7 +14,7 @@ Generate Rust monitor for Client (three-branch choice)
       Mid { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum ThreeWayState {
       S0 { n: i64 },
@@ -39,11 +39,11 @@ Generate Rust monitor for Client (three-branch choice)
               Action::Ack { dir: Direction::Recv, .. } => true,
               Action::Bye { dir: Direction::Send, x, .. } => true,
               Action::Low { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) < (10)
               }
               Action::Mid { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   ((x) >= (10)) && ((x) < (100))
               }
               _ => false,
@@ -54,45 +54,45 @@ Generate Rust monitor for Client (three-branch choice)
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S3 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let n = *n;
+                  let x = *x;
+                  let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
                   true
               }
@@ -118,7 +118,7 @@ Generate Rust monitor for Server (three-branch choice)
       Mid { dir: Direction, x: i64 },
   }
   
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum ThreeWayState {
       S0 { n: i64 },
@@ -142,11 +142,11 @@ Generate Rust monitor for Server (three-branch choice)
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => true,
               Action::Low { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) < (10)
               }
               Action::Mid { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   ((x) >= (10)) && ((x) < (100))
               }
               Action::Ack { dir: Direction::Send, .. } => true,
@@ -158,45 +158,45 @@ Generate Rust monitor for Server (three-branch choice)
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S3 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let n = *n;
+                  let x = *x;
+                  let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
                   true
               }
@@ -214,7 +214,7 @@ Compile Server monitor
 
 Production codegen (no support types, not compiled)
   $ nuscr --gencode-rust=C@ThreeWay ThreeWay.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum ThreeWayState {
       S0 { n: i64 },
@@ -239,11 +239,11 @@ Production codegen (no support types, not compiled)
               Action::Ack { dir: Direction::Recv, .. } => true,
               Action::Bye { dir: Direction::Send, x, .. } => true,
               Action::Low { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) < (10)
               }
               Action::Mid { dir: Direction::Send, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   ((x) >= (10)) && ((x) < (100))
               }
               _ => false,
@@ -254,45 +254,45 @@ Production codegen (no support types, not compiled)
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S3 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let n = *n;
+                  let x = *x;
+                  let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
                   true
               }
@@ -303,7 +303,7 @@ Production codegen (no support types, not compiled)
   
 
   $ nuscr --gencode-rust=S@ThreeWay ThreeWay.nuscr
-  #[derive(Debug, Clone, PartialEq, Eq)]
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum ThreeWayState {
       S0 { n: i64 },
@@ -327,11 +327,11 @@ Production codegen (no support types, not compiled)
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => true,
               Action::Low { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   (x) < (10)
               }
               Action::Mid { dir: Direction::Recv, x, .. } => {
-                  let x = x.clone();
+                  let x = *x;
                   ((x) >= (10)) && ((x) < (100))
               }
               Action::Ack { dir: Direction::Send, .. } => true,
@@ -343,45 +343,45 @@ Production codegen (no support types, not compiled)
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S3 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
                   true
               }
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
+                  let n = *n;
+                  let x = *x;
                   let new_n = (n) + (1);
                   if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S0 { n: new_n };
                   true
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
-                  let n = n.clone();
-                  let x = x.clone();
-                  let x_ = x_.clone();
+                  let n = *n;
+                  let x = *x;
+                  let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
                   true
               }
