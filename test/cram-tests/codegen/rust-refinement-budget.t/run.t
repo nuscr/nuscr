@@ -51,18 +51,18 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
-              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
-                  let budget = *budget;
-                  let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
-                  self.state = BudgetState::S3 { budget, amount };
-                  true
-              }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
+                  true
+              }
+              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
+                  let budget = *budget;
+                  let amount = *amount;
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
+                  self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
@@ -140,18 +140,18 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
-              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
-                  let budget = *budget;
-                  let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
-                  self.state = BudgetState::S3 { budget, amount };
-                  true
-              }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
+                  true
+              }
+              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
+                  let budget = *budget;
+                  let amount = *amount;
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
+                  self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {
@@ -222,18 +222,18 @@ Production codegen (no support types, not compiled)
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
-              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
-                  let budget = *budget;
-                  let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
-                  self.state = BudgetState::S3 { budget, amount };
-                  true
-              }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
+                  true
+              }
+              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
+                  let budget = *budget;
+                  let amount = *amount;
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
+                  self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
@@ -297,18 +297,18 @@ Production codegen (no support types, not compiled)
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (BudgetState::Error, _) => true,
-              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
-                  let budget = *budget;
-                  let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
-                  self.state = BudgetState::S3 { budget, amount };
-                  true
-              }
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   if !((x) > (0)) { self.state = BudgetState::Error; return false; }
                   self.state = BudgetState::S5 { budget, x };
+                  true
+              }
+              (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
+                  let budget = *budget;
+                  let amount = *amount;
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return false; }
+                  self.state = BudgetState::S3 { budget, amount };
                   true
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {

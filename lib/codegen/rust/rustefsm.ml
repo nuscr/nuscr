@@ -77,6 +77,36 @@ let collect_labels_with_fields g =
   in
   G.fold_edges_e f g (Map.empty (module String))
 
+type step_branch =
+  { sb_m: message
+  ; sb_rannot: refinement_action_annot
+  ; sb_dst: state }
+
+let group_step_arms g =
+  G.fold_edges_e
+    (fun (src, a, dst) acc ->
+      match a with
+      | SendA (_, m, rannot) | RecvA (_, m, rannot) ->
+          let dir = match a with SendA _ -> "Send" | _ -> "Recv" in
+          let label = upper_camel_case (LabelName.user m.label) in
+          let key = Printf.sprintf "%d:%s:%s" src dir label in
+          let (_, _, _, merged_payload, branches) =
+            Option.value ~default:(src, dir, label, [], []) (Map.find acc key)
+          in
+          let merged_payload =
+            List.fold ~f:append_var ~init:merged_payload (find_payload_vars m)
+          in
+          Map.set acc ~key
+            ~data:
+              ( src
+              , dir
+              , label
+              , merged_payload
+              , branches @ [{sb_m= m; sb_rannot= rannot; sb_dst= dst}] )
+      | Epsilon -> acc )
+    g
+    (Map.empty (module String))
+
 let collect_accepts_arms g =
   G.fold_edges_e
     (fun (_, a, _) acc ->

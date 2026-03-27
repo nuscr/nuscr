@@ -53,6 +53,12 @@ Generate Rust monitor for Client (three-branch choice)
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
+              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  self.state = ThreeWayState::S7 { n, x };
+                  true
+              }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
                   let n = *n;
                   let x = *x;
@@ -65,12 +71,6 @@ Generate Rust monitor for Client (three-branch choice)
                   let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
-              }
-              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
@@ -157,6 +157,12 @@ Generate Rust monitor for Server (three-branch choice)
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
+              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  self.state = ThreeWayState::S7 { n, x };
+                  true
+              }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
@@ -169,12 +175,6 @@ Generate Rust monitor for Server (three-branch choice)
                   let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
-              }
-              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
@@ -253,6 +253,12 @@ Production codegen (no support types, not compiled)
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
+              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  self.state = ThreeWayState::S7 { n, x };
+                  true
+              }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
                   let n = *n;
                   let x = *x;
@@ -265,12 +271,6 @@ Production codegen (no support types, not compiled)
                   let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
-              }
-              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
@@ -342,6 +342,12 @@ Production codegen (no support types, not compiled)
       pub fn step(&mut self, action: &Action) -> bool {
           match (&self.state, action) {
               (ThreeWayState::Error, _) => true,
+              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  self.state = ThreeWayState::S7 { n, x };
+                  true
+              }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
@@ -354,12 +360,6 @@ Production codegen (no support types, not compiled)
                   let x = *x;
                   if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
-              }
-              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  self.state = ThreeWayState::S7 { n, x };
                   true
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
