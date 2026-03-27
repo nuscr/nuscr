@@ -28,6 +28,25 @@ val collect_labels_with_fields :
 (** Collect every unique label in the EFSM and, for each, the union of all
     named payload fields across all edges that use that label. *)
 
+type step_branch =
+  { sb_m: message
+  ; sb_rannot: refinement_action_annot
+  ; sb_dst: state }
+
+val group_step_arms :
+     G.t
+  -> ( state
+     * string
+     * string
+     * (VariableName.t * Expr.payload_type) list
+     * step_branch list )
+     Map.M(String).t
+(** Group EFSM edges by "src:dir:label" key. For each group, collect the
+    source state, direction, label, the union of payload variables across
+    branches, and the list of branches (each with its message, annotation,
+    and destination state). Used to emit one match arm per (state, action)
+    pair in the generated [step] function. *)
+
 val collect_accepts_arms :
      G.t
   -> ((VariableName.t * Expr.payload_type) list * Expr.t list)

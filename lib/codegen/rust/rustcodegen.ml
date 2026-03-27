@@ -122,6 +122,40 @@ let build_dst_field_inits dst_vars rec_var_updates new_rec_vars =
       | None, Some expr -> Printf.sprintf "%s: %s" name expr
       | None, None -> name )
 
+let emit_branch_body buffer indent b src_vars var_map rec_var_info
+    protocol_name =
+  let dst_vars = Map.find_exn var_map b.sb_dst in
+  let dst_rv_info =
+    Option.value ~default:[] (Map.find rec_var_info b.sb_dst)
+  in
+  let rec_var_updates = compute_rec_var_updates b.sb_rannot dst_rv_info in
+  let new_rec_vars = find_new_rec_vars src_vars dst_rv_info rec_var_updates in
+  let dst_field_inits =
+    build_dst_field_inits dst_vars rec_var_updates new_rec_vars
+  in
+  List.iter rec_var_updates ~f:(fun (_, binding, expr, _) ->
+      Buffer.add_string buffer
+        (Printf.sprintf "%slet %s = %s;\n" indent binding
+           (rust_show_expr expr) ) ) ;
+  List.iter rec_var_updates ~f:(fun (_, binding, _, rv_ty) ->
+      match rv_ty with
+      | Expr.PTRefined (binder, _, pred) ->
+          let pred =
+            Expr.substitute ~from:binder
+              ~replace:(Var (VariableName.of_string binding))
+              pred
+          in
+          Buffer.add_string buffer
+            (Printf.sprintf
+               "%sif !(%s) { self.state = %sState::Error; return false; }\n"
+               indent (rust_show_expr pred) protocol_name )
+      | _ -> () ) ;
+  Buffer.add_string buffer
+    (Printf.sprintf "%sself.state = %sState::%s;\n%strue\n" indent
+       protocol_name
+       (fmt_state_variant b.sb_dst dst_field_inits)
+       indent )
+
 let generate_step_fn buffer g var_map rec_var_info protocol_name =
   Buffer.add_string buffer
     (Printf.sprintf
@@ -130,87 +164,69 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
        \        match (&self.state, action) {\n\
        \            (%sState::Error, _) => true,\n"
        protocol_name ) ;
-  G.iter_edges_e
-    (fun (src, a, dst) ->
-      match a with
-      | SendA (_, m, rannot) | RecvA (_, m, rannot) ->
-          let dir =
-            match a with
-            | SendA _ -> "Send"
-            | RecvA _ -> "Recv"
-            | Epsilon ->
-                Err.violationf ~here:[%here]
-                  "Found Epsilon transition in EFSM, not supported in Rust \
-                   codegen"
-          in
-          let src_vars = Map.find_exn var_map src in
-          let dst_vars = Map.find_exn var_map dst in
-          let dst_rv_info =
-            Option.value ~default:[] (Map.find rec_var_info dst)
-          in
-          let rec_var_updates = compute_rec_var_updates rannot dst_rv_info in
-          let new_rec_vars =
-            find_new_rec_vars src_vars dst_rv_info rec_var_updates
-          in
-          let dst_field_inits =
-            build_dst_field_inits dst_vars rec_var_updates new_rec_vars
-          in
-          let src_fields =
-            List.map src_vars ~f:(fun (v, _) -> VariableName.user v)
-          in
-          let label = upper_camel_case (LabelName.user m.label) in
-          (* State + Action variant with direction and field bindings *)
+  Map.iter (group_step_arms g)
+    ~f:(fun (src, dir, label, merged_payload, branches) ->
+      let src_vars = Map.find_exn var_map src in
+      let src_fields =
+        List.map src_vars ~f:(fun (v, _) -> VariableName.user v)
+      in
+      let merged_pvalues =
+        List.map merged_payload ~f:(fun (v, ty) -> PValue (Some v, ty))
+      in
+      Buffer.add_string buffer
+        (Printf.sprintf "            (%sState::%s, %s) => {\n"
+           protocol_name
+           (fmt_state_variant src src_fields)
+           (rust_action_pattern dir label merged_pvalues) ) ;
+      let all_bindings = src_vars @ merged_payload in
+      List.iter all_bindings ~f:(fun (v, _) ->
+          let name = VariableName.user v in
           Buffer.add_string buffer
-            (Printf.sprintf "            (%sState::%s, %s) => {\n"
-               protocol_name
-               (fmt_state_variant src src_fields)
-               (rust_action_pattern dir label m.payload) ) ;
-          (* Deref all bound variables (references from &self.state and
-             &Action) *)
-          let payload_vars = find_payload_vars m in
-          let all_bindings = src_vars @ payload_vars in
-          List.iter all_bindings ~f:(fun (v, _) ->
-              let name = VariableName.user v in
-              Buffer.add_string buffer
-                (Printf.sprintf "                let %s = *%s;\n" name
-                   name ) ) ;
-          (* Payload constraints *)
-          Option.iter (rust_payload_constraints m.payload) ~f:(fun c ->
+            (Printf.sprintf "                let %s = *%s;\n" name name) ) ;
+      ( match branches with
+      | [b] ->
+          Option.iter (rust_payload_constraints b.sb_m.payload) ~f:(fun c ->
               Buffer.add_string buffer
                 (Printf.sprintf
                    "                if !(%s) { self.state = %sState::Error; \
                     return false; }\n"
                    c protocol_name ) ) ;
-          (* Rec var update let-bindings *)
-          List.iter rec_var_updates ~f:(fun (_, binding, expr, _) ->
-              Buffer.add_string buffer
-                (Printf.sprintf "                let %s = %s;\n" binding
-                   (rust_show_expr expr) ) ) ;
-          (* Rec var type constraints (on updated values only) *)
-          List.iter rec_var_updates ~f:(fun (_, binding, _, rv_ty) ->
-              match rv_ty with
-              | Expr.PTRefined (binder, _, pred) ->
-                  let pred =
-                    Expr.substitute ~from:binder
-                      ~replace:(Var (VariableName.of_string binding))
-                      pred
-                  in
-                  Buffer.add_string buffer
-                    (Printf.sprintf
-                       "                if !(%s) { self.state = \
-                        %sState::Error; return false; }\n"
-                       (rust_show_expr pred) protocol_name )
-              | _ -> () ) ;
-          (* Transition to next state *)
-          Buffer.add_string buffer
-            (Printf.sprintf
-               "                self.state = %sState::%s;\n\
-               \                true\n\
-               \            }\n"
-               protocol_name
-               (fmt_state_variant dst dst_field_inits) )
-      | Epsilon -> () )
-    g ;
+          emit_branch_body buffer "                " b src_vars var_map
+            rec_var_info protocol_name
+      | _ ->
+          (* GuardedUniqueness guarantees the payload guards are mutually
+             exclusive and exhaustive, so branching on payload constraints
+             alone is sound. *)
+          let rec go first = function
+            | [] ->
+                Buffer.add_string buffer
+                  (Printf.sprintf
+                     "                } else {\n\
+                     \                    self.state = %sState::Error;\n\
+                     \                    false\n\
+                     \                }\n"
+                     protocol_name )
+            | b :: rest ->
+                let guard = rust_payload_constraints b.sb_m.payload in
+                ( match (first, guard) with
+                | true, Some g ->
+                    Buffer.add_string buffer
+                      (Printf.sprintf "                if %s {\n" g)
+                | false, Some g ->
+                    Buffer.add_string buffer
+                      (Printf.sprintf "                } else if %s {\n" g)
+                | _, None ->
+                    Buffer.add_string buffer
+                      ( if first then "                {\n"
+                        else "                } else {\n" ) ) ;
+                emit_branch_body buffer "                    " b src_vars
+                  var_map rec_var_info protocol_name ;
+                ( match guard with
+                | None -> Buffer.add_string buffer "                }\n"
+                | Some _ -> go false rest )
+          in
+          go true branches ) ;
+      Buffer.add_string buffer "            }\n" ) ;
   Buffer.add_string buffer
     (Printf.sprintf
        "            _ => { self.state = %sState::Error; false }\n\
