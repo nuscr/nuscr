@@ -9,7 +9,7 @@ Generate Rust monitor for Client
   #[allow(dead_code)]
   pub enum Action {
       Add { dir: Direction, x: i64, y: i64 },
-      Bye { dir: Direction },
+      Bye { dir: Direction, x: i64 },
       Sum { dir: Direction, r: i64 },
   }
   
@@ -18,8 +18,8 @@ Generate Rust monitor for Client
   enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
-      S5 { total: i64 },
-      S6 { total: i64 },
+      S5 { total: i64, x_: i64 },
+      S6 { total: i64, x_: i64 },
       Error,
   }
   
@@ -41,7 +41,11 @@ Generate Rust monitor for Client
                   let y = *y;
                   ((x) > (0)) && ((y) > (0))
               }
-              Action::Bye { dir: Direction::Send, .. } => true,
+              Action::Bye { dir: Direction::Send, x, .. } => {
+                  let x = *x;
+                  let x_ = x;
+                  (x_) > (0)
+              }
               _ => false,
           }
       }
@@ -57,9 +61,11 @@ Generate Rust monitor for Client
                   self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S5 { total };
+                  let x_ = *x_;
+                  if !((x_) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S5 { total, x_ };
                   true
               }
               (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Recv, r, .. }) => {
@@ -73,9 +79,10 @@ Generate Rust monitor for Client
                   self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S5 { total, x_ }, Action::Bye { dir: Direction::Recv, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S6 { total };
+                  let x_ = *x_;
+                  self.state = RunningSumState::S6 { total, x_ };
                   true
               }
               _ => { self.state = RunningSumState::Error; false }
@@ -95,7 +102,7 @@ Generate Rust monitor for Server
   #[allow(dead_code)]
   pub enum Action {
       Add { dir: Direction, x: i64, y: i64 },
-      Bye { dir: Direction },
+      Bye { dir: Direction, x: i64 },
       Sum { dir: Direction, r: i64 },
   }
   
@@ -104,8 +111,8 @@ Generate Rust monitor for Server
   enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
-      S5 { total: i64 },
-      S6 { total: i64 },
+      S5 { total: i64, x_: i64 },
+      S6 { total: i64, x_: i64 },
       Error,
   }
   
@@ -125,7 +132,11 @@ Generate Rust monitor for Server
                   let y = *y;
                   ((x) > (0)) && ((y) > (0))
               }
-              Action::Bye { dir: Direction::Recv, .. } => true,
+              Action::Bye { dir: Direction::Recv, x, .. } => {
+                  let x = *x;
+                  let x_ = x;
+                  (x_) > (0)
+              }
               Action::Bye { dir: Direction::Send, .. } => true,
               Action::Sum { dir: Direction::Send, r, .. } => true,
               _ => false,
@@ -143,9 +154,11 @@ Generate Rust monitor for Server
                   self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S5 { total };
+                  let x_ = *x_;
+                  if !((x_) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S5 { total, x_ };
                   true
               }
               (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Send, r, .. }) => {
@@ -159,9 +172,10 @@ Generate Rust monitor for Server
                   self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S5 { total, x_ }, Action::Bye { dir: Direction::Send, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S6 { total };
+                  let x_ = *x_;
+                  self.state = RunningSumState::S6 { total, x_ };
                   true
               }
               _ => { self.state = RunningSumState::Error; false }
@@ -183,8 +197,8 @@ Production codegen (no support types, not compiled)
   enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
-      S5 { total: i64 },
-      S6 { total: i64 },
+      S5 { total: i64, x_: i64 },
+      S6 { total: i64, x_: i64 },
       Error,
   }
   
@@ -206,7 +220,11 @@ Production codegen (no support types, not compiled)
                   let y = *y;
                   ((x) > (0)) && ((y) > (0))
               }
-              Action::Bye { dir: Direction::Send, .. } => true,
+              Action::Bye { dir: Direction::Send, x, .. } => {
+                  let x = *x;
+                  let x_ = x;
+                  (x_) > (0)
+              }
               _ => false,
           }
       }
@@ -222,9 +240,11 @@ Production codegen (no support types, not compiled)
                   self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S5 { total };
+                  let x_ = *x_;
+                  if !((x_) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S5 { total, x_ };
                   true
               }
               (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Recv, r, .. }) => {
@@ -238,9 +258,10 @@ Production codegen (no support types, not compiled)
                   self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S5 { total, x_ }, Action::Bye { dir: Direction::Recv, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S6 { total };
+                  let x_ = *x_;
+                  self.state = RunningSumState::S6 { total, x_ };
                   true
               }
               _ => { self.state = RunningSumState::Error; false }
@@ -255,8 +276,8 @@ Production codegen (no support types, not compiled)
   enum RunningSumState {
       S0 { total: i64 },
       S3 { total: i64, x: i64, y: i64 },
-      S5 { total: i64 },
-      S6 { total: i64 },
+      S5 { total: i64, x_: i64 },
+      S6 { total: i64, x_: i64 },
       Error,
   }
   
@@ -276,7 +297,11 @@ Production codegen (no support types, not compiled)
                   let y = *y;
                   ((x) > (0)) && ((y) > (0))
               }
-              Action::Bye { dir: Direction::Recv, .. } => true,
+              Action::Bye { dir: Direction::Recv, x, .. } => {
+                  let x = *x;
+                  let x_ = x;
+                  (x_) > (0)
+              }
               Action::Bye { dir: Direction::Send, .. } => true,
               Action::Sum { dir: Direction::Send, r, .. } => true,
               _ => false,
@@ -294,9 +319,11 @@ Production codegen (no support types, not compiled)
                   self.state = RunningSumState::S3 { total, x, y };
                   true
               }
-              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, .. }) => {
+              (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S5 { total };
+                  let x_ = *x_;
+                  if !((x_) > (0)) { self.state = RunningSumState::Error; return false; }
+                  self.state = RunningSumState::S5 { total, x_ };
                   true
               }
               (RunningSumState::S3 { total, x, y }, Action::Sum { dir: Direction::Send, r, .. }) => {
@@ -310,9 +337,10 @@ Production codegen (no support types, not compiled)
                   self.state = RunningSumState::S0 { total: new_total };
                   true
               }
-              (RunningSumState::S5 { total }, Action::Bye { dir: Direction::Send, .. }) => {
+              (RunningSumState::S5 { total, x_ }, Action::Bye { dir: Direction::Send, .. }) => {
                   let total = *total;
-                  self.state = RunningSumState::S6 { total };
+                  let x_ = *x_;
+                  self.state = RunningSumState::S6 { total, x_ };
                   true
               }
               _ => { self.state = RunningSumState::Error; false }
