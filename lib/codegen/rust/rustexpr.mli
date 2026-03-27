@@ -16,10 +16,6 @@ val strip_trailing_underscores : string -> string
 (** Remove trailing underscores from a name, mapping scope-suffixed payload
     names (e.g. [x_], [x__]) back to the base field name [x]. *)
 
-val rust_value_pattern_of_payload :
-  VariableName.t option -> Expr.payload_type -> string
-(** Build a Rust pattern for matching a Value enum variant *)
-
 val rust_action_pattern : string -> string -> payload list -> string
 (** Build a Rust Action with direction and fields *)
 

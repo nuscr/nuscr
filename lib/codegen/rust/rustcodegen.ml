@@ -165,7 +165,7 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
                protocol_name
                (fmt_state_variant src src_fields)
                (rust_action_pattern dir label m.payload) ) ;
-          (* Clone all bound variables (references from &self.state and
+          (* Deref all bound variables (references from &self.state and
              &Action) *)
           let payload_vars = find_payload_vars m in
           let all_bindings = src_vars @ payload_vars in

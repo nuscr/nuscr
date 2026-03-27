@@ -94,24 +94,6 @@ let rust_validate_identifier v =
   if Set.mem rust_keywords name || String.is_prefix name ~prefix:"new_" then
     Err.uerr (Err.RustKeywordConflict v)
 
-let rec rust_value_pattern_of_payload name_opt = function
-  | Expr.PTInt ->
-      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
-      Printf.sprintf "Value::Int(%s)" b
-  | Expr.PTBool ->
-      let b = Option.value_map name_opt ~default:"_" ~f:VariableName.user in
-      Printf.sprintf "Value::Bool(%s)" b
-  | Expr.PTString ->
-    Err.unimpl ~here:[%here]
-           "in Rust codegen use bool, int or unit, string type"
-  | Expr.PTUnit -> "Value::Unit"
-  | Expr.PTRefined (_, t, _) -> rust_value_pattern_of_payload name_opt t
-  | Expr.PTAbstract n ->
-      Err.unimpl ~here:[%here]
-        (Printf.sprintf
-           "in Rust codegen use bool, int, string or unit, abstract payload \
-            type '%s'"
-           (PayloadTypeName.user n) )
 
 let strip_trailing_underscores s = String.rstrip s ~drop:(Char.equal '_')
 

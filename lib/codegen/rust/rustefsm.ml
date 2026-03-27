@@ -57,15 +57,6 @@ let compute_var_map start g rec_var_info =
   in
   aux (Map.empty (module Int)) (start, [])
 
-let collect_labels g =
-  let f (_, a, _) acc =
-    match a with
-    | SendA (_, m, _) | RecvA (_, m, _) ->
-        Set.add acc (LabelName.user m.label)
-    | Epsilon -> acc
-  in
-  G.fold_edges_e f g (Set.empty (module String))
-
 let stripped_payload_fields m =
   List.filter_map m.payload ~f:(function
     | PValue (Some v, ty) ->
