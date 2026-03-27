@@ -1,0 +1,6 @@
+(*# RefinementTypes #*)
+
+global protocol Interior(role C, role S) {
+  req(foo_bar: int{foo_bar > 0}) from C to S;
+  req(foo_bar_: int{foo_bar_ > foo_bar}) from C to S;
+}

@@ -1,0 +1,14 @@
+(*# RefinementTypes #*)
+
+global protocol RecUpdate(role C, role S) {
+  rec loop [total<C, S>: (total: int{total >= 0}) = 0] {
+    req(x: int{x > 0}) from C to S;
+    choice at S {
+      ok(x_: int{x_ = x}) from S to C;
+      continue loop [total + x_];
+    } or {
+      err() from S to C;
+      continue loop [total];
+    }
+  }
+}

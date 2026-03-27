@@ -1,0 +1,7 @@
+(*# RefinementTypes #*)
+
+global protocol DeepNest(role C, role S) {
+  ping(x: int{x > 0}) from C to S;
+  ping(x_: int{x_ > x}) from C to S;
+  ping(x__: int{x__ > x_}) from C to S;
+}

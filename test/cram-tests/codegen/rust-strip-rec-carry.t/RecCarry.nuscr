@@ -1,0 +1,10 @@
+(*# RefinementTypes #*)
+
+global protocol RecCarry(role C, role S) {
+  init(x: int{x > 0}) from C to S;
+  rec loop [acc<C, S>: (acc: int{acc >= 0}) = x] {
+    step(x_: int{x_ > 0}) from C to S;
+    ack() from S to C;
+    continue loop [acc + x_];
+  }
+}
