@@ -29,9 +29,7 @@ val collect_labels_with_fields :
     named payload fields across all edges that use that label. *)
 
 type step_branch =
-  { sb_m: message
-  ; sb_rannot: refinement_action_annot
-  ; sb_dst: state }
+  {sb_m: message; sb_rannot: refinement_action_annot; sb_dst: state}
 
 val group_step_arms :
      G.t

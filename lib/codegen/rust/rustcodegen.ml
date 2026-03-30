@@ -122,14 +122,18 @@ let build_dst_field_inits dst_vars rec_var_updates new_rec_vars =
       | None, Some expr -> Printf.sprintf "%s: %s" name expr
       | None, None -> name )
 
-let emit_branch_body buffer indent b src_vars var_map rec_var_info
+let emit_branch_body buffer indent branch src_vars var_map rec_var_info
     protocol_name =
-  let dst_vars = Map.find_exn var_map b.sb_dst in
+  let dst_vars = Map.find_exn var_map branch.sb_dst in
   let dst_rv_info =
-    Option.value ~default:[] (Map.find rec_var_info b.sb_dst)
+    Option.value ~default:[] (Map.find rec_var_info branch.sb_dst)
   in
-  let rec_var_updates = compute_rec_var_updates b.sb_rannot dst_rv_info in
-  let new_rec_vars = find_new_rec_vars src_vars dst_rv_info rec_var_updates in
+  let rec_var_updates =
+    compute_rec_var_updates branch.sb_rannot dst_rv_info
+  in
+  let new_rec_vars =
+    find_new_rec_vars src_vars dst_rv_info rec_var_updates
+  in
   let dst_field_inits =
     build_dst_field_inits dst_vars rec_var_updates new_rec_vars
   in
@@ -153,7 +157,7 @@ let emit_branch_body buffer indent b src_vars var_map rec_var_info
   Buffer.add_string buffer
     (Printf.sprintf "%sself.state = %sState::%s;\n%strue\n" indent
        protocol_name
-       (fmt_state_variant b.sb_dst dst_field_inits)
+       (fmt_state_variant branch.sb_dst dst_field_inits)
        indent )
 
 let generate_step_fn buffer g var_map rec_var_info protocol_name =
@@ -174,8 +178,7 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
         List.map merged_payload ~f:(fun (v, ty) -> PValue (Some v, ty))
       in
       Buffer.add_string buffer
-        (Printf.sprintf "            (%sState::%s, %s) => {\n"
-           protocol_name
+        (Printf.sprintf "            (%sState::%s, %s) => {\n" protocol_name
            (fmt_state_variant src src_fields)
            (rust_action_pattern dir label merged_pvalues) ) ;
       let all_bindings = src_vars @ merged_payload in
@@ -184,19 +187,19 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
           Buffer.add_string buffer
             (Printf.sprintf "                let %s = *%s;\n" name name) ) ;
       ( match branches with
-      | [b] ->
-          Option.iter (rust_payload_constraints b.sb_m.payload) ~f:(fun c ->
+      | [branch] ->
+          Option.iter (rust_payload_constraints branch.sb_m.payload)
+            ~f:(fun c ->
               Buffer.add_string buffer
                 (Printf.sprintf
                    "                if !(%s) { self.state = %sState::Error; \
                     return false; }\n"
                    c protocol_name ) ) ;
-          emit_branch_body buffer "                " b src_vars var_map
+          emit_branch_body buffer "                " branch src_vars var_map
             rec_var_info protocol_name
       | _ ->
           (* GuardedUniqueness guarantees the payload guards are mutually
-             exclusive and exhaustive, so branching on payload constraints
-             alone is sound. *)
+             exclusive, so branching on payload guards alone is sound. *)
           let rec go first = function
             | [] ->
                 Buffer.add_string buffer
@@ -206,8 +209,8 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
                      \                    false\n\
                      \                }\n"
                      protocol_name )
-            | b :: rest ->
-                let guard = rust_payload_constraints b.sb_m.payload in
+            | branch :: rest -> (
+                let guard = rust_payload_constraints branch.sb_m.payload in
                 ( match (first, guard) with
                 | true, Some g ->
                     Buffer.add_string buffer
@@ -219,9 +222,9 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
                     Buffer.add_string buffer
                       ( if first then "                {\n"
                         else "                } else {\n" ) ) ;
-                emit_branch_body buffer "                    " b src_vars
-                  var_map rec_var_info protocol_name ;
-                ( match guard with
+                emit_branch_body buffer "                    " branch
+                  src_vars var_map rec_var_info protocol_name ;
+                match guard with
                 | None -> Buffer.add_string buffer "                }\n"
                 | Some _ -> go false rest )
           in
@@ -260,8 +263,7 @@ let generate_accepts_fn buffer g =
           List.iter payload ~f:(fun (v, _) ->
               let name = VariableName.user v in
               Buffer.add_string buffer
-                (Printf.sprintf "                let %s = *%s;\n" name
-                   name ) ) ;
+                (Printf.sprintf "                let %s = *%s;\n" name name) ) ;
           let guard_fvs =
             List.fold guards
               ~init:(Set.empty (module VariableName))
@@ -272,8 +274,8 @@ let generate_accepts_fn buffer g =
                 let name = VariableName.user v in
                 let stripped = strip_trailing_underscores name in
                 Buffer.add_string buffer
-                  (Printf.sprintf "                let %s = %s;\n"
-                     name stripped ) ) ;
+                  (Printf.sprintf "                let %s = %s;\n" name
+                     stripped ) ) ;
           let disjoined =
             List.map guards ~f:rust_show_expr |> String.concat ~sep:" || "
           in
