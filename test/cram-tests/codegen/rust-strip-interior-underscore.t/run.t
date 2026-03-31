@@ -13,14 +13,10 @@ Interior underscores preserved, only trailing underscore stripped
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,9 +37,7 @@ Interior underscores preserved, only trailing underscore stripped
           Self { state: InteriorState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Interior"
-      }
+      pub const NAME: &'static str = "Interior";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -55,23 +49,23 @@ Interior underscores preserved, only trailing underscore stripped
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (InteriorState::Error, _) => Ok(Outcome::Absorbed),
+              (InteriorState::Error, _) => Err(Violation::AlreadyFailed),
               (InteriorState::S0, Action::Req { dir: Direction::Send, foo_bar, .. }) => {
                   let foo_bar = *foo_bar;
-                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar) > (0)" }); }
+                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar) > (0)" }); }
                   self.state = InteriorState::S1 { foo_bar };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Send, foo_bar: foo_bar_, .. }) => {
                   let foo_bar = *foo_bar;
                   let foo_bar_ = *foo_bar_;
-                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar_) > (foo_bar)" }); }
+                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar_) > (foo_bar)" }); }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = InteriorState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = InteriorState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -90,14 +84,10 @@ Interior underscores preserved, only trailing underscore stripped
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,9 +108,7 @@ Interior underscores preserved, only trailing underscore stripped
           Self { state: InteriorState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Interior"
-      }
+      pub const NAME: &'static str = "Interior";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -132,23 +120,23 @@ Interior underscores preserved, only trailing underscore stripped
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (InteriorState::Error, _) => Ok(Outcome::Absorbed),
+              (InteriorState::Error, _) => Err(Violation::AlreadyFailed),
               (InteriorState::S0, Action::Req { dir: Direction::Recv, foo_bar, .. }) => {
                   let foo_bar = *foo_bar;
-                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar) > (0)" }); }
+                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar) > (0)" }); }
                   self.state = InteriorState::S1 { foo_bar };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Recv, foo_bar: foo_bar_, .. }) => {
                   let foo_bar = *foo_bar;
                   let foo_bar_ = *foo_bar_;
-                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar_) > (foo_bar)" }); }
+                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar_) > (foo_bar)" }); }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = InteriorState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = InteriorState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -178,9 +166,7 @@ Production codegen
           Self { state: InteriorState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Interior"
-      }
+      pub const NAME: &'static str = "Interior";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -192,23 +178,23 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (InteriorState::Error, _) => Ok(Outcome::Absorbed),
+              (InteriorState::Error, _) => Err(Violation::AlreadyFailed),
               (InteriorState::S0, Action::Req { dir: Direction::Send, foo_bar, .. }) => {
                   let foo_bar = *foo_bar;
-                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar) > (0)" }); }
+                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar) > (0)" }); }
                   self.state = InteriorState::S1 { foo_bar };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Send, foo_bar: foo_bar_, .. }) => {
                   let foo_bar = *foo_bar;
                   let foo_bar_ = *foo_bar_;
-                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar_) > (foo_bar)" }); }
+                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar_) > (foo_bar)" }); }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = InteriorState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = InteriorState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -232,9 +218,7 @@ Production codegen
           Self { state: InteriorState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Interior"
-      }
+      pub const NAME: &'static str = "Interior";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -246,23 +230,23 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (InteriorState::Error, _) => Ok(Outcome::Absorbed),
+              (InteriorState::Error, _) => Err(Violation::AlreadyFailed),
               (InteriorState::S0, Action::Req { dir: Direction::Recv, foo_bar, .. }) => {
                   let foo_bar = *foo_bar;
-                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar) > (0)" }); }
+                  if !((foo_bar) > (0)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar) > (0)" }); }
                   self.state = InteriorState::S1 { foo_bar };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (InteriorState::S1 { foo_bar }, Action::Req { dir: Direction::Recv, foo_bar: foo_bar_, .. }) => {
                   let foo_bar = *foo_bar;
                   let foo_bar_ = *foo_bar_;
-                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation { reason: "guard failed: (foo_bar_) > (foo_bar)" }); }
+                  if !((foo_bar_) > (foo_bar)) { self.state = InteriorState::Error; return Err(Violation::ConstraintFailed { expr: "(foo_bar_) > (foo_bar)" }); }
                   self.state = InteriorState::S2 { foo_bar, foo_bar_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = InteriorState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = InteriorState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }

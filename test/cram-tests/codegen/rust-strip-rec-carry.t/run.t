@@ -15,14 +15,10 @@ Underscored variable carried across loop iterations via rec var update
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,9 +39,7 @@ Underscored variable carried across loop iterations via rec var update
           Self { state: RecCarryState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecCarry"
-      }
+      pub const NAME: &'static str = "RecCarry";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -63,33 +57,33 @@ Underscored variable carried across loop iterations via rec var update
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecCarryState::Error, _) => Ok(Outcome::Absorbed),
+              (RecCarryState::Error, _) => Err(Violation::AlreadyFailed),
               (RecCarryState::S0, Action::Init { dir: Direction::Send, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Send, x: x_, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
-                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x_) > (0)" }); }
+                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (0)" }); }
                   self.state = RecCarryState::S3 { x, acc, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Recv, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
                   let new_acc = (acc) + (x_);
-                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "refinement failed: (acc) >= (0)" }); }
+                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(acc) >= (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecCarryState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecCarryState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -110,14 +104,10 @@ Underscored variable carried across loop iterations via rec var update
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,9 +128,7 @@ Underscored variable carried across loop iterations via rec var update
           Self { state: RecCarryState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecCarry"
-      }
+      pub const NAME: &'static str = "RecCarry";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -158,33 +146,33 @@ Underscored variable carried across loop iterations via rec var update
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecCarryState::Error, _) => Ok(Outcome::Absorbed),
+              (RecCarryState::Error, _) => Err(Violation::AlreadyFailed),
               (RecCarryState::S0, Action::Init { dir: Direction::Recv, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Recv, x: x_, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
-                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x_) > (0)" }); }
+                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (0)" }); }
                   self.state = RecCarryState::S3 { x, acc, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Send, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
                   let new_acc = (acc) + (x_);
-                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "refinement failed: (acc) >= (0)" }); }
+                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(acc) >= (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecCarryState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecCarryState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -214,9 +202,7 @@ Production codegen
           Self { state: RecCarryState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecCarry"
-      }
+      pub const NAME: &'static str = "RecCarry";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -234,33 +220,33 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecCarryState::Error, _) => Ok(Outcome::Absorbed),
+              (RecCarryState::Error, _) => Err(Violation::AlreadyFailed),
               (RecCarryState::S0, Action::Init { dir: Direction::Send, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Send, x: x_, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
-                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x_) > (0)" }); }
+                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (0)" }); }
                   self.state = RecCarryState::S3 { x, acc, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Recv, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
                   let new_acc = (acc) + (x_);
-                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "refinement failed: (acc) >= (0)" }); }
+                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(acc) >= (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecCarryState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecCarryState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -284,9 +270,7 @@ Production codegen
           Self { state: RecCarryState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecCarry"
-      }
+      pub const NAME: &'static str = "RecCarry";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -304,33 +288,33 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecCarryState::Error, _) => Ok(Outcome::Absorbed),
+              (RecCarryState::Error, _) => Err(Violation::AlreadyFailed),
               (RecCarryState::S0, Action::Init { dir: Direction::Recv, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S1 { x, acc }, Action::Step { dir: Direction::Recv, x: x_, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
-                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "guard failed: (x_) > (0)" }); }
+                  if !((x_) > (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (0)" }); }
                   self.state = RecCarryState::S3 { x, acc, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecCarryState::S3 { x, acc, x_ }, Action::Ack { dir: Direction::Send, .. }) => {
                   let x = *x;
                   let acc = *acc;
                   let x_ = *x_;
                   let new_acc = (acc) + (x_);
-                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation { reason: "refinement failed: (acc) >= (0)" }); }
+                  if !((new_acc) >= (0)) { self.state = RecCarryState::Error; return Err(Violation::ConstraintFailed { expr: "(acc) >= (0)" }); }
                   self.state = RecCarryState::S1 { x, acc: new_acc };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecCarryState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecCarryState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }

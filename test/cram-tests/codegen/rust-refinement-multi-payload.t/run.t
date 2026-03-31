@@ -13,14 +13,10 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,9 +37,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "MultiPayload"
-      }
+      pub const NAME: &'static str = "MultiPayload";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -57,25 +51,25 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (MultiPayloadState::Error, _) => Ok(Outcome::Absorbed),
+              (MultiPayloadState::Error, _) => Err(Violation::AlreadyFailed),
               (MultiPayloadState::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
                   let a = *a;
                   let b = *b;
                   let d = *d;
-                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (d) == ((a) - (b))" }); }
+                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(d) == ((a) - (b))" }); }
                   self.state = MultiPayloadState::S2 { a, b, d };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = MultiPayloadState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = MultiPayloadState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -96,14 +90,10 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,9 +114,7 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "MultiPayload"
-      }
+      pub const NAME: &'static str = "MultiPayload";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -140,25 +128,25 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (MultiPayloadState::Error, _) => Ok(Outcome::Absorbed),
+              (MultiPayloadState::Error, _) => Err(Violation::AlreadyFailed),
               (MultiPayloadState::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
                   let a = *a;
                   let b = *b;
                   let d = *d;
-                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (d) == ((a) - (b))" }); }
+                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(d) == ((a) - (b))" }); }
                   self.state = MultiPayloadState::S2 { a, b, d };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = MultiPayloadState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = MultiPayloadState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -190,9 +178,7 @@ Production codegen (no support types, not compiled)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "MultiPayload"
-      }
+      pub const NAME: &'static str = "MultiPayload";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -206,25 +192,25 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (MultiPayloadState::Error, _) => Ok(Outcome::Absorbed),
+              (MultiPayloadState::Error, _) => Err(Violation::AlreadyFailed),
               (MultiPayloadState::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Recv, d, .. }) => {
                   let a = *a;
                   let b = *b;
                   let d = *d;
-                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (d) == ((a) - (b))" }); }
+                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(d) == ((a) - (b))" }); }
                   self.state = MultiPayloadState::S2 { a, b, d };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = MultiPayloadState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = MultiPayloadState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -249,9 +235,7 @@ Production codegen (no support types, not compiled)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "MultiPayload"
-      }
+      pub const NAME: &'static str = "MultiPayload";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -265,25 +249,25 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (MultiPayloadState::Error, _) => Ok(Outcome::Absorbed),
+              (MultiPayloadState::Error, _) => Err(Violation::AlreadyFailed),
               (MultiPayloadState::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (MultiPayloadState::S1 { a, b }, Action::Resp { dir: Direction::Send, d, .. }) => {
                   let a = *a;
                   let b = *b;
                   let d = *d;
-                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation { reason: "guard failed: (d) == ((a) - (b))" }); }
+                  if !((d) == ((a) - (b))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(d) == ((a) - (b))" }); }
                   self.state = MultiPayloadState::S2 { a, b, d };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = MultiPayloadState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = MultiPayloadState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }

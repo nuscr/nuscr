@@ -15,14 +15,10 @@ Underscored payload variable feeding rec var update in choice branch
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,9 +38,7 @@ Underscored payload variable feeding rec var update in choice branch
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecUpdate"
-      }
+      pub const NAME: &'static str = "RecUpdate";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -58,35 +52,35 @@ Underscored payload variable feeding rec var update in choice branch
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecUpdateState::Error, _) => Ok(Outcome::Absorbed),
+              (RecUpdateState::Error, _) => Err(Violation::AlreadyFailed),
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Send, x, .. }) => {
                   let total = *total;
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecUpdateState::S2 { total, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Recv, .. }) => {
                   let total = *total;
                   let x = *x;
                   let new_total = total;
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Recv, x: x_, .. }) => {
                   let total = *total;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x_) == (x)" }); }
+                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (x)" }); }
                   let new_total = (total) + (x_);
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecUpdateState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecUpdateState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -107,14 +101,10 @@ Underscored payload variable feeding rec var update in choice branch
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,9 +124,7 @@ Underscored payload variable feeding rec var update in choice branch
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecUpdate"
-      }
+      pub const NAME: &'static str = "RecUpdate";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -150,35 +138,35 @@ Underscored payload variable feeding rec var update in choice branch
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecUpdateState::Error, _) => Ok(Outcome::Absorbed),
+              (RecUpdateState::Error, _) => Err(Violation::AlreadyFailed),
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Recv, x, .. }) => {
                   let total = *total;
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecUpdateState::S2 { total, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Send, .. }) => {
                   let total = *total;
                   let x = *x;
                   let new_total = total;
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Send, x: x_, .. }) => {
                   let total = *total;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x_) == (x)" }); }
+                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (x)" }); }
                   let new_total = (total) + (x_);
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecUpdateState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecUpdateState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -207,9 +195,7 @@ Production codegen
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecUpdate"
-      }
+      pub const NAME: &'static str = "RecUpdate";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -223,35 +209,35 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecUpdateState::Error, _) => Ok(Outcome::Absorbed),
+              (RecUpdateState::Error, _) => Err(Violation::AlreadyFailed),
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Send, x, .. }) => {
                   let total = *total;
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecUpdateState::S2 { total, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Recv, .. }) => {
                   let total = *total;
                   let x = *x;
                   let new_total = total;
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Recv, x: x_, .. }) => {
                   let total = *total;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x_) == (x)" }); }
+                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (x)" }); }
                   let new_total = (total) + (x_);
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecUpdateState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecUpdateState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -274,9 +260,7 @@ Production codegen
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RecUpdate"
-      }
+      pub const NAME: &'static str = "RecUpdate";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -290,35 +274,35 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RecUpdateState::Error, _) => Ok(Outcome::Absorbed),
+              (RecUpdateState::Error, _) => Err(Violation::AlreadyFailed),
               (RecUpdateState::S0 { total }, Action::Req { dir: Direction::Recv, x, .. }) => {
                   let total = *total;
                   let x = *x;
-                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = RecUpdateState::S2 { total, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Err { dir: Direction::Send, .. }) => {
                   let total = *total;
                   let x = *x;
                   let new_total = total;
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (RecUpdateState::S2 { total, x }, Action::Ok { dir: Direction::Send, x: x_, .. }) => {
                   let total = *total;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "guard failed: (x_) == (x)" }); }
+                  if !((x_) == (x)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (x)" }); }
                   let new_total = (total) + (x_);
-                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation { reason: "refinement failed: (total) >= (0)" }); }
+                  if !((new_total) >= (0)) { self.state = RecUpdateState::Error; return Err(Violation::ConstraintFailed { expr: "(total) >= (0)" }); }
                   self.state = RecUpdateState::S0 { total: new_total };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = RecUpdateState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RecUpdateState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
