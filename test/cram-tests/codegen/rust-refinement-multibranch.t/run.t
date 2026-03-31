@@ -12,14 +12,10 @@ Generate Rust monitor for Client
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,9 +35,7 @@ Generate Rust monitor for Client
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RunningSum"
-      }
+      pub const NAME: &'static str = "RunningSum";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -53,26 +47,26 @@ Generate Rust monitor for Client
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RunningSumState::Error, _) => Ok(Outcome::Absorbed),
+              (RunningSumState::Error, _) => Err(Violation::AlreadyFailed),
               (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let total = *total;
                   let x = *x;
                   if (x) < (0) {
                       let new_total = (total) + (x);
-                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation { reason: "refinement failed: (total) < (100)" }); }
+                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(total) < (100)" }); }
                       self.state = RunningSumState::S0 { total: new_total };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else if (x) > (0) {
                       self.state = RunningSumState::S4 { total, x };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else {
                       self.state = RunningSumState::Error;
-                      Err(Violation { reason: "guard failed: (x) < (0) || (x) > (0)" })
+                      Err(Violation::ConstraintFailed { expr: "(x) < (0), (x) > (0)" })
                   }
               }
-              _ => { self.state = RunningSumState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RunningSumState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -92,14 +86,10 @@ Generate Rust monitor for Server
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,9 +109,7 @@ Generate Rust monitor for Server
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RunningSum"
-      }
+      pub const NAME: &'static str = "RunningSum";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -133,26 +121,26 @@ Generate Rust monitor for Server
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RunningSumState::Error, _) => Ok(Outcome::Absorbed),
+              (RunningSumState::Error, _) => Err(Violation::AlreadyFailed),
               (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let total = *total;
                   let x = *x;
                   if (x) < (0) {
                       let new_total = (total) + (x);
-                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation { reason: "refinement failed: (total) < (100)" }); }
+                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(total) < (100)" }); }
                       self.state = RunningSumState::S0 { total: new_total };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else if (x) > (0) {
                       self.state = RunningSumState::S4 { total, x };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else {
                       self.state = RunningSumState::Error;
-                      Err(Violation { reason: "guard failed: (x) < (0) || (x) > (0)" })
+                      Err(Violation::ConstraintFailed { expr: "(x) < (0), (x) > (0)" })
                   }
               }
-              _ => { self.state = RunningSumState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RunningSumState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -183,9 +171,7 @@ Production codegen (no support types, not compiled)
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RunningSum"
-      }
+      pub const NAME: &'static str = "RunningSum";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -197,26 +183,26 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RunningSumState::Error, _) => Ok(Outcome::Absorbed),
+              (RunningSumState::Error, _) => Err(Violation::AlreadyFailed),
               (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let total = *total;
                   let x = *x;
                   if (x) < (0) {
                       let new_total = (total) + (x);
-                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation { reason: "refinement failed: (total) < (100)" }); }
+                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(total) < (100)" }); }
                       self.state = RunningSumState::S0 { total: new_total };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else if (x) > (0) {
                       self.state = RunningSumState::S4 { total, x };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else {
                       self.state = RunningSumState::Error;
-                      Err(Violation { reason: "guard failed: (x) < (0) || (x) > (0)" })
+                      Err(Violation::ConstraintFailed { expr: "(x) < (0), (x) > (0)" })
                   }
               }
-              _ => { self.state = RunningSumState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RunningSumState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -240,9 +226,7 @@ Production codegen (no support types, not compiled)
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "RunningSum"
-      }
+      pub const NAME: &'static str = "RunningSum";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -254,26 +238,26 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (RunningSumState::Error, _) => Ok(Outcome::Absorbed),
+              (RunningSumState::Error, _) => Err(Violation::AlreadyFailed),
               (RunningSumState::S0 { total }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let total = *total;
                   let x = *x;
                   if (x) < (0) {
                       let new_total = (total) + (x);
-                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation { reason: "refinement failed: (total) < (100)" }); }
+                      if !((new_total) < (100)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(total) < (100)" }); }
                       self.state = RunningSumState::S0 { total: new_total };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else if (x) > (0) {
                       self.state = RunningSumState::S4 { total, x };
-                      Ok(Outcome::Transition)
+                      Ok(())
                   } else {
                       self.state = RunningSumState::Error;
-                      Err(Violation { reason: "guard failed: (x) < (0) || (x) > (0)" })
+                      Err(Violation::ConstraintFailed { expr: "(x) < (0), (x) > (0)" })
                   }
               }
-              _ => { self.state = RunningSumState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = RunningSumState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }

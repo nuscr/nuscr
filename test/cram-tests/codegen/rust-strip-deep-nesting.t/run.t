@@ -13,14 +13,10 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,9 +38,7 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           Self { state: DeepNestState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "DeepNest"
-      }
+      pub const NAME: &'static str = "DeepNest";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -56,31 +50,31 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (DeepNestState::Error, _) => Ok(Outcome::Absorbed),
+              (DeepNestState::Error, _) => Err(Violation::AlreadyFailed),
               (DeepNestState::S0, Action::Ping { dir: Direction::Send, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = DeepNestState::S1 { x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Send, x: x_, .. }) => {
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x_) > (x)" }); }
+                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (x)" }); }
                   self.state = DeepNestState::S2 { x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Send, x: x__, .. }) => {
                   let x = *x;
                   let x_ = *x_;
                   let x__ = *x__;
-                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x__) > (x_)" }); }
+                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x__) > (x_)" }); }
                   self.state = DeepNestState::S3 { x, x_, x__ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = DeepNestState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = DeepNestState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -99,14 +93,10 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,9 +118,7 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           Self { state: DeepNestState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "DeepNest"
-      }
+      pub const NAME: &'static str = "DeepNest";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -142,31 +130,31 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (DeepNestState::Error, _) => Ok(Outcome::Absorbed),
+              (DeepNestState::Error, _) => Err(Violation::AlreadyFailed),
               (DeepNestState::S0, Action::Ping { dir: Direction::Recv, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = DeepNestState::S1 { x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Recv, x: x_, .. }) => {
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x_) > (x)" }); }
+                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (x)" }); }
                   self.state = DeepNestState::S2 { x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Recv, x: x__, .. }) => {
                   let x = *x;
                   let x_ = *x_;
                   let x__ = *x__;
-                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x__) > (x_)" }); }
+                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x__) > (x_)" }); }
                   self.state = DeepNestState::S3 { x, x_, x__ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = DeepNestState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = DeepNestState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -197,9 +185,7 @@ Production codegen
           Self { state: DeepNestState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "DeepNest"
-      }
+      pub const NAME: &'static str = "DeepNest";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -211,31 +197,31 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (DeepNestState::Error, _) => Ok(Outcome::Absorbed),
+              (DeepNestState::Error, _) => Err(Violation::AlreadyFailed),
               (DeepNestState::S0, Action::Ping { dir: Direction::Send, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = DeepNestState::S1 { x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Send, x: x_, .. }) => {
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x_) > (x)" }); }
+                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (x)" }); }
                   self.state = DeepNestState::S2 { x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Send, x: x__, .. }) => {
                   let x = *x;
                   let x_ = *x_;
                   let x__ = *x__;
-                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x__) > (x_)" }); }
+                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x__) > (x_)" }); }
                   self.state = DeepNestState::S3 { x, x_, x__ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = DeepNestState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = DeepNestState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -260,9 +246,7 @@ Production codegen
           Self { state: DeepNestState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "DeepNest"
-      }
+      pub const NAME: &'static str = "DeepNest";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -274,31 +258,31 @@ Production codegen
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (DeepNestState::Error, _) => Ok(Outcome::Absorbed),
+              (DeepNestState::Error, _) => Err(Violation::AlreadyFailed),
               (DeepNestState::S0, Action::Ping { dir: Direction::Recv, x, .. }) => {
                   let x = *x;
-                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = DeepNestState::S1 { x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S1 { x }, Action::Ping { dir: Direction::Recv, x: x_, .. }) => {
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x_) > (x)" }); }
+                  if !((x_) > (x)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) > (x)" }); }
                   self.state = DeepNestState::S2 { x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (DeepNestState::S2 { x, x_ }, Action::Ping { dir: Direction::Recv, x: x__, .. }) => {
                   let x = *x;
                   let x_ = *x_;
                   let x__ = *x__;
-                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation { reason: "guard failed: (x__) > (x_)" }); }
+                  if !((x__) > (x_)) { self.state = DeepNestState::Error; return Err(Violation::ConstraintFailed { expr: "(x__) > (x_)" }); }
                   self.state = DeepNestState::S3 { x, x_, x__ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = DeepNestState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = DeepNestState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }

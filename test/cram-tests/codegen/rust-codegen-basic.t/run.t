@@ -14,14 +14,10 @@ Generate Rust monitor for Client
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,9 +40,7 @@ Generate Rust monitor for Client
           Self { state: AdderState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Adder"
-      }
+      pub const NAME: &'static str = "Adder";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -58,30 +52,30 @@ Generate Rust monitor for Client
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (AdderState::Error, _) => Ok(Outcome::Absorbed),
+              (AdderState::Error, _) => Err(Violation::AlreadyFailed),
               (AdderState::S0, Action::Add { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S3;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S0, Action::Bye { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S6;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S3, Action::Add { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S4;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S4, Action::Sum { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S0;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S6, Action::Bye { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S7;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = AdderState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = AdderState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -103,14 +97,10 @@ Generate Rust monitor for Server
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,9 +123,7 @@ Generate Rust monitor for Server
           Self { state: AdderState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Adder"
-      }
+      pub const NAME: &'static str = "Adder";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -147,30 +135,30 @@ Generate Rust monitor for Server
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (AdderState::Error, _) => Ok(Outcome::Absorbed),
+              (AdderState::Error, _) => Err(Violation::AlreadyFailed),
               (AdderState::S0, Action::Add { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S3;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S0, Action::Bye { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S6;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S3, Action::Add { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S4;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S4, Action::Sum { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S0;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S6, Action::Bye { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S7;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = AdderState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = AdderState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -204,9 +192,7 @@ Production codegen (no support types, not compiled)
           Self { state: AdderState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Adder"
-      }
+      pub const NAME: &'static str = "Adder";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -218,30 +204,30 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (AdderState::Error, _) => Ok(Outcome::Absorbed),
+              (AdderState::Error, _) => Err(Violation::AlreadyFailed),
               (AdderState::S0, Action::Add { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S3;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S0, Action::Bye { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S6;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S3, Action::Add { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S4;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S4, Action::Sum { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S0;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S6, Action::Bye { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S7;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = AdderState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = AdderState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -268,9 +254,7 @@ Production codegen (no support types, not compiled)
           Self { state: AdderState::S0 }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Adder"
-      }
+      pub const NAME: &'static str = "Adder";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -282,30 +266,30 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (AdderState::Error, _) => Ok(Outcome::Absorbed),
+              (AdderState::Error, _) => Err(Violation::AlreadyFailed),
               (AdderState::S0, Action::Add { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S3;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S0, Action::Bye { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S6;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S3, Action::Add { dir: Direction::Recv, .. }) => {
                   self.state = AdderState::S4;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S4, Action::Sum { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S0;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (AdderState::S6, Action::Bye { dir: Direction::Send, .. }) => {
                   self.state = AdderState::S7;
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = AdderState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = AdderState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }

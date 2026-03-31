@@ -14,14 +14,10 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,9 +39,7 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Budget"
-      }
+      pub const NAME: &'static str = "Budget";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -63,40 +57,40 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (BudgetState::Error, _) => Ok(Outcome::Absorbed),
+              (BudgetState::Error, _) => Err(Violation::AlreadyFailed),
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
-                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = BudgetState::S5 { budget, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: ((amount) > (0)) && ((amount) <= (budget))" }); }
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "((amount) > (0)) && ((amount) <= (budget))" }); }
                   self.state = BudgetState::S3 { budget, amount };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
                   let new_budget = (budget) - (amount);
-                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "refinement failed: (budget) >= (0)" }); }
+                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(budget) >= (0)" }); }
                   self.state = BudgetState::S0 { budget: new_budget };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x_) == (0)" }); }
+                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (0)" }); }
                   self.state = BudgetState::S6 { budget, x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = BudgetState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = BudgetState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -118,14 +112,10 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  pub enum Outcome {
-      Transition,
-      Absorbed,
-  }
-  
-  #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct Violation {
-      pub reason: &'static str,
+  pub enum Violation {
+      ConstraintFailed { expr: &'static str },
+      NoMatchingTransition,
+      AlreadyFailed,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -147,9 +137,7 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Budget"
-      }
+      pub const NAME: &'static str = "Budget";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -167,40 +155,40 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (BudgetState::Error, _) => Ok(Outcome::Absorbed),
+              (BudgetState::Error, _) => Err(Violation::AlreadyFailed),
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
-                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = BudgetState::S5 { budget, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: ((amount) > (0)) && ((amount) <= (budget))" }); }
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "((amount) > (0)) && ((amount) <= (budget))" }); }
                   self.state = BudgetState::S3 { budget, amount };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
                   let new_budget = (budget) - (amount);
-                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "refinement failed: (budget) >= (0)" }); }
+                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(budget) >= (0)" }); }
                   self.state = BudgetState::S0 { budget: new_budget };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x_) == (0)" }); }
+                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (0)" }); }
                   self.state = BudgetState::S6 { budget, x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = BudgetState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = BudgetState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -233,9 +221,7 @@ Production codegen (no support types, not compiled)
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Budget"
-      }
+      pub const NAME: &'static str = "Budget";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -253,40 +239,40 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (BudgetState::Error, _) => Ok(Outcome::Absorbed),
+              (BudgetState::Error, _) => Err(Violation::AlreadyFailed),
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
-                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = BudgetState::S5 { budget, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Send, amount, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: ((amount) > (0)) && ((amount) <= (budget))" }); }
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "((amount) > (0)) && ((amount) <= (budget))" }); }
                   self.state = BudgetState::S3 { budget, amount };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Recv, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
                   let new_budget = (budget) - (amount);
-                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "refinement failed: (budget) >= (0)" }); }
+                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(budget) >= (0)" }); }
                   self.state = BudgetState::S0 { budget: new_budget };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x_) == (0)" }); }
+                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (0)" }); }
                   self.state = BudgetState::S6 { budget, x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = BudgetState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = BudgetState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
@@ -312,9 +298,7 @@ Production codegen (no support types, not compiled)
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub fn name(&self) -> &'static str {
-          "Budget"
-      }
+      pub const NAME: &'static str = "Budget";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
@@ -332,40 +316,40 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+      pub fn step(&mut self, action: &Action) -> Result<(), Violation> {
           match (&self.state, action) {
-              (BudgetState::Error, _) => Ok(Outcome::Absorbed),
+              (BudgetState::Error, _) => Err(Violation::AlreadyFailed),
               (BudgetState::S0 { budget }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let budget = *budget;
                   let x = *x;
-                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x) > (0)" }); }
+                  if !((x) > (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0)" }); }
                   self.state = BudgetState::S5 { budget, x };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S0 { budget }, Action::Spend { dir: Direction::Recv, amount, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
-                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: ((amount) > (0)) && ((amount) <= (budget))" }); }
+                  if !(((amount) > (0)) && ((amount) <= (budget))) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "((amount) > (0)) && ((amount) <= (budget))" }); }
                   self.state = BudgetState::S3 { budget, amount };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S3 { budget, amount }, Action::Ok { dir: Direction::Send, .. }) => {
                   let budget = *budget;
                   let amount = *amount;
                   let new_budget = (budget) - (amount);
-                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "refinement failed: (budget) >= (0)" }); }
+                  if !((new_budget) >= (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(budget) >= (0)" }); }
                   self.state = BudgetState::S0 { budget: new_budget };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
               (BudgetState::S5 { budget, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let budget = *budget;
                   let x = *x;
                   let x_ = *x_;
-                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation { reason: "guard failed: (x_) == (0)" }); }
+                  if !((x_) == (0)) { self.state = BudgetState::Error; return Err(Violation::ConstraintFailed { expr: "(x_) == (0)" }); }
                   self.state = BudgetState::S6 { budget, x, x_ };
-                  Ok(Outcome::Transition)
+                  Ok(())
               }
-              _ => { self.state = BudgetState::Error; Err(Violation { reason: "no matching transition" }) }
+              _ => { self.state = BudgetState::Error; Err(Violation::NoMatchingTransition) }
           }
       }
   }
