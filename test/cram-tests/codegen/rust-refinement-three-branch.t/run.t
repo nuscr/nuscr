@@ -15,107 +15,14 @@ Generate Rust monitor for Client (three-branch choice)
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-  #[allow(dead_code)]
-  enum ThreeWayState {
-      S0 { n: i64 },
-      S3 { n: i64, x: i64 },
-      S5 { n: i64, x: i64 },
-      S7 { n: i64, x: i64 },
-      S8 { n: i64, x: i64, x_: i64 },
-      Error,
+  pub enum Outcome {
+      Transition,
+      Absorbed,
   }
   
   #[derive(Debug, Clone, PartialEq, Eq)]
-  pub struct ThreeWayMonitor { state: ThreeWayState }
-  
-  #[allow(unused_variables)]
-  impl ThreeWayMonitor {
-      pub fn new() -> Self {
-          Self { state: ThreeWayState::S0 { n: 0 } }
-      }
-  
-      pub fn accepts(&self, action: &Action) -> bool {
-          match action {
-              Action::Ack { dir: Direction::Recv, .. } => true,
-              Action::Bye { dir: Direction::Send, x, .. } => true,
-              Action::Low { dir: Direction::Send, x, .. } => {
-                  let x = *x;
-                  (x) < (10)
-              }
-              Action::Mid { dir: Direction::Send, x, .. } => {
-                  let x = *x;
-                  ((x) >= (10)) && ((x) < (100))
-              }
-              _ => false,
-          }
-      }
-  
-      pub fn step(&mut self, action: &Action) -> bool {
-          match (&self.state, action) {
-              (ThreeWayState::Error, _) => true,
-              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  self.state = ThreeWayState::S7 { n, x };
-                  true
-              }
-              (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
-                  self.state = ThreeWayState::S3 { n, x };
-                  true
-              }
-              (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
-                  self.state = ThreeWayState::S5 { n, x };
-                  true
-              }
-              (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
-                  self.state = ThreeWayState::S0 { n: new_n };
-                  true
-              }
-              (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
-                  self.state = ThreeWayState::S0 { n: new_n };
-                  true
-              }
-              (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
-                  let n = *n;
-                  let x = *x;
-                  let x_ = *x_;
-                  self.state = ThreeWayState::S8 { n, x, x_ };
-                  true
-              }
-              _ => { self.state = ThreeWayState::Error; false }
-          }
-      }
-  }
-  
-
-Generate Rust monitor for Server (three-branch choice)
-  $ nuscr --gencode-rust-test=S@ThreeWay ThreeWay.nuscr > S_monitor.rs
-  $ cat S_monitor.rs
-  pub enum Direction {
-      Recv,
-      Send,
-  }
-  
-  #[allow(dead_code)]
-  pub enum Action {
-      Ack { dir: Direction },
-      Bye { dir: Direction, x: i64 },
-      Low { dir: Direction, x: i64 },
-      Mid { dir: Direction, x: i64 },
+  pub struct Violation {
+      pub reason: &'static str,
   }
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,6 +45,129 @@ Generate Rust monitor for Server (three-branch choice)
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
   
+      pub fn name(&self) -> &'static str {
+          "ThreeWay"
+      }
+  
+      pub fn accepts(&self, action: &Action) -> bool {
+          match action {
+              Action::Ack { dir: Direction::Recv, .. } => true,
+              Action::Bye { dir: Direction::Send, x, .. } => true,
+              Action::Low { dir: Direction::Send, x, .. } => {
+                  let x = *x;
+                  (x) < (10)
+              }
+              Action::Mid { dir: Direction::Send, x, .. } => {
+                  let x = *x;
+                  ((x) >= (10)) && ((x) < (100))
+              }
+              _ => false,
+          }
+      }
+  
+      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
+          match (&self.state, action) {
+              (ThreeWayState::Error, _) => Ok(Outcome::Absorbed),
+              (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  self.state = ThreeWayState::S7 { n, x };
+                  Ok(Outcome::Transition)
+              }
+              (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  if !((x) < (10)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: (x) < (10)" }); }
+                  self.state = ThreeWayState::S3 { n, x };
+                  Ok(Outcome::Transition)
+              }
+              (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: ((x) >= (10)) && ((x) < (100))" }); }
+                  self.state = ThreeWayState::S5 { n, x };
+                  Ok(Outcome::Transition)
+              }
+              (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  let new_n = (n) + (1);
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
+                  self.state = ThreeWayState::S0 { n: new_n };
+                  Ok(Outcome::Transition)
+              }
+              (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  let new_n = (n) + (1);
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
+                  self.state = ThreeWayState::S0 { n: new_n };
+                  Ok(Outcome::Transition)
+              }
+              (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
+                  let n = *n;
+                  let x = *x;
+                  let x_ = *x_;
+                  self.state = ThreeWayState::S8 { n, x, x_ };
+                  Ok(Outcome::Transition)
+              }
+              _ => { self.state = ThreeWayState::Error; Err(Violation { reason: "no matching transition" }) }
+          }
+      }
+  }
+  
+
+Generate Rust monitor for Server (three-branch choice)
+  $ nuscr --gencode-rust-test=S@ThreeWay ThreeWay.nuscr > S_monitor.rs
+  $ cat S_monitor.rs
+  pub enum Direction {
+      Recv,
+      Send,
+  }
+  
+  #[allow(dead_code)]
+  pub enum Action {
+      Ack { dir: Direction },
+      Bye { dir: Direction, x: i64 },
+      Low { dir: Direction, x: i64 },
+      Mid { dir: Direction, x: i64 },
+  }
+  
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  pub enum Outcome {
+      Transition,
+      Absorbed,
+  }
+  
+  #[derive(Debug, Clone, PartialEq, Eq)]
+  pub struct Violation {
+      pub reason: &'static str,
+  }
+  
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  #[allow(dead_code)]
+  enum ThreeWayState {
+      S0 { n: i64 },
+      S3 { n: i64, x: i64 },
+      S5 { n: i64, x: i64 },
+      S7 { n: i64, x: i64 },
+      S8 { n: i64, x: i64, x_: i64 },
+      Error,
+  }
+  
+  #[derive(Debug, Clone, PartialEq, Eq)]
+  pub struct ThreeWayMonitor { state: ThreeWayState }
+  
+  #[allow(unused_variables)]
+  impl ThreeWayMonitor {
+      pub fn new() -> Self {
+          Self { state: ThreeWayState::S0 { n: 0 } }
+      }
+  
+      pub fn name(&self) -> &'static str {
+          "ThreeWay"
+      }
+  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => true,
@@ -154,53 +184,53 @@ Generate Rust monitor for Server (three-branch choice)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
           match (&self.state, action) {
-              (ThreeWayState::Error, _) => true,
+              (ThreeWayState::Error, _) => Ok(Outcome::Absorbed),
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
-                  if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
+                  if !((x) < (10)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: (x) < (10)" }); }
                   self.state = ThreeWayState::S3 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
-                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
+                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: ((x) >= (10)) && ((x) < (100))" }); }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
                   let n = *n;
                   let x = *x;
                   let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
                   self.state = ThreeWayState::S0 { n: new_n };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
                   let n = *n;
                   let x = *x;
                   let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
                   self.state = ThreeWayState::S0 { n: new_n };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let n = *n;
                   let x = *x;
                   let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
-                  true
+                  Ok(Outcome::Transition)
               }
-              _ => { self.state = ThreeWayState::Error; false }
+              _ => { self.state = ThreeWayState::Error; Err(Violation { reason: "no matching transition" }) }
           }
       }
   }
@@ -234,6 +264,10 @@ Production codegen (no support types, not compiled)
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
   
+      pub fn name(&self) -> &'static str {
+          "ThreeWay"
+      }
+  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
@@ -250,53 +284,53 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
           match (&self.state, action) {
-              (ThreeWayState::Error, _) => true,
+              (ThreeWayState::Error, _) => Ok(Outcome::Absorbed),
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Send, x, .. }) => {
                   let n = *n;
                   let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Send, x, .. }) => {
                   let n = *n;
                   let x = *x;
-                  if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
+                  if !((x) < (10)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: (x) < (10)" }); }
                   self.state = ThreeWayState::S3 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Send, x, .. }) => {
                   let n = *n;
                   let x = *x;
-                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
+                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: ((x) >= (10)) && ((x) < (100))" }); }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
                   let n = *n;
                   let x = *x;
                   let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
                   self.state = ThreeWayState::S0 { n: new_n };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Recv, .. }) => {
                   let n = *n;
                   let x = *x;
                   let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
                   self.state = ThreeWayState::S0 { n: new_n };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Send, x: x_, .. }) => {
                   let n = *n;
                   let x = *x;
                   let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
-                  true
+                  Ok(Outcome::Transition)
               }
-              _ => { self.state = ThreeWayState::Error; false }
+              _ => { self.state = ThreeWayState::Error; Err(Violation { reason: "no matching transition" }) }
           }
       }
   }
@@ -323,6 +357,10 @@ Production codegen (no support types, not compiled)
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
   
+      pub fn name(&self) -> &'static str {
+          "ThreeWay"
+      }
+  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => true,
@@ -339,53 +377,53 @@ Production codegen (no support types, not compiled)
           }
       }
   
-      pub fn step(&mut self, action: &Action) -> bool {
+      pub fn step(&mut self, action: &Action) -> Result<Outcome, Violation> {
           match (&self.state, action) {
-              (ThreeWayState::Error, _) => true,
+              (ThreeWayState::Error, _) => Ok(Outcome::Absorbed),
               (ThreeWayState::S0 { n }, Action::Bye { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
                   self.state = ThreeWayState::S7 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S0 { n }, Action::Low { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
-                  if !((x) < (10)) { self.state = ThreeWayState::Error; return false; }
+                  if !((x) < (10)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: (x) < (10)" }); }
                   self.state = ThreeWayState::S3 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S0 { n }, Action::Mid { dir: Direction::Recv, x, .. }) => {
                   let n = *n;
                   let x = *x;
-                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return false; }
+                  if !(((x) >= (10)) && ((x) < (100))) { self.state = ThreeWayState::Error; return Err(Violation { reason: "guard failed: ((x) >= (10)) && ((x) < (100))" }); }
                   self.state = ThreeWayState::S5 { n, x };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S3 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
                   let n = *n;
                   let x = *x;
                   let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
                   self.state = ThreeWayState::S0 { n: new_n };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S5 { n, x }, Action::Ack { dir: Direction::Send, .. }) => {
                   let n = *n;
                   let x = *x;
                   let new_n = (n) + (1);
-                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return false; }
+                  if !((new_n) >= (0)) { self.state = ThreeWayState::Error; return Err(Violation { reason: "refinement failed: (n) >= (0)" }); }
                   self.state = ThreeWayState::S0 { n: new_n };
-                  true
+                  Ok(Outcome::Transition)
               }
               (ThreeWayState::S7 { n, x }, Action::Bye { dir: Direction::Recv, x: x_, .. }) => {
                   let n = *n;
                   let x = *x;
                   let x_ = *x_;
                   self.state = ThreeWayState::S8 { n, x, x_ };
-                  true
+                  Ok(Outcome::Transition)
               }
-              _ => { self.state = ThreeWayState::Error; false }
+              _ => { self.state = ThreeWayState::Error; Err(Violation { reason: "no matching transition" }) }
           }
       }
   }
