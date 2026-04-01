@@ -39,8 +39,6 @@ Generate Rust monitor for Client (budget: rec var in send guard, subtraction upd
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub const NAME: &'static str = "Budget";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ok { dir: Direction::Recv, .. } => true,
@@ -137,8 +135,6 @@ Generate Rust monitor for Server (budget: rec var in send guard, subtraction upd
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub const NAME: &'static str = "Budget";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => {
@@ -221,8 +217,6 @@ Production codegen (no support types, not compiled)
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
   
-      pub const NAME: &'static str = "Budget";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ok { dir: Direction::Recv, .. } => true,
@@ -297,8 +291,6 @@ Production codegen (no support types, not compiled)
       pub fn new() -> Self {
           Self { state: BudgetState::S0 { budget: 1000 } }
       }
-  
-      pub const NAME: &'static str = "Budget";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

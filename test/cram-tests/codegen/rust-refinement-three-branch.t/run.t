@@ -41,8 +41,6 @@ Generate Rust monitor for Client (three-branch choice)
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
   
-      pub const NAME: &'static str = "ThreeWay";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
@@ -154,8 +152,6 @@ Generate Rust monitor for Server (three-branch choice)
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
   
-      pub const NAME: &'static str = "ThreeWay";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => true,
@@ -252,8 +248,6 @@ Production codegen (no support types, not compiled)
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
   
-      pub const NAME: &'static str = "ThreeWay";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
@@ -342,8 +336,6 @@ Production codegen (no support types, not compiled)
       pub fn new() -> Self {
           Self { state: ThreeWayState::S0 { n: 0 } }
       }
-  
-      pub const NAME: &'static str = "ThreeWay";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

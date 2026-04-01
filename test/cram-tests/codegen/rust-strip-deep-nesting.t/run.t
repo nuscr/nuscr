@@ -38,8 +38,6 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           Self { state: DeepNestState::S0 }
       }
   
-      pub const NAME: &'static str = "DeepNest";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Send, x, .. } => {
@@ -118,8 +116,6 @@ Three levels of trailing-underscore disambiguation (x, x_, x__)
           Self { state: DeepNestState::S0 }
       }
   
-      pub const NAME: &'static str = "DeepNest";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Recv, x, .. } => {
@@ -185,8 +181,6 @@ Production codegen
           Self { state: DeepNestState::S0 }
       }
   
-      pub const NAME: &'static str = "DeepNest";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ping { dir: Direction::Send, x, .. } => {
@@ -245,8 +239,6 @@ Production codegen
       pub fn new() -> Self {
           Self { state: DeepNestState::S0 }
       }
-  
-      pub const NAME: &'static str = "DeepNest";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

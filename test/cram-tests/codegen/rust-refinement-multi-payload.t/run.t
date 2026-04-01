@@ -37,8 +37,6 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub const NAME: &'static str = "MultiPayload";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Resp { dir: Direction::Recv, d, .. } => true,
@@ -114,8 +112,6 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub const NAME: &'static str = "MultiPayload";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, a, b, .. } => {
@@ -178,8 +174,6 @@ Production codegen (no support types, not compiled)
           Self { state: MultiPayloadState::S0 }
       }
   
-      pub const NAME: &'static str = "MultiPayload";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Resp { dir: Direction::Recv, d, .. } => true,
@@ -234,8 +228,6 @@ Production codegen (no support types, not compiled)
       pub fn new() -> Self {
           Self { state: MultiPayloadState::S0 }
       }
-  
-      pub const NAME: &'static str = "MultiPayload";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

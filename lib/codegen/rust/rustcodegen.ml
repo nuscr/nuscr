@@ -292,19 +292,11 @@ let generate_accepts_fn buffer g =
             (Printf.sprintf "                %s\n            }\n" disjoined) ) ;
   Buffer.add_string buffer "            _ => false,\n        }\n    }\n"
 
-let generate_name_const buffer protocol_name =
-  Buffer.add_string buffer
-    (Printf.sprintf
-       "\n\
-       \    pub const NAME: &'static str = \"%s\";\n"
-       protocol_name )
-
 let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer
     (Printf.sprintf "#[allow(unused_variables)]\nimpl %sMonitor {\n"
        protocol_name ) ;
   generate_constructor buffer start var_map rec_var_info protocol_name ;
-  generate_name_const buffer protocol_name ;
   generate_accepts_fn buffer g ;
   generate_step_fn buffer g var_map rec_var_info protocol_name ;
   Buffer.add_string buffer "}\n"

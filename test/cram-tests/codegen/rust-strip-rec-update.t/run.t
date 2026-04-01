@@ -38,8 +38,6 @@ Underscored payload variable feeding rec var update in choice branch
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub const NAME: &'static str = "RecUpdate";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Err { dir: Direction::Recv, .. } => true,
@@ -124,8 +122,6 @@ Underscored payload variable feeding rec var update in choice branch
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub const NAME: &'static str = "RecUpdate";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, x, .. } => {
@@ -195,8 +191,6 @@ Production codegen
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
   
-      pub const NAME: &'static str = "RecUpdate";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Err { dir: Direction::Recv, .. } => true,
@@ -259,8 +253,6 @@ Production codegen
       pub fn new() -> Self {
           Self { state: RecUpdateState::S0 { total: 0 } }
       }
-  
-      pub const NAME: &'static str = "RecUpdate";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
