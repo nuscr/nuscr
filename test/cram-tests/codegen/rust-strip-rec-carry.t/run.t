@@ -39,8 +39,6 @@ Underscored variable carried across loop iterations via rec var update
           Self { state: RecCarryState::S0 }
       }
   
-      pub const NAME: &'static str = "RecCarry";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
@@ -128,8 +126,6 @@ Underscored variable carried across loop iterations via rec var update
           Self { state: RecCarryState::S0 }
       }
   
-      pub const NAME: &'static str = "RecCarry";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Init { dir: Direction::Recv, x, .. } => {
@@ -202,8 +198,6 @@ Production codegen
           Self { state: RecCarryState::S0 }
       }
   
-      pub const NAME: &'static str = "RecCarry";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Ack { dir: Direction::Recv, .. } => true,
@@ -269,8 +263,6 @@ Production codegen
       pub fn new() -> Self {
           Self { state: RecCarryState::S0 }
       }
-  
-      pub const NAME: &'static str = "RecCarry";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

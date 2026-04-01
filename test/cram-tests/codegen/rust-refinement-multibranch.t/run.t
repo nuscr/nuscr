@@ -35,8 +35,6 @@ Generate Rust monitor for Client
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub const NAME: &'static str = "RunningSum";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Send, x, .. } => {
@@ -109,8 +107,6 @@ Generate Rust monitor for Server
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub const NAME: &'static str = "RunningSum";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, x, .. } => {
@@ -171,8 +167,6 @@ Production codegen (no support types, not compiled)
           Self { state: RunningSumState::S0 { total: 0 } }
       }
   
-      pub const NAME: &'static str = "RunningSum";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Send, x, .. } => {
@@ -225,8 +219,6 @@ Production codegen (no support types, not compiled)
       pub fn new() -> Self {
           Self { state: RunningSumState::S0 { total: 0 } }
       }
-  
-      pub const NAME: &'static str = "RunningSum";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

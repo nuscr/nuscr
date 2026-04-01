@@ -37,8 +37,6 @@ Interior underscores preserved, only trailing underscore stripped
           Self { state: InteriorState::S0 }
       }
   
-      pub const NAME: &'static str = "Interior";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Send, foo_bar, .. } => {
@@ -108,8 +106,6 @@ Interior underscores preserved, only trailing underscore stripped
           Self { state: InteriorState::S0 }
       }
   
-      pub const NAME: &'static str = "Interior";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Recv, foo_bar, .. } => {
@@ -166,8 +162,6 @@ Production codegen
           Self { state: InteriorState::S0 }
       }
   
-      pub const NAME: &'static str = "Interior";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Req { dir: Direction::Send, foo_bar, .. } => {
@@ -217,8 +211,6 @@ Production codegen
       pub fn new() -> Self {
           Self { state: InteriorState::S0 }
       }
-  
-      pub const NAME: &'static str = "Interior";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {

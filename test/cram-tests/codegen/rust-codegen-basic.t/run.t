@@ -40,8 +40,6 @@ Generate Rust monitor for Client
           Self { state: AdderState::S0 }
       }
   
-      pub const NAME: &'static str = "Adder";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, .. } => true,
@@ -123,8 +121,6 @@ Generate Rust monitor for Server
           Self { state: AdderState::S0 }
       }
   
-      pub const NAME: &'static str = "Adder";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Add { dir: Direction::Recv, .. } => true,
@@ -192,8 +188,6 @@ Production codegen (no support types, not compiled)
           Self { state: AdderState::S0 }
       }
   
-      pub const NAME: &'static str = "Adder";
-  
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
               Action::Bye { dir: Direction::Recv, .. } => true,
@@ -253,8 +247,6 @@ Production codegen (no support types, not compiled)
       pub fn new() -> Self {
           Self { state: AdderState::S0 }
       }
-  
-      pub const NAME: &'static str = "Adder";
   
       pub fn accepts(&self, action: &Action) -> bool {
           match action {
