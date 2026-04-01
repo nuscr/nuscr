@@ -21,6 +21,18 @@ Underscored payload variable feeding rec var update in choice branch
       AlreadyFailed,
   }
   
+  impl std::fmt::Display for Violation {
+      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+          match self {
+              Violation::ConstraintFailed { expr } => write!(f, "constraint failed: {expr}"),
+              Violation::NoMatchingTransition => write!(f, "no matching transition"),
+              Violation::AlreadyFailed => write!(f, "already failed"),
+          }
+      }
+  }
+  
+  impl std::error::Error for Violation {}
+  
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]
   enum RecUpdateState {
@@ -104,6 +116,18 @@ Underscored payload variable feeding rec var update in choice branch
       NoMatchingTransition,
       AlreadyFailed,
   }
+  
+  impl std::fmt::Display for Violation {
+      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+          match self {
+              Violation::ConstraintFailed { expr } => write!(f, "constraint failed: {expr}"),
+              Violation::NoMatchingTransition => write!(f, "no matching transition"),
+              Violation::AlreadyFailed => write!(f, "already failed"),
+          }
+      }
+  }
+  
+  impl std::error::Error for Violation {}
   
   #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   #[allow(dead_code)]

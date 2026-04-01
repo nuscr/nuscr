@@ -321,7 +321,19 @@ let generate_violation buffer =
     \    ConstraintFailed { expr: &'static str },\n\
     \    NoMatchingTransition,\n\
     \    AlreadyFailed,\n\
-     }\n"
+     }\n\
+     \n\
+     impl std::fmt::Display for Violation {\n\
+    \    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {\n\
+    \        match self {\n\
+    \            Violation::ConstraintFailed { expr } => write!(f, \"constraint failed: {expr}\"),\n\
+    \            Violation::NoMatchingTransition => write!(f, \"no matching transition\"),\n\
+    \            Violation::AlreadyFailed => write!(f, \"already failed\"),\n\
+    \        }\n\
+    \    }\n\
+     }\n\
+     \n\
+     impl std::error::Error for Violation {}\n"
 
 let generate_direction buffer =
   Buffer.add_string buffer "pub enum Direction {\n    Recv,\n    Send,\n" ;
