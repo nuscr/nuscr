@@ -1,0 +1,14 @@
+(*# RefinementTypes, ValidateRefinementProgress #*)
+
+global protocol Stuck(role A, role B) {
+    Init(x: int{x >= 0}) from A to B;
+    rec loop [n<A, B>: (n:int{n >= 0 && n <= x}) = 0] {
+        choice at B {
+            High(v: int{v = n && v > 0}) from B to A;
+            continue loop [n + 1];
+        } or {
+            Low(v: int{v = n && v > 1}) from B to A;
+            continue loop [n + 1];
+        }
+    }
+}
