@@ -38,19 +38,19 @@
    (>= 5.2))
   dune
   (base
-   (>= v0.12.0))
+   (>= v0.17))
   (stdio
-   (>= v0.12.0))
+   (>= v0.17))
   (ppx_sexp_conv
-   (>= v0.12.0))
+   (>= v0.17))
   (ppx_here
-   (>= v0.12.0))
+   (>= v0.17))
   (z3 :with-test)
   (odoc :with-doc)
   (ocamlgraph
    (>= 1.8.8))
   (ppxlib
-   (>= 0.22.0))
+   (>= 0.36.0))
   (cmdliner
    (>= 1.1.0))
   (process
