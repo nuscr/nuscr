@@ -9,6 +9,7 @@ jobs:
     strategy:
       matrix:
         ocaml-version:
+          - 5.4
           - 5.3
           - 4
 
