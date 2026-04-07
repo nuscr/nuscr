@@ -129,4 +129,10 @@ let rust_payload_constraints payloads =
           Some (rust_show_expr pred)
       | _ -> None )
   in
-  match preds with [] -> None | _ -> Some (String.concat ~sep:" && " preds)
+  match preds with
+  | [] -> None
+  | [single] -> Some single
+  | _ ->
+      Some
+        (String.concat ~sep:" && "
+           (List.map preds ~f:(fun p -> "(" ^ p ^ ")")) )
