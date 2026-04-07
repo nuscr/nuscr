@@ -76,7 +76,7 @@ Generate Rust monitor for Client
                   let total = *total;
                   let x = *x;
                   let y = *y;
-                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0) && (y) > (0)" }); }
+                  if !(((x) > (0)) && ((y) > (0))) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "((x) > (0)) && ((y) > (0))" }); }
                   self.state = RunningSumState::S3 { total, x, y };
                   Ok(())
               }
@@ -188,7 +188,7 @@ Generate Rust monitor for Server
                   let total = *total;
                   let x = *x;
                   let y = *y;
-                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0) && (y) > (0)" }); }
+                  if !(((x) > (0)) && ((y) > (0))) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "((x) > (0)) && ((y) > (0))" }); }
                   self.state = RunningSumState::S3 { total, x, y };
                   Ok(())
               }
@@ -274,7 +274,7 @@ Production codegen (no support types, not compiled)
                   let total = *total;
                   let x = *x;
                   let y = *y;
-                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0) && (y) > (0)" }); }
+                  if !(((x) > (0)) && ((y) > (0))) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "((x) > (0)) && ((y) > (0))" }); }
                   self.state = RunningSumState::S3 { total, x, y };
                   Ok(())
               }
@@ -353,7 +353,7 @@ Production codegen (no support types, not compiled)
                   let total = *total;
                   let x = *x;
                   let y = *y;
-                  if !((x) > (0) && (y) > (0)) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "(x) > (0) && (y) > (0)" }); }
+                  if !(((x) > (0)) && ((y) > (0))) { self.state = RunningSumState::Error; return Err(Violation::ConstraintFailed { expr: "((x) > (0)) && ((y) > (0))" }); }
                   self.state = RunningSumState::S3 { total, x, y };
                   Ok(())
               }

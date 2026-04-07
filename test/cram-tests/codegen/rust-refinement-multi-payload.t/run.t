@@ -67,7 +67,7 @@ Generate Rust monitor for Client (multi payload, cross-payload reference)
               (MultiPayloadState::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !(((a) > (0)) && (((b) > (0)) && ((b) < (a)))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "((a) > (0)) && (((b) > (0)) && ((b) < (a)))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
                   Ok(())
               }
@@ -154,7 +154,7 @@ Generate Rust monitor for Server (nested arith, cross-payload reference)
               (MultiPayloadState::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !(((a) > (0)) && (((b) > (0)) && ((b) < (a)))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "((a) > (0)) && (((b) > (0)) && ((b) < (a)))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
                   Ok(())
               }
@@ -216,7 +216,7 @@ Production codegen (no support types, not compiled)
               (MultiPayloadState::S0, Action::Req { dir: Direction::Send, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !(((a) > (0)) && (((b) > (0)) && ((b) < (a)))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "((a) > (0)) && (((b) > (0)) && ((b) < (a)))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
                   Ok(())
               }
@@ -271,7 +271,7 @@ Production codegen (no support types, not compiled)
               (MultiPayloadState::S0, Action::Req { dir: Direction::Recv, a, b, .. }) => {
                   let a = *a;
                   let b = *b;
-                  if !((a) > (0) && ((b) > (0)) && ((b) < (a))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "(a) > (0) && ((b) > (0)) && ((b) < (a))" }); }
+                  if !(((a) > (0)) && (((b) > (0)) && ((b) < (a)))) { self.state = MultiPayloadState::Error; return Err(Violation::ConstraintFailed { expr: "((a) > (0)) && (((b) > (0)) && ((b) < (a)))" }); }
                   self.state = MultiPayloadState::S1 { a, b };
                   Ok(())
               }
