@@ -448,15 +448,18 @@ let validate_refinements_exn t =
   let ensure_progress env gs =
     let tyenv, _, _ = env in
     let encoded = Expr.encode_env tyenv in
-    let rec gather_first_message = function
+    let rec gather_first_message_and_rec_var = function
       | MessageG (m, _, _, _) -> [m.payload]
-      | ChoiceG (_, gs) -> List.concat_map ~f:gather_first_message gs
-      | MuG (_, _, g) -> gather_first_message g
-      | TVarG (_, _, g) -> gather_first_message (Lazy.force g)
+      | ChoiceG (_, gs) ->
+          List.concat_map ~f:gather_first_message_and_rec_var gs
+      | MuG (_, _, g) -> gather_first_message_and_rec_var g
+      | TVarG (_, _, g) -> gather_first_message_and_rec_var (Lazy.force g)
       | EndG -> []
       | CallG _ -> (* Not supported *) []
     in
-    let first_messages = List.concat_map ~f:gather_first_message gs in
+    let first_messages =
+      List.concat_map ~f:gather_first_message_and_rec_var gs
+    in
     if not (List.is_empty first_messages) then
       let encoded =
         List.fold ~init:encoded ~f:encode_progress_clause first_messages
