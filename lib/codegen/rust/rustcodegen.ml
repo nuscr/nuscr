@@ -152,7 +152,8 @@ let emit_branch_body buffer indent branch src_vars var_map rec_var_info
           in
           Buffer.add_string buffer
             (Printf.sprintf
-               "%sif !(%s) { self.state = %sState::Error; return Err(Violation::ConstraintFailed { expr: \"%s\" }); }\n"
+               "%sif !(%s) { self.state = %sState::Error; return \
+                Err(Violation::ConstraintFailed { expr: \"%s\" }); }\n"
                indent (rust_show_expr pred) protocol_name
                (String.escaped pred_display) )
       | _ -> () ) ;
@@ -166,7 +167,8 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
   Buffer.add_string buffer
     (Printf.sprintf
        "\n\
-       \    pub fn step(&mut self, action: &Action) -> Result<(), Violation> {\n\
+       \    pub fn step(&mut self, action: &Action) -> Result<(), \
+        Violation> {\n\
        \        match (&self.state, action) {\n\
        \            (%sState::Error, _) => Err(Violation::AlreadyFailed),\n"
        protocol_name ) ;
@@ -195,7 +197,8 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
               Buffer.add_string buffer
                 (Printf.sprintf
                    "                if !(%s) { self.state = %sState::Error; \
-                    return Err(Violation::ConstraintFailed { expr: \"%s\" }); }\n"
+                    return Err(Violation::ConstraintFailed { expr: \"%s\" \
+                    }); }\n"
                    c protocol_name (String.escaped c) ) ) ;
           emit_branch_body buffer "                " branch src_vars var_map
             rec_var_info protocol_name
@@ -206,18 +209,18 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
             List.filter_map branches ~f:(fun b ->
                 rust_payload_constraints b.sb_m.payload )
           in
-          let guard_list =
-            String.concat ~sep:", " all_guards
-          in
+          let guard_list = String.concat ~sep:", " all_guards in
           let rec go first = function
             | [] ->
                 Buffer.add_string buffer
                   (Printf.sprintf
                      "                } else {\n\
                      \                    self.state = %sState::Error;\n\
-                     \                    Err(Violation::ConstraintFailed { expr: \"%s\" })\n\
+                     \                    Err(Violation::ConstraintFailed { \
+                      expr: \"%s\" })\n\
                      \                }\n"
-                     protocol_name (String.escaped guard_list) )
+                     protocol_name
+                     (String.escaped guard_list) )
             | branch :: rest -> (
                 let guard = rust_payload_constraints branch.sb_m.payload in
                 ( match (first, guard) with
@@ -241,7 +244,8 @@ let generate_step_fn buffer g var_map rec_var_info protocol_name =
       Buffer.add_string buffer "            }\n" ) ;
   Buffer.add_string buffer
     (Printf.sprintf
-       "            _ => { self.state = %sState::Error; Err(Violation::NoMatchingTransition) }\n\
+       "            _ => { self.state = %sState::Error; \
+        Err(Violation::NoMatchingTransition) }\n\
        \        }\n\
        \    }\n"
        protocol_name )
@@ -260,10 +264,10 @@ let generate_accepts_fn buffer ~single_state g =
       in
       let pattern = rust_action_pattern dir label payload_list in
       match (single_state, guards) with
-      | (_, []) | (true, _) ->
+      | _, [] | true, _ ->
           Buffer.add_string buffer
             (Printf.sprintf "            %s => true,\n" pattern)
-      | (false, _) ->
+      | false, _ ->
           Buffer.add_string buffer
             (Printf.sprintf "            %s => {\n" pattern) ;
           let payload_names =
@@ -321,18 +325,18 @@ let generate_violation buffer =
     \    ConstraintFailed { expr: &'static str },\n\
     \    NoMatchingTransition,\n\
     \    AlreadyFailed,\n\
-     }\n\
-     \n\
+     }\n\n\
      impl std::fmt::Display for Violation {\n\
     \    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {\n\
     \        match self {\n\
-    \            Violation::ConstraintFailed { expr } => write!(f, \"constraint failed: {expr}\"),\n\
-    \            Violation::NoMatchingTransition => write!(f, \"no matching transition\"),\n\
+    \            Violation::ConstraintFailed { expr } => write!(f, \
+     \"constraint failed: {expr}\"),\n\
+    \            Violation::NoMatchingTransition => write!(f, \"no matching \
+     transition\"),\n\
     \            Violation::AlreadyFailed => write!(f, \"already failed\"),\n\
     \        }\n\
     \    }\n\
-     }\n\
-     \n\
+     }\n\n\
      impl std::error::Error for Violation {}\n"
 
 let generate_direction buffer =
