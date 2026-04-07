@@ -188,7 +188,7 @@ let main args global_actions local_actions =
       if args.enumerate then
         Nuscrlib.enumerate ast
         |> List.map ~f:(fun (n, r) ->
-               RoleName.user r ^ "@" ^ ProtocolName.user n )
+            RoleName.user r ^ "@" ^ ProtocolName.user n )
         |> String.concat ~sep:"\n" |> print_endline
     in
     `Ok ()

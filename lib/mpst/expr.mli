@@ -9,13 +9,13 @@ open Syntax.Exprs
 (** An expression, used in RefinementType extension
 
     {v
- type t =
-   | Var of VariableName.t  (** A variable *)
-   | Int of int  (** An integer constant *)
-   | Bool of bool  (** An boolean constant *)
-   | String of string  (** A string literal *)
-   | Binop of binop * t * t  (** A binary operator *)
-   | Unop of unop * t  (** An unary operator *)
+    type t =
+      | Var of VariableName.t  (** A variable *)
+      | Int of int  (** An integer constant *)
+      | Bool of bool  (** An boolean constant *)
+      | String of string  (** A string literal *)
+      | Binop of binop * t * t  (** A binary operator *)
+      | Unop of unop * t  (** An unary operator *)
     v} *)
 type t = expr [@@deriving sexp_of, eq, ord, show]
 
