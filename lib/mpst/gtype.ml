@@ -447,23 +447,25 @@ let validate_refinements_exn t =
   in
   let ensure_progress env gs =
     let tyenv, _, _ = env in
-    let rec gather_first_message = function
+    let rec gather_first_message_and_rec_var = function
       | MessageG (m, _, _, _) -> ([m.payload], [])
       | ChoiceG (_, gs) ->
           let payloads, rec_vars =
-            List.unzip (List.map ~f:gather_first_message gs)
+            List.unzip (List.map ~f:gather_first_message_and_rec_var gs)
           in
           (List.concat payloads, List.concat rec_vars)
       | MuG (_, rec_vars, g) ->
-          let payloads, inner_rec_vars = gather_first_message g in
+          let payloads, inner_rec_vars =
+            gather_first_message_and_rec_var g
+          in
           (payloads, rec_vars @ inner_rec_vars)
-      | TVarG (_, _, g) -> gather_first_message (Lazy.force g)
+      | TVarG (_, _, g) -> gather_first_message_and_rec_var (Lazy.force g)
       | EndG -> ([], [])
       | CallG _ -> ([], [])
     in
     let first_messages, rec_vars =
       let payloads, rec_vars =
-        List.unzip (List.map ~f:gather_first_message gs)
+        List.unzip (List.map ~f:gather_first_message_and_rec_var gs)
       in
       (List.concat payloads, List.concat rec_vars)
     in
