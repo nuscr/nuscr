@@ -47,6 +47,31 @@ The protocol with recursion variable should be well-formed.
     continue X [count + 1];
   }
 
+Multiple recursion variables on the same recursion label should be supported.
+
+  $ nuscr Recursion.nuscr --project A@Recursion3 --show-solver-queries
+  (declare-const count Int)
+  (declare-const freshvar$2 Int)
+  (assert (not (>= count 0)))
+  (assert (= freshvar$2 0))
+  (assert (= freshvar$2 count))
+  (check-sat)
+  
+  (declare-const count Int)
+  (declare-const curr Int)
+  (declare-const freshvar$3 Int)
+  (assert (not (>= count 0)))
+  (assert (= freshvar$3 (+ count 1)))
+  (assert (= freshvar$3 count))
+  (assert (= curr count))
+  (assert (>= count 0))
+  (check-sat)
+  
+  rec X [count<A, B>: int = 0, total<A, B>: int = 0] {
+    Add(curr: (curr:int{curr = count}), sum: (sum:int{sum = total})) to B;
+    continue X [count + 1, total + curr];
+  }
+
 When projected on B, the recursion variable `count` should not appear.
 
   $ nuscr Recursion.nuscr --project B@Recursion1
