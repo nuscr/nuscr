@@ -14,3 +14,10 @@ global protocol Recursion2(role A, role B) {
         continue X [count + 1];
     }
 }
+
+global protocol Recursion3(role A, role B) {
+    rec X [count<A, B>: int = 0, total<A, B>: int = 0] {
+        Add(curr: int{curr = count}, sum: int{sum = total}) from A to B;
+        continue X [count + 1, total + curr];
+    }
+}

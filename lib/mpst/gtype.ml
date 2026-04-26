@@ -524,25 +524,29 @@ let validate_refinements_exn t =
         List.iter ~f:(aux env) gs ;
         if Pragma.validate_refinement_progress () then ensure_progress env gs
     | MuG (tvar, rec_vars, g) ->
-        let f (tenv, rvenv, role_knowledge)
-            {rv_name; rv_ty; rv_init_expr; rv_roles} =
+        let tenv, rvenv, role_knowledge = env in
+        let rvenv = Map.set ~key:tvar ~data:rec_vars rvenv in
+        let f (tenv, role_knowledge) {rv_name; rv_ty; rv_init_expr; rv_roles}
+            =
           if Expr.is_well_formed_type tenv rv_ty then
             if Expr.check_type tenv rv_init_expr rv_ty then
               let tenv = Expr.env_append tenv rv_name rv_ty in
-              let rvenv = Map.add_exn ~key:tvar ~data:rec_vars rvenv in
               let role_knowledge =
                 List.fold ~init:role_knowledge
                   ~f:(fun acc role -> knowledge_add acc role rv_name)
                   rv_roles
               in
-              (tenv, rvenv, role_knowledge)
+              (tenv, role_knowledge)
             else
               uerr
                 (TypeError
                    (Expr.show rv_init_expr, Expr.show_payload_type rv_ty) )
           else uerr (IllFormedPayloadType (Expr.show_payload_type rv_ty))
         in
-        let env = List.fold ~init:env ~f rec_vars in
+        let tenv, role_knowledge =
+          List.fold ~init:(tenv, role_knowledge) ~f rec_vars
+        in
+        let env = (tenv, rvenv, role_knowledge) in
         aux env g
     | TVarG (tvar, rec_exprs, _) -> (
         let tenv, rvenv, role_knowledge = env in
