@@ -1,0 +1,8 @@
+(*# RefinementTypes #*)
+
+global protocol Unbound(role A, role B) {
+    rec X [count<C>: int = 0] {
+        Num(curr: int{curr = count}) from A to B;
+        continue X [count + 1];
+    }
+}

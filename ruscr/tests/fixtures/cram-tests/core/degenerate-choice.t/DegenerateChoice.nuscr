@@ -1,0 +1,5 @@
+global protocol DegenerateChoice (role A, role B) {
+  choice at A {
+    Foo() from A to B;
+  }
+}

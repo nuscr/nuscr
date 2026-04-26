@@ -1,0 +1,12 @@
+(*# RefinementTypes #*)
+
+global protocol Confuse(role A, role B, role C) {
+  choice at A {
+    Foo(x: int) from A to B;
+    FooFoo(xxx: int) from A to B;
+    One(xx: int) from B to C;
+  } or {
+    Bar(y: int) from A to B;
+    One(xx: int) from A to C;
+  }
+}

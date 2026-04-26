@@ -1,0 +1,6 @@
+(*# RefinementTypes, ValidateRefinementSatisfiability #*)
+
+global protocol Unsat(role A, role B) {
+    Hello(x: int{x > 0}) from A to B;
+    Bye(y: int{y > x && y < 0}) from B to A;
+}

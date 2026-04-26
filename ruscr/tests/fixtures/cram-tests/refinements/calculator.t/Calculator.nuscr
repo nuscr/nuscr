@@ -1,0 +1,13 @@
+(*# RefinementTypes #*)
+
+global protocol Calc(role S, role C) {
+    choice at C {
+        Bye() from C to S;
+        Bye() from S to C;
+    } or {
+        Add(x: int) from C to S;
+        Add(y: int) from C to S;
+        Sum(z: int{z = x + y}) from S to C;
+        do Calc(S, C);
+    }
+}

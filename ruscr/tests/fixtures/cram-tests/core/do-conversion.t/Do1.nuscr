@@ -1,0 +1,5 @@
+global protocol PingPong(role A, role B) {
+  Ping from A to B;
+  Pong from B to A;
+  do PingPong(A, B);
+}

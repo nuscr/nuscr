@@ -1,0 +1,5 @@
+(*# ThisPragmaShouldNotExist #*)
+
+global protocol Hello(role A, role B) {
+    Hello() from A to B;
+}

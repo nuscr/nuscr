@@ -1,0 +1,10 @@
+(executable
+ (name AdderMonadic)
+ (modules AdderMonadic C S)
+ (libraries threads)
+ (optional))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))

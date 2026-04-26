@@ -1,0 +1,13 @@
+global protocol Unable(role A, role B) {
+    choice at A {
+        rec X [x<A>: int = 0] {
+            Hello() from A to B;
+            continue X [x + 1];
+        }
+    } or {
+        rec Y [y<A>: int = 0] {
+            Hola() from A to B;
+            continue Y [y + 1];
+        }
+    }
+}

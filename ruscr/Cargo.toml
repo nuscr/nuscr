@@ -1,0 +1,14 @@
+[package]
+name = "ruscr"
+version = "0.1.0"
+edition = "2021"
+description = "Rust prototype port of nuScr core protocol tooling"
+license = "MIT"
+
+[lib]
+name = "ruscr"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ruscr"
+path = "src/main.rs"

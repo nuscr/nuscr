@@ -1,0 +1,13 @@
+global protocol NonRec(role A, role B) {
+  Foo() from A to B;
+}
+global protocol Recursive(role A, role B) {
+  rec X {
+    Foo() from A to B;
+    continue X;
+  }
+}
+global protocol RecursiveDo(role A, role B) {
+  Foo() from A to B;
+  do RecursiveDo(A, B);
+}

@@ -1,0 +1,13 @@
+(*# RefinementTypes #*)
+
+global protocol MergeMulti(role A, role B, role C, role D) {
+  choice at A {
+    One(x: int) from A to B;
+    One(xx: int) from B to C;
+    One(xxx: int) from C to D;
+  } or {
+    Two(y: int) from A to B;
+    Two(yy: int) from B to C;
+    Two(yyy: int) from C to D;
+  }
+}

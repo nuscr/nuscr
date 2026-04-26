@@ -1,0 +1,8 @@
+global protocol Ambiguous(role A, role B) {
+  choice at A {
+    m() from A to B;
+  } or {
+    m() from A to B;
+    mm() from A to B;
+  }
+}

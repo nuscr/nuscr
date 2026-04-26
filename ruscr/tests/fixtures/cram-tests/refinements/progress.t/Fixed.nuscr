@@ -1,0 +1,10 @@
+(*# RefinementTypes, ValidateRefinementProgress #*)
+
+global protocol Stuck(role A, role B) {
+    Num(x: int{x <> 0}) from A to B;
+    choice at B {
+        Pos(ignore: unit{x > 0}) from B to A;
+    } or {
+        Neg(ignore: unit{x < 0}) from B to A;
+    }
+}

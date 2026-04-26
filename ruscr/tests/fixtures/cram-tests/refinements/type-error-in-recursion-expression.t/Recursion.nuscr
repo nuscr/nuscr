@@ -1,0 +1,8 @@
+(*# RefinementTypes #*)
+
+global protocol Recursion1(role A, role B) {
+    rec X [count<A>: int = 0] {
+        Num(curr: int{curr = count}) from A to B;
+        continue X [false];
+    }
+}
