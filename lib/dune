@@ -17,8 +17,7 @@
   process
   sedlex
   menhirLib
-  ocaml-protoc-plugin
-  ppx_expect.common)
+  ocaml-protoc-plugin)
  (inline_tests)
  (library_flags (-linkall))
  (preprocess
