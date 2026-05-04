@@ -1,4 +1,4 @@
-Duplicate labels where only one branch has a refinement should be rejected.
+Duplicate labels with disjoint payload guards and extra state-dependent refinement should be accepted.
   $ nuscr --project B@Dup Dup.nuscr
   PrevMsg(y: int) from A;
   choice at A {
