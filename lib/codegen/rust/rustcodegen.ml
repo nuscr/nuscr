@@ -40,6 +40,8 @@ let generate_monitor_struct buffer protocol_name =
     (Printf.sprintf "pub struct %sMonitor { state: %sState }\n" protocol_name
        protocol_name )
 
+let validate_action_payloads g = validate_label_direction_payloads g
+
 let fmt_state_variant state fields =
   match fields with
   | [] -> Printf.sprintf "S%d" state
@@ -307,6 +309,7 @@ let generate_impl buffer start g protocol_name var_map rec_var_info =
   Buffer.add_string buffer "}\n"
 
 let gen_code (start, (g, rec_var_info)) ~protocol =
+  validate_action_payloads g ;
   let rec_var_info = rm_silent_var rec_var_info in
   let var_map = compute_var_map start g rec_var_info in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in
@@ -360,6 +363,7 @@ let generate_action buffer g =
   Buffer.add_string buffer "}\n"
 
 let gen_test_code (start, (g, rec_var_info)) ~protocol =
+  validate_action_payloads g ;
   let rec_var_info = rm_silent_var rec_var_info in
   let var_map = compute_var_map start g rec_var_info in
   let protocol_name = upper_camel_case @@ ProtocolName.user protocol in

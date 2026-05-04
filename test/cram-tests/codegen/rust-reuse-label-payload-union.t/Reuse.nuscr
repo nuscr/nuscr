@@ -1,0 +1,5 @@
+global protocol Reuse(role C, role S) {
+  msg(x: int) from C to S;
+  ack() from S to C;
+  msg(ok: bool) from C to S;
+}

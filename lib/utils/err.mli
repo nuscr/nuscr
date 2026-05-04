@@ -35,9 +35,11 @@ type user_error =
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
   | RustKeywordConflict of VariableName.t
+  | RustIncompatibleActionPayloads of LabelName.t
   | GuardedChoiceError of LabelName.t * guard_error
 [@@deriving sexp_of]
 
+(** Reason duplicate labels cannot be accepted under guarded uniqueness. *)
 and guard_error = IncompatiblePayloads | MissingGuard | OverlappingGuards
 [@@deriving sexp_of]
 
@@ -47,6 +49,7 @@ exception UserError of user_error
 [@@deriving sexp_of]
 
 val show_user_error : user_error -> string
+(** Format a user-facing error message. *)
 
 (** A Violation is reported when an impossible state was reached. It has to
     be considered a bug even when the fix is to change the Violation to a

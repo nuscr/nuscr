@@ -7,8 +7,12 @@ open Gtype
 open Efsm
 
 val upper_camel_case : string -> string
+(** Convert a label or protocol fragment to the Rust enum/type casing used by
+    the generated monitor. *)
 
 val find_payload_vars : message -> (VariableName.t * Expr.payload_type) list
+(** Return the named value payloads carried by a message, dropping unnamed
+    payloads and delegated protocol payloads. *)
 
 val rm_silent_var : rec_var_info -> rec_var list Map.M(Int).t
 (** Strip the [bool] silent-flag from [rec_var_info], raising on any silent
@@ -28,6 +32,13 @@ val collect_labels_with_fields :
 (** Collect every unique label in the EFSM and, for each, the union of all
     named payload fields across all edges that use that label. *)
 
+val validate_label_direction_payloads : G.t -> unit
+(** Raise {!Err.UserError} when the same label and direction are reused with
+    incompatible Rust-visible fields. *)
+
+(** One EFSM branch handled by a generated [step] match arm. [sb_m] is the
+    branch message, [sb_rannot] carries refinement and recursion updates, and
+    [sb_dst] is the destination state. *)
 type step_branch =
   {sb_m: message; sb_rannot: refinement_action_annot; sb_dst: state}
 
