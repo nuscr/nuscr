@@ -32,6 +32,10 @@ val collect_labels_with_fields :
 (** Collect every unique label in the EFSM and, for each, the union of all
     named payload fields across all edges that use that label. *)
 
+val validate_label_direction_payloads : G.t -> unit
+(** Raise {!Err.UserError} when the same label and direction are reused with
+    incompatible Rust-visible fields. *)
+
 (** One EFSM branch handled by a generated [step] match arm. [sb_m] is the
     branch message, [sb_rannot] carries refinement and recursion updates, and
     [sb_dst] is the destination state. *)
