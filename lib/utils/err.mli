@@ -35,6 +35,7 @@ type user_error =
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
   | RustKeywordConflict of VariableName.t
+  | RustIncompatibleActionPayloads of LabelName.t
   | GuardedChoiceError of LabelName.t * guard_error
 [@@deriving sexp_of]
 

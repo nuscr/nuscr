@@ -43,6 +43,7 @@ type user_error =
   | StuckRefinement (* TODO: Extra Message for error reporting *)
   | UnguardedTypeVariable of TypeVariableName.t
   | RustKeywordConflict of VariableName.t
+  | RustIncompatibleActionPayloads of LabelName.t
   | GuardedChoiceError of LabelName.t * guard_error
 [@@deriving sexp_of]
 
@@ -149,6 +150,13 @@ let show_user_error = function
       sprintf
         "Payload variable '%s' is a Rust keyword; rename it in the protocol"
         (VariableName.user v)
+  | RustIncompatibleActionPayloads l ->
+      sprintf
+        "Rust codegen cannot reuse label '%s' with incompatible payload \
+         fields at %s; every occurrence of a label must have the same Rust \
+         field names and base types"
+        (LabelName.user l)
+        (Loc.show (LabelName.where l))
   | GuardedChoiceError (l, reason) ->
       let reason_str =
         match reason with

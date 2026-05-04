@@ -62,6 +62,11 @@ let stripped_payload_fields m =
         Some (VariableName.of_string stripped, ty)
     | _ -> None )
 
+let rust_payload_fields_compatible p1 p2 =
+  List.length p1 = List.length p2
+  && List.for_all2_exn p1 p2 ~f:(fun (v1, t1) (v2, t2) ->
+      VariableName.equal v1 v2 && Expr.equal_payload_type_basic t1 t2 )
+
 let collect_labels_with_fields g =
   let f (_, a, _) acc =
     match a with
@@ -74,6 +79,24 @@ let collect_labels_with_fields g =
     | Epsilon -> acc
   in
   G.fold_edges_e f g (Map.empty (module String))
+
+let validate_label_direction_payloads g =
+  let f (_, a, _) acc =
+    match a with
+    | SendA (_, m, _) | RecvA (_, m, _) -> (
+        let dir = match a with SendA _ -> "Send" | _ -> "Recv" in
+        let label = upper_camel_case (LabelName.user m.label) in
+        let key = Printf.sprintf "%s:%s" dir label in
+        let vars = stripped_payload_fields m in
+        match Map.find acc key with
+        | None -> Map.set acc ~key ~data:vars
+        | Some existing ->
+            if not (rust_payload_fields_compatible existing vars) then
+              Err.uerr (Err.RustIncompatibleActionPayloads m.label) ;
+            acc )
+    | Epsilon -> acc
+  in
+  ignore (G.fold_edges_e f g (Map.empty (module String)))
 
 type step_branch =
   {sb_m: message; sb_rannot: refinement_action_annot; sb_dst: state}
