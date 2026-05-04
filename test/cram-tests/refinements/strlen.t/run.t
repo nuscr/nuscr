@@ -44,5 +44,6 @@ PasswordManager2 has a too short initial password, and an error is expected.
   (assert (= freshvar$0 stored_pass))
   (check-sat)
   
-  nuscr: User error: Type Error: Expression "pass" should be of type (stored_pass:string{len(stored_pass) >= 6})
+  nuscr: User error: Type Error: Expression "pass" should be of type
+         (stored_pass:string{len(stored_pass) >= 6})
   [124]
