@@ -111,9 +111,13 @@ val generate_fstar_code :
 
 val generate_rust_monitor_code :
   scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
+(** Generate Rust monitor code for [role] in [protocol]. The returned source
+    contains the monitor state machine, action type, and violation type. *)
 
 val generate_rust_test_code :
   scr_module -> protocol:ProtocolName.t -> role:RoleName.t -> string
+(** Generate Rust monitor code plus test support definitions, suitable for
+    compiling directly in cram tests. *)
 
 module Pragma = Pragma
 module Expr = Expr

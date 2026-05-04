@@ -15,7 +15,10 @@ type t =
 [@@deriving show]
 
 val pragma_of_string : string -> t
+(** Parse a pragma name as it appears in source text or command-line flags.
+*)
 
+(** Parsed pragmas and their optional argument values. *)
 type pragmas = (t * string option) list [@@deriving show]
 
 val solver_show_queries : unit -> bool
@@ -63,7 +66,8 @@ val set_validate_refinement_progress : bool -> unit
 (** Set validate_refinement_progress *)
 
 val guarded_uniqueness : unit -> bool
-(** Allow non-distinct labels in a choice *)
+(** Allow duplicate labels in a choice when payloads match and guards are
+    provably disjoint. *)
 
 val set_guarded_uniqueness : bool -> unit
 (** Set guarded_uniqueness_enabled *)

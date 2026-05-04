@@ -17,8 +17,9 @@ val strip_trailing_underscores : string -> string
     names (e.g. [x_], [x__]) back to the base field name [x]. *)
 
 val rust_action_pattern : string -> string -> payload list -> string
-(** Build a Rust Action with direction and fields *)
+(** Build the Rust pattern for matching an [Action] by direction, label, and
+    named payload fields. *)
 
 val rust_payload_constraints : payload list -> string option
-(** Extract refinement predicates from payloads, conjoined with &&. Returns
-    [None] when no payloads carry refinements. *)
+(** Extract payload-local refinement predicates from payloads and conjoin
+    them with [&&]. Returns [None] when no payloads carry refinements. *)
