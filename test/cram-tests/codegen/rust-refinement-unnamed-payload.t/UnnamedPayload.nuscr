@@ -5,7 +5,7 @@ global protocol UnnamedPayload(role C, role S) {
     choice at C {
       add(x: int{x > 0}, y: int{y > 0}) from C to S;
       sum(int{x > y}) from S to C;
-      continue loop [total + r];
+      continue loop [total + x];
     } or {
       bye() from C to S;
       bye() from S to C;

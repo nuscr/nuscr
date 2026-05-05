@@ -62,6 +62,13 @@
 %{
 open Syntax
 open Names
+
+let dummy_var_counter = ref 0
+
+let fresh_dummy_var loc =
+  let n = !dummy_var_counter in
+  incr dummy_var_counter ;
+  VariableName.create ("_dummy" ^ string_of_int n) loc
 %}
 %%
 
@@ -75,8 +82,11 @@ let pragma_decl :=
 let pragmas :=
   | PRAGMA_START; ps = separated_list(COMMA, pragma_decl) ; PRAGMA_END ; { ps }
 
+let reset_dummy_vars == { dummy_var_counter := 0 }
+
 (* A file is parsed into a module *)
 let scr_module :=
+  reset_dummy_vars ;
   pgs = pragmas? ; (* Pragma must be at the beginning of a file *)
   nps = nested_protocol_decl* ;
   ps = protocol_decl* ;
@@ -241,6 +251,8 @@ let payload_el ==
   | nm = create_payload(qname) ; < PayloadName >
   | v = varname ; COLON ; t = payloadtypename; LCURLY; e = expr; RCURLY;
     { PayloadRTy (Refined (v, t, e)) }
+  | t = payloadtypename; LCURLY; e = expr; RCURLY;
+    { PayloadRTy (Refined (fresh_dummy_var (Loc.create $loc), t, e)) }
   | ~ = varname ; COLON ; ~ = create_payload(qname) ; < PayloadBnd >
 
 let annotation == ARROBA ; ann = EXTIDENT ; { ann }
