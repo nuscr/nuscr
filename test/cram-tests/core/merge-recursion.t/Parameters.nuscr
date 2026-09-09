@@ -1,0 +1,15 @@
+(*# RefinementTypes #*)
+
+global protocol Parameters(role A, role B, role C) {
+  rec Loop [count<A, B>: int = 0] {
+    Foo() from A to B;
+    choice at C {
+      Bar() from C to A;
+      Baz() from A to B;
+      continue Loop [count + 1];
+    } or {
+      Qux() from C to A;
+      continue Loop [count + 1];
+    }
+  }
+}

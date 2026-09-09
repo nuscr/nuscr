@@ -1,0 +1,16 @@
+// A role cannot wait for inputs from different peers at one state.
+global protocol Senders(role A, role B, role C) {
+  choice at C {
+    One() from C to A;
+    rec X {
+      Tick() from A to B;
+      continue X;
+    }
+  } or {
+    Two() from C to A;
+    rec Y {
+      Tock() from C to B;
+      continue Y;
+    }
+  }
+}

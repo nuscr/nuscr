@@ -1,0 +1,11 @@
+global protocol Example1(role A, role B) {
+  rec Loop {
+    Foo() from A to B;
+    choice at A {
+      Bar() from A to B;
+      continue Loop;
+    } or {
+      continue Loop;
+    }
+  }
+}
