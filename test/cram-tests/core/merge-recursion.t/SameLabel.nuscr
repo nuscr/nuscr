@@ -1,0 +1,17 @@
+global protocol SameLabel(role A, role B, role C) {
+  choice at C {
+    One() from C to A;
+    rec X {
+      Tick() from A to B;
+      Left() from A to B;
+      continue X;
+    }
+  } or {
+    Two() from C to A;
+    rec X {
+      Tick() from A to B;
+      Right() from A to B;
+      continue X;
+    }
+  }
+}

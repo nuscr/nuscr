@@ -1,5 +1,4 @@
-// This protocol should be valid, but current merging function
-// does not handle it because merging does not handle recursion
+// The receiver distinguishes the finite and recursive branches by their labels.
 global protocol MultipartyChoice(role C, role S, role D) {
   m2() from C to S;
   choice at C {

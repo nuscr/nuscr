@@ -3,3 +3,9 @@
  (libraries nuscr.lib base stdio)
  (deps
   (source_tree examples)))
+
+(test
+ (name recursive_merge)
+ (libraries nuscr.lib base stdio)
+ (deps
+  (source_tree cram-tests/core/merge-recursion.t)))

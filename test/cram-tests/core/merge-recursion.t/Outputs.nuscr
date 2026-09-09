@@ -1,0 +1,26 @@
+// An uninvolved choice must preserve the same internal choice in both loops.
+global protocol Outputs(role A, role B, role C) {
+  choice at C {
+    One() from C to A;
+    rec X {
+      choice at B {
+        Ping() from B to A;
+        continue X;
+      } or {
+        Pong() from B to A;
+        continue X;
+      }
+    }
+  } or {
+    Two() from C to A;
+    rec Y {
+      choice at B {
+        Ping() from B to A;
+        continue Y;
+      } or {
+        Pong() from B to A;
+        continue Y;
+      }
+    }
+  }
+}

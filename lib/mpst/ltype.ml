@@ -428,6 +428,28 @@ let new_project_env =
   ; silent_vars= Set.empty (module VariableName)
   ; unguarded_tv= Set.empty (module TypeVariableName) }
 
+(* Projection keeps uninvolved choices explicit until all recursion binders
+   have been constructed. This representation never escapes this module. *)
+module Pending = struct
+  type t =
+    | RecvL of message * RoleName.t * t
+    | SendL of message * RoleName.t * t
+    | ChoiceL of RoleName.t * t list
+    | TVarL of TypeVariableName.t * Expr.t list
+    | MuL of TypeVariableName.t * (bool * Gtype.rec_var) list * t
+    | EndL
+    | InviteCreateL of RoleName.t list * RoleName.t list * ProtocolName.t * t
+    | AcceptL of
+        RoleName.t
+        * ProtocolName.t
+        * RoleName.t list
+        * RoleName.t list
+        * RoleName.t
+        * t
+    | SilentL of VariableName.t * Expr.payload_type * t
+    | MergeL of t list
+end
+
 let rec project' env (projected_role : RoleName.t) =
   let check_expr silent_vars e =
     let free_vars = Expr.free_var e in
@@ -437,10 +459,10 @@ let rec project' env (projected_role : RoleName.t) =
         (UnknownVariableValue (projected_role, Set.choose_exn unknown_vars))
   in
   function
-  | EndG -> EndL
+  | EndG -> Pending.EndL
   | TVarG (name, _, _) when Set.mem env.unguarded_tv name ->
       (* Type variable unguarded *)
-      EndL
+      Pending.EndL
   | TVarG (name, rec_exprs, _) ->
       let {rvenv; silent_vars; _} = env in
       let rec_expr_filter = Map.find_exn rvenv name in
@@ -451,7 +473,7 @@ let rec project' env (projected_role : RoleName.t) =
       in
       let rec_exprs = List.filter_opt rec_exprs in
       List.iter ~f:(check_expr silent_vars) rec_exprs ;
-      TVarL (name, rec_exprs)
+      Pending.TVarL (name, rec_exprs)
   | MuG (name, rec_exprs, g_type) -> (
       let rec_exprs =
         List.map
@@ -477,22 +499,22 @@ let rec project' env (projected_role : RoleName.t) =
         {env with rvenv; silent_vars; unguarded_tv= Set.add unguarded_tv name}
       in
       match project' env projected_role g_type with
-      | TVarL _ | EndL -> EndL
-      | lType -> MuL (name, rec_exprs, lType) )
+      | Pending.TVarL _ | Pending.EndL -> Pending.EndL
+      | lType -> Pending.MuL (name, rec_exprs, lType) )
   | MessageG (m, send_r, recv_r, g_type) -> (
       let next env = project' env projected_role g_type in
       match projected_role with
       (* When projected role is involved in an interaction, reset
          unguarded_tv *)
       | _ when RoleName.equal projected_role send_r ->
-          SendL
+          Pending.SendL
             ( m
             , recv_r
             , next
                 {env with unguarded_tv= Set.empty (module TypeVariableName)}
             )
       | _ when RoleName.equal projected_role recv_r ->
-          RecvL
+          Pending.RecvL
             ( m
             , send_r
             , next
@@ -520,7 +542,7 @@ let rec project' env (projected_role : RoleName.t) =
             in
             let env = {env with silent_vars} in
             List.fold ~init:(next env)
-              ~f:(fun acc (var, t) -> SilentL (var, t, acc))
+              ~f:(fun acc (var, t) -> Pending.SilentL (var, t, acc))
               named_payloads )
   | ChoiceG (choice_r, g_types) -> (
       let check_distinct_prefix gtys =
@@ -595,11 +617,8 @@ let rec project' env (projected_role : RoleName.t) =
              || RoleName.equal projected_role recv_r -> (
         match l_types with
         | [ltype] -> ltype
-        | _ -> ChoiceL (choice_r, l_types) )
-      | _ -> (
-        match List.reduce ~f:(merge projected_role) l_types with
-        | Some l -> l
-        | None -> EndL ) )
+        | _ -> Pending.ChoiceL (choice_r, l_types) )
+      | _ -> Pending.MergeL l_types )
   | CallG (caller, protocol, roles, g_type) -> (
       (* Reset unguarded_tv *)
       let next =
@@ -615,10 +634,11 @@ let rec project' env (projected_role : RoleName.t) =
         in
         let idx, _ = Option.value_exn role_elem in
         let role_in_proto = List.nth_exn static_roles idx in
-        AcceptL (role_in_proto, protocol, roles, dynamic_roles, caller, next)
+        Pending.AcceptL
+          (role_in_proto, protocol, roles, dynamic_roles, caller, next)
       in
       let gen_invitecreatel next =
-        InviteCreateL (roles, dynamic_roles, protocol, next)
+        Pending.InviteCreateL (roles, dynamic_roles, protocol, next)
       in
       let is_caller = RoleName.equal caller projected_role in
       let is_participant =
@@ -632,13 +652,219 @@ let rec project' env (projected_role : RoleName.t) =
       | _ when is_participant -> gen_acceptl next
       | _ -> next )
 
-let project projected_role g = project' new_project_env projected_role g
+let rec finish_projection projected_role (pending : Pending.t) : t =
+  let next = finish_projection projected_role in
+  match pending with
+  | Pending.RecvL (m, r, l) -> RecvL (m, r, next l)
+  | Pending.SendL (m, r, l) -> SendL (m, r, next l)
+  | Pending.ChoiceL (r, ls) -> ChoiceL (r, List.map ~f:next ls)
+  | Pending.MergeL ls ->
+      List.map ~f:next ls
+      |> List.reduce ~f:(merge projected_role)
+      |> Option.value ~default:EndL
+  | Pending.MuL (n, rvs, l) -> (
+    match next l with TVarL _ | EndL -> EndL | body -> MuL (n, rvs, body) )
+  | Pending.TVarL (n, es) -> TVarL (n, es)
+  | Pending.EndL -> EndL
+  | Pending.SilentL (v, ty, l) -> SilentL (v, ty, next l)
+  | Pending.InviteCreateL (rs, ns, p, l) -> InviteCreateL (rs, ns, p, next l)
+  | Pending.AcceptL (r, p, rs, ns, caller, l) ->
+      AcceptL (r, p, rs, ns, caller, next l)
+
+module Recursive_merge = struct
+  (* IDs, rather than OCaml object addresses or unfolded syntax, give each
+     recursive obligation a stable identity. The input graph is immutable
+     once construction finishes. *)
+  type node =
+    | Receive of message * RoleName.t * int
+    | Send of message * RoleName.t * int
+    | Choice of RoleName.t * int list
+    | Merge of int list
+    | Alias of int
+    | End
+
+  exception Unsupported
+
+  module State = struct
+    type t = int list [@@deriving sexp_of, ord]
+
+    let hash = Hashtbl.hash
+  end
+
+  let project projected_role pending =
+    let input = Hashtbl.create (module Int) in
+    let fresh table node =
+      let id = Hashtbl.length table in
+      Hashtbl.add_exn table ~key:id ~data:node ;
+      id
+    in
+    let rec build env (pending : Pending.t) =
+      let next = build env in
+      match pending with
+      | Pending.RecvL (m, r, l) -> fresh input (Receive (m, r, next l))
+      | Pending.SendL (m, r, l) -> fresh input (Send (m, r, next l))
+      | Pending.ChoiceL (r, ls) ->
+          fresh input (Choice (r, List.map ~f:next ls))
+      | Pending.MergeL ls -> fresh input (Merge (List.map ~f:next ls))
+      | Pending.MuL (name, [], l) ->
+          let id = fresh input End in
+          let body = build (Map.set env ~key:name ~data:id) l in
+          Hashtbl.set input ~key:id ~data:(Alias body) ;
+          id
+      | Pending.TVarL (name, []) -> Map.find_exn env name
+      | Pending.EndL -> fresh input End
+      (* Unfolding parameterised recursion requires substitution. Silent
+         knowledge and invitations also have their own merge rules; retain
+         the existing projection behavior for these extensions. *)
+      | Pending.MuL _ | Pending.TVarL _ | Pending.SilentL _
+       |Pending.InviteCreateL _ | Pending.AcceptL _ ->
+          raise Unsupported
+    in
+    let root = build (Map.empty (module TypeVariableName)) pending in
+    let output = Hashtbl.create (module Int) in
+    let memo = Hashtbl.create (module State) in
+    (* Resolve only epsilon edges. A cycle is not evidence that actions
+       match: every resulting state must still pass the checks below. *)
+    let frontier ids =
+      let rec visit seen acc = function
+        | [] -> List.dedup_and_sort ~compare:Int.compare acc
+        | id :: rest when Set.mem seen id -> visit seen acc rest
+        | id :: rest -> (
+            let seen = Set.add seen id in
+            match Hashtbl.find_exn input id with
+            | Alias next -> visit seen acc (next :: rest)
+            | Merge next -> visit seen acc (next @ rest)
+            | Choice (r, next) when not (RoleName.equal r projected_role) ->
+                visit seen acc (next @ rest)
+            | _ -> visit seen (id :: acc) rest )
+      in
+      visit (Set.empty (module Int)) [] ids
+    in
+    let rec solve ids =
+      let ids = frontier ids in
+      match Hashtbl.find memo ids with
+      | Some id -> id
+      | None ->
+          let id = fresh output End in
+          (* Reserve the result before solving any continuation. A repeated
+             obligation points here, not to either of its operands. *)
+          Hashtbl.add_exn memo ~key:ids ~data:id ;
+          let nodes = List.map ids ~f:(Hashtbl.find_exn input) in
+          let result =
+            match nodes with
+            | [] -> raise Unsupported
+            | End :: rest ->
+                if
+                  not
+                    (List.for_all rest ~f:(function
+                      | End -> true
+                      | _ -> false ))
+                then raise Unsupported ;
+                End
+            | Receive (_, sender, _) :: _ -> (
+                let groups =
+                  List.fold nodes
+                    ~init:(Map.empty (module LabelName))
+                    ~f:(fun groups -> function
+                      | Receive (m, r, next) when RoleName.equal sender r
+                        -> (
+                        match Map.find groups m.label with
+                        | None ->
+                            Map.set groups ~key:m.label ~data:(m, [next])
+                        | Some (previous, nexts) ->
+                            if
+                              not
+                                (List.equal equal_payload m.payload
+                                   previous.payload )
+                            then raise Unsupported ;
+                            Map.set groups ~key:m.label
+                              ~data:(previous, next :: nexts) )
+                      | _ -> raise Unsupported )
+                in
+                let branches =
+                  Map.data groups
+                  |> List.map ~f:(fun (m, nexts) ->
+                      Receive (m, sender, solve nexts) )
+                in
+                match branches with
+                | [branch] -> branch
+                | _ -> Choice (sender, List.map branches ~f:(fresh output)) )
+            | Send (m, receiver, _) :: _ ->
+                let nexts =
+                  List.map nodes ~f:(function
+                    | Send (m', r, next)
+                      when RoleName.equal receiver r && equal_message m m' ->
+                        next
+                    | _ -> raise Unsupported )
+                in
+                Send (m, receiver, solve nexts)
+            | Choice (r, branches) :: rest ->
+                (* Internal choices must agree; only external receives can
+                   acquire extra alternatives through merge. *)
+                let alternatives =
+                  List.map rest ~f:(function
+                    | Choice (r', bs)
+                      when RoleName.equal r r'
+                           && List.length bs = List.length branches ->
+                        bs
+                    | _ -> raise Unsupported )
+                in
+                Choice
+                  ( r
+                  , List.mapi branches ~f:(fun i branch ->
+                        solve
+                          ( branch
+                          :: List.map alternatives ~f:(fun bs ->
+                              List.nth_exn bs i ) ) ) )
+            | Alias _ :: _ | Merge _ :: _ -> assert false
+          in
+          Hashtbl.set output ~key:id ~data:result ;
+          id
+    in
+    let root = solve [root] in
+    (* Reify with a path-local binder environment. Shared acyclic states may
+       be duplicated, but every back-edge refers to an enclosing binder. *)
+    let used = Hash_set.create (module Int) in
+    let rec reify active id =
+      let name = TypeVariableName.of_string (sprintf "Merge%d" id) in
+      if Set.mem active id then (
+        Hash_set.add used id ;
+        TVarL (name, []) )
+      else
+        let next = reify (Set.add active id) in
+        let body =
+          match Hashtbl.find_exn output id with
+          | Receive (m, r, l) -> RecvL (m, r, next l)
+          | Send (m, r, l) -> SendL (m, r, next l)
+          | Choice (r, ls) -> ChoiceL (r, List.map ~f:next ls)
+          | End -> EndL
+          | Alias _ | Merge _ -> assert false
+        in
+        if Hash_set.mem used id then MuL (name, [], body) else body
+    in
+    reify (Set.empty (module Int)) root
+end
+
+let project_with_env env projected_role g =
+  let pending = project' env projected_role g in
+  (* Keep established output and extension-specific merge behavior whenever
+     structural projection succeeds. Only a failed merge needs the graph
+     solver; other projection errors must propagate unchanged. *)
+  try finish_projection projected_role pending
+  with UserError (UnableToMerge _ as error) -> (
+    try Recursive_merge.project projected_role pending
+    with Recursive_merge.Unsupported -> uerr error )
+
+let project projected_role g =
+  project_with_env new_project_env projected_role g
 
 let project_nested_t (nested_t : Gtype.nested_t) =
   let project_role protocol_name all_roles gtype local_protocols
       projected_role =
     let ltype =
-      project' {new_project_env with penv= nested_t} projected_role gtype
+      project_with_env
+        {new_project_env with penv= nested_t}
+        projected_role gtype
     in
     (* TODO: Fix make unique tvars *)
     Map.add_exn local_protocols
