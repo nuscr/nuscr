@@ -1,0 +1,16 @@
+// The same label cannot distinguish different payload types.
+global protocol Payloads(role A, role B, role C) {
+  choice at C {
+    One() from C to A;
+    rec X {
+      Tick(int) from A to B;
+      continue X;
+    }
+  } or {
+    Two() from C to A;
+    rec Y {
+      Tick(string) from A to B;
+      continue Y;
+    }
+  }
+}

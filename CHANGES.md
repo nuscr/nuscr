@@ -9,6 +9,10 @@
 - Improved pretty printing of global and local types.
 - Improved error message for merge errors by including the role name.
 
+## Fixed
+- Merge across unparameterised recursion during projection, allowing a
+  subsequent loop iteration to distinguish an uninvolved role's choice (#137).
+
 ## Deprecated
 - BREAKING: Scribble-style "module" and "type" declarations were parsed into an
     AST but remain unused, now they are rejected and become parse errors.
