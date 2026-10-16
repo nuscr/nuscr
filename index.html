@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <script charset="utf-8" type="text/javascript" src="live.bc.js" ></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" integrity="sha256-9mbkOfVho3ZPXfM7W8sV2SndrGDuh7wuyLjtsWeTI1Q=" crossorigin="anonymous" />
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.js" integrity="sha256-qs5p0BFSqSvrstBxPvex+zdyrzcyGdHNeNmAirO2zc0=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css">
+    <link rel="stylesheet" href="style.css" />
+    <title>νScr live</title>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/viz.js/2.1.2/viz.js" integrity="sha256-8RHyK+AFzq9iXwbFo2unqidwPbwHU5FFWe3RwkcVtuU=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/viz.js/2.1.2/full.render.js" integrity="sha256-Ogqs510LFnekr9o7OLdpelaaAmNss9egQRTyzCqV2NQ=" crossorigin="anonymous"></script>
+
+    <div class="ui fixed menu">
+      <div class="ui container">
+        <a href="https://nuscr.github.io/" class="header item">
+          <img class="logo" src="nuScr.png">
+          νScr
+        </a>
+        <a href="docs" class="item">Documentation</a>
+        <a href="https://github.com/nuscr/nuscr" class="item">GitHub</a>
+      </div>
+    </div>
+
+    <div class="ui main container">
+      <h1 class="ui header">
+        <img src="nuScr.png" alt="nuScr Logo" />
+        νScr live
+      </h1>
+
+      <div class="ui negative message" id="errorbox" hidden></div>
+
+      <div class="ui grid">
+        <div class="eight wide column">
+          <h2>Global protocol</h2>
+          <textarea rows="30" id="protocol-textarea" default="Enter text..."></textarea>
+          <br />
+          <select required class="ui dropdown" id="examples">
+            <option value="" disabled selected hidden>Load an example</option>
+          </select>
+          <button class="ui button" id="button">Analyse</button>
+        </div>
+        <div class="eight wide column">
+          <h2>Local types</h2>
+          <div id="roles"></div>
+          <pre id="projected"/></pre>
+          <div id="efsm"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
